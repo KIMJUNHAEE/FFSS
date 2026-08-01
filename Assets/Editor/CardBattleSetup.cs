@@ -215,7 +215,7 @@ namespace CardBattle.EditorTools
 
             var enemyPortraitSprite = LoadSpriteAtPath("Assets/Enemy/38.png");
             var enemyIdleFrames = LoadSpriteFolder("Assets/Enemy/38_Idle");
-            var enemyAttackFrames = LoadSpriteFolder("Assets/Enemy/38_Attack");
+            var enemyAttackFrames = LoadSpriteFolder("Assets/Enemy/38_NomalAttack");
             var enemyHurtFrames = LoadSpriteFolder("Assets/Enemy/38_Hurt");
             var enemyDeathFrames = LoadSpriteFolder("Assets/Enemy/38_Death");
             if (enemyPortraitSprite == null && enemyIdleFrames.Count == 0)
@@ -270,7 +270,7 @@ namespace CardBattle.EditorTools
             EnemySpriteAnimator enemyAnimator = null;
             if (enemyIdleFrames.Count > 0 || enemyPortraitSprite != null)
             {
-                var enemyPortrait = CreatePanel("EnemyPortrait", canvasT, new Vector2(0.32f, 0.475f), new Vector2(0.68f, 0.97f), Color.white);
+                var enemyPortrait = CreatePanel("EnemyPortrait", canvasT, new Vector2(0.32f, 0.40f), new Vector2(0.68f, 0.99f), Color.white);
                 enemyPortrait.sprite = enemyIdleFrames.Count > 0 ? enemyIdleFrames[0] : enemyPortraitSprite;
                 enemyPortrait.preserveAspect = true;
                 enemyPortrait.raycastTarget = false;

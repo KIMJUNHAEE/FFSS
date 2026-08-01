@@ -62,7 +62,11 @@ namespace CardBattle
 
         private IEnumerator PlayRoutine(SpriteSequence sequence, EnemyAnimState state, Action onComplete)
         {
-            if (sequence == null || sequence.frames.Count == 0 || targetImage == null) yield break;
+            if (sequence == null || sequence.frames.Count == 0 || targetImage == null)
+            {
+                onComplete?.Invoke();
+                yield break;
+            }
 
             float frameDuration = 1f / Mathf.Max(1f, sequence.frameRate);
             int i = 0;

@@ -86,10 +86,11 @@ namespace CardBattle
 
             var enemyAction = enemyStunned ? RpsAction.Stunned : RandomAction();
             if (enemyActionText) enemyActionText.text = ActionLabel(enemyAction);
-            if (enemyAnimator != null && enemyAction == RpsAction.Attack)
-                enemyAnimator.Play(EnemyAnimState.Attack);
 
-            yield return new WaitForSeconds(revealDelay);
+            if (enemyAnimator != null && enemyAction == RpsAction.Attack)
+                yield return PlayAndWait(EnemyAnimState.Attack);
+            else
+                yield return new WaitForSeconds(revealDelay);
 
             int dmgToEnemy = DamageDealt(playerAction, enemyAction);
             int dmgToPlayer = DamageDealt(enemyAction, playerAction);
@@ -106,7 +107,7 @@ namespace CardBattle
             if (enemyAnimator != null)
             {
                 if (enemyHp <= 0) enemyAnimator.Play(EnemyAnimState.Death);
-                else if (dmgToEnemy > 0) enemyAnimator.Play(EnemyAnimState.Hurt);
+                else if (dmgToEnemy > 0) yield return PlayAndWait(EnemyAnimState.Hurt);
             }
 
             if (enemyHp <= 0 || playerHp <= 0)
@@ -121,6 +122,13 @@ namespace CardBattle
                 yield return AutoResolveStunnedRound();
             else
                 SetButtonsInteractable(true);
+        }
+
+        private IEnumerator PlayAndWait(EnemyAnimState state)
+        {
+            bool finished = false;
+            enemyAnimator.Play(state, () => finished = true);
+            yield return new WaitUntil(() => finished);
         }
 
         private int DamageDealt(RpsAction mine, RpsAction theirs)
