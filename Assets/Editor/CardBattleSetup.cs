@@ -33,12 +33,14 @@ namespace CardBattle.EditorTools
             CreateExampleContent();
             BuildCardPrefab();
             BuildPokerCardPrefab();
-            BuildBattleScene();
+            BuildBattleScene38();
+            BuildBattleScene18();
+            BuildBattleScene13();
             BuildBootstrapScene();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/Battle 씬 생성.");
+            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13_BattleScene 생성.");
         }
 
         [MenuItem("Card Battle/Setup/1. Create Example Card And Enemy Data")]
@@ -198,8 +200,20 @@ namespace CardBattle.EditorTools
                 .ToList();
         }
 
-        [MenuItem("Card Battle/Setup/3. Build Battle Scene")]
-        public static void BuildBattleScene()
+        [MenuItem("Card Battle/Setup/3a. Build Battle Scene (38)")]
+        public static void BuildBattleScene38() => BuildBattleSceneFor("38", "38_BattleScene");
+
+        [MenuItem("Card Battle/Setup/3b. Build Battle Scene (18)")]
+        public static void BuildBattleScene18() => BuildBattleSceneFor("18", "18_BattleScene");
+
+        [MenuItem("Card Battle/Setup/3c. Build Battle Scene (13)")]
+        public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene");
+
+        /// <summary>
+        /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
+        /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
+        /// </summary>
+        private static void BuildBattleSceneFor(string enemyId, string sceneFileName)
         {
             var pokerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PokerCard.prefab");
             if (pokerPrefab == null) pokerPrefab = BuildPokerCardPrefab();
@@ -209,17 +223,22 @@ namespace CardBattle.EditorTools
             if (backSprite == null)
                 Debug.LogWarning("[CardBattleSetup] Back-R 스프라이트를 찾지 못했습니다. 덱 더미 표시/딜 애니메이션이 생략됩니다.");
 
-            var backgroundSprite = LoadSpriteAtPath("Assets/BackGround/38BackGround.png");
+            var backgroundSprite = LoadSpriteAtPath($"Assets/BackGround/{enemyId}_BackGround.png");
             if (backgroundSprite == null)
-                Debug.LogWarning("[CardBattleSetup] 배경 스프라이트(38BackGround)를 찾지 못했습니다.");
+                Debug.LogWarning($"[CardBattleSetup] 배경 스프라이트({enemyId}_BackGround)를 찾지 못했습니다.");
 
-            var enemyPortraitSprite = LoadSpriteAtPath("Assets/Enemy/38.png");
-            var enemyIdleFrames = LoadSpriteFolder("Assets/Enemy/38_Idle");
-            var enemyAttackFrames = LoadSpriteFolder("Assets/Enemy/38_NomalAttack");
-            var enemyHurtFrames = LoadSpriteFolder("Assets/Enemy/38_Hurt");
-            var enemyDeathFrames = LoadSpriteFolder("Assets/Enemy/38_Death");
+            var enemyDir = $"Assets/Enemy/{enemyId}";
+            var enemyPortraitSprite = LoadSpriteAtPath($"{enemyDir}/{enemyId}.png");
+            var enemyIdleFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Idle");
+            var enemyAttackFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_NomalAttack");
+            var enemyHurtFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Hurt");
+            var enemyDeathFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Death");
             if (enemyPortraitSprite == null && enemyIdleFrames.Count == 0)
-                Debug.LogWarning("[CardBattleSetup] 적 초상화/애니메이션 스프라이트를 찾지 못했습니다.");
+                Debug.LogWarning($"[CardBattleSetup] 적({enemyId}) 초상화/애니메이션 스프라이트를 찾지 못했습니다.");
+
+            var seotdaSprites = LoadSpriteFolder("Assets/섰다패");
+            if (seotdaSprites.Count == 0)
+                Debug.LogWarning("[CardBattleSetup] 섰다패 스프라이트를 찾지 못했습니다.");
 
             var slime = AssetDatabase.LoadAssetAtPath<EnemyData>($"{EnemyDataDir}/Slime.asset");
             var strike = AssetDatabase.LoadAssetAtPath<CardData>($"{CardDataDir}/Strike.asset");
@@ -309,6 +328,18 @@ namespace CardBattle.EditorTools
             // 손패 족보 표시 (손패 영역 바로 위, 카드를 하나라도 선택하면 숨겨짐)
             var handRankText = CreateText("HandRankText", canvasT, new Vector2(0.28f, 0.34f), new Vector2(0.8f, 0.4f), "", 28, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
 
+            // 섰다 족보 표시 (적 턴에만 활성화, 손패 족보랑 같은 자리 재사용)
+            var seotdaRankText = CreateText("SeotdaRankText", canvasT, new Vector2(0.28f, 0.34f), new Vector2(0.8f, 0.4f), "", 28, TextAnchor.MiddleCenter, new Color(0.5f, 0.85f, 1f));
+            seotdaRankText.gameObject.SetActive(false);
+
+            // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
+            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.44f, 0.03f), new Vector2(0.52f, 0.32f), Color.white);
+            seotdaCardA.preserveAspect = true;
+            seotdaCardA.gameObject.SetActive(false);
+            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.56f, 0.03f), new Vector2(0.64f, 0.32f), Color.white);
+            seotdaCardB.preserveAspect = true;
+            seotdaCardB.gameObject.SetActive(false);
+
             // 손패 영역 (하단 중앙)
             var handPanel = CreatePanel("HandPanel", canvasT, new Vector2(0.28f, 0.02f), new Vector2(0.8f, 0.33f), new Color(1, 1, 1, 0.05f));
             var hlg = handPanel.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -317,6 +348,11 @@ namespace CardBattle.EditorTools
             hlg.childForceExpandWidth = false;
             hlg.childForceExpandHeight = false;
             hlg.padding = new RectOffset(16, 16, 12, 12);
+
+            // 섰다 카드/족보가 HandPanel(반투명 배경)보다 나중에 그려지도록 순서 재조정
+            seotdaCardA.transform.SetAsLastSibling();
+            seotdaCardB.transform.SetAsLastSibling();
+            seotdaRankText.transform.SetAsLastSibling();
 
             // 턴 종료 버튼 (하단 우측)
             var endTurnButton = CreateButton("EndTurnButton", canvasT, new Vector2(0.84f, 0.05f), new Vector2(0.97f, 0.16f), "턴 종료", new Color(0.7f, 0.25f, 0.25f));
@@ -361,6 +397,7 @@ namespace CardBattle.EditorTools
             rps.attackButton = attackButton;
             rps.defendButton = defendButton;
             rps.counterButton = counterButton;
+            rps.endTurnButton = endTurnButton;
             rps.playerHpText = playerHpText;
             rps.playerHpFill = playerHpFill;
             rps.enemyHpText = enemyHpText;
@@ -382,15 +419,23 @@ namespace CardBattle.EditorTools
             if (deckPileImg != null) pokerHand.deckPileTransform = deckPileImg.rectTransform;
             EditorUtility.SetDirty(pokerHand);
 
+            var seotdaGO = new GameObject("SeotdaTableController", typeof(SeotdaTableController));
+            var seotdaTable = seotdaGO.GetComponent<SeotdaTableController>();
+            seotdaTable.deckSprites = seotdaSprites;
+            seotdaTable.cardSlotA = seotdaCardA;
+            seotdaTable.cardSlotB = seotdaCardB;
+            seotdaTable.rankText = seotdaRankText;
+            EditorUtility.SetDirty(seotdaTable);
+
             rps.pokerHand = pokerHand;
             rps.enemyAnimator = enemyAnimator;
+            rps.seotdaTable = seotdaTable;
             EditorUtility.SetDirty(rps);
 
-            UnityEventTools.AddPersistentListener(endTurnButton.onClick, battleManager.EndPlayerTurn);
             UnityEventTools.AddPersistentListener(redrawButton.onClick, pokerHand.Redraw);
 
             Directory.CreateDirectory(SceneDir);
-            EditorSceneManager.SaveScene(scene, $"{SceneDir}/Battle.unity");
+            EditorSceneManager.SaveScene(scene, $"{SceneDir}/{sceneFileName}.unity");
         }
 
         [MenuItem("Card Battle/Setup/4. Build Bootstrap Scene")]
@@ -422,7 +467,9 @@ namespace CardBattle.EditorTools
             }
 
             AddIfMissing($"{SceneDir}/Bootstrap.unity");
-            AddIfMissing($"{SceneDir}/Battle.unity");
+            AddIfMissing($"{SceneDir}/38_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/18_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/13_BattleScene.unity");
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

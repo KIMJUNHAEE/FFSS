@@ -15,6 +15,7 @@ namespace CardBattle
     /// <summary>
     /// 공격/방어/반격 가위바위보 전투. 반격은 공격을 이기고(역공), 방어는 반격을 이기며(스턴),
     /// 공격은 방어에 막힌다. 반격이 방어에 막히면 낸 쪽이 다음 한 턴 동안 행동 불가(스턴).
+    /// 행동 버튼은 선택만 하고, 턴 종료 버튼을 눌러야 실제로 판정이 진행된다.
     /// </summary>
     public class RpsCombatController : MonoBehaviour
     {
@@ -22,11 +23,13 @@ namespace CardBattle
         [SerializeField] private int maxHp = 10;
         [SerializeField] private int attackDamage = 1;
         [SerializeField] private float revealDelay = 0.8f;
+        [SerializeField] private Vector3 selectedButtonScale = new(1.15f, 1.15f, 1.15f);
 
         [Header("버튼")]
         public Button attackButton;
         public Button defendButton;
         public Button counterButton;
+        public Button endTurnButton;
 
         [Header("UI 참조 (기존 HP 바/이름 텍스트 재사용)")]
         public Text playerHpText;
@@ -38,8 +41,11 @@ namespace CardBattle
         public GameObject winPanel;
         public GameObject losePanel;
 
-        [Header("행동 선택 시 손패 전체를 다시 뽑을 카드 컨트롤러")]
+        [Header("턴 종료 시 포커 카드 회수/재딜을 담당하는 컨트롤러")]
         public PokerHandController pokerHand;
+
+        [Header("적 턴에 섰다 2장을 공개하는 테이블")]
+        public SeotdaTableController seotdaTable;
 
         [Header("적 스프라이트 애니메이션")]
         public EnemySpriteAnimator enemyAnimator;
@@ -49,6 +55,7 @@ namespace CardBattle
         private bool playerStunned;
         private bool enemyStunned;
         private bool gameOver;
+        private RpsAction? selectedAction;
 
         private void Start()
         {
@@ -58,6 +65,7 @@ namespace CardBattle
             if (attackButton) attackButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Attack));
             if (defendButton) defendButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Defend));
             if (counterButton) counterButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Counter));
+            if (endTurnButton) endTurnButton.onClick.AddListener(EndTurn);
 
             if (enemyActionText) enemyActionText.text = "";
             if (playerStatusText) playerStatusText.text = "";
@@ -67,8 +75,48 @@ namespace CardBattle
         private void SelectPlayerAction(RpsAction action)
         {
             if (gameOver || playerStunned) return;
-            if (pokerHand) pokerHand.Deal();
-            StartCoroutine(ResolveRound(action));
+            selectedAction = action;
+            UpdateSelectionHighlight();
+        }
+
+        private void EndTurn()
+        {
+            if (gameOver || playerStunned || selectedAction == null) return;
+
+            var action = selectedAction.Value;
+            selectedAction = null;
+            UpdateSelectionHighlight();
+            SetButtonsInteractable(false);
+            if (endTurnButton) endTurnButton.interactable = false;
+
+            StartCoroutine(EndTurnRoutine(action));
+        }
+
+        private IEnumerator EndTurnRoutine(RpsAction playerAction)
+        {
+            if (pokerHand != null)
+            {
+                bool retracted = false;
+                pokerHand.RetractToBacks(() => retracted = true);
+                yield return new WaitUntil(() => retracted);
+            }
+
+            if (seotdaTable != null)
+            {
+                seotdaTable.ShowEnemyHand();
+                yield return new WaitForSeconds(revealDelay);
+            }
+
+            yield return ResolveRound(playerAction);
+
+            if (seotdaTable != null)
+                seotdaTable.HideEnemyHand();
+
+            if (!gameOver)
+            {
+                if (pokerHand != null) pokerHand.Deal();
+                if (endTurnButton) endTurnButton.interactable = true;
+            }
         }
 
         private IEnumerator AutoResolveStunnedRound()
@@ -168,6 +216,19 @@ namespace CardBattle
             if (attackButton) attackButton.interactable = value;
             if (defendButton) defendButton.interactable = value;
             if (counterButton) counterButton.interactable = value;
+        }
+
+        private void UpdateSelectionHighlight()
+        {
+            SetHighlight(attackButton, selectedAction == RpsAction.Attack);
+            SetHighlight(defendButton, selectedAction == RpsAction.Defend);
+            SetHighlight(counterButton, selectedAction == RpsAction.Counter);
+        }
+
+        private void SetHighlight(Button button, bool selected)
+        {
+            if (!button) return;
+            button.transform.localScale = selected ? selectedButtonScale : Vector3.one;
         }
 
         private void UpdateHpUI()

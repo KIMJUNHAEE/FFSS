@@ -20,6 +20,8 @@ namespace CardBattle
         public List<Sprite> frames = new();
         public float frameRate = 10f;
         public bool loop = true;
+        [Tooltip("끝까지 재생 후 다시 처음으로 끊기지 않고, 역재생으로 되돌아왔다가 다시 정재생 (loop가 true일 때만 적용)")]
+        public bool pingPong;
     }
 
     /// <summary>스프라이트 시트를 프레임 단위로 넘겨 재생하는 간단한 플립북 애니메이터.</summary>
@@ -69,14 +71,25 @@ namespace CardBattle
             }
 
             float frameDuration = 1f / Mathf.Max(1f, sequence.frameRate);
+            int lastIndex = sequence.frames.Count - 1;
             int i = 0;
+            int direction = 1;
+
             while (true)
             {
                 targetImage.sprite = sequence.frames[i];
                 yield return new WaitForSeconds(frameDuration);
 
+                if (sequence.loop && sequence.pingPong && lastIndex > 0)
+                {
+                    i += direction;
+                    if (i > lastIndex) { i = lastIndex - 1; direction = -1; }
+                    else if (i < 0) { i = 1; direction = 1; }
+                    continue;
+                }
+
                 i++;
-                if (i < sequence.frames.Count) continue;
+                if (i <= lastIndex) continue;
 
                 if (sequence.loop)
                 {

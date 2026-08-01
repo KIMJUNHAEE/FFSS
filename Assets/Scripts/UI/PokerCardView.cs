@@ -84,6 +84,31 @@ namespace CardBattle
             StartCoroutine(RedrawRoutine(pile, newSprite, outDuration, inDuration));
         }
 
+        /// <summary>현재 자리에서 더미로 곡선을 그리며 물러나며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
+        public void PlayRetractAnimation(RectTransform pile, float duration, Action onComplete = null)
+        {
+            if (visual == null || pile == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            StopAllCoroutines();
+            StartCoroutine(RetractRoutine(pile, duration, onComplete));
+        }
+
+        private IEnumerator RetractRoutine(RectTransform pile, float duration, Action onComplete)
+        {
+            var rootRt = (RectTransform)transform;
+            Vector2 startOffset = visual.anchoredPosition;
+            Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
+
+            SetVisualSprite(backSprite);
+            yield return MoveVisual(startOffset, pileOffset, duration, false, null);
+
+            onComplete?.Invoke();
+        }
+
         private IEnumerator RedrawRoutine(RectTransform pile, Sprite newSprite, float outDuration, float inDuration)
         {
             var rootRt = (RectTransform)transform;

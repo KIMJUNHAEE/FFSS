@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,11 +37,7 @@ namespace CardBattle
         public void Deal()
         {
             if (dealRoutine != null) StopCoroutine(dealRoutine);
-
-            foreach (var card in spawnedCards)
-                if (card) Destroy(card.gameObject);
-            spawnedCards.Clear();
-
+            ClearHand();
             dealRoutine = StartCoroutine(DealRoutine(PickRandomUnique(handSize, new HashSet<Sprite>())));
         }
 
@@ -53,6 +50,42 @@ namespace CardBattle
             var newSprites = PickRandomUnique(toReplace.Count, new HashSet<Sprite>(kept));
 
             dealRoutine = StartCoroutine(RedrawRoutine(toReplace, newSprites));
+        }
+
+        /// <summary>손패의 카드를 전부 더미로 되돌리며 뒷면(Back_R)으로 뒤집고, 끝나면 손패를 비운다.</summary>
+        public void RetractToBacks(Action onComplete = null)
+        {
+            if (dealRoutine != null) StopCoroutine(dealRoutine);
+            dealRoutine = StartCoroutine(RetractRoutine(onComplete));
+        }
+
+        private IEnumerator RetractRoutine(Action onComplete)
+        {
+            if (spawnedCards.Count == 0 || deckPileTransform == null)
+            {
+                ClearHand();
+                dealRoutine = null;
+                onComplete?.Invoke();
+                yield break;
+            }
+
+            int remaining = spawnedCards.Count;
+            foreach (var card in spawnedCards)
+                card.PlayRetractAnimation(deckPileTransform, dealAnimationDuration, () => remaining--);
+
+            yield return new WaitUntil(() => remaining <= 0);
+
+            ClearHand();
+            dealRoutine = null;
+            onComplete?.Invoke();
+        }
+
+        private void ClearHand()
+        {
+            foreach (var card in spawnedCards)
+                if (card) Destroy(card.gameObject);
+            spawnedCards.Clear();
+            if (handRankText) handRankText.gameObject.SetActive(false);
         }
 
         private IEnumerator DealRoutine(List<Sprite> sprites)
@@ -139,7 +172,7 @@ namespace CardBattle
             var candidates = deckSprites.Where(s => !exclude.Contains(s)).ToList();
             for (int i = candidates.Count - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = UnityEngine.Random.Range(0, i + 1);
                 (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
             }
 
