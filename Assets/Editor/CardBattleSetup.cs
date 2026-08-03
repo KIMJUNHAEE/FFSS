@@ -26,6 +26,7 @@ namespace CardBattle.EditorTools
         private const string PrefabDir = "Assets/Prefabs";
         private const string SceneDir = "Assets/Scenes";
         private const string PokerCardDir = "Assets/BasicCard";
+        private const string TableDir = "Assets/Table";
 
         [MenuItem("Card Battle/Setup/Run All (Content + Prefab + Scenes)")]
         public static void RunAll()
@@ -140,7 +141,7 @@ namespace CardBattle.EditorTools
 
             var root = new GameObject("PokerCard", typeof(RectTransform), typeof(PokerCardView));
             var rootRt = (RectTransform)root.transform;
-            rootRt.sizeDelta = new Vector2(140, 196);
+            rootRt.sizeDelta = new Vector2(91, 131);
 
             var visual = CreateUIObject("Visual", root.transform, Vector2.zero, Vector2.one);
             var art = visual.gameObject.AddComponent<Image>();
@@ -243,6 +244,13 @@ namespace CardBattle.EditorTools
             if (backgroundSprite == null)
                 Debug.LogWarning($"[CardBattleSetup] 배경 스프라이트({enemyId}_BackGround)를 찾지 못했습니다.");
 
+            var tableSprite = LoadSpriteAtPath($"{TableDir}/테이블.png");
+            if (tableSprite == null)
+                Debug.LogWarning("[CardBattleSetup] 테이블 스프라이트를 찾지 못했습니다.");
+            var tableGreenSprite = LoadSpriteAtPath($"{TableDir}/테이블_초록.png");
+            if (tableGreenSprite == null)
+                Debug.LogWarning("[CardBattleSetup] 테이블(초록) 스프라이트를 찾지 못했습니다.");
+
             var enemyDir = $"Assets/Enemy/{enemyId}";
             var enemyPortraitSprite = LoadSpriteAtPath($"{enemyDir}/{enemyId}.png");
             var enemyIdleFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Idle");
@@ -301,6 +309,28 @@ namespace CardBattle.EditorTools
                 background.raycastTarget = false;
             }
 
+            // 포커 테이블 (화면 하단, 배경 위/다른 UI 아래에 깔림). 이미지 원본 비율을 그대로 유지한
+            // 채 화면 가로 폭에 맞춰 확대하고, 카드가 놓이는 위쪽 부분이 화면 하단 카드 영역에 오도록
+            // 세로로 내려서 배치한다. 이미지 아래쪽 대부분은 화면 밖으로 내려가 안 보임(의도한 동작).
+            // 테이블은 파란 면(포커)/초록 면(섰다) 두 스프라이트를 뒤집으며 갈아끼우는 방식으로 회전
+            // 애니메이션을 낸다 (PokerTableFlipper 참고).
+            PokerTableFlipper tableFlipper = null;
+            if (tableSprite != null)
+            {
+                var table = CreatePanel("PokerTable", canvasT, new Vector2(0f, -0.7786f), new Vector2(1f, 0.4066f), Color.white);
+                table.sprite = tableSprite;
+                // false로 둬야 함: true면 실제 창 비율이 16:9가 아닐 때 유니티가 이 렉트 안에서
+                // 이미지를 다시 축소/재배치해서, 아래 카드 슬롯 좌표 계산과 어긋나게 됨.
+                table.preserveAspect = false;
+                table.raycastTarget = false;
+
+                tableFlipper = table.gameObject.AddComponent<PokerTableFlipper>();
+                tableFlipper.tableImage = table;
+                tableFlipper.blueSprite = tableSprite;
+                tableFlipper.greenSprite = tableGreenSprite;
+                EditorUtility.SetDirty(tableFlipper);
+            }
+
             // 적 초상화 (1인칭 시점, 화면 정중앙) + 스프라이트 시트 애니메이션
             EnemySpriteAnimator enemyAnimator = null;
             if (enemyIdleFrames.Count > 0 || enemyPortraitSprite != null)
@@ -331,39 +361,45 @@ namespace CardBattle.EditorTools
             var playerHpFill = CreateFillBar("PlayerHpBar", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), new Color(0.2f, 0.2f, 0.2f), new Color(0.25f, 0.75f, 0.3f));
             var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), "0 / 0", 16, TextAnchor.MiddleCenter, Color.white);
 
-            // 덱 더미 (플레이어 HUD 바로 밑, 카드가 여기서 딜링됨)
+            // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
             Image deckPileImg = null;
             if (backSprite != null)
             {
-                deckPileImg = CreatePanel("DeckPile", canvasT, new Vector2(0.03f, 0.185f), new Vector2(0.13f, 0.345f), Color.white);
+                deckPileImg = CreatePanel("DeckPile", canvasT, new Vector2(0.2375f, 0.0700f), new Vector2(0.2941f, 0.2157f), Color.white);
                 deckPileImg.sprite = backSprite;
                 deckPileImg.preserveAspect = true;
                 deckPileImg.raycastTarget = false;
             }
 
             // 손패 족보 표시 (손패 영역 바로 위, 카드를 하나라도 선택하면 숨겨짐)
-            var handRankText = CreateText("HandRankText", canvasT, new Vector2(0.28f, 0.34f), new Vector2(0.8f, 0.4f), "", 28, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
+            var handRankText = CreateText("HandRankText", canvasT, new Vector2(0.24f, 0.23f), new Vector2(0.76f, 0.29f), "", 28, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
 
             // 섰다 족보 표시 (적 턴에만 활성화, 손패 족보랑 같은 자리 재사용)
-            var seotdaRankText = CreateText("SeotdaRankText", canvasT, new Vector2(0.28f, 0.34f), new Vector2(0.8f, 0.4f), "", 28, TextAnchor.MiddleCenter, new Color(0.5f, 0.85f, 1f));
+            var seotdaRankText = CreateText("SeotdaRankText", canvasT, new Vector2(0.24f, 0.23f), new Vector2(0.76f, 0.29f), "", 28, TextAnchor.MiddleCenter, new Color(0.5f, 0.85f, 1f));
             seotdaRankText.gameObject.SetActive(false);
 
             // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
-            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.44f, 0.03f), new Vector2(0.52f, 0.32f), Color.white);
+            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.416f, 0.01f), new Vector2(0.464f, 0.184f), Color.white);
             seotdaCardA.preserveAspect = true;
             seotdaCardA.gameObject.SetActive(false);
-            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.56f, 0.03f), new Vector2(0.64f, 0.32f), Color.white);
+            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.536f, 0.01f), new Vector2(0.584f, 0.184f), Color.white);
             seotdaCardB.preserveAspect = true;
             seotdaCardB.gameObject.SetActive(false);
 
-            // 손패 영역 (하단 중앙)
-            var handPanel = CreatePanel("HandPanel", canvasT, new Vector2(0.28f, 0.02f), new Vector2(0.8f, 0.33f), new Color(1, 1, 1, 0.05f));
+            // 손패 영역 (테이블 위, 배경은 테이블 그림이 대신하므로 투명)
+            var handPanel = CreatePanel("HandPanel", canvasT, new Vector2(0.3305f, 0.0700f), new Vector2(0.6688f, 0.2157f), Color.clear);
+            handPanel.raycastTarget = false;
             var hlg = handPanel.gameObject.AddComponent<HorizontalLayoutGroup>();
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.spacing = 16;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = false;
-            hlg.padding = new RectOffset(16, 16, 12, 12);
+            hlg.spacing = 22;
+            // 카드 크기를 고정 픽셀(sizeDelta)이 아니라 HandPanel의 실제 렉트에서 매 프레임 계산하게 함.
+            // CanvasScaler가 참조 해상도(1920x1080)와 실제 창 비율이 다를 때 폭 기준으로만 스케일하기
+            // 때문에, 고정 sizeDelta 카드 크기는 창 비율이 16:9가 아니면 금색 슬롯과 어긋났었음.
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+            hlg.padding = new RectOffset(0, 0, 0, 0);
 
             // 섰다 카드/족보가 HandPanel(반투명 배경)보다 나중에 그려지도록 순서 재조정
             seotdaCardA.transform.SetAsLastSibling();
@@ -376,13 +412,13 @@ namespace CardBattle.EditorTools
             // 다시뽑기 버튼 (턴 종료 버튼 바로 위)
             var redrawButton = CreateButton("RedrawButton", canvasT, new Vector2(0.84f, 0.18f), new Vector2(0.97f, 0.29f), "다시뽑기", new Color(0.25f, 0.45f, 0.7f));
 
-            // 공격/방어/반격 버튼 (테이블 왼쪽, 세로로 나열)
-            var attackButton = CreateButton("AttackButton", canvasT, new Vector2(0.15f, 0.24f), new Vector2(0.27f, 0.33f), "공격", new Color(0.75f, 0.25f, 0.2f));
-            var defendButton = CreateButton("DefendButton", canvasT, new Vector2(0.15f, 0.13f), new Vector2(0.27f, 0.22f), "방어", new Color(0.2f, 0.45f, 0.75f));
-            var counterButton = CreateButton("CounterButton", canvasT, new Vector2(0.15f, 0.02f), new Vector2(0.27f, 0.11f), "반격", new Color(0.6f, 0.3f, 0.7f));
+            // 공격/방어/반격 버튼 (다시뽑기/턴종료 버튼 바로 왼쪽, 세로로 나열)
+            var attackButton = CreateButton("AttackButton", canvasT, new Vector2(0.70f, 0.24f), new Vector2(0.82f, 0.33f), "공격", new Color(0.75f, 0.25f, 0.2f));
+            var defendButton = CreateButton("DefendButton", canvasT, new Vector2(0.70f, 0.13f), new Vector2(0.82f, 0.22f), "방어", new Color(0.2f, 0.45f, 0.75f));
+            var counterButton = CreateButton("CounterButton", canvasT, new Vector2(0.70f, 0.02f), new Vector2(0.82f, 0.11f), "반격", new Color(0.6f, 0.3f, 0.7f));
 
             // 플레이어 상태(스턴 등) 표시 (행동 버튼 바로 위)
-            var playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.15f, 0.335f), new Vector2(0.27f, 0.355f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
+            var playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.355f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
 
             // 적 행동 표시 (적 초상화 오른쪽)
             var enemyActionText = CreateText("EnemyActionText", canvasT, new Vector2(0.70f, 0.60f), new Vector2(0.90f, 0.75f), "", 26, TextAnchor.MiddleCenter, new Color(1f, 0.6f, 0.6f));
@@ -446,6 +482,7 @@ namespace CardBattle.EditorTools
             rps.pokerHand = pokerHand;
             rps.enemyAnimator = enemyAnimator;
             rps.seotdaTable = seotdaTable;
+            rps.tableFlipper = tableFlipper;
             EditorUtility.SetDirty(rps);
 
             UnityEventTools.AddPersistentListener(redrawButton.onClick, pokerHand.Redraw);
