@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace CardBattle
@@ -32,6 +33,27 @@ namespace CardBattle
         private void Start()
         {
             Deal();
+        }
+
+        private void Update()
+        {
+            if (Keyboard.current == null) return;
+
+            if (Keyboard.current.rKey.wasPressedThisFrame)
+                Redraw();
+
+            if (Keyboard.current.digit1Key.wasPressedThisFrame) ToggleCardAt(0);
+            if (Keyboard.current.digit2Key.wasPressedThisFrame) ToggleCardAt(1);
+            if (Keyboard.current.digit3Key.wasPressedThisFrame) ToggleCardAt(2);
+            if (Keyboard.current.digit4Key.wasPressedThisFrame) ToggleCardAt(3);
+            if (Keyboard.current.digit5Key.wasPressedThisFrame) ToggleCardAt(4);
+        }
+
+        /// <summary>왼쪽부터 index번째(0-based) 손패 카드의 선택 상태를 토글한다.</summary>
+        private void ToggleCardAt(int index)
+        {
+            if (index < spawnedCards.Count)
+                spawnedCards[index].SetSelected(!spawnedCards[index].IsSelected);
         }
 
         public void Deal()

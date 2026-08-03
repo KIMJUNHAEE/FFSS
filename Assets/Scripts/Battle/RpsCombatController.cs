@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace CardBattle
@@ -70,6 +71,12 @@ namespace CardBattle
             if (enemyActionText) enemyActionText.text = "";
             if (playerStatusText) playerStatusText.text = "";
             UpdateHpUI();
+        }
+
+        private void Update()
+        {
+            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                EndTurn();
         }
 
         private void SelectPlayerAction(RpsAction action)
