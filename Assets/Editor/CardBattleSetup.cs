@@ -26,7 +26,8 @@ namespace CardBattle.EditorTools
         private const string PrefabDir = "Assets/Prefabs";
         private const string SceneDir = "Assets/Scenes";
         private const string PokerCardDir = "Assets/BasicCard";
-        private const string TableDir = "Assets/Table";
+        private const string TableDir = "Assets/Table"; // 버전1(보존용, 비활성)
+        private const string TableV2Dir = "Assets/NewTable";
 
         [MenuItem("Card Battle/Setup/Run All (Content + Prefab + Scenes)")]
         public static void RunAll()
@@ -244,12 +245,25 @@ namespace CardBattle.EditorTools
             if (backgroundSprite == null)
                 Debug.LogWarning($"[CardBattleSetup] 배경 스프라이트({enemyId}_BackGround)를 찾지 못했습니다.");
 
+            // ===== 테이블 버전1 (보존용, 비활성 상태): 회전(가로 스케일+스프라이트 교체) 연출.
+            // PokerTableFlipper.cs 자체는 지우지 않고 남겨둠. 되살리려면 이 블록과 아래
+            // "테이블 버전1" 표시된 블록들의 주석을 해제하고 버전2 블록을 대신 주석 처리할 것.
+            /*
             var tableSprite = LoadSpriteAtPath($"{TableDir}/테이블.png");
             if (tableSprite == null)
                 Debug.LogWarning("[CardBattleSetup] 테이블 스프라이트를 찾지 못했습니다.");
             var tableGreenSprite = LoadSpriteAtPath($"{TableDir}/테이블_초록.png");
             if (tableGreenSprite == null)
                 Debug.LogWarning("[CardBattleSetup] 테이블(초록) 스프라이트를 찾지 못했습니다.");
+            */
+
+            // ===== 테이블 버전2: 포커 테이블/화투 테이블이 화면 아래로 내려가고 올라오며 교체됨.
+            var pokerTableV2Sprite = LoadSpriteAtPath($"{TableV2Dir}/포커테이블.png");
+            if (pokerTableV2Sprite == null)
+                Debug.LogWarning("[CardBattleSetup] 포커테이블(v2) 스프라이트를 찾지 못했습니다.");
+            var hwatuTableV2Sprite = LoadSpriteAtPath($"{TableV2Dir}/화투테이블.png");
+            if (hwatuTableV2Sprite == null)
+                Debug.LogWarning("[CardBattleSetup] 화투테이블(v2) 스프라이트를 찾지 못했습니다.");
 
             var enemyDir = $"Assets/Enemy/{enemyId}";
             var enemyPortraitSprite = LoadSpriteAtPath($"{enemyDir}/{enemyId}.png");
@@ -309,18 +323,13 @@ namespace CardBattle.EditorTools
                 background.raycastTarget = false;
             }
 
-            // 포커 테이블 (화면 하단, 배경 위/다른 UI 아래에 깔림). 이미지 원본 비율을 그대로 유지한
-            // 채 화면 가로 폭에 맞춰 확대하고, 카드가 놓이는 위쪽 부분이 화면 하단 카드 영역에 오도록
-            // 세로로 내려서 배치한다. 이미지 아래쪽 대부분은 화면 밖으로 내려가 안 보임(의도한 동작).
-            // 테이블은 파란 면(포커)/초록 면(섰다) 두 스프라이트를 뒤집으며 갈아끼우는 방식으로 회전
-            // 애니메이션을 낸다 (PokerTableFlipper 참고).
+            // ===== 테이블 버전1 (보존용, 비활성 상태) =====
+            /*
             PokerTableFlipper tableFlipper = null;
             if (tableSprite != null)
             {
                 var table = CreatePanel("PokerTable", canvasT, new Vector2(0f, -0.7786f), new Vector2(1f, 0.4066f), Color.white);
                 table.sprite = tableSprite;
-                // false로 둬야 함: true면 실제 창 비율이 16:9가 아닐 때 유니티가 이 렉트 안에서
-                // 이미지를 다시 축소/재배치해서, 아래 카드 슬롯 좌표 계산과 어긋나게 됨.
                 table.preserveAspect = false;
                 table.raycastTarget = false;
 
@@ -329,6 +338,40 @@ namespace CardBattle.EditorTools
                 tableFlipper.blueSprite = tableSprite;
                 tableFlipper.greenSprite = tableGreenSprite;
                 EditorUtility.SetDirty(tableFlipper);
+            }
+            */
+
+            // ===== 테이블 버전2 =====
+            // 포커 테이블/화투 테이블 두 장을 같은 자리(화면 하단, 가로 전체 폭)에 겹쳐 놓고,
+            // 하나는 보이는 자리에 다른 하나는 자기 높이만큼 화면 아래로 내려가 숨어있게 시작한다.
+            // 전환 시 보이던 쪽은 아래로, 숨어있던 쪽은 위로 동시에 슬라이드하며 자리를 바꾼다
+            // (TableSlideSwitcher 참고).
+            TableSlideSwitcher tableSwitcher = null;
+            if (pokerTableV2Sprite != null || hwatuTableV2Sprite != null)
+            {
+                RectTransform pokerTableV2 = null, hwatuTableV2 = null;
+                if (pokerTableV2Sprite != null)
+                {
+                    var img = CreatePanel("PokerTableV2", canvasT, new Vector2(0f, 0f), new Vector2(1f, 0.53f), Color.white);
+                    img.sprite = pokerTableV2Sprite;
+                    img.preserveAspect = false;
+                    img.raycastTarget = false;
+                    pokerTableV2 = img.rectTransform;
+                }
+                if (hwatuTableV2Sprite != null)
+                {
+                    var img = CreatePanel("HwatuTableV2", canvasT, new Vector2(0f, 0f), new Vector2(1f, 0.53f), Color.white);
+                    img.sprite = hwatuTableV2Sprite;
+                    img.preserveAspect = false;
+                    img.raycastTarget = false;
+                    hwatuTableV2 = img.rectTransform;
+                }
+
+                var switcherGO = new GameObject("TableSlideSwitcher", typeof(TableSlideSwitcher));
+                tableSwitcher = switcherGO.GetComponent<TableSlideSwitcher>();
+                tableSwitcher.pokerTable = pokerTableV2;
+                tableSwitcher.hwatuTable = hwatuTableV2;
+                EditorUtility.SetDirty(tableSwitcher);
             }
 
             // 적 초상화 (1인칭 시점, 화면 정중앙) + 스프라이트 시트 애니메이션
@@ -379,10 +422,10 @@ namespace CardBattle.EditorTools
             seotdaRankText.gameObject.SetActive(false);
 
             // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
-            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.416f, 0.01f), new Vector2(0.464f, 0.184f), Color.white);
+            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.416f, 0.07f), new Vector2(0.464f, 0.244f), Color.white);
             seotdaCardA.preserveAspect = true;
             seotdaCardA.gameObject.SetActive(false);
-            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.536f, 0.01f), new Vector2(0.584f, 0.184f), Color.white);
+            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.536f, 0.07f), new Vector2(0.584f, 0.244f), Color.white);
             seotdaCardB.preserveAspect = true;
             seotdaCardB.gameObject.SetActive(false);
 
@@ -482,7 +525,8 @@ namespace CardBattle.EditorTools
             rps.pokerHand = pokerHand;
             rps.enemyAnimator = enemyAnimator;
             rps.seotdaTable = seotdaTable;
-            rps.tableFlipper = tableFlipper;
+            // rps.tableFlipper = tableFlipper; // 테이블 버전1 (보존용, 비활성)
+            rps.tableSwitcher = tableSwitcher;
             EditorUtility.SetDirty(rps);
 
             UnityEventTools.AddPersistentListener(redrawButton.onClick, pokerHand.Redraw);

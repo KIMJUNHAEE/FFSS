@@ -48,8 +48,11 @@ namespace CardBattle
         [Header("적 턴에 섰다 2장을 공개하는 테이블")]
         public SeotdaTableController seotdaTable;
 
-        [Header("포커(파랑)/섰다(초록) 전환 시 테이블을 회전시키는 컴포넌트")]
-        public PokerTableFlipper tableFlipper;
+        // [Header("포커(파랑)/섰다(초록) 전환 시 테이블을 회전시키는 컴포넌트")] // 테이블 버전1 (보존용, 비활성)
+        // public PokerTableFlipper tableFlipper;
+
+        [Header("포커/화투 테이블이 슬라이드로 전환되는 컴포넌트 (버전2)")]
+        public TableSlideSwitcher tableSwitcher;
 
         [Header("적 스프라이트 애니메이션")]
         public EnemySpriteAnimator enemyAnimator;
@@ -112,11 +115,19 @@ namespace CardBattle
                 pokerHand.SetDeckPileVisible(false);
             }
 
-            if (tableFlipper != null)
+            // 테이블 버전1 (보존용, 비활성)
+            // if (tableFlipper != null)
+            // {
+            //     bool flipped = false;
+            //     tableFlipper.FlipTo(true, () => flipped = true);
+            //     yield return new WaitUntil(() => flipped);
+            // }
+
+            if (tableSwitcher != null)
             {
-                bool flipped = false;
-                tableFlipper.FlipTo(true, () => flipped = true);
-                yield return new WaitUntil(() => flipped);
+                bool switched = false;
+                tableSwitcher.SwitchTo(true, () => switched = true);
+                yield return new WaitUntil(() => switched);
             }
 
             if (seotdaTable != null)
@@ -132,11 +143,19 @@ namespace CardBattle
 
             if (!gameOver)
             {
-                if (tableFlipper != null)
+                // 테이블 버전1 (보존용, 비활성)
+                // if (tableFlipper != null)
+                // {
+                //     bool flippedBack = false;
+                //     tableFlipper.FlipTo(false, () => flippedBack = true);
+                //     yield return new WaitUntil(() => flippedBack);
+                // }
+
+                if (tableSwitcher != null)
                 {
-                    bool flippedBack = false;
-                    tableFlipper.FlipTo(false, () => flippedBack = true);
-                    yield return new WaitUntil(() => flippedBack);
+                    bool switchedBack = false;
+                    tableSwitcher.SwitchTo(false, () => switchedBack = true);
+                    yield return new WaitUntil(() => switchedBack);
                 }
 
                 if (pokerHand != null)
@@ -183,8 +202,8 @@ namespace CardBattle
 
             if (enemyAnimator != null)
             {
+                if (dmgToEnemy > 0) yield return PlayAndWait(EnemyAnimState.Hurt);
                 if (enemyHp <= 0) enemyAnimator.Play(EnemyAnimState.Death);
-                else if (dmgToEnemy > 0) yield return PlayAndWait(EnemyAnimState.Hurt);
             }
 
             if (enemyHp <= 0 || playerHp <= 0)
