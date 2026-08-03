@@ -36,11 +36,15 @@ namespace CardBattle.EditorTools
             BuildBattleScene38();
             BuildBattleScene18();
             BuildBattleScene13();
+            BuildBattleSceneAmhaengeosa();
+            BuildBattleSceneDdengjabi();
+            BuildBattleSceneMeonggusa();
+            BuildBattleSceneGusa();
             BuildBootstrapScene();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13_BattleScene 생성.");
+            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13·암행어사·땡잡이·멍구사·구사_BattleScene 생성.");
         }
 
         [MenuItem("Card Battle/Setup/1. Create Example Card And Enemy Data")]
@@ -209,6 +213,18 @@ namespace CardBattle.EditorTools
         [MenuItem("Card Battle/Setup/3c. Build Battle Scene (13)")]
         public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene");
 
+        [MenuItem("Card Battle/Setup/3d. Build Battle Scene (암행어사)")]
+        public static void BuildBattleSceneAmhaengeosa() => BuildBattleSceneFor("암행어사", "암행어사_BattleScene");
+
+        [MenuItem("Card Battle/Setup/3e. Build Battle Scene (땡잡이)")]
+        public static void BuildBattleSceneDdengjabi() => BuildBattleSceneFor("땡잡이", "땡잡이_BattleScene");
+
+        [MenuItem("Card Battle/Setup/3f. Build Battle Scene (멍구사)")]
+        public static void BuildBattleSceneMeonggusa() => BuildBattleSceneFor("멍구사", "멍구사_BattleScene");
+
+        [MenuItem("Card Battle/Setup/3g. Build Battle Scene (구사)")]
+        public static void BuildBattleSceneGusa() => BuildBattleSceneFor("구사", "구사_BattleScene");
+
         /// <summary>
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
@@ -296,10 +312,10 @@ namespace CardBattle.EditorTools
 
                 enemyAnimator = enemyPortrait.gameObject.AddComponent<EnemySpriteAnimator>();
                 enemyAnimator.targetImage = enemyPortrait;
-                enemyAnimator.idle = new SpriteSequence { frames = enemyIdleFrames, frameRate = 10f, loop = true };
+                enemyAnimator.idle = new SpriteSequence { frames = enemyIdleFrames, frameRate = 10f, loop = true, pingPong = enemyId == "18", pingPongEdgeHold = enemyId == "18" ? 0.1f : 0f };
                 enemyAnimator.attack = new SpriteSequence { frames = enemyAttackFrames, frameRate = 16f, loop = false };
                 enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = 18f, loop = false };
-                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = 10f, loop = false };
+                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = 10f, loop = true }; // TODO: 디버그용, 확인 끝나면 loop = false로 되돌릴 것
                 EditorUtility.SetDirty(enemyAnimator);
             }
 
@@ -470,6 +486,10 @@ namespace CardBattle.EditorTools
             AddIfMissing($"{SceneDir}/38_BattleScene.unity");
             AddIfMissing($"{SceneDir}/18_BattleScene.unity");
             AddIfMissing($"{SceneDir}/13_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/암행어사_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/땡잡이_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/멍구사_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/구사_BattleScene.unity");
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
