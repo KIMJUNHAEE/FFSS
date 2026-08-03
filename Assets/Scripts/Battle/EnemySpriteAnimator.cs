@@ -69,6 +69,8 @@ namespace CardBattle
             if (sequence == null || sequence.frames.Count == 0 || targetImage == null)
             {
                 onComplete?.Invoke();
+                if (state != EnemyAnimState.Death)
+                    Play(EnemyAnimState.Idle); // 아직 프레임이 없는 상태(예: 피격 미제작)에서 멈춰 보이지 않도록 Idle로 복귀
                 yield break;
             }
 
