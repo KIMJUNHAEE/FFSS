@@ -69,11 +69,8 @@ namespace CardBattle
         private IEnumerator Animate(Vector2 from, Vector2 to, float fromAngle, float toAngle,
             float fromScale, float toScale, float fromAlpha, float toAlpha, float duration)
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
                 if (visual)
                 {
                     visual.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
@@ -83,23 +80,19 @@ namespace CardBattle
                 if (canvasGroup) canvasGroup.alpha = Mathf.Lerp(fromAlpha, toAlpha, t);
                 if (flash)
                 {
-                    float flashAlpha = Mathf.Sin(t * Mathf.PI) * 0.22f;
+                    float flashAlpha = UiTween.SinPunch(t) * 0.22f;
                     Color color = flash.color;
                     color.a = flashAlpha;
                     flash.color = color;
                 }
-                yield return null;
-            }
+            }, UiTween.SmoothStep, useUnscaledTime: true);
         }
 
         private IEnumerator Punch(Vector2 position, float angle, float duration)
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                float pulse = Mathf.Sin(t * Mathf.PI);
+                float pulse = UiTween.SinPunch(t);
                 if (visual)
                 {
                     visual.anchoredPosition = position + new Vector2(
@@ -113,8 +106,7 @@ namespace CardBattle
                     color.a = pulse * 0.28f;
                     flash.color = color;
                 }
-                yield return null;
-            }
+            }, useUnscaledTime: true);
         }
 
         private static IEnumerator WaitRealtime(float duration)

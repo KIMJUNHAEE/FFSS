@@ -54,7 +54,8 @@ namespace CardBattle
         private readonly struct CombatIntent
         {
             public CombatIntent(string owner, IntentKind kind, string sourceName, int power, int breakPower,
-                string formula, int effectHpDamage = 0, int effectBreakDamage = 0, string effectLabel = "")
+                string formula, int effectHpDamage = 0, int effectBreakDamage = 0, string effectLabel = "",
+                float weaknessRatio = 0f)
             {
                 Owner = owner;
                 Kind = kind;
@@ -65,6 +66,7 @@ namespace CardBattle
                 EffectHpDamage = effectHpDamage;
                 EffectBreakDamage = effectBreakDamage;
                 EffectLabel = effectLabel;
+                WeaknessRatio = weaknessRatio;
             }
 
             public string Owner { get; }
@@ -80,6 +82,12 @@ namespace CardBattle
             public bool IsOffense => Kind == IntentKind.Attack || Kind == IntentKind.Skill;
             public bool IsDefense => Kind == IntentKind.Defend;
             public bool IsStunned => Kind == IntentKind.Stunned;
+
+            /// <summary>이 의도의 주인이 포커 손패(5장 전체, 킥커 포함)로 적의 약점 무늬를 찌르고
+            /// 있는 비율(0~1) - 적 쪽 의도에는 절대 세팅되지 않는다(적은 스스로에게 약점 판정을
+            /// 갖지 않음). 0이면 약점 비활성.</summary>
+            public float WeaknessRatio { get; }
+            public bool HasWeakness => WeaknessRatio > 0f;
         }
 
         private readonly struct SeotdaEffect
@@ -125,6 +133,13 @@ namespace CardBattle
         [SerializeField] private int skillBaseBonus = 10;
         [SerializeField] private int skillTierBonus = 3;
         [SerializeField] private int baseBreakPower = 5;
+
+        [Header("약점 속성 (포커 무늬, 원페어 이상일 때 손패 5장 중 약점 무늬 비율로 격파 배율/관통 결정)")]
+        public CardSuit enemyWeakness = CardSuit.None;
+        [Tooltip("격파 배율 = 1 + 이 값 × 약점 비율 (예: 비율 60%, 계수 1.0 → 1.6배)")]
+        [SerializeField] private float weaknessBreakMultiplierPerRatio = 1.0f;
+        [Tooltip("이 비율 이상이어야 관통(방어 무시)이 가능")]
+        [SerializeField] private float weaknessPenetrationThreshold = 0.6f;
 
         [Header("연출")]
         [SerializeField] private float revealDelay = 0.8f;
@@ -176,6 +191,9 @@ namespace CardBattle
         public GameObject combatReadout;
         public GameObject winPanel;
         public GameObject losePanel;
+        [Tooltip("현재 손패가 적 약점을 찌르고 있을 때만 켜져서 공격/방어 각각의 효과를 보여주는 패널")]
+        public GameObject weaknessEffectPanel;
+        public Text weaknessEffectText;
 
         [Header("포커 손패")]
         public PokerHandController pokerHand;
@@ -544,28 +562,36 @@ namespace CardBattle
         private CombatOutcome ResolveAttackIntoDefense(CombatIntent attacker, CombatIntent defender, bool attackerIsPlayer)
         {
             int diff = attacker.Power - defender.Power;
-            if (diff > 0)
+            // 관통: 원래는 방어에 막힐 상황(diff<=0)이어도 공격자의 약점 비율이 문턱값 이상이면 그대로 HP 피해로 뚫고 들어감
+            bool penetrates = diff <= 0 && attacker.WeaknessRatio >= weaknessPenetrationThreshold;
+
+            if (diff > 0 || penetrates)
             {
-                int momentumBonus = Mathf.CeilToInt(attacker.Power * 0.25f);
-                int hpDamage = Mathf.Max(1, diff + momentumBonus);
-                int breakChip = attacker.Kind == IntentKind.Skill ? Mathf.Max(1, attacker.BreakPower / 2) : 0;
+                int momentumBonus = diff > 0 ? Mathf.CeilToInt(attacker.Power * 0.25f) : 0;
+                int hpDamage = diff > 0 ? Mathf.Max(1, diff + momentumBonus) : attacker.Power;
+                int breakChip = diff > 0 && attacker.Kind == IntentKind.Skill ? Mathf.Max(1, attacker.BreakPower / 2) : 0;
+                string message = diff > 0
+                    ? $"공격 차이 <b>{attacker.Power} - {defender.Power} = {diff}</b>\n차이 {diff} + 기세 {momentumBonus} → HP <color=#FF6B6B>-{hpDamage}</color>"
+                    : $"<color=#FFD34E><b>약점 관통!</b></color> 막힐 공격이 방어를 뚫고 HP <color=#FF6B6B>-{hpDamage}</color>";
                 return new CombatOutcome
                 {
                     DamageToEnemy = attackerIsPlayer ? hpDamage : 0,
                     DamageToPlayer = attackerIsPlayer ? 0 : hpDamage,
                     BreakToEnemy = attackerIsPlayer ? breakChip : 0,
                     BreakToPlayer = attackerIsPlayer ? 0 : breakChip,
-                    Message = $"공격 차이 <b>{attacker.Power} - {defender.Power} = {diff}</b>\n차이 {diff} + 기세 {momentumBonus} → HP <color=#FF6B6B>-{hpDamage}</color>",
+                    Message = message,
                 };
             }
 
             int guardGap = defender.Power - attacker.Power;
             int breakDamage = Mathf.Max(1, guardGap + defender.BreakPower);
+            // 방어측이 약점을 찌르고 있는 채로 방어에 성공하면 비율에 비례해 격파 피해 배율이 붙음
+            breakDamage = ApplyWeaknessBreakMultiplier(breakDamage, defender, out string weaknessNote);
             return new CombatOutcome
             {
                 BreakToEnemy = attackerIsPlayer ? 0 : breakDamage,
                 BreakToPlayer = attackerIsPlayer ? breakDamage : 0,
-                Message = $"방어 차이 <b>{defender.Power} - {attacker.Power} = {guardGap}</b>\n차이 {guardGap} + 버티기 {defender.BreakPower} → 보조 게이지 <color=#FFD34E>+{breakDamage}</color>",
+                Message = $"방어 차이 <b>{defender.Power} - {attacker.Power} = {guardGap}</b>\n차이 {guardGap} + 버티기 {defender.BreakPower} → 보조 게이지 <color=#FFD34E>+{breakDamage}</color>{weaknessNote}",
             };
         }
 
@@ -575,10 +601,11 @@ namespace CardBattle
             if (diff > 0)
             {
                 int breakDamage = Mathf.Max(1, diff + player.BreakPower / 2);
+                breakDamage = ApplyWeaknessBreakMultiplier(breakDamage, player, out string weaknessNote);
                 return new CombatOutcome
                 {
                     BreakToEnemy = breakDamage,
-                    Message = $"방어 차이 <b>{player.Power} - {enemy.Power} = {diff}</b>\n차이 {diff} + 압박 {player.BreakPower / 2} → 적 보조 게이지 <color=#FFD34E>+{breakDamage}</color>",
+                    Message = $"방어 차이 <b>{player.Power} - {enemy.Power} = {diff}</b>\n차이 {diff} + 압박 {player.BreakPower / 2} → 적 보조 게이지 <color=#FFD34E>+{breakDamage}</color>{weaknessNote}",
                 };
             }
 
@@ -593,6 +620,18 @@ namespace CardBattle
             }
 
             return new CombatOutcome { Message = $"<b>{player.Power} = {enemy.Power}</b>  방어가 팽팽해 변화 없음" };
+        }
+
+        /// <summary>약점을 찌르고 있는 쪽이 격파 피해를 줄 때 비율에 비례한 배율을 적용하고, 라운드
+        /// 로그에 붙일 안내 문구를 함께 돌려준다. 약점이 없으면 원래 값과 빈 문자열을 그대로 돌려줌.</summary>
+        private int ApplyWeaknessBreakMultiplier(int breakDamage, CombatIntent source, out string note)
+        {
+            note = "";
+            if (!source.HasWeakness) return breakDamage;
+
+            float multiplier = 1f + weaknessBreakMultiplierPerRatio * source.WeaknessRatio;
+            note = $" <color=#FFD34E>(약점 격파강화 ×{multiplier:0.#})</color>";
+            return Mathf.RoundToInt(breakDamage * multiplier);
         }
 
         private void ApplyOutcome(ref CombatOutcome outcome)
@@ -642,13 +681,14 @@ namespace CardBattle
         {
             var result = pokerHand != null ? pokerHand.CurrentResult : default;
             var values = CalculatePlayerNumbers(result);
+            float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
 
             return action switch
             {
-                RpsAction.Defend => new CombatIntent("플레이어", IntentKind.Defend, values.RankName, values.Defense, values.BreakPower, values.DefenseFormula),
+                RpsAction.Defend => new CombatIntent("플레이어", IntentKind.Defend, values.RankName, values.Defense, values.BreakPower, values.DefenseFormula, weaknessRatio: weaknessRatio),
                 RpsAction.Skill => new CombatIntent("플레이어", IntentKind.Skill, values.RankName, values.Skill, values.BreakPower + values.Skill / 4, values.SkillFormula),
                 RpsAction.Stunned => new CombatIntent("플레이어", IntentKind.Stunned, "스턴", 0, 0, ""),
-                _ => new CombatIntent("플레이어", IntentKind.Attack, values.RankName, values.Attack, values.BreakPower, values.AttackFormula),
+                _ => new CombatIntent("플레이어", IntentKind.Attack, values.RankName, values.Attack, values.BreakPower, values.AttackFormula, weaknessRatio: weaknessRatio),
             };
         }
 
@@ -817,6 +857,7 @@ namespace CardBattle
                 if (enemyStatText) enemyStatText.text = "얇은 게이지가 가득 차\n이번 행동을 잃어";
                 if (enemyIntentTooltip) enemyIntentTooltip.SetMessage("보조 게이지가 가득 차서 이번 행동을 잃어.");
                 UpdateEnemyActionIcon(IntentKind.Stunned, null);
+                RefreshHandPreview();
                 return;
             }
 
@@ -838,6 +879,9 @@ namespace CardBattle
             if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>";
             if (enemyIntentTooltip) enemyIntentTooltip.SetMessage(BuildEnemyIntentTooltip(pendingEnemyIntent, power, formula, move));
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
+
+            // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
+            RefreshHandPreview();
         }
 
         private string BuildEnemyIntentTooltip(IntentKind kind, int power, string formula, BossMoveDefinition move)
@@ -1026,6 +1070,8 @@ namespace CardBattle
             string attackDetails = $"기본 {playerBaseAttack} + 붉은 문양 {redBonus}\n족보 {tierPower} + 높은 패 {highRankBonus}";
             string defenseDetails = $"기본 {playerBaseDefense} + 검은 문양 {blackBonus}\n족보 {tierPower}";
             if (playerStatText) playerStatText.text = $"{totals}\n{attackDetails}\n{defenseDetails}";
+
+            var weaknessPreview = EvaluateWeaknessPreview(hand, values);
             if (playerAttackValueText) playerAttackValueText.text = values.Attack.ToString();
             if (playerDefenseValueText) playerDefenseValueText.text = values.Defense.ToString();
             if (playerAttackFormulaText) playerAttackFormulaText.text = attackDetails;
@@ -1036,6 +1082,82 @@ namespace CardBattle
                     ? $"<color=#FFD85A><b>스킬 {values.Skill}</b></color>  ·  <b>{values.RankName}</b>"
                     : $"족보  <color=#FFE3A0><b>{values.RankName}</b></color>";
             }
+
+            UpdateWeaknessEffectPanel(weaknessPreview);
+        }
+
+        private readonly struct WeaknessPreview
+        {
+            public WeaknessPreview(float ratio, bool wouldBeBlocked, bool penetrates, bool bonusBreak)
+            {
+                Ratio = ratio;
+                WouldBeBlocked = wouldBeBlocked;
+                Penetrates = penetrates;
+                BonusBreak = bonusBreak;
+            }
+
+            /// <summary>손패 5장 중 적 약점 무늬 비율 (0이면 비활성).</summary>
+            public float Ratio { get; }
+            public bool Active => Ratio > 0f;
+            /// <summary>공격을 냈을 때 약점이 없었다면 방어에 막혔을 상황인지 - 관통 성공/실패를
+            /// 구분해 안내 문구를 다르게 보여주는 데 쓰인다.</summary>
+            public bool WouldBeBlocked { get; }
+            public bool Penetrates { get; }
+            public bool BonusBreak { get; }
+        }
+
+        /// <summary>이번 라운드에 실제로 약점 효과(관통/격파강화)가 발동할지를 미리 계산한다.
+        /// 적 행동은 이미 공개돼 있으므로(pendingEnemyIntent/pendingEnemyMove)
+        /// ResolveAttackIntoDefense/ResolveDefenseClash와 동일한 비교식으로 정확히 예측할 수 있다.
+        /// 테이블 위 약점 효과 패널이 이 계산을 사용한다.</summary>
+        private WeaknessPreview EvaluateWeaknessPreview(PokerHandResult hand, CombatNumbers values)
+        {
+            float ratio = PokerHandEvaluator.WeaknessRatio(hand, enemyWeakness);
+            if (ratio <= 0f || !hasPendingEnemyIntent) return new WeaknessPreview(ratio, false, false, false);
+
+            var enemyValues = CalculateEnemyNumbers();
+            int enemyPower = pendingEnemyMove != null
+                ? pendingEnemyMove.power
+                : pendingEnemyIntent == IntentKind.Defend ? enemyValues.Defense : enemyValues.Attack;
+
+            bool enemyDefending = pendingEnemyIntent == IntentKind.Defend;
+            bool enemyOffending = pendingEnemyIntent == IntentKind.Attack || pendingEnemyIntent == IntentKind.Skill;
+
+            // 공격을 냈을 때 원래는 막힐 상황(방어값 >= 공격값)인지, 그리고 관통 문턱을 넘었는지
+            bool wouldBeBlocked = enemyDefending && values.Attack <= enemyPower;
+            bool penetrates = wouldBeBlocked && ratio >= weaknessPenetrationThreshold;
+
+            // 방어를 냈을 때 실제로 격파 피해를 주는 상황이라 약점 배율이 붙는 경우
+            bool wouldBonusBreak =
+                (enemyOffending && values.Defense >= enemyPower) ||
+                (enemyDefending && values.Defense > enemyPower);
+
+            return new WeaknessPreview(ratio, wouldBeBlocked, penetrates, wouldBonusBreak);
+        }
+
+        /// <summary>테이블 위(포커 테이블과 적 초상화 사이) 약점 효과 패널 - 손패가 약점을 찌르고
+        /// 있을 때만 나타나 공격/방어 각각의 효과를 한눈에 보여준다.</summary>
+        private void UpdateWeaknessEffectPanel(WeaknessPreview preview)
+        {
+            if (weaknessEffectPanel == null) return;
+
+            weaknessEffectPanel.SetActive(preview.Active);
+            if (!preview.Active || weaknessEffectText == null) return;
+
+            string attackLine;
+            if (preview.Penetrates)
+                attackLine = "공격 → <color=#FFD34E><b>약점 관통!</b></color> 방어 무시하고 HP 피해";
+            else if (preview.WouldBeBlocked)
+                attackLine = $"공격 → 막힘 (관통 문턱 {weaknessPenetrationThreshold:P0} 미달)";
+            else
+                attackLine = "공격 → 평소와 동일 (뚫어야 할 방어가 없음)";
+
+            float multiplier = 1f + weaknessBreakMultiplierPerRatio * preview.Ratio;
+            string defenseLine = preview.BonusBreak
+                ? $"방어 → <color=#FFD34E><b>격파 강화!</b></color> 보조 게이지 피해 ×{multiplier:0.#}"
+                : "방어 → 이번엔 격파 피해 없음";
+
+            weaknessEffectText.text = $"<color=#FFD34E><b>{enemyWeakness.ToSymbol()} 약점 적중 중 ({preview.Ratio:P0})</b></color>\n{attackLine}\n{defenseLine}";
         }
 
         private void ShowCombatImpact(CombatOutcome outcome, CombatIntent playerIntent, CombatIntent enemyIntent,

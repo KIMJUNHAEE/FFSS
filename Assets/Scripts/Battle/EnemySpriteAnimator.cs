@@ -51,9 +51,15 @@ namespace CardBattle
         {
             if (CurrentState == EnemyAnimState.Death) return; // 죽은 뒤에는 다른 애니메이션으로 덮지 않음
 
+            var sequence = GetSequence(state);
+            // 이미 같은 반복 애니메이션(Idle 등)을 재생 중이면 다시 시작하지 않음 - 프레임이 0번으로
+            // 되돌아가며 튀는 히치를 막는다. Attack/Hurt처럼 반복 안 하는 연출은 맞을 때마다 새로
+            // 재생돼야 하므로 이 스킵 대상에서 제외.
+            if (state == CurrentState && playRoutine != null && sequence != null && sequence.loop) return;
+
             CurrentState = state;
             if (playRoutine != null) StopCoroutine(playRoutine);
-            playRoutine = StartCoroutine(PlayRoutine(GetSequence(state), state, onComplete));
+            playRoutine = StartCoroutine(PlayRoutine(sequence, state, onComplete));
         }
 
         private SpriteSequence GetSequence(EnemyAnimState state) => state switch

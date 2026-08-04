@@ -53,13 +53,10 @@ namespace CardBattle
                 panel.localScale = Vector3.one * 0.76f;
             }
 
-            float elapsed = 0f;
             const float duration = 0.42f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, raw =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float raw = Mathf.Clamp01(elapsed / duration);
-                float t = 1f - Mathf.Pow(1f - raw, 3f);
+                float t = UiTween.EaseOutCubic(raw);
                 if (dim)
                 {
                     Color color = dim.color;
@@ -69,11 +66,10 @@ namespace CardBattle
                 if (panel)
                 {
                     panel.anchoredPosition = Vector2.LerpUnclamped(Vector2.down * 65f, Vector2.zero, t);
-                    float overshoot = Mathf.Sin(raw * Mathf.PI) * 0.08f;
+                    float overshoot = UiTween.SinPunch(raw) * 0.08f;
                     panel.localScale = Vector3.one * Mathf.Min(1.06f, Mathf.Lerp(0.76f, 1f, t) + overshoot);
                 }
-                yield return null;
-            }
+            }, useUnscaledTime: true);
 
             if (panel)
             {

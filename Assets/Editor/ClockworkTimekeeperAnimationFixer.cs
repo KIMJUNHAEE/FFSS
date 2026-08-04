@@ -130,16 +130,9 @@ namespace CardBattle.EditorTools
         {
             return AssetDatabase.LoadAllAssetsAtPath(sourcePath)
                 .OfType<AnimationClip>()
-                .Where(IsUsableClip)
+                .Where(ClockworkTimekeeperEditorUtils.IsUsableClip)
                 .OrderBy(clip => clip.name.Contains("__") ? 1 : 0)
                 .FirstOrDefault();
-        }
-
-        private static bool IsUsableClip(AnimationClip clip)
-        {
-            return clip != null &&
-                   !clip.name.StartsWith("__", System.StringComparison.Ordinal) &&
-                   clip.name.IndexOf("preview", System.StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         private static void ConfigureClipLooping(AnimationClip clip)
@@ -354,11 +347,11 @@ namespace CardBattle.EditorTools
                 QuarterViewPlayerController mover = root.GetComponent<QuarterViewPlayerController>();
                 if (mover != null)
                 {
-                    SetBool(mover, "lockToGroundPlane", true);
-                    SetFloat(mover, "groundY", 0f);
-                    SetVector3(mover, "visualEulerOffset", Vector3.zero);
-                    SetFloat(mover, "visualYawOffset", 0f);
-                    SetFloat(mover, "animatorDampTime", 0f);
+                    ClockworkTimekeeperEditorUtils.SetBool(mover, "lockToGroundPlane", true);
+                    ClockworkTimekeeperEditorUtils.SetFloat(mover, "groundY", 0f);
+                    ClockworkTimekeeperEditorUtils.SetVector3(mover, "visualEulerOffset", Vector3.zero);
+                    ClockworkTimekeeperEditorUtils.SetFloat(mover, "visualYawOffset", 0f);
+                    ClockworkTimekeeperEditorUtils.SetFloat(mover, "animatorDampTime", 0f);
                 }
 
                 RuntimeAnimatorController controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath);
@@ -384,40 +377,5 @@ namespace CardBattle.EditorTools
             return Path.Combine(Directory.GetCurrentDirectory(), assetPath);
         }
 
-        private static void SetBool(Object target, string fieldName, bool value)
-        {
-            SerializedObject serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-                return;
-
-            property.boolValue = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
-        private static void SetFloat(Object target, string fieldName, float value)
-        {
-            SerializedObject serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-                return;
-
-            property.floatValue = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
-        private static void SetVector3(Object target, string fieldName, Vector3 value)
-        {
-            SerializedObject serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-                return;
-
-            property.vector3Value = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
     }
 }

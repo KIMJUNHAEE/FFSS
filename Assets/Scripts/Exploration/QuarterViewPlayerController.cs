@@ -25,16 +25,14 @@ namespace CardBattle.Exploration
         [SerializeField] private string speedParameter = "Speed";
         [SerializeField] private float animatorDampTime = 0f;
 
-        private const string HeadingRootName = "VisualRoot";
-        private const string AxisCorrectionRootName = "AxisCorrectionRoot";
+        public const string HeadingRootName = "VisualRoot";
+        public const string AxisCorrectionRootName = "AxisCorrectionRoot";
         private static readonly int LocomotionStateHash = Animator.StringToHash("Locomotion");
 
         private CharacterController controller;
         private int speedParameterHash;
         private Vector3 facingDirection = Vector3.forward;
         private Transform axisCorrectionRoot;
-
-        public Vector3 PlanarVelocity { get; private set; }
 
         private void Awake()
         {
@@ -84,7 +82,6 @@ namespace CardBattle.Exploration
             Vector3 planarDirection = ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
 
-            PlanarVelocity = planarDirection * moveSpeed;
             Move(planarDirection);
             TurnToward(planarDirection);
             UpdateAnimator(inputAmount);
@@ -229,7 +226,7 @@ namespace CardBattle.Exploration
             if (axisCorrectionRoot == null || animator == null)
                 return;
 
-            if (!TryGetRendererBounds(animator.gameObject, out Bounds bounds))
+            if (!ExplorationGeometryUtility.TryGetRendererBounds(animator.gameObject, out Bounds bounds))
                 return;
 
             Vector3 correction = new(
@@ -238,22 +235,6 @@ namespace CardBattle.Exploration
                 transform.position.z - bounds.center.z);
 
             axisCorrectionRoot.position += correction;
-        }
-
-        private static bool TryGetRendererBounds(GameObject root, out Bounds bounds)
-        {
-            Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
-            if (renderers.Length == 0)
-            {
-                bounds = default;
-                return false;
-            }
-
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-                bounds.Encapsulate(renderers[i].bounds);
-
-            return true;
         }
 
         private Vector3 GetPlanarForward()

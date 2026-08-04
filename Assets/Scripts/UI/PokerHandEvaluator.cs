@@ -21,7 +21,7 @@ namespace CardBattle
 
     public readonly struct PokerHandResult
     {
-        public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount, int highRank, bool isSpecial)
+        public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount, int highRank, bool isSpecial, IReadOnlyDictionary<CardSuit, int> suitCounts)
         {
             Rank = rank;
             DisplayName = displayName;
@@ -30,6 +30,7 @@ namespace CardBattle
             BlackCount = blackCount;
             HighRank = highRank;
             IsSpecial = isSpecial;
+            SuitCounts = suitCounts;
         }
 
         public PokerHandRank Rank { get; }
@@ -39,15 +40,22 @@ namespace CardBattle
         public int BlackCount { get; }
         public int HighRank { get; }
         public bool IsSpecial { get; }
+
+        /// <summary>손패 5장(킥커 포함) 전체의 무늬별 장수 - 어떤 카드가 족보를 이루는지와
+        /// 무관하게 항상 5장 전부를 센다. 약점 속성 피해 비율 계산에 사용.</summary>
+        public IReadOnlyDictionary<CardSuit, int> SuitCounts { get; }
         public bool IsValid => Rank != PokerHandRank.None;
     }
 
     public static class PokerHandEvaluator
     {
-        public static string Evaluate(IReadOnlyList<Sprite> cards)
+        /// <summary>손패 5장(킥커 포함) 중 적 약점 무늬가 차지하는 비율(0~1). 원페어 이상(tier≥1)
+        /// 이어야 발동하고(하이카드는 항상 0), 족보를 이루는 카드인지는 상관없이 5장 전체를 센다.</summary>
+        public static float WeaknessRatio(PokerHandResult result, CardSuit weakness)
         {
-            var result = EvaluateDetails(cards);
-            return result.IsValid ? result.DisplayName : string.Empty;
+            if (weakness == CardSuit.None || !result.IsValid || result.Tier < 1 || result.SuitCounts == null)
+                return 0f;
+            return result.SuitCounts.TryGetValue(weakness, out var count) ? count / 5f : 0f;
         }
 
         public static PokerHandResult EvaluateDetails(IReadOnlyList<Sprite> cards)
@@ -67,6 +75,9 @@ namespace CardBattle
             int blackCount = suits.Count(s => !IsRedSuit(s));
             int highRank = ranks[^1];
             var isFlush = suits.Distinct().Count() == 1;
+            var suitCounts = parsed
+                .GroupBy(c => ParseSuit(c.suit))
+                .ToDictionary(g => g.Key, g => g.Count());
 
             var distinctRanks = ranks.Distinct().ToList();
             var isStraight = false;
@@ -151,8 +162,17 @@ namespace CardBattle
                 tier = 0;
             }
 
-            return new PokerHandResult(handRank, name, tier, redCount, blackCount, highRank, tier >= 6);
+            return new PokerHandResult(handRank, name, tier, redCount, blackCount, highRank, tier >= 6, suitCounts);
         }
+
+        public static CardSuit ParseSuit(char suitChar) => suitChar switch
+        {
+            'S' => CardSuit.Spade,
+            'C' => CardSuit.Clover,
+            'H' => CardSuit.Heart,
+            'D' => CardSuit.Diamond,
+            _ => CardSuit.None,
+        };
 
         public static bool TryParse(Sprite sprite, out int rank, out char suit)
         {

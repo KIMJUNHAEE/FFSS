@@ -16,13 +16,13 @@ namespace CardBattle.EditorTools
             var textureImporter = (TextureImporter)assetImporter;
             string fileName = System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
-            if (ContainsIgnoreCase(fileName, "Normal"))
+            if (ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(fileName, "Normal"))
             {
                 textureImporter.textureType = TextureImporterType.NormalMap;
                 textureImporter.sRGBTexture = false;
             }
-            else if (ContainsIgnoreCase(fileName, "Metallic") ||
-                     ContainsIgnoreCase(fileName, "Roughness"))
+            else if (ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(fileName, "Metallic") ||
+                     ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(fileName, "Roughness"))
             {
                 textureImporter.textureType = TextureImporterType.Default;
                 textureImporter.sRGBTexture = false;
@@ -64,9 +64,9 @@ namespace CardBattle.EditorTools
             string fileName = System.IO.Path.GetFileNameWithoutExtension(modelImporter.assetPath);
             string clipName = null;
 
-            if (ContainsIgnoreCase(fileName, "idle"))
+            if (ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(fileName, "idle"))
                 clipName = "Idle";
-            else if (ContainsIgnoreCase(fileName, "walk"))
+            else if (ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(fileName, "walk"))
                 clipName = "Walk";
 
             if (clipName == null)
@@ -89,11 +89,6 @@ namespace CardBattle.EditorTools
             }
 
             modelImporter.clipAnimations = clips;
-        }
-
-        private static bool ContainsIgnoreCase(string value, string part)
-        {
-            return value?.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

@@ -21,6 +21,7 @@ namespace CardBattle
 
         private Sprite backSprite;
         private RectTransform arcAnchor;
+        private Coroutine activeRoutine;
         private Coroutine feedbackRoutine;
         private bool selectionContextActive;
         private bool pointerInside;
@@ -29,6 +30,16 @@ namespace CardBattle
 
         public Sprite CardSprite { get; private set; }
         public bool IsSelected { get; private set; }
+
+        /// <summary>대표 애니메이션(딜/다시뽑기/후퇴/모으기/전투)을 새로 시작하기 전에 이전 대표
+        /// 애니메이션과 피드백 펄스를 둘 다 확실히 멈추고 핸들을 비운다. StopAllCoroutines()를
+        /// 직접 쓰면 feedbackRoutine이 도중에 죽어도 필드가 null로 안 돌아와서 ApplyRestScale이
+        /// 영원히 스킵되는 버그가 있었음.</summary>
+        private void StopActiveRoutines()
+        {
+            if (activeRoutine != null) { StopCoroutine(activeRoutine); activeRoutine = null; }
+            if (feedbackRoutine != null) { StopCoroutine(feedbackRoutine); feedbackRoutine = null; }
+        }
 
         public void Configure(Sprite backCardSprite, RectTransform curveArcAnchor)
         {
@@ -107,13 +118,13 @@ namespace CardBattle
         public void PlayDealAnimation(RectTransform origin, float duration)
         {
             if (visual == null) return;
-            StopAllCoroutines();
+            StopActiveRoutines();
 
             var rootRt = (RectTransform)transform;
             Vector2 startOffset = origin != null ? WorldToLocalOffset(origin, rootRt) : visual.anchoredPosition;
             Vector2 endOffset = IsSelected ? new Vector2(0, selectedOffsetY) : Vector2.zero;
 
-            StartCoroutine(MoveVisual(startOffset, endOffset, duration, true, CardSprite));
+            activeRoutine = StartCoroutine(MoveVisual(startOffset, endOffset, duration, true, CardSprite));
         }
 
         /// <summary>손패 자리 -> 더미(뒷면으로 복귀) -> 새 카드로 다시 손패 자리로, 두 단계 모두 곡선으로 이동.</summary>
@@ -125,8 +136,8 @@ namespace CardBattle
                 return;
             }
 
-            StopAllCoroutines();
-            StartCoroutine(RedrawRoutine(pile, newSprite, outDuration, inDuration));
+            StopActiveRoutines();
+            activeRoutine = StartCoroutine(RedrawRoutine(pile, newSprite, outDuration, inDuration));
         }
 
         /// <summary>모인 위치에서 더미로 직선 회수되며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
@@ -138,8 +149,8 @@ namespace CardBattle
                 return;
             }
 
-            StopAllCoroutines();
-            StartCoroutine(RetractRoutine(pile, duration, onComplete));
+            StopActiveRoutines();
+            activeRoutine = StartCoroutine(RetractRoutine(pile, duration, onComplete));
         }
 
         public void PlayGatherAnimation(RectTransform gatherTarget, int index, int cardCount, float duration,
@@ -151,8 +162,8 @@ namespace CardBattle
                 return;
             }
 
-            StopAllCoroutines();
-            StartCoroutine(GatherRoutine(gatherTarget, index, cardCount, duration, onComplete));
+            StopActiveRoutines();
+            activeRoutine = StartCoroutine(GatherRoutine(gatherTarget, index, cardCount, duration, onComplete));
         }
 
         /// <summary>현재 손패가 공격/방어/스킬 행동을 하는 짧은 연출을 재생한다.</summary>
@@ -164,8 +175,8 @@ namespace CardBattle
                 return;
             }
 
-            StopAllCoroutines();
-            StartCoroutine(CombatRoutine(action, index, cardCount, onComplete));
+            StopActiveRoutines();
+            activeRoutine = StartCoroutine(CombatRoutine(action, index, cardCount, onComplete));
         }
 
         private IEnumerator RetractRoutine(RectTransform pile, float duration, Action onComplete)
@@ -221,15 +232,11 @@ namespace CardBattle
         private IEnumerator FeedbackPulseRoutine(float peakScale, float duration)
         {
             Vector3 start = visual.localScale;
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                float pulse = Mathf.Sin(t * Mathf.PI);
+                float pulse = UiTween.SinPunch(t);
                 visual.localScale = Vector3.one * Mathf.Lerp(start.x, peakScale, pulse);
-                yield return null;
-            }
+            }, useUnscaledTime: true);
 
             feedbackRoutine = null;
             ApplyRestScale();
@@ -287,18 +294,14 @@ namespace CardBattle
         private IEnumerator TweenTransform(Vector2 from, Vector2 to, float fromAngle, float toAngle,
             float fromScale, float toScale, float duration, bool overshoot)
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                float eased = Mathf.SmoothStep(0f, 1f, t);
-                float punch = overshoot ? Mathf.Sin(t * Mathf.PI) * 0.08f : 0f;
+                float eased = UiTween.SmoothStep(t);
+                float punch = overshoot ? UiTween.SinPunch(t) * 0.08f : 0f;
                 visual.anchoredPosition = Vector2.LerpUnclamped(from, to, eased);
                 visual.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(fromAngle, toAngle, eased));
                 visual.localScale = Vector3.one * Mathf.Min(1f, Mathf.Lerp(fromScale, toScale, eased) + punch);
-                yield return null;
-            }
+            });
 
             visual.anchoredPosition = to;
             visual.localRotation = Quaternion.Euler(0f, 0f, toAngle);
@@ -307,17 +310,13 @@ namespace CardBattle
 
         private IEnumerator PulseAtPosition(Vector2 position, float angle, float duration)
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                float pulse = Mathf.Sin(t * Mathf.PI * 2f) * 0.06f;
-                visual.anchoredPosition = position + Vector2.up * Mathf.Sin(t * Mathf.PI) * 8f;
+                float pulse = UiTween.SinPunch(t, 2f) * 0.06f;
+                visual.anchoredPosition = position + Vector2.up * UiTween.SinPunch(t) * 8f;
                 visual.localRotation = Quaternion.Euler(0f, 0f, angle - pulse * 20f);
                 visual.localScale = Vector3.one * (0.96f + Mathf.Abs(pulse) * 0.5f);
-                yield return null;
-            }
+            });
         }
 
         private IEnumerator MoveVisual(Vector2 fromOffset, Vector2 toOffset, float duration, bool flipHalfway, Sprite flipSprite)
@@ -326,15 +325,12 @@ namespace CardBattle
             bool flipped = !flipHalfway;
             float startAngle = Mathf.Clamp((fromOffset.x - toOffset.x) * 0.06f, -14f, 14f);
 
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float eased = Mathf.SmoothStep(0f, 1f, t);
-                visual.anchoredPosition = QuadraticBezier(fromOffset, controlOffset, toOffset, eased);
+                float eased = UiTween.SmoothStep(t);
+                visual.anchoredPosition = UiTween.QuadraticBezier(fromOffset, controlOffset, toOffset, eased);
                 visual.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(startAngle, 0f, eased));
-                float landingPunch = Mathf.Sin(t * Mathf.PI) * 0.12f;
+                float landingPunch = UiTween.SinPunch(t) * 0.12f;
                 float landingScale = Mathf.Lerp(0.84f + landingPunch, 1f + landingPunch * 0.35f, eased);
                 visual.localScale = Vector3.one * Mathf.Min(1f, landingScale);
 
@@ -343,9 +339,7 @@ namespace CardBattle
                     SetVisualSprite(flipSprite);
                     flipped = true;
                 }
-
-                yield return null;
-            }
+            });
 
             visual.anchoredPosition = toOffset;
             visual.localRotation = Quaternion.identity;
@@ -367,12 +361,6 @@ namespace CardBattle
             float arcHeight = Mathf.Clamp(straightDistance * 0.45f, 40f, 160f);
 
             return mid + dir * arcHeight;
-        }
-
-        private static Vector2 QuadraticBezier(Vector2 p0, Vector2 p1, Vector2 p2, float t)
-        {
-            float u = 1f - t;
-            return u * u * p0 + 2f * u * t * p1 + t * t * p2;
         }
 
         private Vector2 WorldToLocalOffset(RectTransform target, RectTransform root)
