@@ -26,6 +26,8 @@ namespace CardBattle
         [SerializeField] private int handSize = 5;
         [SerializeField] private float dealAnimationDuration = 0.35f;
         [SerializeField] private float dealStagger = 0.12f;
+        [SerializeField] private float gatherAnimationDuration = 0.24f;
+        [SerializeField] private float retractStagger = 0.045f;
 
         private readonly List<PokerCardView> spawnedCards = new();
         private Coroutine dealRoutine;
@@ -109,9 +111,23 @@ namespace CardBattle
                 yield break;
             }
 
+            // 레이아웃 패널의 피벗은 카드 줄보다 위에 있을 수 있다. 실제 가운데 카드 위치를
+            // 집결점으로 써야 손패가 위로 뜨지 않고 현재 줄에서 곧장 한 점으로 모인다.
+            var gatherTarget = spawnedCards[spawnedCards.Count / 2].transform as RectTransform;
             int remaining = spawnedCards.Count;
-            foreach (var card in spawnedCards)
-                card.PlayRetractAnimation(deckPileTransform, dealAnimationDuration, () => remaining--);
+            for (int i = 0; i < spawnedCards.Count; i++)
+                spawnedCards[i].PlayGatherAnimation(gatherTarget, i, spawnedCards.Count,
+                    gatherAnimationDuration, () => remaining--);
+
+            yield return new WaitUntil(() => remaining <= 0);
+            yield return new WaitForSeconds(0.06f);
+
+            remaining = spawnedCards.Count;
+            for (int i = spawnedCards.Count - 1; i >= 0; i--)
+            {
+                spawnedCards[i].PlayRetractAnimation(deckPileTransform, dealAnimationDuration, () => remaining--);
+                yield return new WaitForSeconds(retractStagger);
+            }
 
             yield return new WaitUntil(() => remaining <= 0);
 

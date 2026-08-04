@@ -88,7 +88,7 @@ namespace CardBattle
             StartCoroutine(RedrawRoutine(pile, newSprite, outDuration, inDuration));
         }
 
-        /// <summary>현재 자리에서 더미로 곡선을 그리며 물러나며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
+        /// <summary>모인 위치에서 더미로 직선 회수되며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
         public void PlayRetractAnimation(RectTransform pile, float duration, Action onComplete = null)
         {
             if (visual == null || pile == null)
@@ -99,6 +99,19 @@ namespace CardBattle
 
             StopAllCoroutines();
             StartCoroutine(RetractRoutine(pile, duration, onComplete));
+        }
+
+        public void PlayGatherAnimation(RectTransform gatherTarget, int index, int cardCount, float duration,
+            Action onComplete = null)
+        {
+            if (visual == null || gatherTarget == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            StopAllCoroutines();
+            StartCoroutine(GatherRoutine(gatherTarget, index, cardCount, duration, onComplete));
         }
 
         /// <summary>현재 손패가 공격/방어/스킬 행동을 하는 짧은 연출을 재생한다.</summary>
@@ -121,7 +134,8 @@ namespace CardBattle
             Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
 
             SetVisualSprite(backSprite);
-            yield return MoveVisual(startOffset, pileOffset, duration, false, null);
+            yield return TweenTransform(startOffset, pileOffset, visual.localEulerAngles.z, 0f,
+                visual.localScale.x, 0.82f, duration, false);
 
             onComplete?.Invoke();
         }
@@ -172,6 +186,19 @@ namespace CardBattle
 
             ResetVisualTransform();
             visual.anchoredPosition = rest;
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator GatherRoutine(RectTransform gatherTarget, int index, int cardCount, float duration,
+            Action onComplete)
+        {
+            var rootRt = (RectTransform)transform;
+            float centerIndex = index - (cardCount - 1) * 0.5f;
+            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, Mathf.Abs(centerIndex) * 2f);
+            float gatherAngle = centerIndex * -2.5f;
+
+            yield return TweenTransform(visual.anchoredPosition, gatherOffset,
+                visual.localEulerAngles.z, gatherAngle, visual.localScale.x, 0.96f, duration, false);
             onComplete?.Invoke();
         }
 
