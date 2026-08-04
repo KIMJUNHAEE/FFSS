@@ -29,6 +29,11 @@ namespace CardBattle
 
         private readonly List<PokerCardView> spawnedCards = new();
         private Coroutine dealRoutine;
+        private Coroutine combatAnimationRoutine;
+
+        public event Action<PokerHandResult> HandChanged;
+        public PokerHandResult CurrentResult { get; private set; }
+        public bool HasResolvedHand => spawnedCards.Count == handSize && dealRoutine == null && CurrentResult.IsValid;
 
         private void Start()
         {
@@ -81,6 +86,12 @@ namespace CardBattle
             dealRoutine = StartCoroutine(RetractRoutine(onComplete));
         }
 
+        public void PlayCombatAnimation(RpsAction action, Action onComplete = null)
+        {
+            if (combatAnimationRoutine != null) StopCoroutine(combatAnimationRoutine);
+            combatAnimationRoutine = StartCoroutine(CombatAnimationRoutine(action, onComplete));
+        }
+
         /// <summary>덱 더미(Back-R) 표시 여부. 적 턴 동안 화투패가 나오는 사이엔 숨겨둔다.</summary>
         public void SetDeckPileVisible(bool visible)
         {
@@ -109,11 +120,35 @@ namespace CardBattle
             onComplete?.Invoke();
         }
 
+        private IEnumerator CombatAnimationRoutine(RpsAction action, Action onComplete)
+        {
+            if (spawnedCards.Count == 0)
+            {
+                combatAnimationRoutine = null;
+                onComplete?.Invoke();
+                yield break;
+            }
+
+            int remaining = spawnedCards.Count;
+            for (int i = 0; i < spawnedCards.Count; i++)
+            {
+                spawnedCards[i].PlayCombatAnimation(action, i, spawnedCards.Count, () => remaining--);
+                if (action != RpsAction.Defend)
+                    yield return new WaitForSeconds(0.035f);
+            }
+
+            yield return new WaitUntil(() => remaining <= 0);
+            combatAnimationRoutine = null;
+            onComplete?.Invoke();
+        }
+
         private void ClearHand()
         {
             foreach (var card in spawnedCards)
                 if (card) Destroy(card.gameObject);
             spawnedCards.Clear();
+            CurrentResult = default;
+            HandChanged?.Invoke(CurrentResult);
             if (handRankText) handRankText.gameObject.SetActive(false);
         }
 
@@ -146,8 +181,8 @@ namespace CardBattle
             }
 
             yield return new WaitForSeconds(dealAnimationDuration);
-            UpdateHandRank();
             dealRoutine = null;
+            UpdateHandRank();
         }
 
         private IEnumerator RedrawRoutine(List<PokerCardView> toReplace, List<Sprite> newSprites)
@@ -171,8 +206,8 @@ namespace CardBattle
             foreach (var card in spawnedCards)
                 card.SetSelected(false);
 
-            UpdateHandRank();
             dealRoutine = null;
+            UpdateHandRank();
         }
 
         private PokerCardView SpawnCard(Sprite sprite)
@@ -192,8 +227,10 @@ namespace CardBattle
 
         private void UpdateHandRank()
         {
+            CurrentResult = PokerHandEvaluator.EvaluateDetails(spawnedCards.Select(c => c.CardSprite).ToList());
             if (handRankText != null)
-                handRankText.text = PokerHandEvaluator.Evaluate(spawnedCards.Select(c => c.CardSprite).ToList());
+                handRankText.text = CurrentResult.IsValid ? CurrentResult.DisplayName : string.Empty;
+            HandChanged?.Invoke(CurrentResult);
             UpdateHandRankVisibility();
         }
 
@@ -206,7 +243,9 @@ namespace CardBattle
 
         private List<Sprite> PickRandomUnique(int count, HashSet<Sprite> exclude)
         {
-            var candidates = deckSprites.Where(s => !exclude.Contains(s)).ToList();
+            var candidates = deckSprites
+                .Where(s => !exclude.Contains(s) && PokerHandEvaluator.TryParse(s, out _, out _))
+                .ToList();
             for (int i = candidates.Count - 1; i > 0; i--)
             {
                 int j = UnityEngine.Random.Range(0, i + 1);

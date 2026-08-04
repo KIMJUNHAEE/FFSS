@@ -182,7 +182,7 @@ namespace CardBattle.EditorTools
                 if (fileName == "Back-B" || fileName == "Back-R") continue;
 
                 var sprite = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
-                if (sprite != null) sprites.Add(sprite);
+                if (sprite != null && PokerHandEvaluator.TryParse(sprite, out _, out _)) sprites.Add(sprite);
             }
 
             return sprites;
@@ -414,16 +414,23 @@ namespace CardBattle.EditorTools
             }
 
             // 적 HUD (초상화 바로 밑, 축소된 형태)
-            var enemyPanel = CreatePanel("EnemyHUD", canvasT, new Vector2(0.32f, 0.41f), new Vector2(0.68f, 0.47f), new Color(0, 0, 0, 0.5f));
-            var enemyNameText = CreateText("EnemyNameText", enemyPanel.transform, new Vector2(0.03f, 0.5f), new Vector2(0.97f, 1f), "적 이름", 15, TextAnchor.MiddleLeft, Color.white);
-            var enemyHpFill = CreateFillBar("EnemyHpBar", enemyPanel.transform, new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.45f), new Color(0.2f, 0.2f, 0.2f), new Color(0.8f, 0.2f, 0.2f));
-            var enemyHpText = CreateText("EnemyHpText", enemyPanel.transform, new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.45f), "0 / 0", 11, TextAnchor.MiddleCenter, Color.white);
+            var enemyPanel = CreatePanel("EnemyHUD", canvasT, new Vector2(0.32f, 0.385f), new Vector2(0.68f, 0.49f), new Color(0, 0, 0, 0.5f));
+            var enemyNameText = CreateText("EnemyNameText", enemyPanel.transform, new Vector2(0.03f, 0.70f), new Vector2(0.97f, 1f), "적 이름", 15, TextAnchor.MiddleLeft, Color.white);
+            var enemyHpFill = CreateFillBar("EnemyHpBar", enemyPanel.transform, new Vector2(0.03f, 0.42f), new Vector2(0.97f, 0.68f), new Color(0.18f, 0.18f, 0.18f), new Color(0.9f, 0.18f, 0.18f));
+            var enemyHpText = CreateText("EnemyHpText", enemyPanel.transform, new Vector2(0.03f, 0.42f), new Vector2(0.97f, 0.68f), "0 / 0", 11, TextAnchor.MiddleCenter, Color.white);
+            var enemyBreakFill = CreateFillBar("EnemyPressureBar", enemyPanel.transform, new Vector2(0.03f, 0.35f), new Vector2(0.97f, 0.39f), new Color(0.36f, 0.36f, 0.36f), new Color(1f, 0.78f, 0.12f));
+            Text enemyBreakText = null;
 
             // 플레이어 HUD (하단 좌측)
-            var playerPanel = CreatePanel("PlayerHUD", canvasT, new Vector2(0.02f, 0.36f), new Vector2(0.3f, 0.56f), new Color(0, 0, 0, 0.35f));
-            var playerNameText = CreateText("PlayerNameText", playerPanel.transform, new Vector2(0.05f, 0.68f), new Vector2(0.97f, 1f), "플레이어", 22, TextAnchor.MiddleLeft, Color.white);
-            var playerHpFill = CreateFillBar("PlayerHpBar", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), new Color(0.2f, 0.2f, 0.2f), new Color(0.25f, 0.75f, 0.3f));
-            var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), "0 / 0", 16, TextAnchor.MiddleCenter, Color.white);
+            var playerPanel = CreatePanel("PlayerHUD", canvasT, new Vector2(0.02f, 0.32f), new Vector2(0.3f, 0.58f), new Color(0, 0, 0, 0.58f));
+            var playerNameText = CreateText("PlayerNameText", playerPanel.transform, new Vector2(0.05f, 0.76f), new Vector2(0.97f, 1f), "플레이어", 22, TextAnchor.MiddleLeft, Color.white);
+            var playerHpFill = CreateFillBar("PlayerHpBar", playerPanel.transform, new Vector2(0.05f, 0.54f), new Vector2(0.97f, 0.74f), new Color(0.18f, 0.18f, 0.18f), new Color(0.9f, 0.18f, 0.18f));
+            var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.54f), new Vector2(0.97f, 0.74f), "0 / 0", 14, TextAnchor.MiddleCenter, Color.white);
+            var playerBreakFill = CreateFillBar("PlayerPressureBar", playerPanel.transform, new Vector2(0.05f, 0.49f), new Vector2(0.97f, 0.515f), new Color(0.36f, 0.36f, 0.36f), new Color(1f, 0.78f, 0.12f));
+            Text playerBreakText = null;
+            var playerStatText = CreateText("PlayerStatText", playerPanel.transform, new Vector2(0.05f, 0.01f), new Vector2(0.97f, 0.48f), "", 17, TextAnchor.MiddleLeft, new Color(0.95f, 0.95f, 1f));
+            playerStatText.lineSpacing = 1f;
+            AddTextOutline(playerStatText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
 
             // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
             var pokerTableContentParent = useBoss38SmallTables && pokerTableV2 != null ? pokerTableV2 : canvasT;
@@ -433,10 +440,10 @@ namespace CardBattle.EditorTools
             if (backSprite != null)
             {
                 deckPileImg = CreatePanel("DeckPile", pokerTableContentParent,
-                    useBoss38SmallTables ? new Vector2(0.0753f, 0.4619f) : new Vector2(0.2375f, 0.0700f),
-                    useBoss38SmallTables ? new Vector2(0.0753f, 0.4619f) : new Vector2(0.2941f, 0.2157f),
+                    useBoss38SmallTables ? new Vector2(0.1153f, 0.4619f) : new Vector2(0.2375f, 0.0700f),
+                    useBoss38SmallTables ? new Vector2(0.1153f, 0.4619f) : new Vector2(0.2941f, 0.2157f),
                     Color.white);
-                if (useBoss38SmallTables) ConfigureFixedCentered(deckPileImg.rectTransform, new Vector2(0.0753f, 0.4619f), PokerCardSize);
+                if (useBoss38SmallTables) ConfigureFixedCentered(deckPileImg.rectTransform, new Vector2(0.1153f, 0.4619f), PokerCardSize);
                 deckPileImg.sprite = backSprite;
                 deckPileImg.preserveAspect = true;
                 deckPileImg.raycastTarget = false;
@@ -457,24 +464,24 @@ namespace CardBattle.EditorTools
 
             // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
             var seotdaCardA = CreatePanel("SeotdaCardA", hwatuTableContentParent,
-                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.416f, 0.07f),
-                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.464f, 0.244f),
+                useBoss38SmallTables ? new Vector2(0.4313f, 0.5077f) : new Vector2(0.416f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.4313f, 0.5077f) : new Vector2(0.464f, 0.244f),
                 Color.white);
-            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardA.rectTransform, new Vector2(0.3913f, 0.5077f), SeotdaCardSize);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardA.rectTransform, new Vector2(0.4313f, 0.5077f), SeotdaCardSize);
             seotdaCardA.preserveAspect = true;
             seotdaCardA.gameObject.SetActive(false);
             var seotdaCardB = CreatePanel("SeotdaCardB", hwatuTableContentParent,
-                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.536f, 0.07f),
-                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.584f, 0.244f),
+                useBoss38SmallTables ? new Vector2(0.6487f, 0.5077f) : new Vector2(0.536f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.6487f, 0.5077f) : new Vector2(0.584f, 0.244f),
                 Color.white);
-            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardB.rectTransform, new Vector2(0.6087f, 0.5077f), SeotdaCardSize);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardB.rectTransform, new Vector2(0.6487f, 0.5077f), SeotdaCardSize);
             seotdaCardB.preserveAspect = true;
             seotdaCardB.gameObject.SetActive(false);
 
             // 손패 영역 (테이블 위, 배경은 테이블 그림이 대신하므로 투명)
             var handPanel = CreatePanel("HandPanel", pokerTableContentParent,
-                useBoss38SmallTables ? new Vector2(0.193f, 0.2263f) : new Vector2(0.3305f, 0.0700f),
-                useBoss38SmallTables ? new Vector2(0.8058f, 0.6975f) : new Vector2(0.6688f, 0.2157f),
+                useBoss38SmallTables ? new Vector2(0.233f, 0.2263f) : new Vector2(0.3305f, 0.0700f),
+                useBoss38SmallTables ? new Vector2(0.8458f, 0.6975f) : new Vector2(0.6688f, 0.2157f),
                 Color.clear);
             handPanel.raycastTarget = false;
             var hlg = handPanel.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -501,16 +508,32 @@ namespace CardBattle.EditorTools
             // 다시뽑기 버튼 (턴 종료 버튼 바로 위)
             var redrawButton = CreateButton("RedrawButton", canvasT, new Vector2(0.84f, 0.18f), new Vector2(0.97f, 0.29f), "다시뽑기", new Color(0.25f, 0.45f, 0.7f));
 
-            // 공격/방어/반격 버튼 (다시뽑기/턴종료 버튼 바로 왼쪽, 세로로 나열)
+            // 공격/방어/스킬 버튼 (다시뽑기/턴종료 버튼 바로 왼쪽, 세로로 나열)
             var attackButton = CreateButton("AttackButton", canvasT, new Vector2(0.70f, 0.24f), new Vector2(0.82f, 0.33f), "공격", new Color(0.75f, 0.25f, 0.2f));
             var defendButton = CreateButton("DefendButton", canvasT, new Vector2(0.70f, 0.13f), new Vector2(0.82f, 0.22f), "방어", new Color(0.2f, 0.45f, 0.75f));
-            var counterButton = CreateButton("CounterButton", canvasT, new Vector2(0.70f, 0.02f), new Vector2(0.82f, 0.11f), "반격", new Color(0.6f, 0.3f, 0.7f));
+            var skillButton = CreateButton("SkillButton", canvasT, new Vector2(0.70f, 0.02f), new Vector2(0.82f, 0.11f), "스킬", new Color(0.6f, 0.3f, 0.7f));
 
             // 플레이어 상태(스턴 등) 표시 (행동 버튼 바로 위)
-            var playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.355f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
+            var playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.365f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
 
             // 적 행동 표시 (적 초상화 오른쪽)
             var enemyActionText = CreateText("EnemyActionText", canvasT, new Vector2(0.70f, 0.60f), new Vector2(0.90f, 0.75f), "", 26, TextAnchor.MiddleCenter, new Color(1f, 0.6f, 0.6f));
+            AddTextOutline(enemyActionText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
+            var enemyStatText = CreateText("EnemyStatText", canvasT, new Vector2(0.70f, 0.49f), new Vector2(0.90f, 0.59f), "", 16, TextAnchor.MiddleCenter, new Color(0.9f, 0.95f, 1f));
+            var enemyIntentTooltipBg = CreatePanel("EnemyIntentTooltip", canvasT, new Vector2(0.62f, 0.76f), new Vector2(0.94f, 0.94f), new Color(0f, 0f, 0f, 0.78f));
+            enemyIntentTooltipBg.raycastTarget = false;
+            var enemyIntentTooltipText = CreateText("EnemyIntentTooltipText", enemyIntentTooltipBg.transform, new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), "", 14, TextAnchor.UpperLeft, Color.white);
+            enemyIntentTooltipText.raycastTarget = false;
+            enemyIntentTooltipBg.gameObject.SetActive(false);
+            var enemyIntentHitArea = CreatePanel("EnemyIntentHitArea", canvasT, new Vector2(0.70f, 0.60f), new Vector2(0.90f, 0.75f), new Color(1f, 1f, 1f, 0.001f));
+            enemyIntentHitArea.raycastTarget = true;
+            var enemyIntentTooltip = enemyIntentHitArea.gameObject.AddComponent<IntentHoverTooltip>();
+            enemyIntentTooltip.tooltipRoot = enemyIntentTooltipBg.gameObject;
+            enemyIntentTooltip.tooltipText = enemyIntentTooltipText;
+            var combatReadout = CreatePanel("CombatReadout", canvasT, new Vector2(0.31f, 0.28f), new Vector2(0.69f, 0.415f), new Color(0.02f, 0.025f, 0.035f, 0.9f));
+            var combatLogText = CreateText("CombatLogText", combatReadout.transform, new Vector2(0.025f, 0.08f), new Vector2(0.975f, 0.92f), "", 22, TextAnchor.MiddleCenter, Color.white);
+            combatLogText.lineSpacing = 1f;
+            AddTextOutline(combatLogText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
 
             // 승리/패배 패널 (중앙, 기본 비활성화)
             var winPanel = CreatePanel("WinPanel", canvasT, new Vector2(0.35f, 0.4f), new Vector2(0.65f, 0.6f), new Color(0, 0, 0, 0.85f));
@@ -537,14 +560,24 @@ namespace CardBattle.EditorTools
             var rps = rpsGO.GetComponent<RpsCombatController>();
             rps.attackButton = attackButton;
             rps.defendButton = defendButton;
-            rps.counterButton = counterButton;
+            rps.skillButton = skillButton;
+            rps.redrawButton = redrawButton;
             rps.endTurnButton = endTurnButton;
             rps.playerHpText = playerHpText;
             rps.playerHpFill = playerHpFill;
             rps.enemyHpText = enemyHpText;
             rps.enemyHpFill = enemyHpFill;
+            rps.playerBreakText = playerBreakText;
+            rps.playerBreakFill = playerBreakFill;
+            rps.enemyBreakText = enemyBreakText;
+            rps.enemyBreakFill = enemyBreakFill;
             rps.enemyActionText = enemyActionText;
             rps.playerStatusText = playerStatusText;
+            rps.playerStatText = playerStatText;
+            rps.enemyStatText = enemyStatText;
+            rps.enemyIntentTooltip = enemyIntentTooltip;
+            rps.combatLogText = combatLogText;
+            rps.combatReadout = combatReadout.gameObject;
             rps.winPanel = winPanel.gameObject;
             rps.losePanel = losePanel.gameObject;
             EditorUtility.SetDirty(rps);
@@ -573,6 +606,9 @@ namespace CardBattle.EditorTools
             rps.seotdaTable = seotdaTable;
             // rps.tableFlipper = tableFlipper; // 테이블 버전1 (보존용, 비활성)
             rps.tableSwitcher = tableSwitcher;
+            SetInt(rps, "enemyBaseAttack", 11);
+            SetInt(rps, "enemyBaseDefense", 10);
+            SetFloat(rps, "enemyAttackChance", 0.55f);
             EditorUtility.SetDirty(rps);
 
             UnityEventTools.AddPersistentListener(redrawButton.onClick, pokerHand.Redraw);
@@ -675,6 +711,15 @@ namespace CardBattle.EditorTools
             return text;
         }
 
+        private static void AddTextOutline(Text text, Color color, Vector2 distance)
+        {
+            if (text == null) return;
+            var outline = text.gameObject.AddComponent<Outline>();
+            outline.effectColor = color;
+            outline.effectDistance = distance;
+            outline.useGraphicAlpha = true;
+        }
+
         private static Image CreateFillBar(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color bg, Color fill)
         {
             var bgImg = CreatePanel($"{name}Bg", parent, anchorMin, anchorMax, bg);
@@ -683,7 +728,8 @@ namespace CardBattle.EditorTools
             fillImg.color = fill;
             fillImg.type = Image.Type.Filled;
             fillImg.fillMethod = Image.FillMethod.Horizontal;
-            fillImg.fillAmount = 1f;
+            fillImg.fillAmount = 0f;
+            fillRt.anchorMax = new Vector2(0f, 1f);
             return fillImg;
         }
 
@@ -710,6 +756,34 @@ namespace CardBattle.EditorTools
 
             if (value != null && prop.objectReferenceValue == null)
                 Debug.LogError($"[CardBattleSetup] 타입 불일치로 연결 실패: {fieldName} on {target.GetType().Name} <- {value.GetType().Name}");
+        }
+
+        private static void SetInt(Object target, string fieldName, int value)
+        {
+            var so = new SerializedObject(target);
+            var prop = so.FindProperty(fieldName);
+            if (prop == null)
+            {
+                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
+                return;
+            }
+
+            prop.intValue = value;
+            so.ApplyModifiedProperties();
+        }
+
+        private static void SetFloat(Object target, string fieldName, float value)
+        {
+            var so = new SerializedObject(target);
+            var prop = so.FindProperty(fieldName);
+            if (prop == null)
+            {
+                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
+                return;
+            }
+
+            prop.floatValue = value;
+            so.ApplyModifiedProperties();
         }
     }
 }

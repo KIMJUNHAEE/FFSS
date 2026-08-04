@@ -16,10 +16,18 @@ namespace CardBattle
         public Image cardSlotB;
         public Text rankText;
 
-        public void ShowEnemyHand()
+        public SeotdaHandResult LastResult { get; private set; }
+
+        public SeotdaHandResult ShowEnemyHand()
         {
             var picks = PickRandomUnique(2);
-            if (picks.Count < 2) return;
+            if (picks.Count < 2)
+            {
+                LastResult = default;
+                return LastResult;
+            }
+
+            LastResult = SeotdaHandEvaluator.EvaluateDetails(picks[0], picks[1]);
 
             if (cardSlotA)
             {
@@ -35,9 +43,11 @@ namespace CardBattle
 
             if (rankText)
             {
-                rankText.text = SeotdaHandEvaluator.Evaluate(picks[0], picks[1]);
+                rankText.text = LastResult.IsValid ? LastResult.DisplayName : string.Empty;
                 rankText.gameObject.SetActive(true);
             }
+
+            return LastResult;
         }
 
         public void HideEnemyHand()
