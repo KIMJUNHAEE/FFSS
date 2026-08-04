@@ -30,52 +30,10 @@ namespace CardBattle
 
         public SeotdaHandResult LastResult { get; private set; }
 
-        public SeotdaHandResult ShowEnemyHand()
-        {
-            var picks = PickRandomUnique(2);
-            if (picks.Count < 2)
-            {
-                LastResult = default;
-                return LastResult;
-            }
-
-            LastResult = SeotdaHandEvaluator.EvaluateDetails(picks[0], picks[1]);
-
-            if (cardSlotA)
-            {
-                cardSlotA.sprite = picks[0];
-                cardSlotA.gameObject.SetActive(true);
-            }
-
-            if (cardSlotB)
-            {
-                cardSlotB.sprite = picks[1];
-                cardSlotB.gameObject.SetActive(true);
-            }
-
-            if (rankText)
-            {
-                rankText.text = LastResult.IsValid ? LastResult.DisplayName : string.Empty;
-                rankText.gameObject.SetActive(true);
-            }
-
-            return LastResult;
-        }
-
         public void ShowEnemyHandAnimated(Action<SeotdaHandResult> onComplete)
         {
             if (drawRoutine != null) StopCoroutine(drawRoutine);
             drawRoutine = StartCoroutine(ShowEnemyHandRoutine(onComplete));
-        }
-
-        public void HideEnemyHand()
-        {
-            if (drawRoutine != null) StopCoroutine(drawRoutine);
-            drawRoutine = null;
-            ResetAndHide(cardSlotA);
-            ResetAndHide(cardSlotB);
-            if (rankText) rankText.gameObject.SetActive(false);
-            LastResult = default;
         }
 
         public void RetractEnemyHandAnimated(Action onComplete = null)
@@ -164,17 +122,13 @@ namespace CardBattle
             Vector2 to = from + WorldDelta(targetWorld, rt);
             float fromAngle = rt.localEulerAngles.z;
             Vector3 fromScale = rt.localScale;
-            float elapsed = 0f;
 
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
                 rt.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
                 rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpAngle(fromAngle, 0f, t));
                 rt.localScale = Vector3.LerpUnclamped(fromScale, Vector3.one * targetScale, t);
-                yield return null;
-            }
+            }, UiTween.SmoothStep);
 
             rt.anchoredPosition = to;
             rt.localRotation = Quaternion.identity;
@@ -196,13 +150,10 @@ namespace CardBattle
             rt.localScale = Vector3.one * 0.78f;
 
             bool flipped = false;
-            float elapsed = 0f;
-            while (elapsed < drawDuration)
+            yield return UiTween.Run(drawDuration, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, drawDuration));
-                float eased = Mathf.SmoothStep(0f, 1f, t);
-                Vector2 arc = Vector2.up * Mathf.Sin(t * Mathf.PI) * 42f;
+                float eased = UiTween.SmoothStep(t);
+                Vector2 arc = Vector2.up * UiTween.SinPunch(t) * 42f;
                 rt.anchoredPosition = Vector2.Lerp(start, final, eased) + arc;
                 rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(side * 13f, side * -2f, eased));
                 float flip = Mathf.Abs(Mathf.Cos(t * Mathf.PI));
@@ -212,8 +163,7 @@ namespace CardBattle
                     slot.sprite = face;
                     flipped = true;
                 }
-                yield return null;
-            }
+            });
 
             slot.sprite = face;
             rt.anchoredPosition = final;
@@ -224,14 +174,8 @@ namespace CardBattle
         private IEnumerator ScaleTo(RectTransform rt, Vector3 target, float duration)
         {
             Vector3 from = rt.localScale;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
-                rt.localScale = Vector3.LerpUnclamped(from, target, t);
-                yield return null;
-            }
+            yield return UiTween.Run(duration, t => rt.localScale = Vector3.LerpUnclamped(from, target, t),
+                UiTween.SmoothStep);
             rt.localScale = target;
         }
 

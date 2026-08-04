@@ -66,16 +66,12 @@ namespace CardBattle
         private IEnumerator Animate(Vector2 from, Vector2 to, float alphaFrom, float alphaTo,
             float scaleFrom, float scaleTo, float duration)
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
+            yield return UiTween.Run(duration, t =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
                 visual.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
                 visual.localScale = Vector3.one * Mathf.Lerp(scaleFrom, scaleTo, t);
                 canvasGroup.alpha = Mathf.Lerp(alphaFrom, alphaTo, t);
-                yield return null;
-            }
+            }, UiTween.SmoothStep, useUnscaledTime: true);
         }
 
         private void SetHidden()

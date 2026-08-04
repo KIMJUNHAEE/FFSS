@@ -63,15 +63,11 @@ namespace CardBattle
             Vector2 enterFrom = entering != null ? entering.anchoredPosition : Vector2.zero;
             Vector2 enterTo = new Vector2(enterFrom.x, 0f);
 
-            float elapsed = 0f;
-            while (elapsed < slideDuration)
+            yield return UiTween.Run(slideDuration, p =>
             {
-                elapsed += Time.deltaTime;
-                float p = EaseInOutCubic(Mathf.Clamp01(elapsed / slideDuration));
                 if (leaving != null) leaving.anchoredPosition = Vector2.Lerp(leaveFrom, leaveTo, p);
                 if (entering != null) entering.anchoredPosition = Vector2.Lerp(enterFrom, enterTo, p);
-                yield return null;
-            }
+            }, UiTween.EaseInOutCubic);
 
             if (leaving != null) leaving.anchoredPosition = leaveTo;
             if (entering != null) entering.anchoredPosition = enterTo;
@@ -80,8 +76,5 @@ namespace CardBattle
             routine = null;
             onComplete?.Invoke();
         }
-
-        private static float EaseInOutCubic(float t) =>
-            t < 0.5f ? 4f * t * t * t : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
     }
 }
