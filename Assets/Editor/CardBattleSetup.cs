@@ -28,6 +28,10 @@ namespace CardBattle.EditorTools
         private const string PokerCardDir = "Assets/BasicCard";
         private const string TableDir = "Assets/Table"; // 버전1(보존용, 비활성)
         private const string TableV2Dir = "Assets/NewTable";
+        private const string Boss38TableDir = "Assets/UI/38Battle";
+        private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
+        private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
+        private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
 
         [MenuItem("Card Battle/Setup/Run All (Content + Prefab + Scenes)")]
         public static void RunAll()
@@ -258,10 +262,15 @@ namespace CardBattle.EditorTools
             */
 
             // ===== 테이블 버전2: 포커 테이블/화투 테이블이 화면 아래로 내려가고 올라오며 교체됨.
-            var pokerTableV2Sprite = LoadSpriteAtPath($"{TableV2Dir}/포커테이블.png");
+            var useBoss38SmallTables = enemyId == "38";
+            var pokerTableV2Sprite = LoadSpriteAtPath(useBoss38SmallTables
+                ? $"{Boss38TableDir}/38_poker_table_small.png"
+                : $"{TableV2Dir}/포커테이블.png");
             if (pokerTableV2Sprite == null)
                 Debug.LogWarning("[CardBattleSetup] 포커테이블(v2) 스프라이트를 찾지 못했습니다.");
-            var hwatuTableV2Sprite = LoadSpriteAtPath($"{TableV2Dir}/화투테이블.png");
+            var hwatuTableV2Sprite = LoadSpriteAtPath(useBoss38SmallTables
+                ? $"{Boss38TableDir}/38_seotda_table_small.png"
+                : $"{TableV2Dir}/화투테이블.png");
             if (hwatuTableV2Sprite == null)
                 Debug.LogWarning("[CardBattleSetup] 화투테이블(v2) 스프라이트를 찾지 못했습니다.");
 
@@ -347,24 +356,36 @@ namespace CardBattle.EditorTools
             // 전환 시 보이던 쪽은 아래로, 숨어있던 쪽은 위로 동시에 슬라이드하며 자리를 바꾼다
             // (TableSlideSwitcher 참고).
             TableSlideSwitcher tableSwitcher = null;
+            RectTransform pokerTableV2 = null, hwatuTableV2 = null;
             if (pokerTableV2Sprite != null || hwatuTableV2Sprite != null)
             {
-                RectTransform pokerTableV2 = null, hwatuTableV2 = null;
                 if (pokerTableV2Sprite != null)
                 {
-                    var img = CreatePanel("PokerTableV2", canvasT, new Vector2(0f, 0f), new Vector2(1f, 0.53f), Color.white);
+                    var img = CreatePanel("PokerTableV2", canvasT,
+                        useBoss38SmallTables ? new Vector2(0.5f, 0f) : new Vector2(0f, 0f),
+                        useBoss38SmallTables ? new Vector2(0.5f, 0f) : new Vector2(1f, 0.53f),
+                        Color.white);
                     img.sprite = pokerTableV2Sprite;
-                    img.preserveAspect = false;
+                    img.preserveAspect = useBoss38SmallTables;
                     img.raycastTarget = false;
                     pokerTableV2 = img.rectTransform;
+                    if (useBoss38SmallTables) ConfigureFixedBottomCenter(pokerTableV2, Boss38TableSize);
                 }
                 if (hwatuTableV2Sprite != null)
                 {
-                    var img = CreatePanel("HwatuTableV2", canvasT, new Vector2(0f, 0f), new Vector2(1f, 0.53f), Color.white);
+                    var img = CreatePanel("HwatuTableV2", canvasT,
+                        useBoss38SmallTables ? new Vector2(0.5f, 0f) : new Vector2(0f, 0f),
+                        useBoss38SmallTables ? new Vector2(0.5f, 0f) : new Vector2(1f, 0.53f),
+                        Color.white);
                     img.sprite = hwatuTableV2Sprite;
-                    img.preserveAspect = false;
+                    img.preserveAspect = useBoss38SmallTables;
                     img.raycastTarget = false;
                     hwatuTableV2 = img.rectTransform;
+                    if (useBoss38SmallTables)
+                    {
+                        ConfigureFixedBottomCenter(hwatuTableV2, Boss38TableSize);
+                        hwatuTableV2.anchoredPosition = new Vector2(0f, -Boss38TableSize.y);
+                    }
                 }
 
                 var switcherGO = new GameObject("TableSlideSwitcher", typeof(TableSlideSwitcher));
@@ -405,46 +426,71 @@ namespace CardBattle.EditorTools
             var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), "0 / 0", 16, TextAnchor.MiddleCenter, Color.white);
 
             // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
+            var pokerTableContentParent = useBoss38SmallTables && pokerTableV2 != null ? pokerTableV2 : canvasT;
+            var hwatuTableContentParent = useBoss38SmallTables && hwatuTableV2 != null ? hwatuTableV2 : canvasT;
+
             Image deckPileImg = null;
             if (backSprite != null)
             {
-                deckPileImg = CreatePanel("DeckPile", canvasT, new Vector2(0.2375f, 0.0700f), new Vector2(0.2941f, 0.2157f), Color.white);
+                deckPileImg = CreatePanel("DeckPile", pokerTableContentParent,
+                    useBoss38SmallTables ? new Vector2(0.0753f, 0.4619f) : new Vector2(0.2375f, 0.0700f),
+                    useBoss38SmallTables ? new Vector2(0.0753f, 0.4619f) : new Vector2(0.2941f, 0.2157f),
+                    Color.white);
+                if (useBoss38SmallTables) ConfigureFixedCentered(deckPileImg.rectTransform, new Vector2(0.0753f, 0.4619f), PokerCardSize);
                 deckPileImg.sprite = backSprite;
                 deckPileImg.preserveAspect = true;
                 deckPileImg.raycastTarget = false;
             }
 
             // 손패 족보 표시 (손패 영역 바로 위, 카드를 하나라도 선택하면 숨겨짐)
-            var handRankText = CreateText("HandRankText", canvasT, new Vector2(0.24f, 0.23f), new Vector2(0.76f, 0.29f), "", 28, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
+            var handRankText = CreateText("HandRankText", pokerTableContentParent,
+                useBoss38SmallTables ? new Vector2(0.0291f, 0.7437f) : new Vector2(0.24f, 0.23f),
+                useBoss38SmallTables ? new Vector2(0.971f, 0.9377f) : new Vector2(0.76f, 0.29f),
+                "", 28, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.4f));
 
             // 섰다 족보 표시 (적 턴에만 활성화, 손패 족보랑 같은 자리 재사용)
-            var seotdaRankText = CreateText("SeotdaRankText", canvasT, new Vector2(0.24f, 0.23f), new Vector2(0.76f, 0.29f), "", 28, TextAnchor.MiddleCenter, new Color(0.5f, 0.85f, 1f));
+            var seotdaRankText = CreateText("SeotdaRankText", hwatuTableContentParent,
+                useBoss38SmallTables ? new Vector2(0.0291f, 0.7437f) : new Vector2(0.24f, 0.23f),
+                useBoss38SmallTables ? new Vector2(0.971f, 0.9377f) : new Vector2(0.76f, 0.29f),
+                "", 28, TextAnchor.MiddleCenter, new Color(0.5f, 0.85f, 1f));
             seotdaRankText.gameObject.SetActive(false);
 
             // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
-            var seotdaCardA = CreatePanel("SeotdaCardA", canvasT, new Vector2(0.416f, 0.07f), new Vector2(0.464f, 0.244f), Color.white);
+            var seotdaCardA = CreatePanel("SeotdaCardA", hwatuTableContentParent,
+                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.416f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.464f, 0.244f),
+                Color.white);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardA.rectTransform, new Vector2(0.3913f, 0.5077f), SeotdaCardSize);
             seotdaCardA.preserveAspect = true;
             seotdaCardA.gameObject.SetActive(false);
-            var seotdaCardB = CreatePanel("SeotdaCardB", canvasT, new Vector2(0.536f, 0.07f), new Vector2(0.584f, 0.244f), Color.white);
+            var seotdaCardB = CreatePanel("SeotdaCardB", hwatuTableContentParent,
+                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.536f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.584f, 0.244f),
+                Color.white);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardB.rectTransform, new Vector2(0.6087f, 0.5077f), SeotdaCardSize);
             seotdaCardB.preserveAspect = true;
             seotdaCardB.gameObject.SetActive(false);
 
             // 손패 영역 (테이블 위, 배경은 테이블 그림이 대신하므로 투명)
-            var handPanel = CreatePanel("HandPanel", canvasT, new Vector2(0.3305f, 0.0700f), new Vector2(0.6688f, 0.2157f), Color.clear);
+            var handPanel = CreatePanel("HandPanel", pokerTableContentParent,
+                useBoss38SmallTables ? new Vector2(0.193f, 0.2263f) : new Vector2(0.3305f, 0.0700f),
+                useBoss38SmallTables ? new Vector2(0.8058f, 0.6975f) : new Vector2(0.6688f, 0.2157f),
+                Color.clear);
             handPanel.raycastTarget = false;
             var hlg = handPanel.gameObject.AddComponent<HorizontalLayoutGroup>();
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.spacing = 22;
+            hlg.spacing = useBoss38SmallTables ? 44 : 22;
             // 카드 크기를 고정 픽셀(sizeDelta)이 아니라 HandPanel의 실제 렉트에서 매 프레임 계산하게 함.
             // CanvasScaler가 참조 해상도(1920x1080)와 실제 창 비율이 다를 때 폭 기준으로만 스케일하기
             // 때문에, 고정 sizeDelta 카드 크기는 창 비율이 16:9가 아니면 금색 슬롯과 어긋났었음.
-            hlg.childControlWidth = true;
-            hlg.childControlHeight = true;
-            hlg.childForceExpandWidth = true;
-            hlg.childForceExpandHeight = true;
+            hlg.childControlWidth = !useBoss38SmallTables;
+            hlg.childControlHeight = !useBoss38SmallTables;
+            hlg.childForceExpandWidth = !useBoss38SmallTables;
+            hlg.childForceExpandHeight = !useBoss38SmallTables;
             hlg.padding = new RectOffset(0, 0, 0, 0);
 
             // 섰다 카드/족보가 HandPanel(반투명 배경)보다 나중에 그려지도록 순서 재조정
+            if (useBoss38SmallTables) handRankText.transform.SetAsLastSibling();
             seotdaCardA.transform.SetAsLastSibling();
             seotdaCardB.transform.SetAsLastSibling();
             seotdaRankText.transform.SetAsLastSibling();
@@ -575,6 +621,24 @@ namespace CardBattle.EditorTools
         }
 
         // ----- UI 빌드 헬퍼 -----
+
+        private static void ConfigureFixedBottomCenter(RectTransform rt, Vector2 size)
+        {
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = size;
+            rt.pivot = new Vector2(0.5f, 0f);
+        }
+
+        private static void ConfigureFixedCentered(RectTransform rt, Vector2 anchor, Vector2 size)
+        {
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = size;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+        }
 
         private static RectTransform CreateUIObject(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
         {
