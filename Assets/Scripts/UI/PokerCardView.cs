@@ -6,18 +6,24 @@ using UnityEngine.UI;
 
 namespace CardBattle
 {
-    public class PokerCardView : MonoBehaviour, IPointerClickHandler
+    public class PokerCardView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("UI 참조 (프리팹에서 직접 연결)")]
         [SerializeField] private RectTransform visual;
         [SerializeField] private Image artworkImage;
         [SerializeField] private Image selectionFrame;
+        [SerializeField] private CanvasGroup visualGroup;
+        [SerializeField] private GameObject holdBadge;
+        [SerializeField] private GameObject replaceBadge;
 
         [Header("선택 시 카드가 위로 이동하는 픽셀 값")]
         [SerializeField] private float selectedOffsetY = 30f;
 
         private Sprite backSprite;
         private RectTransform arcAnchor;
+        private Coroutine feedbackRoutine;
+        private bool selectionContextActive;
+        private bool pointerInside;
 
         public event Action<PokerCardView> SelectionChanged;
 
@@ -34,27 +40,66 @@ namespace CardBattle
         {
             CardSprite = sprite;
             SetVisualSprite(sprite);
+            ResetVisualTransform();
             SetSelected(false);
+            SetSelectionContext(false);
         }
 
         public void SetSelected(bool selected)
         {
             IsSelected = selected;
-            if (selectionFrame) selectionFrame.enabled = selected;
             if (visual) visual.anchoredPosition = selected ? new Vector2(0, selectedOffsetY) : Vector2.zero;
             SelectionChanged?.Invoke(this);
+        }
+
+        public void SetSelectionContext(bool active)
+        {
+            selectionContextActive = active;
+            if (selectionFrame) selectionFrame.enabled = active && IsSelected;
+            if (holdBadge) holdBadge.SetActive(active && IsSelected);
+            if (replaceBadge) replaceBadge.SetActive(active && !IsSelected);
+            if (visualGroup) visualGroup.alpha = active && !IsSelected ? 0.62f : 1f;
+            ApplyRestScale();
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
             SetSelected(!IsSelected);
+            PlayFeedbackPulse(IsSelected ? 1.09f : 1.04f, 0.16f);
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            pointerInside = true;
+            ApplyRestScale();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            pointerInside = false;
+            ApplyRestScale();
+        }
+
+        public void PlayKeepConfirmAnimation(Action onComplete = null)
+        {
+            if (visual == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            if (feedbackRoutine != null) StopCoroutine(feedbackRoutine);
+            feedbackRoutine = StartCoroutine(KeepConfirmRoutine(onComplete));
         }
 
         /// <summary>카드가 아직 화면에 나오기 전, 더미 위치에 뒷면으로 대기시켜 둔다.</summary>
         public void ParkAtPile(RectTransform pile)
         {
             if (visual == null || pile == null) return;
+            ResetVisualTransform();
             visual.anchoredPosition = WorldToLocalOffset(pile, (RectTransform)transform);
+            visual.localRotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(-9f, 9f));
+            visual.localScale = Vector3.one * 0.82f;
             SetVisualSprite(backSprite != null ? backSprite : CardSprite);
         }
 
@@ -84,7 +129,7 @@ namespace CardBattle
             StartCoroutine(RedrawRoutine(pile, newSprite, outDuration, inDuration));
         }
 
-        /// <summary>현재 자리에서 더미로 곡선을 그리며 물러나며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
+        /// <summary>모인 위치에서 더미로 직선 회수되며 뒷면으로 뒤집힌다 (돌아오지 않음).</summary>
         public void PlayRetractAnimation(RectTransform pile, float duration, Action onComplete = null)
         {
             if (visual == null || pile == null)
@@ -97,6 +142,32 @@ namespace CardBattle
             StartCoroutine(RetractRoutine(pile, duration, onComplete));
         }
 
+        public void PlayGatherAnimation(RectTransform gatherTarget, int index, int cardCount, float duration,
+            Action onComplete = null)
+        {
+            if (visual == null || gatherTarget == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            StopAllCoroutines();
+            StartCoroutine(GatherRoutine(gatherTarget, index, cardCount, duration, onComplete));
+        }
+
+        /// <summary>현재 손패가 공격/방어/스킬 행동을 하는 짧은 연출을 재생한다.</summary>
+        public void PlayCombatAnimation(RpsAction action, int index, int cardCount, Action onComplete = null)
+        {
+            if (visual == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            StopAllCoroutines();
+            StartCoroutine(CombatRoutine(action, index, cardCount, onComplete));
+        }
+
         private IEnumerator RetractRoutine(RectTransform pile, float duration, Action onComplete)
         {
             var rootRt = (RectTransform)transform;
@@ -104,7 +175,8 @@ namespace CardBattle
             Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
 
             SetVisualSprite(backSprite);
-            yield return MoveVisual(startOffset, pileOffset, duration, false, null);
+            yield return TweenTransform(startOffset, pileOffset, visual.localEulerAngles.z, 0f,
+                visual.localScale.x, 0.82f, duration, false);
 
             onComplete?.Invoke();
         }
@@ -115,17 +187,144 @@ namespace CardBattle
             Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
             Vector2 restOffset = Vector2.zero;
 
-            SetVisualSprite(backSprite);
-            yield return MoveVisual(restOffset, pileOffset, outDuration, false, null);
+            Vector2 discardWindup = restOffset + new Vector2(0f, -22f);
+            yield return TweenTransform(restOffset, discardWindup, 0f, 7f,
+                visual.localScale.x, 0.91f, 0.12f, false);
+            SetVisualSprite(backSprite != null ? backSprite : CardSprite);
+            if (replaceBadge) replaceBadge.SetActive(false);
+            if (visualGroup) visualGroup.alpha = 1f;
+            yield return MoveVisual(discardWindup, pileOffset, outDuration, false, null);
 
             CardSprite = newSprite;
             yield return MoveVisual(pileOffset, restOffset, inDuration, true, newSprite);
+        }
+
+        private IEnumerator KeepConfirmRoutine(Action onComplete)
+        {
+            Vector2 rest = new Vector2(0f, selectedOffsetY);
+            yield return TweenTransform(rest, rest + Vector2.up * 8f, 0f, 0f,
+                visual.localScale.x, 1.10f, 0.12f, true);
+            yield return TweenTransform(rest + Vector2.up * 8f, rest, 0f, 0f,
+                1.10f, 1.04f, 0.12f, false);
+            feedbackRoutine = null;
+            ApplyRestScale();
+            onComplete?.Invoke();
+        }
+
+        private void PlayFeedbackPulse(float peakScale, float duration)
+        {
+            if (visual == null) return;
+            if (feedbackRoutine != null) StopCoroutine(feedbackRoutine);
+            feedbackRoutine = StartCoroutine(FeedbackPulseRoutine(peakScale, duration));
+        }
+
+        private IEnumerator FeedbackPulseRoutine(float peakScale, float duration)
+        {
+            Vector3 start = visual.localScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+                float pulse = Mathf.Sin(t * Mathf.PI);
+                visual.localScale = Vector3.one * Mathf.Lerp(start.x, peakScale, pulse);
+                yield return null;
+            }
+
+            feedbackRoutine = null;
+            ApplyRestScale();
+        }
+
+        private IEnumerator CombatRoutine(RpsAction action, int index, int cardCount, Action onComplete)
+        {
+            Vector2 rest = IsSelected ? new Vector2(0f, selectedOffsetY) : Vector2.zero;
+            float centerIndex = index - (cardCount - 1) * 0.5f;
+
+            if (action == RpsAction.Defend)
+            {
+                Vector2 guardPosition = rest + new Vector2(-centerIndex * 34f, 76f + Mathf.Abs(centerIndex) * 5f);
+                float guardAngle = centerIndex * -4f;
+                yield return TweenTransform(rest, guardPosition, 0f, guardAngle, 1f, 1f, 0.18f, true);
+                yield return PulseAtPosition(guardPosition, guardAngle, 0.22f);
+                yield return TweenTransform(guardPosition, rest, guardAngle, 0f, 1f, 1f, 0.2f, false);
+            }
+            else
+            {
+                bool isSkill = action == RpsAction.Skill;
+                Vector2 target = arcAnchor != null
+                    ? WorldToLocalOffset(arcAnchor, (RectTransform)transform)
+                    : Vector2.up * 320f;
+                target = Vector2.ClampMagnitude(target, isSkill ? 470f : 390f);
+                target += new Vector2(centerIndex * (isSkill ? 24f : 15f), centerIndex * 5f);
+
+                Vector2 windup = rest + new Vector2(-centerIndex * 6f, -26f);
+                float attackAngle = Mathf.Clamp(-centerIndex * 5f, -12f, 12f);
+                yield return TweenTransform(rest, windup, 0f, -attackAngle * 0.5f, 1f, 0.92f, 0.12f, false);
+                yield return TweenTransform(windup, target, -attackAngle * 0.5f, attackAngle,
+                    0.92f, 1f, isSkill ? 0.28f : 0.22f, true);
+                yield return PulseAtPosition(target, attackAngle, isSkill ? 0.2f : 0.12f);
+                yield return TweenTransform(target, rest, attackAngle, 0f, 1f, 1f, 0.24f, true);
+            }
+
+            ResetVisualTransform();
+            visual.anchoredPosition = rest;
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator GatherRoutine(RectTransform gatherTarget, int index, int cardCount, float duration,
+            Action onComplete)
+        {
+            var rootRt = (RectTransform)transform;
+            float centerIndex = index - (cardCount - 1) * 0.5f;
+            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, Mathf.Abs(centerIndex) * 2f);
+            float gatherAngle = centerIndex * -2.5f;
+
+            yield return TweenTransform(visual.anchoredPosition, gatherOffset,
+                visual.localEulerAngles.z, gatherAngle, visual.localScale.x, 0.96f, duration, false);
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator TweenTransform(Vector2 from, Vector2 to, float fromAngle, float toAngle,
+            float fromScale, float toScale, float duration, bool overshoot)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+                float eased = Mathf.SmoothStep(0f, 1f, t);
+                float punch = overshoot ? Mathf.Sin(t * Mathf.PI) * 0.08f : 0f;
+                visual.anchoredPosition = Vector2.LerpUnclamped(from, to, eased);
+                visual.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(fromAngle, toAngle, eased));
+                visual.localScale = Vector3.one * Mathf.Min(1f, Mathf.Lerp(fromScale, toScale, eased) + punch);
+                yield return null;
+            }
+
+            visual.anchoredPosition = to;
+            visual.localRotation = Quaternion.Euler(0f, 0f, toAngle);
+            visual.localScale = Vector3.one * toScale;
+        }
+
+        private IEnumerator PulseAtPosition(Vector2 position, float angle, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+                float pulse = Mathf.Sin(t * Mathf.PI * 2f) * 0.06f;
+                visual.anchoredPosition = position + Vector2.up * Mathf.Sin(t * Mathf.PI) * 8f;
+                visual.localRotation = Quaternion.Euler(0f, 0f, angle - pulse * 20f);
+                visual.localScale = Vector3.one * (0.96f + Mathf.Abs(pulse) * 0.5f);
+                yield return null;
+            }
         }
 
         private IEnumerator MoveVisual(Vector2 fromOffset, Vector2 toOffset, float duration, bool flipHalfway, Sprite flipSprite)
         {
             Vector2 controlOffset = ComputeControlOffset(fromOffset, toOffset);
             bool flipped = !flipHalfway;
+            float startAngle = Mathf.Clamp((fromOffset.x - toOffset.x) * 0.06f, -14f, 14f);
 
             float elapsed = 0f;
             while (elapsed < duration)
@@ -134,6 +333,10 @@ namespace CardBattle
                 float t = Mathf.Clamp01(elapsed / duration);
                 float eased = Mathf.SmoothStep(0f, 1f, t);
                 visual.anchoredPosition = QuadraticBezier(fromOffset, controlOffset, toOffset, eased);
+                visual.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(startAngle, 0f, eased));
+                float landingPunch = Mathf.Sin(t * Mathf.PI) * 0.12f;
+                float landingScale = Mathf.Lerp(0.84f + landingPunch, 1f + landingPunch * 0.35f, eased);
+                visual.localScale = Vector3.one * Mathf.Min(1f, landingScale);
 
                 if (flipHalfway && !flipped && t >= 0.5f)
                 {
@@ -145,6 +348,8 @@ namespace CardBattle
             }
 
             visual.anchoredPosition = toOffset;
+            visual.localRotation = Quaternion.identity;
+            visual.localScale = Vector3.one;
             if (flipHalfway && !flipped) SetVisualSprite(flipSprite);
         }
 
@@ -183,6 +388,20 @@ namespace CardBattle
         private void SetVisualSprite(Sprite sprite)
         {
             if (artworkImage) artworkImage.sprite = sprite;
+        }
+
+        private void ResetVisualTransform()
+        {
+            if (!visual) return;
+            visual.localRotation = Quaternion.identity;
+            visual.localScale = Vector3.one;
+        }
+
+        private void ApplyRestScale()
+        {
+            if (!visual || feedbackRoutine != null) return;
+            float scale = IsSelected && selectionContextActive ? 1.04f : pointerInside ? 1.025f : 1f;
+            visual.localScale = Vector3.one * scale;
         }
     }
 }

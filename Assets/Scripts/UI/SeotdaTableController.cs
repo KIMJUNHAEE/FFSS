@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -15,11 +17,29 @@ namespace CardBattle
         public Image cardSlotA;
         public Image cardSlotB;
         public Text rankText;
+        public RectTransform drawOrigin;
+        public Sprite backSprite;
 
-        public void ShowEnemyHand()
+        [Header("딜 연출")]
+        [SerializeField] private float drawDuration = 0.34f;
+        [SerializeField] private float drawStagger = 0.16f;
+        [SerializeField] private float gatherDuration = 0.22f;
+        [SerializeField] private float retractDuration = 0.28f;
+
+        private Coroutine drawRoutine;
+
+        public SeotdaHandResult LastResult { get; private set; }
+
+        public SeotdaHandResult ShowEnemyHand()
         {
             var picks = PickRandomUnique(2);
-            if (picks.Count < 2) return;
+            if (picks.Count < 2)
+            {
+                LastResult = default;
+                return LastResult;
+            }
+
+            LastResult = SeotdaHandEvaluator.EvaluateDetails(picks[0], picks[1]);
 
             if (cardSlotA)
             {
@@ -35,16 +55,208 @@ namespace CardBattle
 
             if (rankText)
             {
-                rankText.text = SeotdaHandEvaluator.Evaluate(picks[0], picks[1]);
+                rankText.text = LastResult.IsValid ? LastResult.DisplayName : string.Empty;
                 rankText.gameObject.SetActive(true);
             }
+
+            return LastResult;
+        }
+
+        public void ShowEnemyHandAnimated(Action<SeotdaHandResult> onComplete)
+        {
+            if (drawRoutine != null) StopCoroutine(drawRoutine);
+            drawRoutine = StartCoroutine(ShowEnemyHandRoutine(onComplete));
         }
 
         public void HideEnemyHand()
         {
-            if (cardSlotA) cardSlotA.gameObject.SetActive(false);
-            if (cardSlotB) cardSlotB.gameObject.SetActive(false);
+            if (drawRoutine != null) StopCoroutine(drawRoutine);
+            drawRoutine = null;
+            ResetAndHide(cardSlotA);
+            ResetAndHide(cardSlotB);
             if (rankText) rankText.gameObject.SetActive(false);
+            LastResult = default;
+        }
+
+        public void RetractEnemyHandAnimated(Action onComplete = null)
+        {
+            if (drawRoutine != null) StopCoroutine(drawRoutine);
+            drawRoutine = StartCoroutine(RetractEnemyHandRoutine(onComplete));
+        }
+
+        private IEnumerator ShowEnemyHandRoutine(Action<SeotdaHandResult> onComplete)
+        {
+            var picks = PickRandomUnique(2);
+            if (picks.Count < 2)
+            {
+                LastResult = default;
+                drawRoutine = null;
+                onComplete?.Invoke(LastResult);
+                yield break;
+            }
+
+            LastResult = SeotdaHandEvaluator.EvaluateDetails(picks[0], picks[1]);
+            if (rankText) rankText.gameObject.SetActive(false);
+
+            yield return DealCard(cardSlotA, picks[0], -1f);
+            yield return new WaitForSeconds(drawStagger);
+            yield return DealCard(cardSlotB, picks[1], 1f);
+
+            if (rankText)
+            {
+                rankText.text = LastResult.IsValid ? LastResult.DisplayName : string.Empty;
+                rankText.transform.localScale = Vector3.one * 0.78f;
+                rankText.gameObject.SetActive(true);
+                yield return ScaleTo(rankText.rectTransform, Vector3.one, 0.16f);
+            }
+
+            drawRoutine = null;
+            onComplete?.Invoke(LastResult);
+        }
+
+        private IEnumerator RetractEnemyHandRoutine(Action onComplete)
+        {
+            var visibleSlots = new List<Image>();
+            if (cardSlotA != null && cardSlotA.gameObject.activeSelf) visibleSlots.Add(cardSlotA);
+            if (cardSlotB != null && cardSlotB.gameObject.activeSelf) visibleSlots.Add(cardSlotB);
+
+            if (rankText) rankText.gameObject.SetActive(false);
+            if (visibleSlots.Count == 0 || drawOrigin == null)
+            {
+                ResetAndHide(cardSlotA);
+                ResetAndHide(cardSlotB);
+                LastResult = default;
+                drawRoutine = null;
+                onComplete?.Invoke();
+                yield break;
+            }
+
+            Vector3 gatherWorld = Vector3.zero;
+            foreach (var slot in visibleSlots) gatherWorld += slot.rectTransform.position;
+            gatherWorld /= visibleSlots.Count;
+
+            int remaining = visibleSlots.Count;
+            foreach (var slot in visibleSlots)
+                StartCoroutine(MoveSlotStraight(slot, gatherWorld, gatherDuration, 0.96f, () => remaining--));
+            yield return new WaitUntil(() => remaining <= 0);
+            yield return new WaitForSeconds(0.06f);
+
+            remaining = visibleSlots.Count;
+            for (int i = visibleSlots.Count - 1; i >= 0; i--)
+            {
+                var slot = visibleSlots[i];
+                if (backSprite != null) slot.sprite = backSprite;
+                StartCoroutine(MoveSlotStraight(slot, drawOrigin.position, retractDuration, 0.82f, () => remaining--));
+            }
+
+            yield return new WaitUntil(() => remaining <= 0);
+            foreach (var slot in visibleSlots) ResetAndHide(slot);
+            LastResult = default;
+            drawRoutine = null;
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator MoveSlotStraight(Image slot, Vector3 targetWorld, float duration, float targetScale,
+            Action onComplete)
+        {
+            var rt = slot.rectTransform;
+            Vector2 from = rt.anchoredPosition;
+            Vector2 to = from + WorldDelta(targetWorld, rt);
+            float fromAngle = rt.localEulerAngles.z;
+            Vector3 fromScale = rt.localScale;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
+                rt.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
+                rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpAngle(fromAngle, 0f, t));
+                rt.localScale = Vector3.LerpUnclamped(fromScale, Vector3.one * targetScale, t);
+                yield return null;
+            }
+
+            rt.anchoredPosition = to;
+            rt.localRotation = Quaternion.identity;
+            rt.localScale = Vector3.one * targetScale;
+            onComplete?.Invoke();
+        }
+
+        private IEnumerator DealCard(Image slot, Sprite face, float side)
+        {
+            if (!slot) yield break;
+
+            var rt = slot.rectTransform;
+            Vector2 final = Vector2.zero;
+            Vector2 start = drawOrigin != null ? WorldOffset(drawOrigin, rt) : Vector2.down * 170f;
+            slot.sprite = backSprite != null ? backSprite : face;
+            slot.gameObject.SetActive(true);
+            rt.anchoredPosition = start;
+            rt.localRotation = Quaternion.Euler(0f, 0f, side * 13f);
+            rt.localScale = Vector3.one * 0.78f;
+
+            bool flipped = false;
+            float elapsed = 0f;
+            while (elapsed < drawDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, drawDuration));
+                float eased = Mathf.SmoothStep(0f, 1f, t);
+                Vector2 arc = Vector2.up * Mathf.Sin(t * Mathf.PI) * 42f;
+                rt.anchoredPosition = Vector2.Lerp(start, final, eased) + arc;
+                rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(side * 13f, side * -2f, eased));
+                float flip = Mathf.Abs(Mathf.Cos(t * Mathf.PI));
+                rt.localScale = new Vector3(Mathf.Max(0.06f, flip), Mathf.Lerp(0.78f, 1f, eased), 1f);
+                if (!flipped && t >= 0.5f)
+                {
+                    slot.sprite = face;
+                    flipped = true;
+                }
+                yield return null;
+            }
+
+            slot.sprite = face;
+            rt.anchoredPosition = final;
+            rt.localRotation = Quaternion.identity;
+            rt.localScale = Vector3.one;
+        }
+
+        private IEnumerator ScaleTo(RectTransform rt, Vector3 target, float duration)
+        {
+            Vector3 from = rt.localScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
+                rt.localScale = Vector3.LerpUnclamped(from, target, t);
+                yield return null;
+            }
+            rt.localScale = target;
+        }
+
+        private Vector2 WorldOffset(RectTransform target, RectTransform root)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            float scale = canvas ? canvas.scaleFactor : 1f;
+            return (target.position - root.position) / Mathf.Max(0.01f, scale);
+        }
+
+        private Vector2 WorldDelta(Vector3 targetWorld, RectTransform root)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            float scale = canvas ? canvas.scaleFactor : 1f;
+            return (targetWorld - root.position) / Mathf.Max(0.01f, scale);
+        }
+
+        private static void ResetAndHide(Image slot)
+        {
+            if (slot == null) return;
+            var rt = slot.rectTransform;
+            rt.anchoredPosition = Vector2.zero;
+            rt.localRotation = Quaternion.identity;
+            rt.localScale = Vector3.one;
+            slot.gameObject.SetActive(false);
         }
 
         private List<Sprite> PickRandomUnique(int count)
@@ -52,7 +264,7 @@ namespace CardBattle
             var pool = new List<Sprite>(deckSprites);
             for (int i = pool.Count - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = UnityEngine.Random.Range(0, i + 1);
                 (pool[i], pool[j]) = (pool[j], pool[i]);
             }
 
