@@ -21,7 +21,7 @@ namespace CardBattle
 
     public readonly struct PokerHandResult
     {
-        public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount, int highRank, bool isSpecial, IReadOnlyCollection<CardSuit> formingSuits)
+        public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount, int highRank, bool isSpecial, IReadOnlyDictionary<CardSuit, int> suitCounts)
         {
             Rank = rank;
             DisplayName = displayName;
@@ -30,7 +30,7 @@ namespace CardBattle
             BlackCount = blackCount;
             HighRank = highRank;
             IsSpecial = isSpecial;
-            FormingSuits = formingSuits ?? System.Array.Empty<CardSuit>();
+            SuitCounts = suitCounts;
         }
 
         public PokerHandRank Rank { get; }
@@ -41,26 +41,21 @@ namespace CardBattle
         public int HighRank { get; }
         public bool IsSpecial { get; }
 
-        /// <summary>완성된 족보(하이카드 제외)를 실제로 이루는 카드들의 무늬 - 그룹 족보는 페어/
-        /// 트리플/포카드를 이룬 카드만(킥커 제외), 플러시 계열은 5장 전부. 스트레이트/하이카드는
-        /// 무늬로 이루는 개념이 없어 빈 컬렉션. 약점 속성 피해 판정에 사용.</summary>
-        public IReadOnlyCollection<CardSuit> FormingSuits { get; }
+        /// <summary>손패 5장(킥커 포함) 전체의 무늬별 장수 - 어떤 카드가 족보를 이루는지와
+        /// 무관하게 항상 5장 전부를 센다. 약점 속성 피해 비율 계산에 사용.</summary>
+        public IReadOnlyDictionary<CardSuit, int> SuitCounts { get; }
         public bool IsValid => Rank != PokerHandRank.None;
     }
 
     public static class PokerHandEvaluator
     {
-        public static string Evaluate(IReadOnlyList<Sprite> cards)
+        /// <summary>손패 5장(킥커 포함) 중 적 약점 무늬가 차지하는 비율(0~1). 원페어 이상(tier≥1)
+        /// 이어야 발동하고(하이카드는 항상 0), 족보를 이루는 카드인지는 상관없이 5장 전체를 센다.</summary>
+        public static float WeaknessRatio(PokerHandResult result, CardSuit weakness)
         {
-            var result = EvaluateDetails(cards);
-            return result.IsValid ? result.DisplayName : string.Empty;
-        }
-
-        /// <summary>족보가 완성돼있고(하이카드 제외), 그 족보를 이루는 카드들 중에 주어진 무늬가
-        /// 있으면 true. 약점 속성 피해 판정에 사용.</summary>
-        public static bool IsWeaknessInCompletedHand(PokerHandResult result, CardSuit weakness)
-        {
-            return weakness != CardSuit.None && result.IsValid && result.FormingSuits.Contains(weakness);
+            if (weakness == CardSuit.None || !result.IsValid || result.Tier < 1 || result.SuitCounts == null)
+                return 0f;
+            return result.SuitCounts.TryGetValue(weakness, out var count) ? count / 5f : 0f;
         }
 
         public static PokerHandResult EvaluateDetails(IReadOnlyList<Sprite> cards)
@@ -80,8 +75,9 @@ namespace CardBattle
             int blackCount = suits.Count(s => !IsRedSuit(s));
             int highRank = ranks[^1];
             var isFlush = suits.Distinct().Count() == 1;
-            var none = System.Array.Empty<CardSuit>();
-            var flushSuits = isFlush ? new[] { ParseSuit(parsed[0].suit) } : none;
+            var suitCounts = parsed
+                .GroupBy(c => ParseSuit(c.suit))
+                .ToDictionary(g => g.Key, g => g.Count());
 
             var distinctRanks = ranks.Distinct().ToList();
             var isStraight = false;
@@ -98,20 +94,15 @@ namespace CardBattle
                 }
             }
 
-            // 랭크(숫자)가 같은 카드끼리 묶음 - 페어/트리플/포카드가 어떤 카드들로 이뤄졌는지 추적하는 용도
-            var rankGroups = parsed.GroupBy(c => c.rank).OrderByDescending(g => g.Count()).ToList();
-            var groups = rankGroups.Select(g => g.Count()).ToList();
-
-            CardSuit[] GroupSuits(int minGroupSize) => rankGroups
-                .Where(g => g.Count() >= minGroupSize)
-                .SelectMany(g => g)
-                .Select(c => ParseSuit(c.suit))
-                .ToArray();
+            var groups = ranks
+                .GroupBy(r => r)
+                .Select(g => g.Count())
+                .OrderByDescending(c => c)
+                .ToList();
 
             PokerHandRank handRank;
             string name;
             int tier;
-            IReadOnlyCollection<CardSuit> formingSuits;
 
             if (isStraight && isFlush)
             {
@@ -121,66 +112,57 @@ namespace CardBattle
                 handRank = isRoyal ? PokerHandRank.RoyalFlush : PokerHandRank.StraightFlush;
                 name = isRoyal ? "로열 스트레이트 플러시" : "스트레이트 플러시";
                 tier = isRoyal ? 9 : 8;
-                formingSuits = flushSuits;
             }
             else if (groups[0] == 4)
             {
                 handRank = PokerHandRank.FourKind;
                 name = "포카드";
                 tier = 7;
-                formingSuits = GroupSuits(2);
             }
             else if (groups[0] == 3 && groups.Count > 1 && groups[1] == 2)
             {
                 handRank = PokerHandRank.FullHouse;
                 name = "풀하우스";
                 tier = 6;
-                formingSuits = GroupSuits(2);
             }
             else if (isFlush)
             {
                 handRank = PokerHandRank.Flush;
                 name = "플러시";
                 tier = 5;
-                formingSuits = flushSuits;
             }
             else if (isStraight)
             {
                 handRank = PokerHandRank.Straight;
                 name = "스트레이트";
                 tier = 4;
-                formingSuits = none; // 무늬가 뒤섞여 있어 "족보를 이루는 무늬" 개념이 없음
             }
             else if (groups[0] == 3)
             {
                 handRank = PokerHandRank.ThreeKind;
                 name = "트리플";
                 tier = 3;
-                formingSuits = GroupSuits(2);
             }
             else if (groups[0] == 2 && groups.Count > 1 && groups[1] == 2)
             {
                 handRank = PokerHandRank.TwoPair;
                 name = "투페어";
                 tier = 2;
-                formingSuits = GroupSuits(2);
             }
             else if (groups[0] == 2)
             {
                 handRank = PokerHandRank.OnePair;
                 name = "원페어";
                 tier = 1;
-                formingSuits = GroupSuits(2);
             }
             else
             {
                 handRank = PokerHandRank.HighCard;
                 name = "하이카드";
                 tier = 0;
-                formingSuits = none;
             }
 
-            return new PokerHandResult(handRank, name, tier, redCount, blackCount, highRank, tier >= 6, formingSuits);
+            return new PokerHandResult(handRank, name, tier, redCount, blackCount, highRank, tier >= 6, suitCounts);
         }
 
         public static CardSuit ParseSuit(char suitChar) => suitChar switch

@@ -676,25 +676,25 @@ namespace CardBattle.EditorTools
         }
 
         [MenuItem("Card Battle/Setup/3a. Build Battle Scene (38)")]
-        public static void BuildBattleScene38() => BuildBattleSceneFor("38", "38_BattleScene");
+        public static void BuildBattleScene38() => BuildBattleSceneFor("38", "38_BattleScene", CardSuit.Heart);
 
         [MenuItem("Card Battle/Setup/3b. Build Battle Scene (18)")]
-        public static void BuildBattleScene18() => BuildBattleSceneFor("18", "18_BattleScene");
+        public static void BuildBattleScene18() => BuildBattleSceneFor("18", "18_BattleScene", CardSuit.Diamond);
 
         [MenuItem("Card Battle/Setup/3c. Build Battle Scene (13)")]
         public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene", CardSuit.Spade);
 
         [MenuItem("Card Battle/Setup/3d. Build Battle Scene (암행어사)")]
-        public static void BuildBattleSceneAmhaengeosa() => BuildBattleSceneFor("암행어사", "암행어사_BattleScene");
+        public static void BuildBattleSceneAmhaengeosa() => BuildBattleSceneFor("암행어사", "암행어사_BattleScene", CardSuit.Clover);
 
         [MenuItem("Card Battle/Setup/3e. Build Battle Scene (땡잡이)")]
-        public static void BuildBattleSceneDdengjabi() => BuildBattleSceneFor("땡잡이", "땡잡이_BattleScene");
+        public static void BuildBattleSceneDdengjabi() => BuildBattleSceneFor("땡잡이", "땡잡이_BattleScene", CardSuit.Heart);
 
         [MenuItem("Card Battle/Setup/3f. Build Battle Scene (멍구사)")]
-        public static void BuildBattleSceneMeonggusa() => BuildBattleSceneFor("멍구사", "멍구사_BattleScene");
+        public static void BuildBattleSceneMeonggusa() => BuildBattleSceneFor("멍구사", "멍구사_BattleScene", CardSuit.Diamond);
 
         [MenuItem("Card Battle/Setup/3g. Build Battle Scene (구사)")]
-        public static void BuildBattleSceneGusa() => BuildBattleSceneFor("구사", "구사_BattleScene");
+        public static void BuildBattleSceneGusa() => BuildBattleSceneFor("구사", "구사_BattleScene", CardSuit.Clover);
 
         /// <summary>
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
@@ -942,10 +942,21 @@ namespace CardBattle.EditorTools
                 playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.365f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
             }
 
-            // 적 약점 속성(포커 무늬) 배지 - 어느 HUD 레이아웃이든 우측 상단 코너에 겹쳐 배치
-            enemyWeaknessText = CreateText("EnemyWeaknessText", enemyPanel.transform, new Vector2(0.80f, 0.74f), new Vector2(0.99f, 0.98f),
-                weakness.ToSymbol(), 16, TextAnchor.MiddleRight, weakness.ToDisplayColor());
+            // 적 약점 속성(포커 무늬) 배지 - 캐릭터 머리 위, 화면 기준 고정 위치 (HUD 레이아웃과 무관)
+            enemyWeaknessText = CreateText("EnemyWeaknessText", canvasT, new Vector2(0.42f, 0.905f), new Vector2(0.58f, 0.985f),
+                weakness.ToSymbol(), 34, TextAnchor.MiddleCenter, weakness.ToDisplayColor());
+            enemyWeaknessText.fontStyle = FontStyle.Bold;
             enemyWeaknessText.raycastTarget = false;
+            AddTextOutline(enemyWeaknessText, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
+
+            // 약점 효과 미리보기 패널 - 테이블 위(포커 테이블 상단과 적 초상화 하단 사이 빈 공간),
+            // 현재 손패가 약점을 찌르고 있을 때만 나타나 공격/방어 각각의 효과를 보여준다.
+            var weaknessEffectPanel = CreatePanel("WeaknessEffectPanel", canvasT, new Vector2(0.20f, 0.315f), new Vector2(0.80f, 0.398f), new Color(0f, 0f, 0f, 0.55f));
+            weaknessEffectPanel.raycastTarget = false;
+            var weaknessEffectText = CreateText("WeaknessEffectText", weaknessEffectPanel.transform, new Vector2(0.03f, 0.06f), new Vector2(0.97f, 0.94f),
+                "", 15, TextAnchor.MiddleCenter, Color.white);
+            weaknessEffectText.raycastTarget = false;
+            weaknessEffectPanel.gameObject.SetActive(false);
 
             // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
             var pokerTableContentParent = useBoss38SmallTables && pokerTableV2 != null ? pokerTableV2 : canvasT;
@@ -1212,6 +1223,8 @@ namespace CardBattle.EditorTools
             rps.combatLogText = combatLogText;
             rps.combatReadout = combatReadout.gameObject;
             rps.enemyWeakness = weakness;
+            rps.weaknessEffectPanel = weaknessEffectPanel.gameObject;
+            rps.weaknessEffectText = weaknessEffectText;
             EditorUtility.SetDirty(rps);
 
             var pokerHandGO = new GameObject("PokerHandController", typeof(PokerHandController));
@@ -1245,9 +1258,6 @@ namespace CardBattle.EditorTools
             // rps.tableFlipper = tableFlipper; // 테이블 버전1 (보존용, 비활성)
             rps.tableSwitcher = tableSwitcher;
             rps.bossProfile = bossProfile;
-            SetInt(rps, "enemyBaseAttack", 11);
-            SetInt(rps, "enemyBaseDefense", 10);
-            SetFloat(rps, "enemyAttackChance", 0.55f);
             SetString(rps, "enemyDisplayName", BossDisplayName(enemyId));
             EditorUtility.SetDirty(rps);
 
@@ -1426,77 +1436,43 @@ namespace CardBattle.EditorTools
             return button;
         }
 
-        private static void SetField(Object target, string fieldName, Object value)
+        /// <summary>SerializedObject에서 프로퍼티를 찾고, 없으면 로그만 남기고 null을 돌려준다.
+        /// SetInt/SetFloat/SetBool/SetString/SetField가 공유하는 조회 로직.</summary>
+        private static SerializedProperty FindPropertyOrLog(Object target, string fieldName)
         {
             var so = new SerializedObject(target);
             var prop = so.FindProperty(fieldName);
             if (prop == null)
-            {
                 Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
-                return;
-            }
+            return prop;
+        }
+
+        private static void SetField(Object target, string fieldName, Object value)
+        {
+            var prop = FindPropertyOrLog(target, fieldName);
+            if (prop == null) return;
 
             prop.objectReferenceValue = value;
-            so.ApplyModifiedProperties();
+            prop.serializedObject.ApplyModifiedProperties();
 
             if (value != null && prop.objectReferenceValue == null)
                 Debug.LogError($"[CardBattleSetup] 타입 불일치로 연결 실패: {fieldName} on {target.GetType().Name} <- {value.GetType().Name}");
         }
 
-        private static void SetInt(Object target, string fieldName, int value)
-        {
-            var so = new SerializedObject(target);
-            var prop = so.FindProperty(fieldName);
-            if (prop == null)
-            {
-                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            prop.intValue = value;
-            so.ApplyModifiedProperties();
-        }
-
-        private static void SetFloat(Object target, string fieldName, float value)
-        {
-            var so = new SerializedObject(target);
-            var prop = so.FindProperty(fieldName);
-            if (prop == null)
-            {
-                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            prop.floatValue = value;
-            so.ApplyModifiedProperties();
-        }
-
         private static void SetBool(Object target, string fieldName, bool value)
         {
-            var so = new SerializedObject(target);
-            var prop = so.FindProperty(fieldName);
-            if (prop == null)
-            {
-                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
+            var prop = FindPropertyOrLog(target, fieldName);
+            if (prop == null) return;
             prop.boolValue = value;
-            so.ApplyModifiedProperties();
+            prop.serializedObject.ApplyModifiedProperties();
         }
 
         private static void SetString(Object target, string fieldName, string value)
         {
-            var so = new SerializedObject(target);
-            var prop = so.FindProperty(fieldName);
-            if (prop == null)
-            {
-                Debug.LogError($"[CardBattleSetup] 필드를 찾을 수 없음: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
+            var prop = FindPropertyOrLog(target, fieldName);
+            if (prop == null) return;
             prop.stringValue = value;
-            so.ApplyModifiedProperties();
+            prop.serializedObject.ApplyModifiedProperties();
         }
     }
 }
