@@ -17,6 +17,7 @@ namespace CardBattle
         public PokerCardView cardPrefab;
         public RectTransform handContainer;
         public Text handRankText;
+        public Text redrawGuideText;
         public RectTransform deckPileTransform;
         public Sprite backSprite;
         [Tooltip("카드 이동 곡선이 부풀어 오르는 방향의 기준점 (적 패널 등)")]
@@ -27,7 +28,7 @@ namespace CardBattle
         [SerializeField] private float dealAnimationDuration = 0.35f;
         [SerializeField] private float dealStagger = 0.12f;
         [SerializeField] private float gatherAnimationDuration = 0.24f;
-        [SerializeField] private float retractStagger = 0.045f;
+        [SerializeField] private bool dealOnStart = true;
 
         private readonly List<PokerCardView> spawnedCards = new();
         private Coroutine dealRoutine;
@@ -39,7 +40,7 @@ namespace CardBattle
 
         private void Start()
         {
-            Deal();
+            if (dealOnStart) Deal();
         }
 
         private void Update()
@@ -124,10 +125,7 @@ namespace CardBattle
 
             remaining = spawnedCards.Count;
             for (int i = spawnedCards.Count - 1; i >= 0; i--)
-            {
                 spawnedCards[i].PlayRetractAnimation(deckPileTransform, dealAnimationDuration, () => remaining--);
-                yield return new WaitForSeconds(retractStagger);
-            }
 
             yield return new WaitUntil(() => remaining <= 0);
 
@@ -166,6 +164,7 @@ namespace CardBattle
             CurrentResult = default;
             HandChanged?.Invoke(CurrentResult);
             if (handRankText) handRankText.gameObject.SetActive(false);
+            if (redrawGuideText) redrawGuideText.gameObject.SetActive(false);
         }
 
         private IEnumerator DealRoutine(List<Sprite> sprites)
@@ -203,6 +202,17 @@ namespace CardBattle
 
         private IEnumerator RedrawRoutine(List<PokerCardView> toReplace, List<Sprite> newSprites)
         {
+            int keptCount = spawnedCards.Count - toReplace.Count;
+            foreach (var card in spawnedCards)
+                card.SetSelectionContext(true);
+            ShowRedrawGuide(keptCount, toReplace.Count, true);
+
+            int keepAnimations = keptCount;
+            foreach (var card in spawnedCards.Where(card => card.IsSelected))
+                card.PlayKeepConfirmAnimation(() => keepAnimations--);
+            if (keepAnimations > 0)
+                yield return new WaitUntil(() => keepAnimations <= 0);
+
             var ordered = new List<(PokerCardView view, Sprite sprite)>();
             for (int i = 0; i < toReplace.Count; i++)
                 ordered.Add((toReplace[i], newSprites[i]));
@@ -220,7 +230,10 @@ namespace CardBattle
             yield return new WaitForSeconds(dealAnimationDuration * 2f);
 
             foreach (var card in spawnedCards)
+            {
                 card.SetSelected(false);
+                card.SetSelectionContext(false);
+            }
 
             dealRoutine = null;
             UpdateHandRank();
@@ -238,7 +251,7 @@ namespace CardBattle
 
         private void HandleSelectionChanged(PokerCardView view)
         {
-            UpdateHandRankVisibility();
+            RefreshSelectionContext();
         }
 
         private void UpdateHandRank()
@@ -255,6 +268,28 @@ namespace CardBattle
             if (handRankText == null) return;
             bool anySelected = spawnedCards.Any(c => c.IsSelected);
             handRankText.gameObject.SetActive(!anySelected);
+        }
+
+        private void RefreshSelectionContext()
+        {
+            int kept = spawnedCards.Count(card => card.IsSelected);
+            bool active = kept > 0;
+            foreach (var card in spawnedCards)
+                card.SetSelectionContext(active);
+
+            ShowRedrawGuide(kept, spawnedCards.Count - kept, false);
+            UpdateHandRankVisibility();
+        }
+
+        private void ShowRedrawGuide(int kept, int replaced, bool confirmed)
+        {
+            if (redrawGuideText == null) return;
+            bool visible = confirmed || kept > 0;
+            redrawGuideText.gameObject.SetActive(visible);
+            if (!visible) return;
+
+            string prefix = confirmed ? "보유 확정" : "선택한 카드는 보유";
+            redrawGuideText.text = $"<color=#FFE078><b>{prefix} {kept}장</b></color>   <color=#FF8178><b>교체 예정 {replaced}장</b></color>";
         }
 
         private List<Sprite> PickRandomUnique(int count, HashSet<Sprite> exclude)

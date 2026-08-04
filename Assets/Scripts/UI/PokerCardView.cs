@@ -6,18 +6,24 @@ using UnityEngine.UI;
 
 namespace CardBattle
 {
-    public class PokerCardView : MonoBehaviour, IPointerClickHandler
+    public class PokerCardView : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("UI 참조 (프리팹에서 직접 연결)")]
         [SerializeField] private RectTransform visual;
         [SerializeField] private Image artworkImage;
         [SerializeField] private Image selectionFrame;
+        [SerializeField] private CanvasGroup visualGroup;
+        [SerializeField] private GameObject holdBadge;
+        [SerializeField] private GameObject replaceBadge;
 
         [Header("선택 시 카드가 위로 이동하는 픽셀 값")]
         [SerializeField] private float selectedOffsetY = 30f;
 
         private Sprite backSprite;
         private RectTransform arcAnchor;
+        private Coroutine feedbackRoutine;
+        private bool selectionContextActive;
+        private bool pointerInside;
 
         public event Action<PokerCardView> SelectionChanged;
 
@@ -36,19 +42,54 @@ namespace CardBattle
             SetVisualSprite(sprite);
             ResetVisualTransform();
             SetSelected(false);
+            SetSelectionContext(false);
         }
 
         public void SetSelected(bool selected)
         {
             IsSelected = selected;
-            if (selectionFrame) selectionFrame.enabled = selected;
             if (visual) visual.anchoredPosition = selected ? new Vector2(0, selectedOffsetY) : Vector2.zero;
             SelectionChanged?.Invoke(this);
+        }
+
+        public void SetSelectionContext(bool active)
+        {
+            selectionContextActive = active;
+            if (selectionFrame) selectionFrame.enabled = active && IsSelected;
+            if (holdBadge) holdBadge.SetActive(active && IsSelected);
+            if (replaceBadge) replaceBadge.SetActive(active && !IsSelected);
+            if (visualGroup) visualGroup.alpha = active && !IsSelected ? 0.62f : 1f;
+            ApplyRestScale();
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
             SetSelected(!IsSelected);
+            PlayFeedbackPulse(IsSelected ? 1.09f : 1.04f, 0.16f);
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            pointerInside = true;
+            ApplyRestScale();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            pointerInside = false;
+            ApplyRestScale();
+        }
+
+        public void PlayKeepConfirmAnimation(Action onComplete = null)
+        {
+            if (visual == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            if (feedbackRoutine != null) StopCoroutine(feedbackRoutine);
+            feedbackRoutine = StartCoroutine(KeepConfirmRoutine(onComplete));
         }
 
         /// <summary>카드가 아직 화면에 나오기 전, 더미 위치에 뒷면으로 대기시켜 둔다.</summary>
@@ -146,11 +187,52 @@ namespace CardBattle
             Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
             Vector2 restOffset = Vector2.zero;
 
-            SetVisualSprite(backSprite);
-            yield return MoveVisual(restOffset, pileOffset, outDuration, false, null);
+            Vector2 discardWindup = restOffset + new Vector2(0f, -22f);
+            yield return TweenTransform(restOffset, discardWindup, 0f, 7f,
+                visual.localScale.x, 0.91f, 0.12f, false);
+            SetVisualSprite(backSprite != null ? backSprite : CardSprite);
+            if (replaceBadge) replaceBadge.SetActive(false);
+            if (visualGroup) visualGroup.alpha = 1f;
+            yield return MoveVisual(discardWindup, pileOffset, outDuration, false, null);
 
             CardSprite = newSprite;
             yield return MoveVisual(pileOffset, restOffset, inDuration, true, newSprite);
+        }
+
+        private IEnumerator KeepConfirmRoutine(Action onComplete)
+        {
+            Vector2 rest = new Vector2(0f, selectedOffsetY);
+            yield return TweenTransform(rest, rest + Vector2.up * 8f, 0f, 0f,
+                visual.localScale.x, 1.10f, 0.12f, true);
+            yield return TweenTransform(rest + Vector2.up * 8f, rest, 0f, 0f,
+                1.10f, 1.04f, 0.12f, false);
+            feedbackRoutine = null;
+            ApplyRestScale();
+            onComplete?.Invoke();
+        }
+
+        private void PlayFeedbackPulse(float peakScale, float duration)
+        {
+            if (visual == null) return;
+            if (feedbackRoutine != null) StopCoroutine(feedbackRoutine);
+            feedbackRoutine = StartCoroutine(FeedbackPulseRoutine(peakScale, duration));
+        }
+
+        private IEnumerator FeedbackPulseRoutine(float peakScale, float duration)
+        {
+            Vector3 start = visual.localScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+                float pulse = Mathf.Sin(t * Mathf.PI);
+                visual.localScale = Vector3.one * Mathf.Lerp(start.x, peakScale, pulse);
+                yield return null;
+            }
+
+            feedbackRoutine = null;
+            ApplyRestScale();
         }
 
         private IEnumerator CombatRoutine(RpsAction action, int index, int cardCount, Action onComplete)
@@ -313,6 +395,13 @@ namespace CardBattle
             if (!visual) return;
             visual.localRotation = Quaternion.identity;
             visual.localScale = Vector3.one;
+        }
+
+        private void ApplyRestScale()
+        {
+            if (!visual || feedbackRoutine != null) return;
+            float scale = IsSelected && selectionContextActive ? 1.04f : pointerInside ? 1.025f : 1f;
+            visual.localScale = Vector3.one * scale;
         }
     }
 }

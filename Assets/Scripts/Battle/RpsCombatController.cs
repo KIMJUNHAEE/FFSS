@@ -157,6 +157,10 @@ namespace CardBattle
         public Text enemyActionText;
         public Text playerStatusText;
         public Text playerStatText;
+        public Text playerAttackValueText;
+        public Text playerDefenseValueText;
+        public Text playerAttackFormulaText;
+        public Text playerDefenseFormulaText;
         public Text enemyStatText;
         public Image enemyActionIcon;
         public Sprite attackActionIcon;
@@ -164,7 +168,10 @@ namespace CardBattle
         public Sprite skillActionIcon;
         public Sprite endTurnActionIcon;
         public IntentHoverTooltip enemyIntentTooltip;
+        public TurnBannerView battleIntro;
         public TurnBannerView turnBanner;
+        public CombatImpactView combatImpactView;
+        public BattleResultView battleResultView;
         public Text combatLogText;
         public GameObject combatReadout;
         public GameObject winPanel;
@@ -202,12 +209,13 @@ namespace CardBattle
 
         private void Start()
         {
+            Time.timeScale = 1f;
             ApplyBossProfile();
             playerHp = playerMaxHp;
             enemyHp = enemyMaxHp;
             playerBreakCharge = 0;
             enemyBreakCharge = 0;
-            combatLocked = turnBanner != null;
+            combatLocked = true;
 
             if (attackButton) attackButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Attack));
             if (defendButton) defendButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Defend));
@@ -228,13 +236,28 @@ namespace CardBattle
             RefreshHandPreview();
             RefreshButtons();
 
-            if (turnBanner != null)
-                StartCoroutine(BeginInitialPlayerTurn());
+            StartCoroutine(BeginInitialPlayerTurn());
         }
 
         private IEnumerator BeginInitialPlayerTurn()
         {
+            if (battleIntro != null)
+            {
+                bool introFinished = false;
+                battleIntro.Show($"승부 개시\n플레이어 포커  VS  {enemyDisplayName}", true,
+                    () => introFinished = true);
+                yield return new WaitUntil(() => introFinished);
+            }
+
             yield return ShowTurnBanner("플레이어 포커 턴 시작", true);
+
+            if (pokerHand != null && !pokerHand.HasResolvedHand)
+            {
+                pokerHand.SetDeckPileVisible(true);
+                pokerHand.Deal();
+                yield return new WaitUntil(() => pokerHand.HasResolvedHand);
+            }
+
             combatLocked = false;
             RefreshButtons();
         }
@@ -406,6 +429,10 @@ namespace CardBattle
 
             ApplyOutcome(ref outcome);
 
+            bool impactFinished = combatImpactView == null || !hasImpact;
+            if (combatImpactView != null && hasImpact)
+                ShowCombatImpact(outcome, playerIntent, enemyIntent, () => impactFinished = true);
+
             if (combatReadout) combatReadout.SetActive(true);
             if (combatLogText) combatLogText.text = outcome.Message;
 
@@ -418,6 +445,9 @@ namespace CardBattle
             }
             else if (hasImpact)
                 yield return PlayImpactSlowMotion();
+
+            if (!impactFinished)
+                yield return new WaitUntil(() => impactFinished);
 
             if (enemyAnimator != null && enemyHp <= 0)
                 enemyAnimator.Play(EnemyAnimState.Death);
@@ -884,6 +914,7 @@ namespace CardBattle
             {
                 pokerHand.SetDeckPileVisible(true);
                 pokerHand.Deal();
+                yield return new WaitUntil(() => pokerHand.HasResolvedHand);
             }
 
             combatLocked = false;
@@ -933,8 +964,13 @@ namespace CardBattle
             combatLocked = true;
             RefreshButtons();
 
-            if (enemyHp <= 0 && winPanel) winPanel.SetActive(true);
-            else if (playerHp <= 0 && losePanel) losePanel.SetActive(true);
+            bool victory = enemyHp <= 0;
+            if (battleResultView != null)
+                battleResultView.Show(victory, enemyDisplayName);
+            else if (victory && winPanel)
+                winPanel.SetActive(true);
+            else if (!victory && losePanel)
+                losePanel.SetActive(true);
         }
 
         private static string ActionLabel(RpsAction action) => action switch
@@ -976,7 +1012,7 @@ namespace CardBattle
 
         private void RefreshHandPreview()
         {
-            if (!playerStatText) return;
+            if (!playerStatText && !playerAttackValueText && !playerDefenseValueText) return;
 
             var hand = pokerHand != null ? pokerHand.CurrentResult : default;
             var values = CalculatePlayerNumbers(hand);
@@ -987,16 +1023,68 @@ namespace CardBattle
             int highRankBonus = hand.IsValid ? Mathf.Clamp(hand.HighRank - 10, 0, 4) : 0;
 
             string totals = $"<color=#FF746B><b>공격 <size=23>{values.Attack}</size></b></color>     <color=#77C8FF><b>방어 <size=23>{values.Defense}</size></b></color>";
-            string attackDetails = $"<color=#FFB0A5><b>공격</b></color>  기본 {playerBaseAttack} + 빨강 {redBonus} + 족보 {tierPower} + 높은 패 {highRankBonus} = <b>{values.Attack}</b>";
-            string defenseDetails = $"<color=#A8D4FF><b>방어</b></color>  기본 {playerBaseDefense} + 검정 {blackBonus} + 족보 {tierPower} = <b>{values.Defense}</b>";
-            playerStatText.text = $"{totals}\n{attackDetails}\n{defenseDetails}";
+            string attackDetails = $"기본 {playerBaseAttack} + 붉은 문양 {redBonus}\n족보 {tierPower} + 높은 패 {highRankBonus}";
+            string defenseDetails = $"기본 {playerBaseDefense} + 검은 문양 {blackBonus}\n족보 {tierPower}";
+            if (playerStatText) playerStatText.text = $"{totals}\n{attackDetails}\n{defenseDetails}";
+            if (playerAttackValueText) playerAttackValueText.text = values.Attack.ToString();
+            if (playerDefenseValueText) playerDefenseValueText.text = values.Defense.ToString();
+            if (playerAttackFormulaText) playerAttackFormulaText.text = attackDetails;
+            if (playerDefenseFormulaText) playerDefenseFormulaText.text = defenseDetails;
             if (playerStatusText != null && selectedAction == null)
             {
                 playerStatusText.text = values.CanSkill
-                    ? $"<color=#FFD85A><b>특수 스킬 {values.Skill}</b></color>  ·  {values.RankName}"
-                    : $"현재 족보  <color=#FFE3A0><b>{values.RankName}</b></color>";
+                    ? $"<color=#FFD85A><b>스킬 {values.Skill}</b></color>  ·  <b>{values.RankName}</b>"
+                    : $"족보  <color=#FFE3A0><b>{values.RankName}</b></color>";
             }
         }
+
+        private void ShowCombatImpact(CombatOutcome outcome, CombatIntent playerIntent, CombatIntent enemyIntent,
+            System.Action onComplete)
+        {
+            if (outcome.DamageToPlayer > 0 && outcome.DamageToEnemy > 0)
+            {
+                combatImpactView.Show(attackActionIcon, "정면 충돌",
+                    $"플레이어 -{outcome.DamageToPlayer}   {enemyDisplayName} -{outcome.DamageToEnemy}",
+                    false, new Color(1f, 0.48f, 0.25f), onComplete);
+                return;
+            }
+
+            if (outcome.DamageToEnemy > 0)
+            {
+                combatImpactView.Show(ActionIcon(playerIntent.Kind), "직격",
+                    $"{enemyDisplayName}  HP -{outcome.DamageToEnemy}", false,
+                    new Color(1f, 0.78f, 0.28f), onComplete);
+                return;
+            }
+
+            if (outcome.DamageToPlayer > 0)
+            {
+                combatImpactView.Show(ActionIcon(enemyIntent.Kind), "피격",
+                    $"플레이어  HP -{outcome.DamageToPlayer}", true,
+                    new Color(1f, 0.30f, 0.27f), onComplete);
+                return;
+            }
+
+            if (outcome.BreakToEnemy > 0)
+            {
+                combatImpactView.Show(defendActionIcon, "방어 압박",
+                    $"{enemyDisplayName}  균형 +{outcome.BreakToEnemy}", false,
+                    new Color(0.36f, 0.78f, 1f), onComplete);
+                return;
+            }
+
+            combatImpactView.Show(ActionIcon(enemyIntent.Kind), "가드 압박",
+                $"플레이어  균형 +{outcome.BreakToPlayer}", true,
+                new Color(0.42f, 0.72f, 1f), onComplete);
+        }
+
+        private Sprite ActionIcon(IntentKind kind) => kind switch
+        {
+            IntentKind.Defend => defendActionIcon,
+            IntentKind.Skill => skillActionIcon,
+            IntentKind.Stunned => endTurnActionIcon,
+            _ => attackActionIcon,
+        };
 
         private void RefreshButtons()
         {

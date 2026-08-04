@@ -147,7 +147,6 @@ namespace CardBattle
                 var slot = visibleSlots[i];
                 if (backSprite != null) slot.sprite = backSprite;
                 StartCoroutine(MoveSlotStraight(slot, drawOrigin.position, retractDuration, 0.82f, () => remaining--));
-                yield return new WaitForSeconds(0.035f);
             }
 
             yield return new WaitUntil(() => remaining <= 0);

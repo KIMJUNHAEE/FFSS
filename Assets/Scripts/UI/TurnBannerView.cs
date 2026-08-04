@@ -31,6 +31,14 @@ namespace CardBattle
             routine = StartCoroutine(ShowRoutine(message, playerSide, onComplete));
         }
 
+        public void Configure(float enter, float hold, float exit, float slide)
+        {
+            enterDuration = enter;
+            holdDuration = hold;
+            exitDuration = exit;
+            slideDistance = slide;
+        }
+
         private IEnumerator ShowRoutine(string message, bool playerSide, Action onComplete)
         {
             if (label) label.text = message;
@@ -47,7 +55,7 @@ namespace CardBattle
             Vector2 end = Vector2.right * slideDistance * -direction * 0.35f;
 
             yield return Animate(start, rest, 0f, 1f, 0.92f, 1f, enterDuration);
-            yield return new WaitForSeconds(holdDuration);
+            yield return new WaitForSecondsRealtime(holdDuration);
             yield return Animate(rest, end, 1f, 0f, 1f, 0.96f, exitDuration);
 
             SetHidden();
@@ -61,7 +69,7 @@ namespace CardBattle
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration)));
                 visual.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
                 visual.localScale = Vector3.one * Mathf.Lerp(scaleFrom, scaleTo, t);
