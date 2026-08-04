@@ -682,7 +682,7 @@ namespace CardBattle.EditorTools
         public static void BuildBattleScene18() => BuildBattleSceneFor("18", "18_BattleScene");
 
         [MenuItem("Card Battle/Setup/3c. Build Battle Scene (13)")]
-        public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene");
+        public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene", CardSuit.Spade);
 
         [MenuItem("Card Battle/Setup/3d. Build Battle Scene (암행어사)")]
         public static void BuildBattleSceneAmhaengeosa() => BuildBattleSceneFor("암행어사", "암행어사_BattleScene");
@@ -700,7 +700,7 @@ namespace CardBattle.EditorTools
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
         /// </summary>
-        private static void BuildBattleSceneFor(string enemyId, string sceneFileName)
+        private static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None)
         {
             var bossProfile = EnsureBossCombatProfile(enemyId);
             var pokerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PokerCard.prefab");
@@ -898,6 +898,7 @@ namespace CardBattle.EditorTools
             Text playerAttackFormulaText = null;
             Text playerDefenseFormulaText = null;
             Text playerStatusText;
+            Text enemyWeaknessText;
 
             if (useBoss38SmallTables)
             {
@@ -940,6 +941,11 @@ namespace CardBattle.EditorTools
                 AddTextOutline(playerStatText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
                 playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.365f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
             }
+
+            // 적 약점 속성(포커 무늬) 배지 - 어느 HUD 레이아웃이든 우측 상단 코너에 겹쳐 배치
+            enemyWeaknessText = CreateText("EnemyWeaknessText", enemyPanel.transform, new Vector2(0.80f, 0.74f), new Vector2(0.99f, 0.98f),
+                weakness.ToSymbol(), 16, TextAnchor.MiddleRight, weakness.ToDisplayColor());
+            enemyWeaknessText.raycastTarget = false;
 
             // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
             var pokerTableContentParent = useBoss38SmallTables && pokerTableV2 != null ? pokerTableV2 : canvasT;
@@ -1205,6 +1211,7 @@ namespace CardBattle.EditorTools
             rps.battleResultView = battleResultView;
             rps.combatLogText = combatLogText;
             rps.combatReadout = combatReadout.gameObject;
+            rps.enemyWeakness = weakness;
             EditorUtility.SetDirty(rps);
 
             var pokerHandGO = new GameObject("PokerHandController", typeof(PokerHandController));
