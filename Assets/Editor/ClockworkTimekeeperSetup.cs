@@ -193,13 +193,13 @@ namespace CardBattle.EditorTools
             characterController.center = new Vector3(0f, TargetVisualHeight * 0.5f, 0f);
             characterController.stepOffset = 0.2f;
 
-            GameObject visualRoot = new("VisualRoot");
+            GameObject visualRoot = new(QuarterViewPlayerController.HeadingRootName);
             visualRoot.transform.SetParent(root.transform, false);
             visualRoot.transform.localPosition = Vector3.zero;
             visualRoot.transform.localRotation = Quaternion.identity;
             visualRoot.transform.localScale = Vector3.one;
 
-            GameObject axisCorrectionRoot = new("AxisCorrectionRoot");
+            GameObject axisCorrectionRoot = new(QuarterViewPlayerController.AxisCorrectionRootName);
             axisCorrectionRoot.transform.SetParent(visualRoot.transform, false);
             axisCorrectionRoot.transform.localPosition = Vector3.zero;
             axisCorrectionRoot.transform.localRotation = Quaternion.identity;
@@ -227,13 +227,13 @@ namespace CardBattle.EditorTools
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
             QuarterViewPlayerController mover = root.AddComponent<QuarterViewPlayerController>();
-            SetObjectReference(mover, "visualRoot", visualRoot.transform);
-            SetObjectReference(mover, "animator", animator);
-            SetVector3(mover, "visualEulerOffset", Vector3.zero);
-            SetBool(mover, "buildVisualWrapperOnAwake", true);
-            SetBool(mover, "lockToGroundPlane", true);
-            SetFloat(mover, "groundY", 0f);
-            SetFloat(mover, "animatorDampTime", 0f);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(mover, "visualRoot", visualRoot.transform);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(mover, "animator", animator);
+            ClockworkTimekeeperEditorUtils.SetVector3(mover, "visualEulerOffset", Vector3.zero);
+            ClockworkTimekeeperEditorUtils.SetBool(mover, "buildVisualWrapperOnAwake", true);
+            ClockworkTimekeeperEditorUtils.SetBool(mover, "lockToGroundPlane", true);
+            ClockworkTimekeeperEditorUtils.SetFloat(mover, "groundY", 0f);
+            ClockworkTimekeeperEditorUtils.SetFloat(mover, "animatorDampTime", 0f);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -255,6 +255,11 @@ namespace CardBattle.EditorTools
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             GameObject player = PrefabUtility.InstantiatePrefab(playerPrefab) as GameObject;
+            if (player == null)
+            {
+                Debug.LogError("[ClockworkTimekeeperSetup] Failed to instantiate the player prefab.");
+                return;
+            }
             player.transform.position = Vector3.zero;
 
             CreateLighting();
@@ -262,9 +267,9 @@ namespace CardBattle.EditorTools
             CreateGround(camera);
 
             QuarterViewCameraFollow follow = camera.gameObject.AddComponent<QuarterViewCameraFollow>();
-            SetObjectReference(follow, "target", player.transform);
-            SetBool(follow, "followTargetVertical", false);
-            SetFloat(follow, "targetGroundY", 0f);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(follow, "target", player.transform);
+            ClockworkTimekeeperEditorUtils.SetBool(follow, "followTargetVertical", false);
+            ClockworkTimekeeperEditorUtils.SetFloat(follow, "targetGroundY", 0f);
             follow.SetTarget(player.transform);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -283,8 +288,10 @@ namespace CardBattle.EditorTools
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.055f, 0.058f, 0.065f);
 
-            cameraObject.transform.position = target.position + new Vector3(6f, 7f, -6f);
-            cameraObject.transform.LookAt(target.position + new Vector3(0f, 1f, 0f), Vector3.up);
+            // 초기 위치/방향은 대충 잡아두고, BuildQuarterViewDemoScene에서 QuarterViewCameraFollow를
+            // 붙인 뒤 SetTarget()이 그 컴포넌트의 실제 offset/lookAtOffset 기본값으로 바로 재배치한다
+            // (여기서 같은 오프셋 숫자를 또 하드코딩하면 나중에 둘 중 하나만 고쳤을 때 어긋나게 됨).
+            cameraObject.transform.position = target.position;
 
             if (rendererIndex >= 0)
                 cameraObject.GetComponent<UniversalAdditionalCameraData>().SetRenderer(rendererIndex);
@@ -315,10 +322,10 @@ namespace CardBattle.EditorTools
             backdrop.GetComponent<MeshFilter>().sharedMesh = CreateOrUpdateBackdropMesh();
 
             CameraFittedBackdrop fittedBackdrop = backdrop.GetComponent<CameraFittedBackdrop>();
-            SetObjectReference(fittedBackdrop, "targetCamera", camera);
-            SetFloat(fittedBackdrop, "distanceFromCamera", BackdropDistanceFromCamera);
-            SetFloat(fittedBackdrop, "overscan", 1.02f);
-            SetBool(fittedBackdrop, "matchTextureAspect", true);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(fittedBackdrop, "targetCamera", camera);
+            ClockworkTimekeeperEditorUtils.SetFloat(fittedBackdrop, "distanceFromCamera", BackdropDistanceFromCamera);
+            ClockworkTimekeeperEditorUtils.SetFloat(fittedBackdrop, "overscan", 1.02f);
+            ClockworkTimekeeperEditorUtils.SetBool(fittedBackdrop, "matchTextureAspect", true);
         }
 
         private static void CreateGroundCollider()
@@ -340,24 +347,7 @@ namespace CardBattle.EditorTools
                 AssetDatabase.CreateAsset(mesh, ScreenBackdropMeshPath);
             }
 
-            mesh.Clear();
-            mesh.vertices = new[]
-            {
-                new Vector3(-0.5f, -0.5f, 0f),
-                new Vector3(0.5f, -0.5f, 0f),
-                new Vector3(-0.5f, 0.5f, 0f),
-                new Vector3(0.5f, 0.5f, 0f)
-            };
-            mesh.uv = new[]
-            {
-                new Vector2(0f, 0f),
-                new Vector2(1f, 0f),
-                new Vector2(0f, 1f),
-                new Vector2(1f, 1f)
-            };
-            mesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
+            ExplorationGeometryUtility.BuildUnitQuad(mesh);
             EditorUtility.SetDirty(mesh);
             return mesh;
         }
@@ -466,17 +456,10 @@ namespace CardBattle.EditorTools
         {
             AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(path)
                 .OfType<AnimationClip>()
-                .Where(IsUsableClip)
+                .Where(ClockworkTimekeeperEditorUtils.IsUsableClip)
                 .ToArray();
 
             return clips.FirstOrDefault(clip => clip.name == preferredName) ?? clips.FirstOrDefault();
-        }
-
-        private static bool IsUsableClip(AnimationClip clip)
-        {
-            return clip != null &&
-                   !clip.name.StartsWith("__", System.StringComparison.Ordinal) &&
-                   ContainsIgnoreCase(clip.name, "preview") == false;
         }
 
         private static Texture2D LoadTexture(string path)
@@ -487,35 +470,17 @@ namespace CardBattle.EditorTools
 
         private static void FitVisualToHeight(Transform visual, float targetHeight)
         {
-            if (!TryGetRendererBounds(visual.gameObject, out Bounds bounds) || bounds.size.y <= 0.0001f)
+            if (!ExplorationGeometryUtility.TryGetRendererBounds(visual.gameObject, out Bounds bounds) || bounds.size.y <= 0.0001f)
                 return;
 
             float scale = targetHeight / bounds.size.y;
             visual.localScale *= scale;
 
-            if (!TryGetRendererBounds(visual.gameObject, out bounds))
+            if (!ExplorationGeometryUtility.TryGetRendererBounds(visual.gameObject, out bounds))
                 return;
 
             Vector3 correction = new(-bounds.center.x, -bounds.min.y, -bounds.center.z);
             visual.position += correction;
-        }
-
-        private static bool TryGetRendererBounds(GameObject root, out Bounds bounds)
-        {
-            Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
-            renderers = renderers.Where(renderer => renderer is not ParticleSystemRenderer).ToArray();
-
-            if (renderers.Length == 0)
-            {
-                bounds = default;
-                return false;
-            }
-
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-                bounds.Encapsulate(renderers[i].bounds);
-
-            return true;
         }
 
         private static void AssignMaterial(GameObject visual, Material material)
@@ -555,77 +520,12 @@ namespace CardBattle.EditorTools
                 material.SetFloat(property, value);
         }
 
-        private static void SetFloat(Object target, string fieldName, float value)
-        {
-            var serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-            {
-                Debug.LogWarning($"[ClockworkTimekeeperSetup] Field not found: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            property.floatValue = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
-        private static void SetBool(Object target, string fieldName, bool value)
-        {
-            var serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-            {
-                Debug.LogWarning($"[ClockworkTimekeeperSetup] Field not found: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            property.boolValue = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
         private static void SetColorIfPresent(Material material, string property, Color value, string fallback = null)
         {
             if (material.HasProperty(property))
                 material.SetColor(property, value);
             else if (!string.IsNullOrEmpty(fallback) && material.HasProperty(fallback))
                 material.SetColor(fallback, value);
-        }
-
-        private static void SetObjectReference(Object target, string fieldName, Object value)
-        {
-            var serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-            {
-                Debug.LogWarning($"[ClockworkTimekeeperSetup] Field not found: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            property.objectReferenceValue = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
-        private static void SetVector3(Object target, string fieldName, Vector3 value)
-        {
-            var serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
-            {
-                Debug.LogWarning($"[ClockworkTimekeeperSetup] Field not found: {fieldName} on {target.GetType().Name}");
-                return;
-            }
-
-            property.vector3Value = value;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(target);
-        }
-
-        private static bool ContainsIgnoreCase(string value, string part)
-        {
-            return value?.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

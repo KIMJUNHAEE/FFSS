@@ -122,23 +122,7 @@ namespace CardBattle.Exploration
                     name = "CameraFittedBackdropQuad",
                     hideFlags = HideFlags.HideAndDontSave
                 };
-                generatedMesh.vertices = new[]
-                {
-                    new Vector3(-0.5f, -0.5f, 0f),
-                    new Vector3(0.5f, -0.5f, 0f),
-                    new Vector3(-0.5f, 0.5f, 0f),
-                    new Vector3(0.5f, 0.5f, 0f)
-                };
-                generatedMesh.uv = new[]
-                {
-                    new Vector2(0f, 0f),
-                    new Vector2(1f, 0f),
-                    new Vector2(0f, 1f),
-                    new Vector2(1f, 1f)
-                };
-                generatedMesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
-                generatedMesh.RecalculateNormals();
-                generatedMesh.RecalculateBounds();
+                ExplorationGeometryUtility.BuildUnitQuad(generatedMesh);
             }
 
             if (cachedFilter.sharedMesh != generatedMesh)
