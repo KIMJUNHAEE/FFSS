@@ -217,7 +217,7 @@ namespace CardBattle.EditorTools
         public static void BuildBattleScene18() => BuildBattleSceneFor("18", "18_BattleScene");
 
         [MenuItem("Card Battle/Setup/3c. Build Battle Scene (13)")]
-        public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene");
+        public static void BuildBattleScene13() => BuildBattleSceneFor("13", "13_BattleScene", CardSuit.Spade);
 
         [MenuItem("Card Battle/Setup/3d. Build Battle Scene (암행어사)")]
         public static void BuildBattleSceneAmhaengeosa() => BuildBattleSceneFor("암행어사", "암행어사_BattleScene");
@@ -235,7 +235,7 @@ namespace CardBattle.EditorTools
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
         /// </summary>
-        private static void BuildBattleSceneFor(string enemyId, string sceneFileName)
+        private static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None)
         {
             var pokerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PokerCard.prefab");
             if (pokerPrefab == null) pokerPrefab = BuildPokerCardPrefab();
@@ -413,17 +413,21 @@ namespace CardBattle.EditorTools
                 EditorUtility.SetDirty(enemyAnimator);
             }
 
-            // 적 HUD (초상화 바로 밑, 축소된 형태)
-            var enemyPanel = CreatePanel("EnemyHUD", canvasT, new Vector2(0.32f, 0.41f), new Vector2(0.68f, 0.47f), new Color(0, 0, 0, 0.5f));
-            var enemyNameText = CreateText("EnemyNameText", enemyPanel.transform, new Vector2(0.03f, 0.5f), new Vector2(0.97f, 1f), "적 이름", 15, TextAnchor.MiddleLeft, Color.white);
-            var enemyHpFill = CreateFillBar("EnemyHpBar", enemyPanel.transform, new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.45f), new Color(0.2f, 0.2f, 0.2f), new Color(0.8f, 0.2f, 0.2f));
-            var enemyHpText = CreateText("EnemyHpText", enemyPanel.transform, new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.45f), "0 / 0", 11, TextAnchor.MiddleCenter, Color.white);
+            // 적 HUD (초상화 바로 밑, 축소된 형태) - 이름/약점 + HP + 격파 3단
+            var enemyPanel = CreatePanel("EnemyHUD", canvasT, new Vector2(0.32f, 0.41f), new Vector2(0.68f, 0.54f), new Color(0, 0, 0, 0.5f));
+            var enemyNameText = CreateText("EnemyNameText", enemyPanel.transform, new Vector2(0.03f, 0.72f), new Vector2(0.72f, 1f), "적 이름", 15, TextAnchor.MiddleLeft, Color.white);
+            var enemyWeaknessText = CreateText("EnemyWeaknessText", enemyPanel.transform, new Vector2(0.72f, 0.72f), new Vector2(0.97f, 1f),
+                weakness.ToSymbol(), 18, TextAnchor.MiddleRight, weakness.ToDisplayColor());
+            var enemyHpFill = CreateFillBar("EnemyHpBar", enemyPanel.transform, new Vector2(0.03f, 0.40f), new Vector2(0.97f, 0.65f), new Color(0.2f, 0.2f, 0.2f), new Color(0.8f, 0.2f, 0.2f));
+            var enemyHpText = CreateText("EnemyHpText", enemyPanel.transform, new Vector2(0.03f, 0.40f), new Vector2(0.97f, 0.65f), "0 / 0", 11, TextAnchor.MiddleCenter, Color.white);
+            var enemyBreakFill = CreateFillBar("EnemyBreakBar", enemyPanel.transform, new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.30f), new Color(0.35f, 0.35f, 0.35f), new Color(0.95f, 0.85f, 0.2f));
 
-            // 플레이어 HUD (하단 좌측)
-            var playerPanel = CreatePanel("PlayerHUD", canvasT, new Vector2(0.02f, 0.36f), new Vector2(0.3f, 0.56f), new Color(0, 0, 0, 0.35f));
-            var playerNameText = CreateText("PlayerNameText", playerPanel.transform, new Vector2(0.05f, 0.68f), new Vector2(0.97f, 1f), "플레이어", 22, TextAnchor.MiddleLeft, Color.white);
-            var playerHpFill = CreateFillBar("PlayerHpBar", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), new Color(0.2f, 0.2f, 0.2f), new Color(0.25f, 0.75f, 0.3f));
-            var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.15f), new Vector2(0.97f, 0.55f), "0 / 0", 16, TextAnchor.MiddleCenter, Color.white);
+            // 플레이어 HUD (하단 좌측) - 이름 + HP + 격파 3단
+            var playerPanel = CreatePanel("PlayerHUD", canvasT, new Vector2(0.02f, 0.30f), new Vector2(0.3f, 0.56f), new Color(0, 0, 0, 0.35f));
+            var playerNameText = CreateText("PlayerNameText", playerPanel.transform, new Vector2(0.05f, 0.76f), new Vector2(0.97f, 1f), "플레이어", 22, TextAnchor.MiddleLeft, Color.white);
+            var playerHpFill = CreateFillBar("PlayerHpBar", playerPanel.transform, new Vector2(0.05f, 0.44f), new Vector2(0.97f, 0.70f), new Color(0.2f, 0.2f, 0.2f), new Color(0.25f, 0.75f, 0.3f));
+            var playerHpText = CreateText("PlayerHpText", playerPanel.transform, new Vector2(0.05f, 0.44f), new Vector2(0.97f, 0.70f), "0 / 0", 16, TextAnchor.MiddleCenter, Color.white);
+            var playerBreakFill = CreateFillBar("PlayerBreakBar", playerPanel.transform, new Vector2(0.05f, 0.06f), new Vector2(0.97f, 0.32f), new Color(0.35f, 0.35f, 0.35f), new Color(0.95f, 0.85f, 0.2f));
 
             // 덱 더미 (테이블 위, 카드가 여기서 딜링됨)
             var pokerTableContentParent = useBoss38SmallTables && pokerTableV2 != null ? pokerTableV2 : canvasT;
@@ -501,10 +505,12 @@ namespace CardBattle.EditorTools
             // 다시뽑기 버튼 (턴 종료 버튼 바로 위)
             var redrawButton = CreateButton("RedrawButton", canvasT, new Vector2(0.84f, 0.18f), new Vector2(0.97f, 0.29f), "다시뽑기", new Color(0.25f, 0.45f, 0.7f));
 
-            // 공격/방어/반격 버튼 (다시뽑기/턴종료 버튼 바로 왼쪽, 세로로 나열)
-            var attackButton = CreateButton("AttackButton", canvasT, new Vector2(0.70f, 0.24f), new Vector2(0.82f, 0.33f), "공격", new Color(0.75f, 0.25f, 0.2f));
-            var defendButton = CreateButton("DefendButton", canvasT, new Vector2(0.70f, 0.13f), new Vector2(0.82f, 0.22f), "방어", new Color(0.2f, 0.45f, 0.75f));
-            var counterButton = CreateButton("CounterButton", canvasT, new Vector2(0.70f, 0.02f), new Vector2(0.82f, 0.11f), "반격", new Color(0.6f, 0.3f, 0.7f));
+            // 공격/방어 버튼 (다시뽑기/턴종료 버튼 바로 왼쪽, 세로로 나열). 반격 버튼은 제거됨 -
+            // 이제 행동은 공격/방어 둘뿐이고, 라벨에 포커 핸드로 계산된 실시간 수치가 붙는다.
+            var attackButton = CreateButton("AttackButton", canvasT, new Vector2(0.70f, 0.19f), new Vector2(0.82f, 0.33f), "공격", new Color(0.75f, 0.25f, 0.2f));
+            var defendButton = CreateButton("DefendButton", canvasT, new Vector2(0.70f, 0.02f), new Vector2(0.82f, 0.16f), "방어", new Color(0.2f, 0.45f, 0.75f));
+            var attackButtonText = attackButton.GetComponentInChildren<Text>();
+            var defendButtonText = defendButton.GetComponentInChildren<Text>();
 
             // 플레이어 상태(스턴 등) 표시 (행동 버튼 바로 위)
             var playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.355f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
@@ -537,14 +543,18 @@ namespace CardBattle.EditorTools
             var rps = rpsGO.GetComponent<RpsCombatController>();
             rps.attackButton = attackButton;
             rps.defendButton = defendButton;
-            rps.counterButton = counterButton;
+            rps.attackButtonText = attackButtonText;
+            rps.defendButtonText = defendButtonText;
             rps.endTurnButton = endTurnButton;
             rps.playerHpText = playerHpText;
             rps.playerHpFill = playerHpFill;
+            rps.playerBreakFill = playerBreakFill;
             rps.enemyHpText = enemyHpText;
             rps.enemyHpFill = enemyHpFill;
+            rps.enemyBreakFill = enemyBreakFill;
             rps.enemyActionText = enemyActionText;
             rps.playerStatusText = playerStatusText;
+            rps.enemyWeakness = weakness;
             rps.winPanel = winPanel.gameObject;
             rps.losePanel = losePanel.gameObject;
             EditorUtility.SetDirty(rps);

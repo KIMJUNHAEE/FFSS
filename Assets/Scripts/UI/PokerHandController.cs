@@ -27,6 +27,11 @@ namespace CardBattle
         [SerializeField] private float dealAnimationDuration = 0.35f;
         [SerializeField] private float dealStagger = 0.12f;
 
+        /// <summary>손패가 최종 확정될 때(딜/리드로우 완료) 발생. 공격/방어 수치 재계산 트리거용.</summary>
+        public event Action HandChanged;
+
+        public IReadOnlyList<Sprite> CurrentHandSprites => spawnedCards.Select(c => c.CardSprite).ToList();
+
         private readonly List<PokerCardView> spawnedCards = new();
         private Coroutine dealRoutine;
 
@@ -195,6 +200,7 @@ namespace CardBattle
             if (handRankText != null)
                 handRankText.text = PokerHandEvaluator.Evaluate(spawnedCards.Select(c => c.CardSprite).ToList());
             UpdateHandRankVisibility();
+            HandChanged?.Invoke();
         }
 
         private void UpdateHandRankVisibility()
