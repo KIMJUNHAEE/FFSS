@@ -20,10 +20,10 @@ namespace CardBattle.EditorTools
         private const string SettingsDir = "Assets/Settings";
 
         private const string ModelPath = CharacterDir + "/Player_rigged_model.fbx";
-        private const string IdlePath = CharacterDir + "/Player_idle.fbx";
+        private const string IdlePath = CharacterDir + "/Player_idle_2.fbx";
         private const string WalkPath = CharacterDir + "/Player_walk.fbx";
-        private const string FixedIdlePath = CharacterDir + "/ClockworkTimekeeper_Idle_Fixed.anim";
-        private const string FixedWalkPath = CharacterDir + "/ClockworkTimekeeper_Walk_InPlace.anim";
+        private const string IdleClipPath = CharacterDir + "/ClockworkTimekeeper_Idle.anim";
+        private const string WalkClipPath = CharacterDir + "/ClockworkTimekeeper_Walk_InPlace.anim";
         private const string BaseMapPath = CharacterDir + "/ClockworkTimekeeper_BaseMap.png";
         private const string NormalMapPath = CharacterDir + "/ClockworkTimekeeper_Normal.png";
         private const string MetallicMapPath = CharacterDir + "/ClockworkTimekeeper_Metallic.png";
@@ -42,6 +42,11 @@ namespace CardBattle.EditorTools
         private const float MapWidth = 22f;
         private const float MapDepth = 12.375f;
         private const float BackdropDistanceFromCamera = 80f;
+        private const string SpeedParameter = "Speed";
+        private const string IdleStateName = "Idle";
+        private const string WalkStateName = "Walk";
+        private const float WalkSpeedThreshold = 0.05f;
+        private const float TransitionDuration = 0.12f;
 
         [MenuItem("Card Battle/Exploration/Setup Clockwork Timekeeper Map Roaming Scene")]
         public static void RunAll()
@@ -109,9 +114,13 @@ namespace CardBattle.EditorTools
                 material.shader = shader;
             }
 
-            Texture2D baseMap = AssetDatabase.LoadAssetAtPath<Texture2D>(BaseMapPath);
-            Texture2D normalMap = AssetDatabase.LoadAssetAtPath<Texture2D>(NormalMapPath);
-            Texture2D metallicMap = AssetDatabase.LoadAssetAtPath<Texture2D>(MetallicMapPath);
+            Texture2D baseMap = LoadCharacterTexture(
+                BaseMapPath,
+                new[] { "base", "albedo", "diffuse", "texture_0" },
+                new[] { "normal", "metallic", "roughness" });
+            Texture2D normalMap = LoadCharacterTexture(NormalMapPath, new[] { "normal", "bump" });
+            Texture2D metallicMap = LoadCharacterTexture(MetallicMapPath, new[] { "metallic", "metalness" });
+            Texture2D roughnessMap = LoadCharacterTexture(RoughnessMapPath, new[] { "roughness", "rough" });
 
             if (baseMap != null)
                 SetTextureIfPresent(material, "_BaseMap", baseMap, "_MainTex");
@@ -129,7 +138,7 @@ namespace CardBattle.EditorTools
             }
 
             SetFloatIfPresent(material, "_Metallic", 0.6f);
-            SetFloatIfPresent(material, "_Smoothness", 0.38f);
+            SetFloatIfPresent(material, "_Smoothness", roughnessMap != null ? 0.32f : 0.38f);
             SetColorIfPresent(material, "_BaseColor", Color.white, "_Color");
             EditorUtility.SetDirty(material);
             return material;
@@ -137,8 +146,8 @@ namespace CardBattle.EditorTools
 
         private static AnimatorController CreateAnimatorController()
         {
-            AnimationClip idleClip = LoadAnimationClip(FixedIdlePath, "Idle") ?? LoadAnimationClip(IdlePath, "Idle");
-            AnimationClip walkClip = LoadAnimationClip(FixedWalkPath, "Walk") ?? LoadAnimationClip(WalkPath, "Walk");
+            AnimationClip idleClip = LoadAnimationClip(IdleClipPath, IdleStateName) ?? LoadAnimationClip(IdlePath, IdleStateName);
+            AnimationClip walkClip = LoadAnimationClip(WalkClipPath, WalkStateName) ?? LoadAnimationClip(WalkPath, WalkStateName);
 
             if (idleClip == null)
                 Debug.LogWarning("[ClockworkTimekeeperSetup] Idle clip was not found.");
@@ -149,32 +158,41 @@ namespace CardBattle.EditorTools
                 AssetDatabase.DeleteAsset(AnimatorPath);
 
             AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(AnimatorPath);
-            controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
+            controller.AddParameter(SpeedParameter, AnimatorControllerParameterType.Float);
 
             AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
-            AnimatorState locomotion = stateMachine.AddState("Locomotion");
-            locomotion.writeDefaultValues = true;
+            AnimatorState idleState = stateMachine.AddState(IdleStateName, new Vector3(280f, 80f, 0f));
+            idleState.motion = idleClip;
+            idleState.writeDefaultValues = true;
 
-            var blendTree = new BlendTree
-            {
-                name = "SpeedBlend",
-                blendType = BlendTreeType.Simple1D,
-                blendParameter = "Speed",
-                useAutomaticThresholds = false
-            };
+            AnimatorState walkState = stateMachine.AddState(WalkStateName, new Vector3(280f, 190f, 0f));
+            walkState.motion = walkClip;
+            walkState.writeDefaultValues = true;
 
-            AssetDatabase.AddObjectToAsset(blendTree, controller);
-            if (idleClip != null)
-                blendTree.AddChild(idleClip, 0f);
-            if (walkClip != null)
-                blendTree.AddChild(walkClip, 1f);
+            AnimatorStateTransition idleToWalk = idleState.AddTransition(walkState);
+            ConfigureSpeedTransition(idleToWalk, AnimatorConditionMode.Greater, WalkSpeedThreshold);
 
-            locomotion.motion = blendTree;
-            stateMachine.defaultState = locomotion;
+            AnimatorStateTransition walkToIdle = walkState.AddTransition(idleState);
+            ConfigureSpeedTransition(walkToIdle, AnimatorConditionMode.Less, WalkSpeedThreshold);
 
-            EditorUtility.SetDirty(blendTree);
+            stateMachine.defaultState = idleState;
+            EditorUtility.SetDirty(idleState);
+            EditorUtility.SetDirty(walkState);
             EditorUtility.SetDirty(controller);
             return controller;
+        }
+
+        private static void ConfigureSpeedTransition(
+            AnimatorStateTransition transition,
+            AnimatorConditionMode conditionMode,
+            float threshold)
+        {
+            transition.hasExitTime = false;
+            transition.exitTime = 0f;
+            transition.hasFixedDuration = true;
+            transition.duration = TransitionDuration;
+            transition.offset = 0f;
+            transition.AddCondition(conditionMode, threshold, SpeedParameter);
         }
 
         private static GameObject BuildPlayerPrefab(Material material, RuntimeAnimatorController animatorController)
@@ -234,6 +252,7 @@ namespace CardBattle.EditorTools
             ClockworkTimekeeperEditorUtils.SetBool(mover, "lockToGroundPlane", true);
             ClockworkTimekeeperEditorUtils.SetFloat(mover, "groundY", 0f);
             ClockworkTimekeeperEditorUtils.SetFloat(mover, "animatorDampTime", 0f);
+            ClockworkTimekeeperEditorUtils.SetFloat(mover, "walkStopGraceTime", 0.08f);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -466,6 +485,54 @@ namespace CardBattle.EditorTools
         {
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path) ??
                    AssetDatabase.LoadAllAssetsAtPath(path).OfType<Texture2D>().FirstOrDefault();
+        }
+
+        private static Texture2D LoadCharacterTexture(
+            string preferredPath,
+            string[] includeAny,
+            string[] excludeAny = null)
+        {
+            Texture2D preferred = LoadTexture(preferredPath);
+            if (preferred != null)
+                return preferred;
+
+            string absoluteDir = Path.Combine(Directory.GetCurrentDirectory(), CharacterDir);
+            if (!Directory.Exists(absoluteDir))
+                return null;
+
+            foreach (string file in Directory.GetFiles(absoluteDir).OrderBy(path => path))
+            {
+                if (!IsTextureExtension(Path.GetExtension(file)))
+                    continue;
+
+                string name = Path.GetFileNameWithoutExtension(file);
+                if (excludeAny != null && excludeAny.Any(part => ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(name, part)))
+                    continue;
+
+                if (includeAny.Any(part => ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(name, part)))
+                    return LoadTexture(ToAssetPath(file));
+            }
+
+            return null;
+        }
+
+        private static bool IsTextureExtension(string extension)
+        {
+            return ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(extension, ".png") ||
+                   ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(extension, ".jpg") ||
+                   ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(extension, ".jpeg") ||
+                   ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(extension, ".tga") ||
+                   ClockworkTimekeeperEditorUtils.ContainsIgnoreCase(extension, ".psd");
+        }
+
+        private static string ToAssetPath(string absolutePath)
+        {
+            string projectRoot = Directory.GetCurrentDirectory().Replace('\\', '/');
+            string normalizedPath = absolutePath.Replace('\\', '/');
+            if (!normalizedPath.StartsWith(projectRoot, System.StringComparison.OrdinalIgnoreCase))
+                return normalizedPath;
+
+            return normalizedPath[(projectRoot.Length + 1)..];
         }
 
         private static void FitVisualToHeight(Transform visual, float targetHeight)

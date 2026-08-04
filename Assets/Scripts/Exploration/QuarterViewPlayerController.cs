@@ -24,15 +24,18 @@ namespace CardBattle.Exploration
         [SerializeField] private Animator animator = null;
         [SerializeField] private string speedParameter = "Speed";
         [SerializeField] private float animatorDampTime = 0f;
+        [SerializeField] private float walkStopGraceTime = 0.08f;
 
         public const string HeadingRootName = "VisualRoot";
         public const string AxisCorrectionRootName = "AxisCorrectionRoot";
-        private static readonly int LocomotionStateHash = Animator.StringToHash("Locomotion");
+        private static readonly int IdleStateHash = Animator.StringToHash("Idle");
+        private static readonly int WalkStateHash = Animator.StringToHash("Walk");
 
         private CharacterController controller;
         private int speedParameterHash;
         private Vector3 facingDirection = Vector3.forward;
         private Transform axisCorrectionRoot;
+        private float lastMovementInputTime = -999f;
 
         private void Awake()
         {
@@ -46,8 +49,8 @@ namespace CardBattle.Exploration
             {
                 animator.applyRootMotion = false;
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                if (animator.HasState(0, LocomotionStateHash))
-                    animator.Play(LocomotionStateHash, 0, 0f);
+                if (animator.HasState(0, IdleStateHash))
+                    animator.Play(IdleStateHash, 0, 0f);
             }
 
             EnsureVisualWrapper();
@@ -63,8 +66,8 @@ namespace CardBattle.Exploration
 
             if (animator != null)
             {
-                if (animator.HasState(0, LocomotionStateHash))
-                    animator.Play(LocomotionStateHash, 0, 0f);
+                if (animator.HasState(0, IdleStateHash))
+                    animator.Play(IdleStateHash, 0, 0f);
                 animator.Update(0f);
             }
 
@@ -81,11 +84,12 @@ namespace CardBattle.Exploration
 
             Vector3 planarDirection = ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
+            float animationAmount = GetAnimationAmount(inputAmount);
 
             Move(planarDirection);
             TurnToward(planarDirection);
-            UpdateAnimator(inputAmount);
-            KeepNonLoopingLocomotionAlive(inputAmount);
+            UpdateAnimator(animationAmount);
+            KeepNonLoopingWalkAlive(animationAmount);
         }
 
         private Vector3 ReadCameraRelativeDirection()
@@ -244,6 +248,17 @@ namespace CardBattle.Exploration
             return forward.sqrMagnitude > 0.0001f ? forward.normalized : Vector3.forward;
         }
 
+        private float GetAnimationAmount(float inputAmount)
+        {
+            if (inputAmount > 0.05f)
+            {
+                lastMovementInputTime = Time.time;
+                return inputAmount;
+            }
+
+            return Time.time - lastMovementInputTime <= walkStopGraceTime ? 1f : 0f;
+        }
+
         private void UpdateAnimator(float inputAmount)
         {
             if (animator == null || string.IsNullOrWhiteSpace(speedParameter))
@@ -255,16 +270,19 @@ namespace CardBattle.Exploration
                 animator.SetFloat(speedParameterHash, inputAmount);
         }
 
-        private void KeepNonLoopingLocomotionAlive(float inputAmount)
+        private void KeepNonLoopingWalkAlive(float inputAmount)
         {
-            if (animator == null || inputAmount <= 0.05f)
+            if (animator == null || inputAmount <= 0.05f || !animator.HasState(0, WalkStateHash))
                 return;
 
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            if (stateInfo.shortNameHash != WalkStateHash)
+                return;
+
             if (stateInfo.loop || stateInfo.normalizedTime < 0.98f)
                 return;
 
-            animator.Play(LocomotionStateHash, 0, stateInfo.normalizedTime % 1f);
+            animator.Play(WalkStateHash, 0, stateInfo.normalizedTime % 1f);
         }
     }
 }
