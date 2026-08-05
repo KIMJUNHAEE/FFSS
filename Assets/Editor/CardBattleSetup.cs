@@ -38,7 +38,7 @@ namespace CardBattle.EditorTools
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
         private const string SeotdaCardDir = "Assets/섰다패";
-        private static readonly string[] BossIds = { "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사" };
+        private static readonly string[] BossIds = { "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사", "3땡" };
         private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
         private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
         private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
@@ -58,11 +58,12 @@ namespace CardBattle.EditorTools
             BuildBattleSceneDdengjabi();
             BuildBattleSceneMeonggusa();
             BuildBattleSceneGusa();
+            BuildBattleSceneThreeDdaeng();
             BuildBootstrapScene();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13·암행어사·땡잡이·멍구사·구사_BattleScene 생성.");
+            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13·암행어사·땡잡이·멍구사·구사·3땡_BattleScene 생성.");
         }
 
         [MenuItem("Card Battle/Setup/1. Create Example Card And Enemy Data")]
@@ -291,6 +292,7 @@ namespace CardBattle.EditorTools
                 EnsureBossCombatProfile("땡잡이"),
                 EnsureBossCombatProfile("멍구사"),
                 EnsureBossCombatProfile("구사"),
+                EnsureBossCombatProfile("3땡"),
             };
             foreach (var profile in profiles) ValidateBossCombatProfile(profile);
             AssetDatabase.SaveAssets();
@@ -299,6 +301,7 @@ namespace CardBattle.EditorTools
 
         private static BossCombatProfile EnsureBossCombatProfile(string enemyId)
         {
+            EnsureEnemyArtImports(enemyId);
             string path = $"{BossProfileDir}/{enemyId}.asset";
             var profile = AssetDatabase.LoadAssetAtPath<BossCombatProfile>(path);
             bool isNew = profile == null;
@@ -307,6 +310,7 @@ namespace CardBattle.EditorTools
             profile.bossId = enemyId;
             ConfigureBossGameplayProfile(profile, enemyId);
             ConfigureBossVisualProfile(profile, enemyId);
+            ConfigureBossMoveArtwork(profile, enemyId);
             if (isNew) AssetDatabase.CreateAsset(profile, path);
             EditorUtility.SetDirty(profile);
             return profile;
@@ -460,7 +464,7 @@ namespace CardBattle.EditorTools
                             "정확히 4월+9월: 스킬 +5, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -4",
                             3, 3));
                     break;
-                default:
+                case "구사":
                     ConfigureProfile(profile, "구사", 126, 48, new Color(0.48f, 0.76f, 0.58f),
                         Move("gusa_charge", "낮은판쇄도", BossMoveType.Attack,
                             "낮은 패가 깔리면 거대한 무기로 판째 밀고 들어와.",
@@ -484,6 +488,32 @@ namespace CardBattle.EditorTools
                             "정확히 4월+9월: 스킬 +5, 명중 시 HP 추가 5·얇은 게이지 추가 5 / 불발: 스킬 -5",
                             5, 4));
                     break;
+                case "3땡":
+                    ConfigureProfile(profile, "3땡 · 머지", 68, 28, new Color(0.96f, 0.30f, 0.55f),
+                        Move("three_ddeng_drop", "내려찍기", BossMoveType.Attack,
+                            "창끝을 세워 정면으로 짧고 빠르게 내려찍어.",
+                            "기본 공격이라 자주 사용해. 3월패가 섞이면 꽃잎이 터지며 위력이 올라가.",
+                            9, 4, 4.5f, 1, 0, BossSeotdaCondition.ContainsMonth, 3, 0, 2, 1, 0, 0,
+                            "3월패 포함: 공격 +2, 명중 시 HP 추가 1"),
+                        Move("three_ddeng_triple", "삼연화 베기", BossMoveType.Attack,
+                            "세 갈래 꽃자국을 연달아 그으며 HP와 자세를 함께 노려.",
+                            "땡이 잡히면 세 번째 참격이 이어져 피해와 얇은 게이지 압박이 함께 커져.",
+                            11, 5, 3.4f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 1, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("three_ddeng_curtain", "벚꽃 장막 걷어베기", BossMoveType.Defend,
+                            "벚꽃 장막을 펼쳐 공격선을 흘린 뒤 창날로 밀어내.",
+                            "막아내면 HP 대신 상대의 얇은 게이지를 흔드는 방어 행동이야.",
+                            10, 6, 3.1f, 1, 1, BossSeotdaCondition.ContainsMonth, 3, 0, 2, 0, 2, 0,
+                            "3월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("three_ddeng_fall", "회전낙하참", BossMoveType.Skill,
+                            "세 번째 적 턴부터 네 턴마다 높이 회전해 한 점으로 낙하해.",
+                            "정확한 3땡에서만 꽃고리가 완성되는 머지의 대표 기술이야. 빗나가면 위력이 낮아져.",
+                            14, 7, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 3, 3, 3, 3, 2, -2,
+                            "정확히 3월+3월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
+                            4, 3));
+                    break;
+                default:
+                    throw new InvalidDataException($"지원하지 않는 적 프로필이야: {enemyId}");
             }
         }
 
@@ -578,7 +608,7 @@ namespace CardBattle.EditorTools
                     cardA = "04_흑싸리_1.png";
                     cardB = "09_국화_1.png";
                     break;
-                default:
+                case "구사":
                     profile.combatTitle = "판을 되돌리는 구사";
                     profile.secondaryAccentColor = new Color(0.72f, 0.96f, 0.58f);
                     profile.signatureCardChance = 0.72f;
@@ -586,10 +616,53 @@ namespace CardBattle.EditorTools
                     cardA = "04_흑싸리_3.png";
                     cardB = "09_국화_3.png";
                     break;
+                case "3땡":
+                    profile.combatTitle = "벚꽃 창을 든 삼땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.72f, 0.34f);
+                    profile.signatureCardChance = 0.76f;
+                    profile.signaturePairChance = 0.34f;
+                    cardA = "03_벚꽃_1.png";
+                    cardB = "03_벚꽃_3.png";
+                    break;
+                default:
+                    throw new InvalidDataException($"지원하지 않는 적 비주얼 프로필이야: {enemyId}");
             }
 
+            profile.encounterRank = enemyId == "38" || enemyId == "18" || enemyId == "13"
+                ? EnemyEncounterRank.Boss
+                : enemyId == "3땡"
+                    ? EnemyEncounterRank.Normal
+                    : EnemyEncounterRank.MidBoss;
             profile.signatureCardA = LoadSpriteAtPath($"{SeotdaCardDir}/{cardA}");
             profile.signatureCardB = LoadSpriteAtPath($"{SeotdaCardDir}/{cardB}");
+        }
+
+        private static void ConfigureBossMoveArtwork(BossCombatProfile profile, string enemyId)
+        {
+            if (enemyId != "3땡" || profile.moves == null) return;
+
+            AssignMoveArtwork(profile, "three_ddeng_drop", "내려찍기.png", 0.42f);
+            AssignMoveArtwork(profile, "three_ddeng_triple", "삼연화 베기.png", 0.52f);
+            AssignMoveArtwork(profile, "three_ddeng_curtain", "벚꽃 장막 걷어베기.png", 0.48f);
+            AssignMoveArtwork(profile, "three_ddeng_fall", "회전낙하참.png", 0.62f);
+        }
+
+        private static void AssignMoveArtwork(BossCombatProfile profile, string moveId, string fileName, float poseSeconds)
+        {
+            var move = profile.moves.FirstOrDefault(candidate => candidate != null && candidate.moveId == moveId);
+            if (move == null) return;
+            move.actionSprite = LoadSpriteAtPath($"Assets/Enemy/3땡/Skills/{fileName}");
+            move.actionPoseSeconds = poseSeconds;
+        }
+
+        private static void EnsureEnemyArtImports(string enemyId)
+        {
+            if (enemyId != "3땡") return;
+            string enemyDir = $"Assets/Enemy/{enemyId}";
+            if (!AssetDatabase.IsValidFolder(enemyDir)) return;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { enemyDir }))
+                EnsureSpriteImport(AssetDatabase.GUIDToAssetPath(guid));
         }
 
         private static void ConfigureProfile(BossCombatProfile profile, string displayName, int hp, int pressure,
@@ -638,6 +711,7 @@ namespace CardBattle.EditorTools
             "38" => "38광땡",
             "18" => "18광땡",
             "13" => "13광땡",
+            "3땡" => "3땡 · 머지",
             _ => enemyId,
         };
 
@@ -647,6 +721,7 @@ namespace CardBattle.EditorTools
             "땡잡이" => "ddengjabi",
             "멍구사" => "meonggusa",
             "구사" => "gusa",
+            "3땡" => "13",
             _ => enemyId,
         };
 
@@ -803,14 +878,16 @@ namespace CardBattle.EditorTools
         private static GameObject BuildBossHudPrefab(Sprite sprite, BossCombatProfile profile,
             Sprite hpFillSprite, Sprite breakFillSprite, Sprite emptyBarFillSprite)
         {
-            var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_HUD", sprite, new Vector2(680f, 294f));
-            var name = CreateText("NameText", root.transform, new Vector2(0.30f, 0.565f), new Vector2(0.75f, 0.685f), profile.displayName, 30, TextAnchor.MiddleLeft, new Color(1f, 0.92f, 0.58f));
+            bool isNormal = profile.encounterRank == EnemyEncounterRank.Normal;
+            var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_HUD", sprite,
+                isNormal ? new Vector2(560f, 242f) : new Vector2(680f, 294f));
+            var name = CreateText("NameText", root.transform, new Vector2(0.30f, 0.565f), new Vector2(0.75f, 0.685f), profile.displayName, isNormal ? 25 : 30, TextAnchor.MiddleLeft, new Color(1f, 0.92f, 0.58f));
             name.fontStyle = FontStyle.Bold;
-            EnableBestFit(name, 20, 30);
+            EnableBestFit(name, isNormal ? 17 : 20, isNormal ? 25 : 30);
             AddTextOutline(name, new Color(0.08f, 0f, 0f, 0.98f), new Vector2(3f, -3f));
-            var title = CreateText("TitleText", root.transform, new Vector2(0.30f, 0.495f), new Vector2(0.75f, 0.57f), profile.combatTitle, 16, TextAnchor.MiddleLeft, profile.secondaryAccentColor);
+            var title = CreateText("TitleText", root.transform, new Vector2(0.30f, 0.495f), new Vector2(0.75f, 0.57f), profile.combatTitle, isNormal ? 14 : 16, TextAnchor.MiddleLeft, profile.secondaryAccentColor);
             title.fontStyle = FontStyle.Bold;
-            EnableBestFit(title, 11, 16);
+            EnableBestFit(title, isNormal ? 10 : 11, isNormal ? 14 : 16);
             AddTextOutline(title, Color.black, new Vector2(2f, -2f));
 
             CreateFillBar("HpBar", root.transform, new Vector2(0.292f, 0.338f), new Vector2(0.798f, 0.397f),
@@ -864,7 +941,7 @@ namespace CardBattle.EditorTools
         {
             var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_Intent", sprite, new Vector2(300f, 345f));
 
-            var action = CreateText("ActionText", root.transform, new Vector2(0.15f, 0.49f), new Vector2(0.85f, 0.635f), "다음 공격", 24, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
+            var action = CreateText("ActionText", root.transform, new Vector2(0.15f, 0.49f), new Vector2(0.85f, 0.635f), "다음 행동", 24, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
             action.fontStyle = FontStyle.Bold;
             EnableBestFit(action, 15, 24);
             AddTextOutline(action, Color.black, new Vector2(3f, -3f));
@@ -1038,11 +1115,15 @@ namespace CardBattle.EditorTools
         [MenuItem("Card Battle/Setup/3g. Build Battle Scene (구사)")]
         public static void BuildBattleSceneGusa() => BuildBattleSceneFor("구사", "구사_BattleScene", CardSuit.Clover);
 
+        [MenuItem("Card Battle/Setup/3h. Build Battle Scene (3땡)")]
+        public static void BuildBattleSceneThreeDdaeng() => BuildBattleSceneFor("3땡", "3땡_BattleScene", CardSuit.Heart, false);
+
         /// <summary>
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
         /// </summary>
-        private static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None)
+        private static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None,
+            bool includeBackground = true)
         {
             var bossProfile = EnsureBossCombatProfile(enemyId);
             var pokerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PokerCard.prefab");
@@ -1053,8 +1134,10 @@ namespace CardBattle.EditorTools
             if (backSprite == null)
                 Debug.LogWarning("[CardBattleSetup] Back-R 스프라이트를 찾지 못했습니다. 덱 더미 표시/딜 애니메이션이 생략됩니다.");
 
-            var backgroundSprite = LoadSpriteAtPath($"Assets/BackGround/{enemyId}_BackGround.png");
-            if (backgroundSprite == null)
+            var backgroundSprite = includeBackground
+                ? LoadSpriteAtPath($"Assets/BackGround/{enemyId}_BackGround.png")
+                : null;
+            if (includeBackground && backgroundSprite == null)
                 Debug.LogWarning($"[CardBattleSetup] 배경 스프라이트({enemyId}_BackGround)를 찾지 못했습니다.");
 
             // ===== 테이블 버전1 (보존용, 비활성 상태): 회전(가로 스케일+스프라이트 교체) 연출.
@@ -1088,6 +1171,8 @@ namespace CardBattle.EditorTools
             var enemyDir = $"Assets/Enemy/{enemyId}";
             var enemyPortraitSprite = LoadSpriteAtPath($"{enemyDir}/{enemyId}.png");
             var enemyIdleFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Idle");
+            if (enemyIdleFrames.Count == 0 && enemyPortraitSprite != null)
+                enemyIdleFrames.Add(enemyPortraitSprite);
             var enemyAttackFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_NomalAttack");
             var enemyHurtFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Hurt");
             var enemyDeathFrames = LoadSpriteFolder($"{enemyDir}/{enemyId}_Death");
@@ -1223,8 +1308,8 @@ namespace CardBattle.EditorTools
                 enemyAnimator.targetImage = enemyPortrait;
                 enemyAnimator.idle = new SpriteSequence { frames = enemyIdleFrames, frameRate = 10f, loop = true, pingPong = enemyId == "18", pingPongEdgeHold = enemyId == "18" ? 0.1f : 0f };
                 enemyAnimator.attack = new SpriteSequence { frames = enemyAttackFrames, frameRate = 16f, loop = false };
-                enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = 18f, loop = false };
-                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = 10f, loop = true }; // TODO: 디버그용, 확인 끝나면 loop = false로 되돌릴 것
+                enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = enemyId == "3땡" ? 2.5f : 18f, loop = false };
+                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = enemyId == "3땡" ? 2.4f : 10f, loop = enemyId != "3땡" };
                 EditorUtility.SetDirty(enemyAnimator);
             }
 
@@ -1680,6 +1765,7 @@ namespace CardBattle.EditorTools
             AddIfMissing($"{SceneDir}/땡잡이_BattleScene.unity");
             AddIfMissing($"{SceneDir}/멍구사_BattleScene.unity");
             AddIfMissing($"{SceneDir}/구사_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/3땡_BattleScene.unity");
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

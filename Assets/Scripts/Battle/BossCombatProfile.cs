@@ -11,6 +11,13 @@ namespace CardBattle
         Skill,
     }
 
+    public enum EnemyEncounterRank
+    {
+        Normal,
+        MidBoss,
+        Boss,
+    }
+
     public enum BossSeotdaCondition
     {
         None,
@@ -59,6 +66,10 @@ namespace CardBattle
         public int seotdaFailurePowerDelta;
         [TextArea(1, 2)] public string seotdaRule;
         public Sprite icon;
+
+        [Header("행동 연출")]
+        public Sprite actionSprite;
+        [Min(0.1f)] public float actionPoseSeconds = 0.48f;
     }
 
     [CreateAssetMenu(fileName = "BossCombatProfile", menuName = "Card Battle/Boss Combat Profile")]
@@ -67,6 +78,7 @@ namespace CardBattle
         [Header("보스")]
         public string bossId;
         public string displayName;
+        public EnemyEncounterRank encounterRank = EnemyEncounterRank.Boss;
         [Min(1)] public int maxHp = 90;
         [Min(1)] public int maxPressure = 36;
         public Color accentColor = new(0.95f, 0.2f, 0.2f, 1f);

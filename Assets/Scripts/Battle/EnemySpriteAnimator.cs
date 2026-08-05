@@ -62,6 +62,20 @@ namespace CardBattle
             playRoutine = StartCoroutine(PlayRoutine(sequence, state, onComplete));
         }
 
+        public void PlayActionPose(Sprite pose, float duration, Action onComplete = null)
+        {
+            if (pose == null)
+            {
+                Play(EnemyAnimState.Attack, onComplete);
+                return;
+            }
+
+            if (CurrentState == EnemyAnimState.Death) return;
+            CurrentState = EnemyAnimState.Attack;
+            if (playRoutine != null) StopCoroutine(playRoutine);
+            playRoutine = StartCoroutine(PlayActionPoseRoutine(pose, duration, onComplete));
+        }
+
         private SpriteSequence GetSequence(EnemyAnimState state) => state switch
         {
             EnemyAnimState.Attack => attack,
@@ -115,6 +129,14 @@ namespace CardBattle
                     Play(EnemyAnimState.Idle);
                 yield break;
             }
+        }
+
+        private IEnumerator PlayActionPoseRoutine(Sprite pose, float duration, Action onComplete)
+        {
+            if (targetImage != null) targetImage.sprite = pose;
+            yield return new WaitForSeconds(Mathf.Max(0.1f, duration));
+            onComplete?.Invoke();
+            Play(EnemyAnimState.Idle);
         }
     }
 }

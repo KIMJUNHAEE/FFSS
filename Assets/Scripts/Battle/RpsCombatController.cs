@@ -447,11 +447,14 @@ namespace CardBattle
             outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent)}\n{outcome.Message}";
 
             bool enemyAttackHitPlayer = enemyIntent.IsOffense && outcome.DamageToPlayer > 0;
+            bool enemyDefenseSucceeded = enemyIntent.IsDefense && outcome.BreakToPlayer > 0;
             bool enemyTookHpDamage = outcome.DamageToEnemy > 0;
             bool hasImpact = outcome.DamageToPlayer > 0 || outcome.DamageToEnemy > 0 ||
                              outcome.BreakToPlayer > 0 || outcome.BreakToEnemy > 0;
 
             if (enemyAnimator != null && enemyAttackHitPlayer)
+                yield return PlayAndWait(EnemyAnimState.Attack);
+            else if (enemyAnimator != null && enemyDefenseSucceeded && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null)
                 yield return PlayAndWait(EnemyAnimState.Attack);
 
             ApplyOutcome(ref outcome);
@@ -1042,7 +1045,10 @@ namespace CardBattle
         private IEnumerator PlayAndWait(EnemyAnimState state)
         {
             bool finished = false;
-            enemyAnimator.Play(state, () => finished = true);
+            if (state == EnemyAnimState.Attack && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null)
+                enemyAnimator.PlayActionPose(pendingEnemyMove.actionSprite, pendingEnemyMove.actionPoseSeconds, () => finished = true);
+            else
+                enemyAnimator.Play(state, () => finished = true);
             yield return new WaitUntil(() => finished);
         }
 
