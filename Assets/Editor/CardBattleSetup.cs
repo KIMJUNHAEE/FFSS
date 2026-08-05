@@ -282,13 +282,17 @@ namespace CardBattle.EditorTools
         public static void BuildBossCombatProfiles()
         {
             Directory.CreateDirectory(BossProfileDir);
-            EnsureBossCombatProfile("38");
-            EnsureBossCombatProfile("18");
-            EnsureBossCombatProfile("13");
-            EnsureBossCombatProfile("암행어사");
-            EnsureBossCombatProfile("땡잡이");
-            EnsureBossCombatProfile("멍구사");
-            EnsureBossCombatProfile("구사");
+            var profiles = new[]
+            {
+                EnsureBossCombatProfile("38"),
+                EnsureBossCombatProfile("18"),
+                EnsureBossCombatProfile("13"),
+                EnsureBossCombatProfile("암행어사"),
+                EnsureBossCombatProfile("땡잡이"),
+                EnsureBossCombatProfile("멍구사"),
+                EnsureBossCombatProfile("구사"),
+            };
+            foreach (var profile in profiles) ValidateBossCombatProfile(profile);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
@@ -296,67 +300,228 @@ namespace CardBattle.EditorTools
         private static BossCombatProfile EnsureBossCombatProfile(string enemyId)
         {
             string path = $"{BossProfileDir}/{enemyId}.asset";
-            var existing = AssetDatabase.LoadAssetAtPath<BossCombatProfile>(path);
-            if (existing != null)
-            {
-                existing.bossId = enemyId;
-                ConfigureBossVisualProfile(existing, enemyId);
-                EditorUtility.SetDirty(existing);
-                return existing;
-            }
+            var profile = AssetDatabase.LoadAssetAtPath<BossCombatProfile>(path);
+            bool isNew = profile == null;
+            if (isNew) profile = ScriptableObject.CreateInstance<BossCombatProfile>();
 
-            var profile = ScriptableObject.CreateInstance<BossCombatProfile>();
             profile.bossId = enemyId;
+            ConfigureBossGameplayProfile(profile, enemyId);
+            ConfigureBossVisualProfile(profile, enemyId);
+            if (isNew) AssetDatabase.CreateAsset(profile, path);
+            EditorUtility.SetDirty(profile);
+            return profile;
+        }
+
+        private static void ConfigureBossGameplayProfile(BossCombatProfile profile, string enemyId)
+        {
             switch (enemyId)
             {
                 case "38":
                     ConfigureProfile(profile, "38광땡", 105, 42, new Color(0.92f, 0.14f, 0.18f),
-                        Move("38_moon_slash", "삼광낙월", BossMoveType.Attack, "붉은 달빛을 칼날처럼 내려쳐.", "정면 공격. 공격 싸움에서 이기거나 방어를 넘으면 HP 피해를 줘.", 13, 5, 4.5f, 1, 0, 7, 3, "13광땡 이상이면 명중 추가 피해 +3"),
-                        Move("38_barrier", "삼팔결계", BossMoveType.Defend, "삼광과 팔광의 패로 결계를 펼쳐.", "높은 방어로 공격을 막고 상대의 얇은 게이지를 압박해.", 12, 7, 3f, 1, 1, 5, 2, "알리 이상이면 방어 성공 게이지 피해 +2"),
-                        Move("38_red_moon", "광땡·적월개문", BossMoveType.Skill, "적월의 문을 열어 광패를 폭발시켜.", "강한 특수 공격. 재사용 간격이 길지만 명중하면 큰 HP·게이지 피해를 노려.", 18, 8, 1.5f, 2, 2, 7, 4, "13광땡 이상이면 명중 추가 피해 +4"));
+                        Move("38_moon_slash", "삼광낙월", BossMoveType.Attack,
+                            "삼월패에 칼끝을 세운 정면 참격이야.",
+                            "공격으로 맞서면 수치 싸움, 방어하면 결계 밖에서 받아낼 수 있어.",
+                            14, 5, 4.6f, 1, 0, BossSeotdaCondition.ContainsMonth, 3, 0, 2, 2, 0, 0,
+                            "3월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("38_eightfold_barrier", "팔광천문", BossMoveType.Defend,
+                            "팔월패를 중심으로 여덟 겹의 문을 닫아.",
+                            "낮은 공격은 막혀 얇은 게이지를 크게 압박받아. 강한 공격이나 더 높은 방어로 맞서야 해.",
+                            13, 8, 3.5f, 1, 1, BossSeotdaCondition.ContainsMonth, 8, 0, 2, 0, 3, 0,
+                            "8월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("38_gwang_union", "쌍광합일", BossMoveType.Skill,
+                            "두 광패를 겹쳐 한 번에 밀어붙이는 승부수야.",
+                            "광 조합이면 HP와 얇은 게이지를 함께 노리지만, 광이 갈리면 위력이 내려가.",
+                            17, 8, 2.1f, 2, 1, BossSeotdaCondition.GwangPair, 0, 0, 3, 3, 2, -2,
+                            "광 두 장: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2"),
+                        Move("38_red_moon", "삼팔광천", BossMoveType.Skill,
+                            "네 번째 적 턴마다 삼광과 팔광의 자리를 동시에 열어.",
+                            "정확히 3월·8월이 완성되면 최강의 폭발. 조합이 빗나가면 큰 빈틈이 생겨.",
+                            19, 10, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 3, 8, 4, 5, 4, -4,
+                            "정확히 3월+8월: 스킬 +4, 명중 시 HP 추가 5·얇은 게이지 추가 4 / 불발: 스킬 -4",
+                            4, 4));
                     break;
                 case "18":
                     ConfigureProfile(profile, "18광땡", 98, 38, new Color(0.94f, 0.42f, 0.18f),
-                        Move("18_ring_strike", "금륜 타격", BossMoveType.Attack, "황금 고리를 회전시켜 곧게 밀어붙여.", "안정적인 정면 공격으로 플레이어의 공격 선택을 견제해.", 12, 5, 4f, 1, 0, 6, 2, "높은 땡이면 명중 추가 피해 +2"),
-                        Move("18_eight_gate", "팔문 수호", BossMoveType.Defend, "여덟 문양이 겹치며 공격로를 닫아.", "방어 수치가 높고 성공 시 얇은 게이지를 크게 압박해.", 14, 8, 3.5f, 1, 1, 5, 3, "알리 이상이면 방어 성공 게이지 피해 +3"),
-                        Move("18_seal", "일팔 봉인진", BossMoveType.Skill, "일광과 팔광을 잇는 봉인진을 전개해.", "공격과 게이지 압박을 함께 거는 의식형 필살기야.", 16, 9, 1.4f, 2, 2, 8, 4, "18광땡 이상이면 명중 추가 피해 +4"));
+                        Move("18_ring_strike", "금륜 압진", BossMoveType.Attack,
+                            "일월의 금륜을 앞으로 굴려 자세를 무너뜨려.",
+                            "HP보다 얇은 게이지를 흔드는 견제 공격이야.",
+                            12, 6, 4f, 1, 0, BossSeotdaCondition.ContainsMonth, 1, 0, 2, 0, 2, 0,
+                            "1월패 포함: 공격 +2, 명중 시 얇은 게이지 추가 2"),
+                        Move("18_eight_gate", "팔문 수호", BossMoveType.Defend,
+                            "팔월의 문양이 겹치며 공격로를 완전히 닫아.",
+                            "이 보스의 핵심 방어. 어중간한 공격은 막힌 뒤 큰 압박으로 돌아와.",
+                            15, 9, 3.6f, 1, 1, BossSeotdaCondition.ContainsMonth, 8, 0, 2, 0, 4, 0,
+                            "8월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 4"),
+                        Move("18_low_orbit", "저패윤회", BossMoveType.Defend,
+                            "낮은 패를 금륜 안쪽으로 숨겨 방어의 축으로 바꿔.",
+                            "약한 섯다패일수록 단단해지는 역전 방어라서, 공개 패를 보고 결과가 크게 달라져.",
+                            13, 7, 2.7f, 1, 1, BossSeotdaCondition.TierAtMost, 3, 0, 3, 0, 3, 0,
+                            "갑오 이하: 방어 +3, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("18_seal", "일팔봉인", BossMoveType.Skill,
+                            "세 번째 적 턴부터 네 턴마다 일월과 팔월의 봉인을 맞춰.",
+                            "피해량보다 스턴 직전까지 몰아붙이는 봉인기야. 정확한 일팔 조합을 경계해야 해.",
+                            17, 10, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 1, 8, 2, 0, 6, -2,
+                            "정확히 1월+8월: 스킬 +2, 명중 시 얇은 게이지 추가 6 / 불발: 스킬 -2",
+                            4, 3));
                     break;
                 case "13":
                     ConfigureProfile(profile, "13광땡", 92, 35, new Color(0.82f, 0.26f, 0.42f),
-                        Move("13_piercing_arrow", "일삼 관통시", BossMoveType.Attack, "활시위를 끝까지 당겨 한 점을 겨눠.", "빠르고 강한 관통 공격. 공격 싸움에 특히 위협적이야.", 14, 4, 4.6f, 1, 0, 4, 2, "독사 이상이면 명중 추가 피해 +2"),
-                        Move("13_bow_step", "궁신 회피", BossMoveType.Defend, "활을 비스듬히 세우고 궤도를 흘려.", "수치는 낮지만 자주 준비하는 가벼운 방어야.", 11, 6, 3.2f, 1, 0, 4, 2, "독사 이상이면 방어 성공 게이지 피해 +2"),
-                        Move("13_exorcism", "파마 연사", BossMoveType.Skill, "세 발의 파마 화살을 한 호흡에 겹쳐 쏴.", "연속 사격 필살기. 높은 기본 공격으로 정면 승부를 강요해.", 17, 6, 1.5f, 2, 2, 7, 3, "13광땡 이상이면 명중 추가 피해 +3"));
+                        Move("13_piercing_arrow", "일점관통", BossMoveType.Attack,
+                            "일월의 빛을 화살촉 한 점에 모아 곧게 쏴.",
+                            "얇은 게이지보다 HP를 빠르게 노리는 고위력 공격이야.",
+                            15, 4, 4.4f, 1, 0, BossSeotdaCondition.ContainsMonth, 1, 0, 3, 2, 0, -1,
+                            "1월패 포함: 공격 +3, 명중 시 HP 추가 2 / 불발: 공격 -1"),
+                        Move("13_three_arrow", "삼연파마", BossMoveType.Attack,
+                            "삼월의 화살 세 발을 서로 다른 궤도로 겹쳐 쏴.",
+                            "첫 타는 HP, 뒤따르는 두 발은 얇은 게이지를 함께 흔들어.",
+                            13, 5, 3.7f, 1, 0, BossSeotdaCondition.ContainsMonth, 3, 0, 2, 2, 2, 0,
+                            "3월패 포함: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("13_bow_step", "궁신흘리기", BossMoveType.Defend,
+                            "낮은 패가 나오면 정면을 포기하고 화살 궤도로 공격을 흘려.",
+                            "기본 방어는 약하지만 낮은 섯다패에서만 급격히 단단해져.",
+                            10, 5, 2.8f, 1, 0, BossSeotdaCondition.TierAtMost, 3, 0, 3, 0, 2, 0,
+                            "갑오 이하: 방어 +3, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("13_exorcism", "일삼멸광", BossMoveType.Skill,
+                            "세 번째 적 턴마다 일광과 삼광을 한 화살에 묶어.",
+                            "정확한 일삼이면 폭발적인 일격, 빗나가면 활시위가 크게 느슨해지는 승부수야.",
+                            18, 7, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 1, 3, 5, 4, 2, -4,
+                            "정확히 1월+3월: 스킬 +5, 명중 시 HP 추가 4·얇은 게이지 추가 2 / 불발: 스킬 -4",
+                            3, 3));
                     break;
                 case "암행어사":
                     ConfigureProfile(profile, "암행어사", 116, 44, new Color(0.78f, 0.16f, 0.20f),
-                        Move("magistrate_badge", "마패일섬", BossMoveType.Attack, "마패를 보인 뒤 칼집째 거리를 좁혀.", "묵직한 처단 공격. 공격 싸움에서 높은 수치로 압박해.", 15, 6, 4.2f, 1, 0, 5, 2, "알리 이상이면 명중 추가 피해 +2"),
-                        Move("magistrate_order", "어사호령", BossMoveType.Defend, "호령과 함께 칼집으로 길목을 봉쇄해.", "강한 방어로 공격을 받아내고 게이지를 흔들어.", 13, 8, 3.3f, 1, 1, 5, 3, "알리 이상이면 방어 성공 게이지 피해 +3"),
-                        Move("magistrate_judgment", "암행처단", BossMoveType.Skill, "죄목을 선고하고 단 한 번의 발도로 끝내려 해.", "매우 강한 처단기. 준비 빈도는 낮고 재사용 간격이 길어.", 19, 8, 1.2f, 3, 3, 7, 4, "13광땡 이상이면 명중 추가 피해 +4"));
+                        Move("magistrate_badge", "마패일섬", BossMoveType.Attack,
+                            "족보가 성립하면 마패를 밝히고 곧바로 거리를 좁혀.",
+                            "특수 족보를 증표로 삼아 정면 공격의 권위를 높여.",
+                            15, 6, 4f, 1, 0, BossSeotdaCondition.SpecialHand, 0, 0, 2, 2, 0, 0,
+                            "이름 있는 족보: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("magistrate_order", "광패압수", BossMoveType.Defend,
+                            "광패가 보이면 호령과 함께 패의 기세를 압수해.",
+                            "강한 광 조합을 오히려 방어와 얇은 게이지 압박으로 바꾸는 판결이야.",
+                            14, 8, 3.3f, 1, 1, BossSeotdaCondition.TierAtLeast, 7, 0, 2, 0, 5, 0,
+                            "13광땡 이상: 방어 +2, 방어 성공 시 얇은 게이지 추가 5"),
+                        Move("magistrate_reveal", "암행출두", BossMoveType.Attack,
+                            "사월과 칠월의 마패가 맞으면 숨어 있던 칼을 드러내.",
+                            "암행어사의 대표 패가 완성될 때 HP와 얇은 게이지를 동시에 베어.",
+                            14, 7, 2.5f, 2, 1, BossSeotdaCondition.ExactMonths, 4, 7, 4, 3, 3, -1,
+                            "정확히 4월+7월: 공격 +4, 명중 시 HP 추가 3·얇은 게이지 추가 3 / 불발: 공격 -1"),
+                        Move("magistrate_judgment", "광패처단", BossMoveType.Skill,
+                            "네 번째 적 턴마다 광패의 죄목을 선고하고 발도를 준비해.",
+                            "광 두 장이 잡히면 처단이 완성되고, 아니라면 선고가 흔들려 위력이 낮아져.",
+                            19, 9, 1f, 4, 3, BossSeotdaCondition.GwangPair, 0, 0, 4, 4, 4, -3,
+                            "광 두 장: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -3",
+                            4, 4));
                     break;
                 case "땡잡이":
                     ConfigureProfile(profile, "땡잡이", 101, 39, new Color(0.20f, 0.66f, 0.92f),
-                        Move("ddengjabi_chain", "도깨비불 사슬", BossMoveType.Attack, "푸른 불꽃 사슬을 휘감아 잡아당겨.", "빠른 사슬 공격으로 틈을 만들고 HP 피해를 노려.", 13, 6, 4.3f, 1, 0, 5, 3, "알리 이상이면 명중 추가 피해 +3"),
-                        Move("ddengjabi_break", "땡끊기", BossMoveType.Defend, "패의 흐름을 끊는 푸른 고리를 펼쳐.", "방어 성공 시 얇은 게이지 압박이 강한 교란기야.", 12, 9, 3.4f, 1, 1, 6, 3, "높은 땡이면 방어 성공 게이지 피해 +3"),
-                        Move("ddengjabi_hunt", "땡잡이", BossMoveType.Skill, "좋은 패의 기운을 쫓아 사슬을 한꺼번에 조여.", "보스의 이름을 건 특수 공격. 높은 섯다 족보와 만나면 더 위험해.", 17, 7, 1.5f, 2, 2, 6, 5, "높은 땡이면 명중 추가 피해 +5"));
+                        Move("ddengjabi_chain", "삼월추적", BossMoveType.Attack,
+                            "삼월패의 흔적을 푸른 사슬이 끝까지 쫓아와.",
+                            "빠른 견인 뒤 한 번 더 베어 HP를 노리는 기본 사냥기야.",
+                            13, 6, 4.2f, 1, 0, BossSeotdaCondition.ContainsMonth, 3, 0, 2, 2, 0, 0,
+                            "3월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("ddengjabi_break", "땡끊기", BossMoveType.Defend,
+                            "같은 월 두 장이 보이면 사슬 고리가 족보를 붙잡아 끊어.",
+                            "땡이 잡히는 순간 방어가 크게 오르고, 막아낸 뒤 자세까지 무너뜨려.",
+                            12, 9, 3.4f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 4, 0, 5, 0,
+                            "땡: 방어 +4, 방어 성공 시 얇은 게이지 추가 5"),
+                        Move("ddengjabi_bait", "허패유인", BossMoveType.Defend,
+                            "낮은 패를 일부러 흘려 공격을 사슬 안쪽으로 유인해.",
+                            "패가 약할수록 함정이 닫히는 역발상 방어야.",
+                            11, 7, 2.6f, 1, 1, BossSeotdaCondition.TierAtMost, 3, 0, 3, 0, 3, 0,
+                            "갑오 이하: 방어 +3, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("ddengjabi_hunt", "삼칠포획", BossMoveType.Skill,
+                            "세 번째 적 턴부터 네 턴마다 삼월과 칠월의 사슬진을 펼쳐.",
+                            "정확한 삼칠은 HP보다 자세를 먼저 사냥해 다음 스턴을 앞당겨.",
+                            17, 8, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 3, 7, 4, 3, 5, -3,
+                            "정확히 3월+7월: 스킬 +4, 명중 시 HP 추가 3·얇은 게이지 추가 5 / 불발: 스킬 -3",
+                            4, 3));
                     break;
                 case "멍구사":
                     ConfigureProfile(profile, "멍구사", 94, 36, new Color(0.30f, 0.78f, 0.66f),
-                        Move("meonggusa_knives", "쌍월비수", BossMoveType.Attack, "두 비수가 서로 다른 사각으로 파고들어.", "날렵한 연속 공격. 안정적인 공격 수치로 매 턴 위협해.", 14, 5, 4.5f, 1, 0, 4, 2, "독사 이상이면 명중 추가 피해 +2"),
-                        Move("meonggusa_silence", "무음잠행", BossMoveType.Defend, "기척을 지우고 공격이 닿을 자리를 비워.", "회피형 방어. 성공하면 플레이어의 얇은 게이지를 채워.", 12, 7, 3.2f, 1, 1, 4, 2, "독사 이상이면 방어 성공 게이지 피해 +2"),
-                        Move("meonggusa_execute", "멍구사·절명", BossMoveType.Skill, "시야에서 사라진 뒤 두 칼끝을 한 점에 모아.", "강한 암살기. 명중 시 HP와 게이지를 함께 위협해.", 18, 7, 1.4f, 2, 2, 7, 3, "13광땡 이상이면 명중 추가 피해 +3"));
+                        Move("meonggusa_hidden_blade", "허패비수", BossMoveType.Attack,
+                            "낮은 패를 미끼로 두고 시야 밖에서 비수를 던져.",
+                            "좋은 족보가 아니라 갑오 이하일 때 더 날카로워지는 암살 공격이야.",
+                            14, 5, 4f, 1, 0, BossSeotdaCondition.TierAtMost, 3, 0, 3, 2, 0, 0,
+                            "갑오 이하: 공격 +3, 명중 시 HP 추가 2"),
+                        Move("meonggusa_silence", "무음잠행", BossMoveType.Defend,
+                            "이름 없는 끗패 사이로 기척을 지우고 공격선을 비워.",
+                            "특수 족보가 아닐 때 회피 경로가 열리는 저패 특화 방어야.",
+                            11, 7, 3.1f, 1, 1, BossSeotdaCondition.OrdinaryHand, 0, 0, 3, 0, 3, 0,
+                            "일반 끗패: 방어 +3, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("meonggusa_ninth_cut", "구월잔영", BossMoveType.Attack,
+                            "구월패의 잔영을 남기고 반대편에서 두 번째 칼이 들어와.",
+                            "명중하면 HP와 얇은 게이지를 작게 나눠 깎는 연속 공격이야.",
+                            13, 6, 3f, 1, 0, BossSeotdaCondition.ContainsMonth, 9, 0, 2, 2, 2, 0,
+                            "9월패 포함: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("meonggusa_execute", "멍구사·절명", BossMoveType.Skill,
+                            "세 번째 적 턴마다 사월과 구월의 칼끝을 한 점에 모아.",
+                            "정확한 사구에서만 절명이 완성돼. 조합이 어긋나면 몸을 드러내 크게 약해져.",
+                            18, 8, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 4, 9, 5, 4, 4, -4,
+                            "정확히 4월+9월: 스킬 +5, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -4",
+                            3, 3));
                     break;
                 default:
                     ConfigureProfile(profile, "구사", 126, 48, new Color(0.48f, 0.76f, 0.58f),
-                        Move("gusa_charge", "구사쇄도", BossMoveType.Attack, "거대한 무기를 낮게 끌며 그대로 밀고 들어와.", "느리지만 매우 강한 정면 공격이야.", 16, 7, 4.1f, 1, 0, 5, 2, "알리 이상이면 명중 추가 피해 +2"),
-                        Move("gusa_great_guard", "철벽거검", BossMoveType.Defend, "대검을 땅에 박아 모든 길을 막아.", "가장 높은 방어 수치와 게이지 압박을 가진 방어기야.", 15, 10, 3.4f, 1, 1, 5, 3, "알리 이상이면 방어 성공 게이지 피해 +3"),
-                        Move("gusa_overturn", "판뒤집기", BossMoveType.Skill, "무기와 판을 함께 들어 올려 전장을 뒤엎으려 해.", "가장 강한 한 방. 세 번째 적 턴부터 드물게 사용해.", 20, 10, 1.1f, 3, 3, 7, 4, "13광땡 이상이면 명중 추가 피해 +4"));
+                        Move("gusa_charge", "낮은판쇄도", BossMoveType.Attack,
+                            "낮은 패가 깔리면 거대한 무기로 판째 밀고 들어와.",
+                            "강한 족보보다 낮은 패에서 힘을 얻는 구사의 기본 압박이야.",
+                            16, 7, 4f, 1, 0, BossSeotdaCondition.TierAtMost, 3, 0, 3, 2, 2, 0,
+                            "갑오 이하: 공격 +3, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("gusa_great_guard", "철벽거검", BossMoveType.Defend,
+                            "이름 없는 패가 나오면 대검을 땅에 박아 판을 고정해.",
+                            "일반 끗패를 가장 단단한 방어로 바꾸는 구사의 버티기야.",
+                            15, 10, 3.4f, 1, 1, BossSeotdaCondition.OrdinaryHand, 0, 0, 2, 0, 4, 0,
+                            "일반 끗패: 방어 +2, 방어 성공 시 얇은 게이지 추가 4"),
+                        Move("gusa_declaration", "구사선언", BossMoveType.Defend,
+                            "사월과 구월이 맞으면 패배할 판을 무효로 돌리듯 버텨.",
+                            "정확한 사구에서 방어가 크게 솟고 상대 자세를 한 번에 무너뜨려.",
+                            13, 8, 2.4f, 2, 1, BossSeotdaCondition.ExactMonths, 4, 9, 5, 0, 6, -1,
+                            "정확히 4월+9월: 방어 +5, 방어 성공 시 얇은 게이지 추가 6 / 불발: 방어 -1"),
+                        Move("gusa_overturn", "판뒤집기", BossMoveType.Skill,
+                            "네 번째 적 턴부터 다섯 턴마다 무기와 판을 함께 들어 올려.",
+                            "사구가 완성되면 전장을 뒤엎는 최대 일격, 실패하면 무게를 버티지 못하고 크게 약해져.",
+                            20, 10, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 4, 9, 5, 5, 5, -5,
+                            "정확히 4월+9월: 스킬 +5, 명중 시 HP 추가 5·얇은 게이지 추가 5 / 불발: 스킬 -5",
+                            5, 4));
                     break;
             }
+        }
 
-            ConfigureBossVisualProfile(profile, enemyId);
-            AssetDatabase.CreateAsset(profile, path);
-            EditorUtility.SetDirty(profile);
-            return profile;
+        private static void ValidateBossCombatProfile(BossCombatProfile profile)
+        {
+            if (profile == null) throw new InvalidDataException("보스 전투 프로필이 생성되지 않았어.");
+            if (profile.moves == null || profile.moves.Count < 4)
+                throw new InvalidDataException($"{profile.bossId}: 고유 행동이 4개보다 적어.");
+
+            var moveIds = new HashSet<string>();
+            bool hasCadenceMove = false;
+            foreach (var move in profile.moves)
+            {
+                if (move == null || string.IsNullOrWhiteSpace(move.moveId) || string.IsNullOrWhiteSpace(move.displayName))
+                    throw new InvalidDataException($"{profile.bossId}: ID나 이름이 비어 있는 행동이 있어.");
+                if (!moveIds.Add(move.moveId))
+                    throw new InvalidDataException($"{profile.bossId}: 행동 ID {move.moveId}가 중복됐어.");
+                if (move.power <= 0 || string.IsNullOrWhiteSpace(move.telegraph) || string.IsNullOrWhiteSpace(move.seotdaRule))
+                    throw new InvalidDataException($"{profile.bossId}/{move.displayName}: 수치 또는 예고 정보가 비어 있어.");
+                if (move.cadenceTurns > 0)
+                {
+                    hasCadenceMove = true;
+                    if (move.cadenceOffset < move.minimumTurn)
+                        throw new InvalidDataException($"{profile.bossId}/{move.displayName}: 주기 시작 턴이 최소 턴보다 빨라.");
+                }
+            }
+
+            if (!hasCadenceMove)
+                throw new InvalidDataException($"{profile.bossId}: 주기형 대표 기술이 없어.");
+
+            var signature = SeotdaHandEvaluator.EvaluateDetails(profile.signatureCardA, profile.signatureCardB);
+            if (!signature.IsValid)
+                throw new InvalidDataException($"{profile.bossId}: 대표 패를 판정할 수 없어.");
+            bool signatureHasRule = profile.moves.Any(move =>
+                move.seotdaCondition == BossSeotdaCondition.ExactMonths &&
+                BossSeotdaRuleEvaluator.Matches(signature, move));
+            if (!signatureHasRule)
+                throw new InvalidDataException($"{profile.bossId}: 대표 패 {signature.DisplayName}와 연결된 행동이 없어.");
         }
 
         private static void ConfigureBossVisualProfile(BossCombatProfile profile, string enemyId)
@@ -439,7 +604,9 @@ namespace CardBattle.EditorTools
 
         private static BossMoveDefinition Move(string id, string name, BossMoveType type, string telegraph,
             string description, int power, int breakPower, float weight, int minimumTurn, int cooldown,
-            int seotdaTier, int seotdaBonus, string seotdaRule)
+            BossSeotdaCondition condition, int conditionValueA, int conditionValueB, int powerBonus,
+            int hpDamage, int breakDamage, int failurePowerDelta, string seotdaRule,
+            int cadenceTurns = 0, int cadenceOffset = 0)
         {
             return new BossMoveDefinition
             {
@@ -453,8 +620,15 @@ namespace CardBattle.EditorTools
                 weight = weight,
                 minimumTurn = minimumTurn,
                 cooldownTurns = cooldown,
-                seotdaTierThreshold = seotdaTier,
-                seotdaSuccessBonus = seotdaBonus,
+                cadenceTurns = cadenceTurns,
+                cadenceOffset = cadenceOffset,
+                seotdaCondition = condition,
+                conditionValueA = conditionValueA,
+                conditionValueB = conditionValueB,
+                seotdaPowerBonus = powerBonus,
+                seotdaHpDamage = hpDamage,
+                seotdaBreakDamage = breakDamage,
+                seotdaFailurePowerDelta = failurePowerDelta,
                 seotdaRule = seotdaRule,
             };
         }
