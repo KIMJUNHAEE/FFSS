@@ -33,6 +33,13 @@ namespace CardBattle
             routine = StartCoroutine(ShowRoutine(icon, headline, value, targetsPlayer, accent, onComplete));
         }
 
+        public void ShowGuard(Sprite icon, string headline, string value, bool playerGuarded, Color accent,
+            Action onComplete = null)
+        {
+            if (routine != null) StopCoroutine(routine);
+            routine = StartCoroutine(ShowGuardRoutine(icon, headline, value, playerGuarded, accent, onComplete));
+        }
+
         private IEnumerator ShowRoutine(Sprite icon, string headline, string value, bool targetsPlayer, Color accent,
             Action onComplete)
         {
@@ -64,6 +71,74 @@ namespace CardBattle
             SetHidden();
             routine = null;
             onComplete?.Invoke();
+        }
+
+        private IEnumerator ShowGuardRoutine(Sprite icon, string headline, string value, bool playerGuarded,
+            Color accent, Action onComplete)
+        {
+            SetContent(icon, headline, value, accent);
+
+            Vector2 target = playerGuarded ? playerTargetPosition : enemyTargetPosition;
+            float direction = playerGuarded ? -1f : 1f;
+            if (canvasGroup) canvasGroup.alpha = 1f;
+            if (flash) flash.color = new Color(accent.r, accent.g, accent.b, 0f);
+
+            yield return Animate(target + new Vector2(direction * 42f, -58f), target,
+                direction * -10f, 0f, 0.62f, 1.12f, 0f, 1f, 0.16f);
+            yield return GuardPulse(target, direction, 0.24f);
+            yield return WaitRealtime(0.10f);
+            yield return GuardPulse(target, -direction * 0.45f, 0.16f);
+            yield return Animate(target, target + new Vector2(direction * 35f, -22f),
+                0f, direction * 3f, 1f, 0.90f, 1f, 0f, 0.18f);
+
+            SetHidden();
+            routine = null;
+            onComplete?.Invoke();
+        }
+
+        private void SetContent(Sprite icon, string headline, string value, Color accent)
+        {
+            if (actionIcon)
+            {
+                actionIcon.sprite = icon;
+                actionIcon.enabled = icon != null;
+                actionIcon.color = Color.white;
+            }
+            if (headlineText)
+            {
+                headlineText.text = headline;
+                headlineText.color = accent;
+            }
+            if (valueText) valueText.text = value;
+        }
+
+        private IEnumerator GuardPulse(Vector2 position, float direction, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+                float impact = Mathf.Sin(t * Mathf.PI);
+                float ring = Mathf.Sin(t * Mathf.PI * 2f) * (1f - t);
+                if (visual)
+                {
+                    visual.anchoredPosition = position + new Vector2(direction * -18f * impact, ring * 7f);
+                    visual.localRotation = Quaternion.Euler(0f, 0f, direction * ring * 5f);
+                    visual.localScale = Vector3.one * (1.02f + impact * 0.18f);
+                }
+                if (actionIcon)
+                    actionIcon.rectTransform.localScale = Vector3.one * (1f + impact * 0.28f);
+                if (flash)
+                {
+                    Color color = flash.color;
+                    color.a = impact * 0.38f;
+                    flash.color = color;
+                }
+                yield return null;
+            }
+
+            if (actionIcon) actionIcon.rectTransform.localScale = Vector3.one;
         }
 
         private IEnumerator Animate(Vector2 from, Vector2 to, float fromAngle, float toAngle,
@@ -135,6 +210,7 @@ namespace CardBattle
                 visual.localRotation = Quaternion.identity;
                 visual.localScale = Vector3.one;
             }
+            if (actionIcon) actionIcon.rectTransform.localScale = Vector3.one;
         }
     }
 }

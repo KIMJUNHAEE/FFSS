@@ -30,9 +30,15 @@ namespace CardBattle.EditorTools
         private const string TableV2Dir = "Assets/NewTable";
         private const string Boss38TableDir = "Assets/UI/38Battle";
         private const string Boss38CombatSkinDir = "Assets/UI/38Battle/CombatSkin";
+        private const string BossCombatSkinDir = "Assets/UI/BossCombatSkins";
         private const string Boss38CombatPrefabDir = "Assets/Prefabs/CombatUI38";
         private const string BossProfileDir = "Assets/Data/BossProfiles";
         private const string CombatIconDir = "Assets/UI/CommonCombat/Icons";
+        private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
+        private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
+        private const string SeotdaCardDir = "Assets/섰다패";
+        private static readonly string[] BossIds = { "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사" };
         private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
         private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
         private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
@@ -241,18 +247,27 @@ namespace CardBattle.EditorTools
         private sealed class Boss38CombatUiAssets
         {
             public GameObject playerHud;
-            public GameObject bossHud;
             public GameObject commandButton;
             public GameObject battleBanner;
-            public GameObject intentBadge;
             public GameObject combatImpact;
             public GameObject battleResult;
+            public GameObject skillDetailPanel;
             public Sprite seotdaBack;
             public Sprite attackIcon;
             public Sprite defendIcon;
             public Sprite skillIcon;
             public Sprite redrawIcon;
             public Sprite endTurnIcon;
+            public readonly Dictionary<string, GameObject> bossHuds = new();
+            public readonly Dictionary<string, GameObject> intentBadges = new();
+
+            public GameObject BossHud(string bossId) => bossHuds.TryGetValue(bossId, out var prefab)
+                ? prefab
+                : bossHuds["38"];
+
+            public GameObject IntentBadge(string bossId) => intentBadges.TryGetValue(bossId, out var prefab)
+                ? prefab
+                : intentBadges["38"];
         }
 
         [MenuItem("Card Battle/Setup/2c. Build Boss 38 Combat UI Prefabs")]
@@ -282,7 +297,13 @@ namespace CardBattle.EditorTools
         {
             string path = $"{BossProfileDir}/{enemyId}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<BossCombatProfile>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                existing.bossId = enemyId;
+                ConfigureBossVisualProfile(existing, enemyId);
+                EditorUtility.SetDirty(existing);
+                return existing;
+            }
 
             var profile = ScriptableObject.CreateInstance<BossCombatProfile>();
             profile.bossId = enemyId;
@@ -332,9 +353,78 @@ namespace CardBattle.EditorTools
                     break;
             }
 
+            ConfigureBossVisualProfile(profile, enemyId);
             AssetDatabase.CreateAsset(profile, path);
             EditorUtility.SetDirty(profile);
             return profile;
+        }
+
+        private static void ConfigureBossVisualProfile(BossCombatProfile profile, string enemyId)
+        {
+            string cardA;
+            string cardB;
+            switch (enemyId)
+            {
+                case "38":
+                    profile.combatTitle = "최강의 광패 · 삼팔광땡";
+                    profile.secondaryAccentColor = new Color(1f, 0.72f, 0.16f);
+                    profile.signatureCardChance = 0.82f;
+                    profile.signaturePairChance = 0.28f;
+                    cardA = "03_벚꽃_1.png";
+                    cardB = "08_공산_1.png";
+                    break;
+                case "18":
+                    profile.combatTitle = "금륜의 광패 · 일팔광땡";
+                    profile.secondaryAccentColor = new Color(1f, 0.82f, 0.28f);
+                    profile.signatureCardChance = 0.78f;
+                    profile.signaturePairChance = 0.24f;
+                    cardA = "01_소나무_1.png";
+                    cardB = "08_공산_1.png";
+                    break;
+                case "13":
+                    profile.combatTitle = "파마의 광패 · 일삼광땡";
+                    profile.secondaryAccentColor = new Color(1f, 0.60f, 0.74f);
+                    profile.signatureCardChance = 0.76f;
+                    profile.signaturePairChance = 0.22f;
+                    cardA = "01_소나무_1.png";
+                    cardB = "03_벚꽃_1.png";
+                    break;
+                case "암행어사":
+                    profile.combatTitle = "광땡을 베는 마패";
+                    profile.secondaryAccentColor = new Color(0.56f, 0.72f, 1f);
+                    profile.signatureCardChance = 0.74f;
+                    profile.signaturePairChance = 0.23f;
+                    cardA = "04_흑싸리_1.png";
+                    cardB = "07_홍싸리_1.png";
+                    break;
+                case "땡잡이":
+                    profile.combatTitle = "땡을 사냥하는 푸른 사슬";
+                    profile.secondaryAccentColor = new Color(0.25f, 0.90f, 1f);
+                    profile.signatureCardChance = 0.76f;
+                    profile.signaturePairChance = 0.25f;
+                    cardA = "03_벚꽃_1.png";
+                    cardB = "07_홍싸리_1.png";
+                    break;
+                case "멍구사":
+                    profile.combatTitle = "열끗에 숨은 암살패";
+                    profile.secondaryAccentColor = new Color(0.52f, 1f, 0.78f);
+                    profile.signatureCardChance = 0.78f;
+                    profile.signaturePairChance = 0.26f;
+                    cardA = "04_흑싸리_1.png";
+                    cardB = "09_국화_1.png";
+                    break;
+                default:
+                    profile.combatTitle = "판을 되돌리는 구사";
+                    profile.secondaryAccentColor = new Color(0.72f, 0.96f, 0.58f);
+                    profile.signatureCardChance = 0.72f;
+                    profile.signaturePairChance = 0.20f;
+                    cardA = "04_흑싸리_3.png";
+                    cardB = "09_국화_3.png";
+                    break;
+            }
+
+            profile.signatureCardA = LoadSpriteAtPath($"{SeotdaCardDir}/{cardA}");
+            profile.signatureCardB = LoadSpriteAtPath($"{SeotdaCardDir}/{cardB}");
         }
 
         private static void ConfigureProfile(BossCombatProfile profile, string displayName, int hp, int pressure,
@@ -377,55 +467,66 @@ namespace CardBattle.EditorTools
             _ => enemyId,
         };
 
+        private static string BossSkinKey(string enemyId) => enemyId switch
+        {
+            "암행어사" => "amhaeng",
+            "땡잡이" => "ddengjabi",
+            "멍구사" => "meonggusa",
+            "구사" => "gusa",
+            _ => enemyId,
+        };
+
         private static Boss38CombatUiAssets EnsureBoss38CombatUiPrefabs()
         {
             Directory.CreateDirectory(Boss38CombatPrefabDir);
 
             string playerHudPath = $"{Boss38CombatSkinDir}/poker_player_hud.png";
-            string bossHudPath = $"{Boss38CombatSkinDir}/gwangddaeng_boss_hud.png";
             string commandPath = $"{Boss38CombatSkinDir}/poker_command_button.png";
             string bannerPath = $"{Boss38CombatSkinDir}/poker_vs_gwangddaeng_banner.png";
-            string intentPath = $"{Boss38CombatSkinDir}/gwangddaeng_intent_badge.png";
             string seotdaBackPath = $"{Boss38CombatSkinDir}/seotda_card_back.png";
+            string hpFillPath = $"{BossCombatSkinDir}/HUD/ornate_hp_fill.png";
+            string breakFillPath = $"{BossCombatSkinDir}/HUD/ornate_break_fill.png";
             string attackIconPath = $"{CombatIconDir}/attack.png";
             string defendIconPath = $"{CombatIconDir}/defense.png";
             string skillIconPath = $"{CombatIconDir}/skill.png";
             string redrawIconPath = $"{CombatIconDir}/redraw.png";
             string endTurnIconPath = $"{CombatIconDir}/end_turn.png";
-
             EnsureSpriteImport(playerHudPath);
-            EnsureSpriteImport(bossHudPath);
             EnsureSpriteImport(commandPath);
             EnsureSpriteImport(bannerPath);
-            EnsureSpriteImport(intentPath);
             EnsureSpriteImport(seotdaBackPath);
+            EnsureSpriteImport(hpFillPath);
+            EnsureSpriteImport(breakFillPath);
+            EnsureSpriteImport(EmptyBarFillPath);
             EnsureSpriteImport(attackIconPath);
             EnsureSpriteImport(defendIconPath);
             EnsureSpriteImport(skillIconPath);
             EnsureSpriteImport(redrawIconPath);
             EnsureSpriteImport(endTurnIconPath);
+            EnsureSpriteImport(SkillDetailPanelPath);
+            AssetDatabase.ImportAsset(UiFontPath, ImportAssetOptions.ForceSynchronousImport);
 
             var playerHudSprite = LoadSpriteAtPath(playerHudPath);
-            var bossHudSprite = LoadSpriteAtPath(bossHudPath);
             var commandSprite = LoadSpriteAtPath(commandPath);
             var bannerSprite = LoadSpriteAtPath(bannerPath);
-            var intentSprite = LoadSpriteAtPath(intentPath);
+            var hpFillSprite = LoadSpriteAtPath(hpFillPath);
+            var breakFillSprite = LoadSpriteAtPath(breakFillPath);
+            var emptyBarFillSprite = LoadSpriteAtPath(EmptyBarFillPath);
 
             var attackIcon = LoadSpriteAtPath(attackIconPath);
             var defendIcon = LoadSpriteAtPath(defendIconPath);
             var skillIcon = LoadSpriteAtPath(skillIconPath);
             var redrawIcon = LoadSpriteAtPath(redrawIconPath);
             var endTurnIcon = LoadSpriteAtPath(endTurnIconPath);
-
-            return new Boss38CombatUiAssets
+            var assets = new Boss38CombatUiAssets
             {
-                playerHud = BuildPlayerHudPrefab(playerHudSprite, attackIcon, defendIcon),
-                bossHud = BuildBossHudPrefab(bossHudSprite),
+                playerHud = BuildPlayerHudPrefab(playerHudSprite, attackIcon, defendIcon,
+                    hpFillSprite, breakFillSprite, emptyBarFillSprite),
                 commandButton = BuildCommandButtonPrefab(commandSprite),
                 battleBanner = BuildBattleBannerPrefab(bannerSprite),
-                intentBadge = BuildIntentBadgePrefab(intentSprite),
                 combatImpact = BuildCombatImpactPrefab(commandSprite),
                 battleResult = BuildBattleResultPrefab(bannerSprite, commandSprite, redrawIcon),
+                skillDetailPanel = BuildSkillDetailPanelPrefab(LoadSpriteAtPath(SkillDetailPanelPath)),
                 seotdaBack = LoadSpriteAtPath(seotdaBackPath),
                 attackIcon = attackIcon,
                 defendIcon = defendIcon,
@@ -433,80 +534,120 @@ namespace CardBattle.EditorTools
                 redrawIcon = redrawIcon,
                 endTurnIcon = endTurnIcon,
             };
+
+            foreach (string bossId in BossIds)
+            {
+                var profile = EnsureBossCombatProfile(bossId);
+                string skinKey = BossSkinKey(bossId);
+                string bossHudPath = $"{BossCombatSkinDir}/HUD/boss_{skinKey}_hud.png";
+                string intentPath = $"{BossCombatSkinDir}/Intent/boss_{skinKey}_intent.png";
+                EnsureSpriteImport(bossHudPath);
+                EnsureSpriteImport(intentPath);
+                assets.bossHuds[bossId] = BuildBossHudPrefab(LoadSpriteAtPath(bossHudPath), profile, hpFillSprite, breakFillSprite, emptyBarFillSprite);
+                assets.intentBadges[bossId] = BuildIntentBadgePrefab(LoadSpriteAtPath(intentPath), profile);
+            }
+
+            return assets;
         }
 
         private static void EnsureSpriteImport(string path)
         {
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             if (AssetImporter.GetAtPath(path) is not TextureImporter importer) return;
-            if (importer.textureType == TextureImporterType.Sprite && importer.alphaIsTransparency && !importer.mipmapEnabled) return;
+
+            bool isConfigured = importer.textureType == TextureImporterType.Sprite &&
+                                importer.spriteImportMode == SpriteImportMode.Single &&
+                                importer.alphaIsTransparency &&
+                                !importer.mipmapEnabled &&
+                                importer.npotScale == TextureImporterNPOTScale.None &&
+                                importer.maxTextureSize == 4096 &&
+                                importer.textureCompression == TextureImporterCompression.Uncompressed &&
+                                importer.compressionQuality == 100 &&
+                                importer.filterMode == FilterMode.Bilinear &&
+                                importer.wrapMode == TextureWrapMode.Clamp;
+            if (isConfigured) return;
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
-            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.maxTextureSize = 4096;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.compressionQuality = 100;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.wrapMode = TextureWrapMode.Clamp;
             importer.SaveAndReimport();
         }
 
-        private static GameObject BuildPlayerHudPrefab(Sprite sprite, Sprite attackIcon, Sprite defendIcon)
+        private static GameObject BuildPlayerHudPrefab(Sprite sprite, Sprite attackIcon, Sprite defendIcon,
+            Sprite hpFillSprite, Sprite breakFillSprite, Sprite emptyBarFillSprite)
         {
             var root = CreatePrefabImageRoot("PlayerPokerHUD", sprite, new Vector2(680f, 286f));
-            var name = CreateText("NameText", root.transform, new Vector2(0.30f, 0.78f), new Vector2(0.91f, 0.92f), "플레이어 포커", 24, TextAnchor.MiddleLeft, new Color(0.94f, 0.97f, 1f));
-            name.fontStyle = FontStyle.Bold;
-            AddTextOutline(name, new Color(0.01f, 0.03f, 0.08f, 0.95f), new Vector2(2f, -2f));
 
-            var attackImage = CreatePanel("AttackIcon", root.transform, new Vector2(0.30f, 0.60f), new Vector2(0.37f, 0.76f), Color.white);
+            var attackImage = CreatePanel("AttackIcon", root.transform, new Vector2(0.32f, 0.51f), new Vector2(0.39f, 0.67f), Color.white);
             attackImage.sprite = attackIcon;
             attackImage.preserveAspect = true;
             attackImage.raycastTarget = false;
-            var attackLabel = CreateText("AttackLabel", root.transform, new Vector2(0.37f, 0.66f), new Vector2(0.48f, 0.77f), "공격", 16, TextAnchor.MiddleLeft, new Color(1f, 0.46f, 0.40f));
+            var attackLabel = CreateText("AttackLabel", root.transform, new Vector2(0.40f, 0.50f), new Vector2(0.49f, 0.70f),
+                "공격", 18, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
             attackLabel.fontStyle = FontStyle.Bold;
-            AddTextOutline(attackLabel, Color.black, new Vector2(1f, -1f));
-            var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.47f, 0.59f), new Vector2(0.59f, 0.78f), "0", 31, TextAnchor.MiddleCenter, new Color(1f, 0.40f, 0.34f));
+            EnableBestFit(attackLabel, 14, 18);
+            AddTextOutline(attackLabel, Color.black, new Vector2(2f, -2f));
+            var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.49f, 0.50f), new Vector2(0.61f, 0.70f),
+                "0", 30, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
             attackValue.fontStyle = FontStyle.Bold;
+            EnableBestFit(attackValue, 22, 30);
             AddTextOutline(attackValue, Color.black, new Vector2(2f, -2f));
-            var attackFormula = CreateText("AttackFormulaText", root.transform, new Vector2(0.30f, 0.40f), new Vector2(0.59f, 0.60f), "", 12, TextAnchor.UpperLeft, new Color(1f, 0.84f, 0.81f));
-            attackFormula.lineSpacing = 0.96f;
-            AddTextOutline(attackFormula, Color.black, new Vector2(1f, -1f));
 
-            var defenseImage = CreatePanel("DefenseIcon", root.transform, new Vector2(0.61f, 0.60f), new Vector2(0.68f, 0.76f), Color.white);
+            var defenseImage = CreatePanel("DefenseIcon", root.transform, new Vector2(0.63f, 0.51f), new Vector2(0.70f, 0.67f), Color.white);
             defenseImage.sprite = defendIcon;
             defenseImage.preserveAspect = true;
             defenseImage.raycastTarget = false;
-            var defenseLabel = CreateText("DefenseLabel", root.transform, new Vector2(0.68f, 0.66f), new Vector2(0.80f, 0.77f), "방어", 16, TextAnchor.MiddleLeft, new Color(0.45f, 0.78f, 1f));
+            var defenseLabel = CreateText("DefenseLabel", root.transform, new Vector2(0.71f, 0.50f), new Vector2(0.80f, 0.70f),
+                "방어", 18, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
             defenseLabel.fontStyle = FontStyle.Bold;
-            AddTextOutline(defenseLabel, Color.black, new Vector2(1f, -1f));
-            var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.79f, 0.59f), new Vector2(0.91f, 0.78f), "0", 31, TextAnchor.MiddleCenter, new Color(0.38f, 0.74f, 1f));
+            EnableBestFit(defenseLabel, 14, 18);
+            AddTextOutline(defenseLabel, Color.black, new Vector2(2f, -2f));
+            var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.80f, 0.50f), new Vector2(0.92f, 0.70f),
+                "0", 30, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
             defenseValue.fontStyle = FontStyle.Bold;
+            EnableBestFit(defenseValue, 22, 30);
             AddTextOutline(defenseValue, Color.black, new Vector2(2f, -2f));
-            var defenseFormula = CreateText("DefenseFormulaText", root.transform, new Vector2(0.61f, 0.40f), new Vector2(0.91f, 0.60f), "", 12, TextAnchor.UpperLeft, new Color(0.80f, 0.91f, 1f));
-            defenseFormula.lineSpacing = 0.96f;
-            AddTextOutline(defenseFormula, Color.black, new Vector2(1f, -1f));
 
-            var hpFill = CreateFillBar("HpBar", root.transform, new Vector2(0.31f, 0.30f), new Vector2(0.89f, 0.385f), new Color(0.02f, 0.05f, 0.1f, 0.9f), new Color(0.94f, 0.15f, 0.21f));
-            var hpText = CreateText("HpText", root.transform, new Vector2(0.31f, 0.30f), new Vector2(0.89f, 0.385f), "0 / 0", 14, TextAnchor.MiddleCenter, Color.white);
+            CreateFillBar("HpBar", root.transform, new Vector2(0.335f, 0.378f), new Vector2(0.895f, 0.432f),
+                Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
+            var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
             hpText.fontStyle = FontStyle.Bold;
-            AddTextOutline(hpText, Color.black, new Vector2(1f, -1f));
-            CreateFillBar("PressureBar", root.transform, new Vector2(0.31f, 0.245f), new Vector2(0.89f, 0.272f), new Color(0.25f, 0.27f, 0.3f), new Color(1f, 0.78f, 0.14f));
-            var status = CreateText("StatusText", root.transform, new Vector2(0.31f, 0.10f), new Vector2(0.89f, 0.225f), "", 15, TextAnchor.MiddleLeft, new Color(1f, 0.79f, 0.42f));
-            status.fontStyle = FontStyle.Bold;
-            AddTextOutline(status, Color.black, new Vector2(1f, -1f));
+            EnableBestFit(hpText, 13, 18);
+            AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
+            CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
+                Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/PlayerPokerHUD.prefab");
         }
 
-        private static GameObject BuildBossHudPrefab(Sprite sprite)
+        private static GameObject BuildBossHudPrefab(Sprite sprite, BossCombatProfile profile,
+            Sprite hpFillSprite, Sprite breakFillSprite, Sprite emptyBarFillSprite)
         {
-            var root = CreatePrefabImageRoot("SeotdaBossHUD", sprite, new Vector2(680f, 286f));
-            var name = CreateText("NameText", root.transform, new Vector2(0.30f, 0.60f), new Vector2(0.75f, 0.78f), "38광땡", 27, TextAnchor.MiddleLeft, new Color(1f, 0.88f, 0.48f));
+            var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_HUD", sprite, new Vector2(680f, 294f));
+            var name = CreateText("NameText", root.transform, new Vector2(0.30f, 0.565f), new Vector2(0.75f, 0.685f), profile.displayName, 30, TextAnchor.MiddleLeft, new Color(1f, 0.92f, 0.58f));
             name.fontStyle = FontStyle.Bold;
-            AddTextOutline(name, new Color(0.15f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
-            var hpFill = CreateFillBar("HpBar", root.transform, new Vector2(0.28f, 0.285f), new Vector2(0.82f, 0.405f), new Color(0.12f, 0.01f, 0.02f, 0.92f), new Color(0.94f, 0.12f, 0.17f));
-            var hpText = CreateText("HpText", root.transform, new Vector2(0.28f, 0.285f), new Vector2(0.82f, 0.405f), "0 / 0", 14, TextAnchor.MiddleCenter, Color.white);
+            EnableBestFit(name, 20, 30);
+            AddTextOutline(name, new Color(0.08f, 0f, 0f, 0.98f), new Vector2(3f, -3f));
+            var title = CreateText("TitleText", root.transform, new Vector2(0.30f, 0.495f), new Vector2(0.75f, 0.57f), profile.combatTitle, 16, TextAnchor.MiddleLeft, profile.secondaryAccentColor);
+            title.fontStyle = FontStyle.Bold;
+            EnableBestFit(title, 11, 16);
+            AddTextOutline(title, Color.black, new Vector2(2f, -2f));
+
+            CreateFillBar("HpBar", root.transform, new Vector2(0.292f, 0.338f), new Vector2(0.798f, 0.397f),
+                Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
+            var hpText = CreateText("HpText", root.transform, new Vector2(0.292f, 0.326f), new Vector2(0.798f, 0.409f), "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
             hpText.fontStyle = FontStyle.Bold;
-            AddTextOutline(hpText, Color.black, new Vector2(1f, -1f));
-            CreateFillBar("PressureBar", root.transform, new Vector2(0.28f, 0.205f), new Vector2(0.82f, 0.235f), new Color(0.25f, 0.24f, 0.24f), new Color(1f, 0.76f, 0.1f));
-            return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Boss38GwangddaengHUD.prefab");
+            EnableBestFit(hpText, 13, 18);
+            AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
+            CreateFillBar("PressureBar", root.transform, new Vector2(0.292f, 0.223f), new Vector2(0.798f, 0.257f),
+                Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
+            return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Boss_{profile.bossId}_HUD.prefab");
         }
 
         private static GameObject BuildCommandButtonPrefab(Sprite sprite)
@@ -519,8 +660,10 @@ namespace CardBattle.EditorTools
             var icon = CreatePanel("IconImage", root.transform, new Vector2(0.045f, 0.10f), new Vector2(0.29f, 0.90f), Color.white);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
-            var label = CreateText("LabelText", root.transform, new Vector2(0.28f, 0.16f), new Vector2(0.91f, 0.84f), "행동", 23, TextAnchor.MiddleCenter, Color.white);
+            var label = CreateText("LabelText", root.transform, new Vector2(0.28f, 0.16f), new Vector2(0.91f, 0.84f),
+                "행동", 23, TextAnchor.MiddleCenter, Color.white);
             label.fontStyle = FontStyle.Bold;
+            EnableBestFit(label, 17, 23);
             AddTextOutline(label, Color.black, new Vector2(2f, -2f));
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/PokerCommandButton.prefab");
         }
@@ -543,19 +686,44 @@ namespace CardBattle.EditorTools
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/PokerVsGwangddaengBanner.prefab");
         }
 
-        private static GameObject BuildIntentBadgePrefab(Sprite sprite)
+        private static GameObject BuildIntentBadgePrefab(Sprite sprite, BossCombatProfile profile)
         {
-            var root = CreatePrefabImageRoot("SeotdaIntentBadge", sprite, new Vector2(300f, 320f));
-            var icon = CreatePanel("ActionIcon", root.transform, new Vector2(0.38f, 0.68f), new Vector2(0.62f, 0.90f), Color.white);
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-            var action = CreateText("ActionText", root.transform, new Vector2(0.10f, 0.40f), new Vector2(0.90f, 0.68f), "다음 공격", 21, TextAnchor.MiddleCenter, new Color(1f, 0.82f, 0.48f));
+            var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_Intent", sprite, new Vector2(300f, 345f));
+
+            var action = CreateText("ActionText", root.transform, new Vector2(0.15f, 0.49f), new Vector2(0.85f, 0.635f), "다음 공격", 24, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
             action.fontStyle = FontStyle.Bold;
-            AddTextOutline(action, Color.black, new Vector2(2f, -2f));
-            var stat = CreateText("StatText", root.transform, new Vector2(0.10f, 0.09f), new Vector2(0.90f, 0.40f), "", 15, TextAnchor.UpperCenter, Color.white);
-            stat.lineSpacing = 0.92f;
-            AddTextOutline(stat, Color.black, new Vector2(1f, -1f));
-            return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/GwangddaengIntentBadge.prefab");
+            EnableBestFit(action, 15, 24);
+            AddTextOutline(action, Color.black, new Vector2(3f, -3f));
+            var stat = CreateText("StatText", root.transform, new Vector2(0.15f, 0.17f), new Vector2(0.85f, 0.46f), "", 16, TextAnchor.UpperCenter, Color.white);
+            stat.lineSpacing = 0.94f;
+            EnableBestFit(stat, 10, 16);
+            AddTextOutline(stat, Color.black, new Vector2(2f, -2f));
+            return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Boss_{profile.bossId}_Intent.prefab");
+        }
+
+        private static GameObject BuildSkillDetailPanelPrefab(Sprite sprite)
+        {
+            var root = CreatePrefabImageRoot("SkillDetailPanel", sprite, new Vector2(780f, 438f));
+            root.GetComponent<Image>().raycastTarget = false;
+
+            var title = CreateText("TitleText", root.transform, new Vector2(0.20f, 0.685f), new Vector2(0.80f, 0.815f),
+                "기술 이름", 27, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.55f));
+            title.fontStyle = FontStyle.Bold;
+            EnableBestFit(title, 17, 27);
+            AddTextOutline(title, Color.black, new Vector2(2f, -2f));
+
+            var value = CreateText("ValueText", root.transform, new Vector2(0.20f, 0.555f), new Vector2(0.80f, 0.665f),
+                "공격 0", 21, TextAnchor.MiddleCenter, Color.white);
+            value.fontStyle = FontStyle.Bold;
+            EnableBestFit(value, 14, 21);
+            AddTextOutline(value, Color.black, new Vector2(2f, -2f));
+
+            var body = CreateText("BodyText", root.transform, new Vector2(0.12f, 0.175f), new Vector2(0.88f, 0.525f),
+                "기술 설명", 18, TextAnchor.UpperLeft, new Color(0.94f, 0.96f, 1f));
+            body.lineSpacing = 1.08f;
+            EnableBestFit(body, 12, 18);
+            AddTextOutline(body, new Color(0f, 0f, 0f, 0.9f), new Vector2(1.5f, -1.5f));
+            return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/SkillDetailPanel.prefab");
         }
 
         private static GameObject BuildCombatImpactPrefab(Sprite commandSprite)
@@ -786,10 +954,14 @@ namespace CardBattle.EditorTools
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
             var canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasGO.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.pixelPerfect = true;
             var scaler = canvasGO.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;
             var canvasT = canvasGO.transform;
 
             // 배경 (캔버스 맨 뒤에 깔림)
@@ -902,25 +1074,25 @@ namespace CardBattle.EditorTools
 
             if (useBoss38SmallTables)
             {
-                var enemyHud = InstantiateUiPrefab(boss38Ui.bossHud, canvasT, "EnemyHUD",
-                    new Vector2(0.625f, 0.705f), new Vector2(0.985f, 0.97f));
+                var enemyHud = InstantiateUiPrefabFixed(boss38Ui.BossHud(enemyId), canvasT, "EnemyHUD",
+                    new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -28f));
                 enemyPanel = enemyHud.GetComponent<Image>();
                 FindUi<Text>(enemyHud, "NameText").text = BossDisplayName(enemyId);
                 enemyHpFill = FindUi<Image>(enemyHud, "HpBarBg/HpBarFill");
                 enemyHpText = FindUi<Text>(enemyHud, "HpText");
                 enemyBreakFill = FindUi<Image>(enemyHud, "PressureBarBg/PressureBarFill");
 
-                var playerHud = InstantiateUiPrefab(boss38Ui.playerHud, canvasT, "PlayerHUD",
-                    new Vector2(0.015f, 0.705f), new Vector2(0.375f, 0.97f));
+                var playerHud = InstantiateUiPrefabFixed(boss38Ui.playerHud, canvasT, "PlayerHUD",
+                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -52f));
                 playerPanel = playerHud.GetComponent<Image>();
                 playerHpFill = FindUi<Image>(playerHud, "HpBarBg/HpBarFill");
                 playerHpText = FindUi<Text>(playerHud, "HpText");
                 playerBreakFill = FindUi<Image>(playerHud, "PressureBarBg/PressureBarFill");
                 playerAttackValueText = FindUi<Text>(playerHud, "AttackValueText");
                 playerDefenseValueText = FindUi<Text>(playerHud, "DefenseValueText");
-                playerAttackFormulaText = FindUi<Text>(playerHud, "AttackFormulaText");
-                playerDefenseFormulaText = FindUi<Text>(playerHud, "DefenseFormulaText");
-                playerStatusText = FindUi<Text>(playerHud, "StatusText");
+                playerAttackFormulaText = null;
+                playerDefenseFormulaText = null;
+                playerStatusText = null;
             }
             else
             {
@@ -1083,8 +1255,8 @@ namespace CardBattle.EditorTools
             GameObject enemyIntentHitArea;
             if (useBoss38SmallTables)
             {
-                enemyIntentHitArea = InstantiateUiPrefab(boss38Ui.intentBadge, canvasT, "EnemyIntentBadge",
-                    new Vector2(0.82f, 0.345f), new Vector2(0.985f, 0.69f));
+                enemyIntentHitArea = InstantiateUiPrefabFixed(boss38Ui.IntentBadge(enemyId), canvasT, "EnemyIntentBadge",
+                    new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-165f, 18f));
                 enemyIntentHitArea.GetComponent<Image>().raycastTarget = true;
                 enemyActionText = FindUi<Text>(enemyIntentHitArea, "ActionText");
                 enemyStatText = FindUi<Text>(enemyIntentHitArea, "StatText");
@@ -1101,25 +1273,46 @@ namespace CardBattle.EditorTools
             enemyActionText.raycastTarget = false;
             enemyStatText.raycastTarget = false;
 
-            var enemyIntentTooltipBg = CreatePanel("EnemyIntentTooltip", canvasT,
-                useBoss38SmallTables ? new Vector2(0.55f, 0.49f) : new Vector2(0.62f, 0.76f),
-                useBoss38SmallTables ? new Vector2(0.84f, 0.70f) : new Vector2(0.94f, 0.94f),
-                useBoss38SmallTables ? Color.white : new Color(0f, 0f, 0f, 0.78f));
+            Image enemyIntentTooltipBg;
+            Text enemyIntentTooltipTitle = null;
+            Text enemyIntentTooltipValue = null;
+            Text enemyIntentTooltipBody = null;
             if (useBoss38SmallTables)
             {
-                enemyIntentTooltipBg.sprite = boss38Ui.bossHud.GetComponent<Image>().sprite;
-                enemyIntentTooltipBg.preserveAspect = false;
+                var tooltipObject = InstantiateUiPrefabFixed(boss38Ui.skillDetailPanel, canvasT, "EnemyIntentTooltip",
+                    new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-555f, 48f));
+                enemyIntentTooltipBg = tooltipObject.GetComponent<Image>();
+                enemyIntentTooltipTitle = FindUi<Text>(tooltipObject, "TitleText");
+                enemyIntentTooltipValue = FindUi<Text>(tooltipObject, "ValueText");
+                enemyIntentTooltipBody = FindUi<Text>(tooltipObject, "BodyText");
             }
+            else
+                enemyIntentTooltipBg = CreatePanel("EnemyIntentTooltip", canvasT, new Vector2(0.62f, 0.76f), new Vector2(0.94f, 0.94f), new Color(0f, 0f, 0f, 0.78f));
             enemyIntentTooltipBg.raycastTarget = false;
-            var enemyIntentTooltipText = CreateText("EnemyIntentTooltipText", enemyIntentTooltipBg.transform,
-                useBoss38SmallTables ? new Vector2(0.24f, 0.18f) : new Vector2(0.04f, 0.08f),
-                useBoss38SmallTables ? new Vector2(0.91f, 0.84f) : new Vector2(0.96f, 0.92f),
-                "", 16, TextAnchor.UpperLeft, Color.white);
-            enemyIntentTooltipText.raycastTarget = false;
+            var enemyIntentTooltipText = useBoss38SmallTables ? enemyIntentTooltipBody : CreateText("EnemyIntentTooltipText", enemyIntentTooltipBg.transform,
+                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), "", 16, TextAnchor.UpperLeft, Color.white);
+            if (enemyIntentTooltipText) enemyIntentTooltipText.raycastTarget = false;
             enemyIntentTooltipBg.gameObject.SetActive(false);
             var enemyIntentTooltip = enemyIntentHitArea.AddComponent<IntentHoverTooltip>();
             enemyIntentTooltip.tooltipRoot = enemyIntentTooltipBg.gameObject;
             enemyIntentTooltip.tooltipText = enemyIntentTooltipText;
+            enemyIntentTooltip.titleText = enemyIntentTooltipTitle;
+            enemyIntentTooltip.valueText = enemyIntentTooltipValue;
+            enemyIntentTooltip.bodyText = enemyIntentTooltipBody;
+
+            GameObject playerSkillDetailRoot = null;
+            Text playerSkillTitleText = null;
+            Text playerSkillValueText = null;
+            Text playerSkillBodyText = null;
+            if (useBoss38SmallTables)
+            {
+                playerSkillDetailRoot = InstantiateUiPrefabFixed(boss38Ui.skillDetailPanel, canvasT, "PlayerSkillDetail",
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 92f));
+                playerSkillTitleText = FindUi<Text>(playerSkillDetailRoot, "TitleText");
+                playerSkillValueText = FindUi<Text>(playerSkillDetailRoot, "ValueText");
+                playerSkillBodyText = FindUi<Text>(playerSkillDetailRoot, "BodyText");
+                playerSkillDetailRoot.SetActive(false);
+            }
 
             Image combatReadout;
             Text combatLogText;
@@ -1167,6 +1360,7 @@ namespace CardBattle.EditorTools
             }
             combatReadout.gameObject.SetActive(false);
             enemyIntentTooltipBg.transform.SetAsLastSibling();
+            if (playerSkillDetailRoot != null) playerSkillDetailRoot.transform.SetAsLastSibling();
             if (combatImpactObject != null) combatImpactObject.transform.SetAsLastSibling();
             if (battleIntro != null) battleIntro.transform.SetAsLastSibling();
             if (turnBanner != null) turnBanner.transform.SetAsLastSibling();
@@ -1210,12 +1404,16 @@ namespace CardBattle.EditorTools
             rps.playerAttackFormulaText = playerAttackFormulaText;
             rps.playerDefenseFormulaText = playerDefenseFormulaText;
             rps.enemyStatText = enemyStatText;
-            rps.enemyActionIcon = FindUi<Image>(enemyIntentHitArea, "ActionIcon");
+            rps.enemyActionIcon = null;
             rps.attackActionIcon = boss38Ui.attackIcon;
             rps.defendActionIcon = boss38Ui.defendIcon;
             rps.skillActionIcon = boss38Ui.skillIcon;
             rps.endTurnActionIcon = boss38Ui.endTurnIcon;
             rps.enemyIntentTooltip = enemyIntentTooltip;
+            rps.playerSkillDetailRoot = playerSkillDetailRoot;
+            rps.playerSkillTitleText = playerSkillTitleText;
+            rps.playerSkillValueText = playerSkillValueText;
+            rps.playerSkillBodyText = playerSkillBodyText;
             rps.battleIntro = battleIntro;
             rps.turnBanner = turnBanner;
             rps.combatImpactView = combatImpactView;
@@ -1245,6 +1443,11 @@ namespace CardBattle.EditorTools
             var seotdaGO = new GameObject("SeotdaTableController", typeof(SeotdaTableController));
             var seotdaTable = seotdaGO.GetComponent<SeotdaTableController>();
             seotdaTable.deckSprites = seotdaSprites;
+            seotdaTable.signatureSprites = new[] { bossProfile.signatureCardA, bossProfile.signatureCardB }
+                .Where(sprite => sprite != null)
+                .ToList();
+            seotdaTable.signatureCardChance = bossProfile.signatureCardChance;
+            seotdaTable.signaturePairChance = bossProfile.signaturePairChance;
             seotdaTable.cardSlotA = seotdaCardA;
             seotdaTable.cardSlotB = seotdaCardB;
             seotdaTable.rankText = seotdaRankText;
@@ -1352,7 +1555,7 @@ namespace CardBattle.EditorTools
             var rt = CreateUIObject(name, parent, anchorMin, anchorMax);
             var text = rt.gameObject.AddComponent<Text>();
             text.text = content;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = AssetDatabase.LoadAssetAtPath<Font>(UiFontPath) ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.color = color;
@@ -1370,16 +1573,32 @@ namespace CardBattle.EditorTools
             outline.useGraphicAlpha = true;
         }
 
-        private static Image CreateFillBar(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color bg, Color fill)
+        private static void EnableBestFit(Text text, int minSize, int maxSize)
+        {
+            if (text == null) return;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = minSize;
+            text.resizeTextMaxSize = maxSize;
+        }
+
+        private static Image CreateFillBar(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax,
+            Color bg, Color fill, Sprite fillSprite = null, Sprite backgroundSprite = null)
         {
             var bgImg = CreatePanel($"{name}Bg", parent, anchorMin, anchorMax, bg);
+            bgImg.sprite = backgroundSprite;
+            bgImg.type = Image.Type.Simple;
+            bgImg.preserveAspect = false;
+            bgImg.raycastTarget = false;
             var fillRt = CreateUIObject($"{name}Fill", bgImg.transform, Vector2.zero, Vector2.one);
             var fillImg = fillRt.gameObject.AddComponent<Image>();
             fillImg.color = fill;
+            fillImg.sprite = fillSprite;
             fillImg.type = Image.Type.Filled;
             fillImg.fillMethod = Image.FillMethod.Horizontal;
+            fillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            fillImg.preserveAspect = false;
             fillImg.fillAmount = 0f;
-            fillRt.anchorMax = new Vector2(0f, 1f);
+            fillImg.raycastTarget = false;
             return fillImg;
         }
 
@@ -1406,6 +1625,26 @@ namespace CardBattle.EditorTools
             rt.anchorMax = anchorMax;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+            return instance;
+        }
+
+        private static GameObject InstantiateUiPrefabFixed(GameObject prefab, Transform parent, string name,
+            Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition)
+        {
+            if (prefab == null)
+                throw new System.InvalidOperationException($"UI 프리팹이 비어 있음: {name}");
+
+            var instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
+            if (instance == null)
+                throw new System.InvalidOperationException($"UI 프리팹 생성 실패: {prefab.name}");
+
+            instance.name = name;
+            var rt = instance.GetComponent<RectTransform>();
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.pivot = pivot;
+            rt.anchoredPosition = anchoredPosition;
             rt.localScale = Vector3.one;
             return instance;
         }

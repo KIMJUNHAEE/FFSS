@@ -45,6 +45,14 @@ namespace CardBattle
         [Min(1)] public int maxPressure = 36;
         public Color accentColor = new(0.95f, 0.2f, 0.2f, 1f);
 
+        [Header("보스 패와 UI")]
+        public string combatTitle;
+        public Color secondaryAccentColor = new(1f, 0.78f, 0.22f, 1f);
+        public Sprite signatureCardA;
+        public Sprite signatureCardB;
+        [Range(0f, 1f)] public float signatureCardChance = 0.72f;
+        [Range(0f, 1f)] public float signaturePairChance = 0.18f;
+
         [Header("행동 목록")]
         public List<BossMoveDefinition> moves = new();
     }

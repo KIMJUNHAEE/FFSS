@@ -13,6 +13,11 @@ namespace CardBattle
         [Header("섰다 카드 스프라이트 20장 (인스펙터에서 채움)")]
         public List<Sprite> deckSprites = new();
 
+        [Header("보스 대표 패")]
+        public List<Sprite> signatureSprites = new();
+        [Range(0f, 1f)] public float signatureCardChance = 0.72f;
+        [Range(0f, 1f)] public float signaturePairChance = 0.18f;
+
         [Header("참조")]
         public Image cardSlotA;
         public Image cardSlotB;
@@ -205,14 +210,36 @@ namespace CardBattle
 
         private List<Sprite> PickRandomUnique(int count)
         {
-            var pool = new List<Sprite>(deckSprites);
-            for (int i = pool.Count - 1; i > 0; i--)
+            var pool = deckSprites.Where(sprite => sprite != null).Distinct().ToList();
+            var signatures = signatureSprites
+                .Where(sprite => sprite != null && pool.Contains(sprite))
+                .Distinct()
+                .ToList();
+            var result = new List<Sprite>(count);
+
+            if (count >= 2 && signatures.Count >= 2 && UnityEngine.Random.value < signaturePairChance)
             {
-                int j = UnityEngine.Random.Range(0, i + 1);
-                (pool[i], pool[j]) = (pool[j], pool[i]);
+                Shuffle(signatures);
+                result.AddRange(signatures.Take(2));
+            }
+            else if (signatures.Count > 0 && UnityEngine.Random.value < signatureCardChance)
+            {
+                result.Add(signatures[UnityEngine.Random.Range(0, signatures.Count)]);
             }
 
-            return pool.Take(count).ToList();
+            pool.RemoveAll(result.Contains);
+            Shuffle(pool);
+            result.AddRange(pool.Take(Mathf.Max(0, count - result.Count)));
+            return result;
+        }
+
+        private static void Shuffle<T>(IList<T> items)
+        {
+            for (int i = items.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (items[i], items[j]) = (items[j], items[i]);
+            }
         }
     }
 }
