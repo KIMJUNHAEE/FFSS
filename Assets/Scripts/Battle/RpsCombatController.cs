@@ -1047,7 +1047,9 @@ namespace CardBattle
             bool finished = false;
             if (state == EnemyAnimState.Attack && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null)
                 enemyAnimator.PlayActionPose(pendingEnemyMove.actionSprite, pendingEnemyMove.actionPoseSeconds,
-                    pendingEnemyMove.actionVisualScale, pendingEnemyMove.actionVisualOffset, () => finished = true);
+                    pendingEnemyMove.actionVisualScale, pendingEnemyMove.actionVisualOffset,
+                    pendingEnemyMove.actionMotion, pendingEnemyMove.actionMotionIntensity,
+                    pendingEnemyMove.actionMotionRepetitions, () => finished = true);
             else
                 enemyAnimator.Play(state, () => finished = true);
             yield return new WaitUntil(() => finished);

@@ -32,15 +32,15 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: one_ddeng_light
-    displayName: "\uC57D\uACF5"
-    moveType: 0
-    telegraph: "\uCC3D\uB300\uB97C \uB0AE\uAC8C \uB215\uD600 \uBE48\uD2C8\uC744 \uC9E7\uAC8C
-      \uCC14\uB7EC."
-    description: "\uC790\uC8FC \uC0AC\uC6A9\uD558\uB294 \uACAC\uC81C\uAE30\uC57C.
-      \uC77C\uC6D4\uD328\uAC00 \uB098\uC624\uBA74 \uCCAB \uCC0C\uB974\uAE30\uAC00
-      \uD55C \uBC88 \uB354 \uAE4A\uAC8C \uB4E4\uC5B4\uC640."
+    displayName: "\uC194\uC78E \uD758\uB9AC\uAE30"
+    moveType: 1
+    telegraph: "\uCC3D\uB300\uB97C \uBE44\uC2A4\uB4EC\uD788 \uB215\uD600 \uB4E4\uC5B4\uC624\uB294
+      \uD798\uC744 \uC194\uC78E \uADA4\uC801\uC73C\uB85C \uD758\uB824."
+    description: "\uC790\uC8FC \uC0AC\uC6A9\uD558\uB294 \uBC29\uC5B4\uAE30\uC57C.
+      \uC77C\uC6D4\uD328\uAC00 \uB098\uC624\uBA74 \uCC3D\uB300\uC758 \uD68C\uC804\uC774
+      \uB2E8\uB2E8\uD574\uC838 \uC0C1\uB300 \uC790\uC138\uAE4C\uC9C0 \uBC00\uC5B4\uB0B4."
     power: 8
-    breakPower: 3
+    breakPower: 5
     weight: 4.8
     minimumTurn: 1
     cooldownTurns: 0
@@ -50,16 +50,19 @@ MonoBehaviour:
     conditionValueA: 1
     conditionValueB: 0
     seotdaPowerBonus: 2
-    seotdaHpDamage: 1
-    seotdaBreakDamage: 0
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 2
     seotdaFailurePowerDelta: 0
-    seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
-      HP \uCD94\uAC00 1"
+    seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
     icon: {fileID: 0}
     actionSprite: {fileID: 21300000, guid: dff65953afc55e241b6400dbfeff6f1c, type: 3}
     actionPoseSeconds: 0.44
     actionVisualScale: 1.18
     actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 11
+    actionMotionIntensity: 0.92
+    actionMotionRepetitions: 1
   - moveId: one_ddeng_heavy
     displayName: "\uAC15\uACF5"
     moveType: 0
@@ -88,6 +91,9 @@ MonoBehaviour:
     actionPoseSeconds: 0.54
     actionVisualScale: 1.18
     actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 1
+    actionMotionIntensity: 1.08
+    actionMotionRepetitions: 1
   - moveId: one_ddeng_vertical
     displayName: "\uC0C1\uD558\uBCA0\uAE30"
     moveType: 2
@@ -118,3 +124,6 @@ MonoBehaviour:
     actionPoseSeconds: 0.64
     actionVisualScale: 1.18
     actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 4
+    actionMotionIntensity: 1.18
+    actionMotionRepetitions: 1
