@@ -38,7 +38,12 @@ namespace CardBattle.EditorTools
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
         private const string SeotdaCardDir = "Assets/섰다패";
-        private static readonly string[] BossIds = { "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사", "3땡" };
+        private static readonly string[] BossIds =
+        {
+            "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사",
+            "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡",
+        };
+        private static readonly string[] NormalDdaengIds = { "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡" };
         private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
         private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
         private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
@@ -58,12 +63,19 @@ namespace CardBattle.EditorTools
             BuildBattleSceneDdengjabi();
             BuildBattleSceneMeonggusa();
             BuildBattleSceneGusa();
+            BuildBattleSceneOneDdaeng();
+            BuildBattleSceneTwoDdaeng();
             BuildBattleSceneThreeDdaeng();
+            BuildBattleSceneFourDdaeng();
+            BuildBattleSceneFiveDdaeng();
+            BuildBattleSceneSixDdaeng();
+            BuildBattleSceneSevenDdaeng();
+            BuildBattleSceneEightDdaeng();
             BuildBootstrapScene();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap/38·18·13·암행어사·땡잡이·멍구사·구사·3땡_BattleScene 생성.");
+            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap과 전체 전투 씬 생성.");
         }
 
         [MenuItem("Card Battle/Setup/1. Create Example Card And Enemy Data")]
@@ -292,7 +304,14 @@ namespace CardBattle.EditorTools
                 EnsureBossCombatProfile("땡잡이"),
                 EnsureBossCombatProfile("멍구사"),
                 EnsureBossCombatProfile("구사"),
+                EnsureBossCombatProfile("1땡"),
+                EnsureBossCombatProfile("2땡"),
                 EnsureBossCombatProfile("3땡"),
+                EnsureBossCombatProfile("4땡"),
+                EnsureBossCombatProfile("5땡"),
+                EnsureBossCombatProfile("6땡"),
+                EnsureBossCombatProfile("7땡"),
+                EnsureBossCombatProfile("8땡"),
             };
             foreach (var profile in profiles) ValidateBossCombatProfile(profile);
             AssetDatabase.SaveAssets();
@@ -488,6 +507,49 @@ namespace CardBattle.EditorTools
                             "정확히 4월+9월: 스킬 +5, 명중 시 HP 추가 5·얇은 게이지 추가 5 / 불발: 스킬 -5",
                             5, 4));
                     break;
+                case "1땡":
+                    ConfigureProfile(profile, "1땡 · 제뉴", 52, 24, new Color(0.34f, 0.72f, 0.56f),
+                        Move("one_ddeng_light", "약공", BossMoveType.Attack,
+                            "창대를 낮게 눕혀 빈틈을 짧게 찔러.",
+                            "자주 사용하는 견제기야. 일월패가 나오면 첫 찌르기가 한 번 더 깊게 들어와.",
+                            8, 3, 4.8f, 1, 0, BossSeotdaCondition.ContainsMonth, 1, 0, 2, 1, 0, 0,
+                            "1월패 포함: 공격 +2, 명중 시 HP 추가 1"),
+                        Move("one_ddeng_heavy", "강공", BossMoveType.Attack,
+                            "창을 크게 휘둘러 황금 궤적과 함께 밀어붙여.",
+                            "땡이 잡히면 원심력이 더해져 HP와 자세를 동시에 흔들어.",
+                            11, 5, 3.1f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 1, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("one_ddeng_vertical", "상하베기", BossMoveType.Skill,
+                            "창날을 위아래로 겹쳐 세워 도망갈 길을 닫아.",
+                            "정확한 1땡이면 황금 궤적이 닫히며 큰 피해가 완성돼. 실패하면 창끝이 흔들려.",
+                            13, 6, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 1, 1, 3, 3, 2, -2,
+                            "정확히 1월+1월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
+                            4, 3));
+                    break;
+                case "2땡":
+                    ConfigureProfile(profile, "2땡 · 페비", 55, 25, new Color(1f, 0.54f, 0.68f),
+                        Move("two_ddeng_thrust", "찌르기", BossMoveType.Attack,
+                            "매화검의 끝을 곧게 세워 한 점을 노려.",
+                            "빠른 기본기야. 이월패가 섞이면 검끝에 매화가 피며 위력이 올라가.",
+                            8, 3, 4.6f, 1, 0, BossSeotdaCondition.ContainsMonth, 2, 0, 2, 1, 0, 0,
+                            "2월패 포함: 공격 +2, 명중 시 HP 추가 1"),
+                        Move("two_ddeng_blossom", "매화베기", BossMoveType.Attack,
+                            "매화 고리를 그리며 옆선을 베어.",
+                            "땡이 잡히면 꽃고리가 닫히며 HP 피해가 한 번 더 깊어져.",
+                            10, 4, 3.4f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 1, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("two_ddeng_counter", "반격", BossMoveType.Defend,
+                            "검을 비스듬히 세워 들어오는 힘을 옆으로 흘려.",
+                            "이월패가 보이면 반격 각도가 완성돼, 막아낸 뒤 상대 자세를 더 크게 흔들어.",
+                            9, 6, 2.8f, 1, 1, BossSeotdaCondition.ContainsMonth, 2, 0, 2, 0, 2, 0,
+                            "2월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("two_ddeng_middle", "중단베기", BossMoveType.Skill,
+                            "검광을 수평으로 길게 뻗어 판 전체를 가로질러.",
+                            "정확한 2땡이면 꽃잎 검광이 끊기지 않아. 조합이 어긋나면 사거리가 짧아져.",
+                            13, 6, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 2, 2, 3, 3, 2, -2,
+                            "정확히 2월+2월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
+                            4, 3));
+                    break;
                 case "3땡":
                     ConfigureProfile(profile, "3땡 · 머지", 68, 28, new Color(0.96f, 0.30f, 0.55f),
                         Move("three_ddeng_drop", "내려찍기", BossMoveType.Attack,
@@ -512,6 +574,131 @@ namespace CardBattle.EditorTools
                             "정확히 3월+3월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
                             4, 3));
                     break;
+                case "4땡":
+                    ConfigureProfile(profile, "4땡 · 에이", 58, 26, new Color(0.56f, 0.34f, 0.78f),
+                        Move("four_ddeng_slide", "미끄러지는 낫 베기", BossMoveType.Attack,
+                            "지면을 스치듯 미끄러져 낫날을 옆으로 밀어 넣어.",
+                            "사월패가 보이면 그림자가 길어져 HP와 자세를 함께 노려.",
+                            10, 4, 4.2f, 1, 0, BossSeotdaCondition.ContainsMonth, 4, 0, 2, 1, 1, 0,
+                            "4월패 포함: 공격 +2, 명중 시 HP 추가 1·얇은 게이지 추가 1"),
+                        Move("four_ddeng_counter", "뒤돌림 반격참", BossMoveType.Defend,
+                            "몸을 돌려 공격선을 피한 뒤 낫등으로 밀어내.",
+                            "땡이 잡히면 회전 반경이 넓어져 방어와 자세 압박이 함께 강해져.",
+                            10, 6, 3.0f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 0, 2, 0,
+                            "땡: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("four_ddeng_dance", "사월 낫춤", BossMoveType.Skill,
+                            "검은 낫과 보랏빛 궤적을 원무처럼 겹쳐.",
+                            "정확한 4땡에서만 낫춤의 고리가 완성돼. 실패하면 회전이 크게 풀려.",
+                            14, 7, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 4, 4, 3, 3, 2, -2,
+                            "정확히 4월+4월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
+                            4, 3));
+                    break;
+                case "5땡":
+                    ConfigureProfile(profile, "5땡 · 메이", 61, 27, new Color(0.20f, 0.74f, 0.88f),
+                        Move("five_ddeng_wave", "창포 물결베기", BossMoveType.Attack,
+                            "부채 끝에서 얇은 물결을 세워 곧게 베어.",
+                            "오월패가 섞이면 물결이 한 겹 더 겹쳐 HP 피해가 커져.",
+                            9, 4, 4.3f, 1, 0, BossSeotdaCondition.ContainsMonth, 5, 0, 2, 2, 0, 0,
+                            "5월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("five_ddeng_counter", "수면 반격", BossMoveType.Defend,
+                            "수면을 거울처럼 펴 공격 방향을 비틀어.",
+                            "땡이 잡히면 되돌아오는 물결이 상대 자세까지 무너뜨려.",
+                            10, 6, 3.0f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 0, 2, 0,
+                            "땡: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("five_ddeng_fivefold", "창포 오연참", BossMoveType.Attack,
+                            "다섯 갈래 물줄기를 연달아 접어 넣어.",
+                            "이름 있는 족보가 나오면 마지막 물결이 더 깊게 이어져.",
+                            11, 5, 2.5f, 2, 1, BossSeotdaCondition.SpecialHand, 0, 0, 2, 2, 1, 0,
+                            "이름 있는 족보: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("five_ddeng_flood", "창포홍수", BossMoveType.Skill,
+                            "두 부채의 물길을 합쳐 거대한 파도를 일으켜.",
+                            "정확한 5땡이면 홍수가 완성돼. 빗나가면 물길이 갈라져 위력이 내려가.",
+                            15, 7, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 5, 5, 3, 3, 3, -2,
+                            "정확히 5월+5월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 3 / 불발: 스킬 -2",
+                            4, 3));
+                    break;
+                case "6땡":
+                    ConfigureProfile(profile, "6땡 · 주네", 64, 28, new Color(0.88f, 0.22f, 0.52f),
+                        Move("six_ddeng_step", "나비 순보", BossMoveType.Defend,
+                            "나비 잔상을 남기고 공격선 밖으로 짧게 빠져.",
+                            "일반 끗패에서는 움직임이 가벼워져 방어 뒤 자세 압박이 커져.",
+                            9, 5, 3.6f, 1, 0, BossSeotdaCondition.OrdinaryHand, 0, 0, 2, 0, 2, 0,
+                            "일반 끗패: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("six_ddeng_poison", "나비 독무", BossMoveType.Attack,
+                            "독을 머금은 나비를 검끝에서 흩뿌려.",
+                            "유월패가 보이면 독무가 짙어져 HP와 자세를 함께 갉아.",
+                            9, 4, 3.7f, 1, 0, BossSeotdaCondition.ContainsMonth, 6, 0, 2, 1, 1, 0,
+                            "6월패 포함: 공격 +2, 명중 시 HP 추가 1·얇은 게이지 추가 1"),
+                        Move("six_ddeng_bloom", "모란 개화참", BossMoveType.Attack,
+                            "쌍검을 벌려 모란처럼 크게 베어.",
+                            "땡이 잡히면 꽃잎이 한 번 더 터져 HP 피해가 깊어져.",
+                            11, 5, 2.8f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 1, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("six_ddeng_combo", "육화 연속베기", BossMoveType.Attack,
+                            "여섯 번의 짧은 베기를 나비 궤적으로 이어.",
+                            "이름 있는 족보라면 마지막 두 베기가 자세까지 파고들어.",
+                            12, 6, 2.0f, 2, 1, BossSeotdaCondition.SpecialHand, 0, 0, 2, 2, 2, 0,
+                            "이름 있는 족보: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("six_ddeng_execute", "모란 처형", BossMoveType.Skill,
+                            "모든 꽃잎을 한 점으로 모아 처형선을 그어.",
+                            "정확한 6땡에서만 모란이 완전히 피어. 실패하면 검무가 끊겨.",
+                            16, 8, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 6, 6, 4, 4, 3, -3,
+                            "정확히 6월+6월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 3 / 불발: 스킬 -3",
+                            5, 4));
+                    break;
+                case "7땡":
+                    ConfigureProfile(profile, "7땡 · 줄리", 68, 30, new Color(0.88f, 0.20f, 0.24f),
+                        Move("seven_ddeng_charge", "홍싸리 돌진쇄", BossMoveType.Attack,
+                            "철퇴를 낮게 끌며 그대로 판을 가로질러.",
+                            "칠월패가 보이면 돌진 끝의 충격이 자세까지 번져.",
+                            10, 5, 4.0f, 1, 0, BossSeotdaCondition.ContainsMonth, 7, 0, 2, 1, 2, 0,
+                            "7월패 포함: 공격 +2, 명중 시 HP 추가 1·얇은 게이지 추가 2"),
+                        Move("seven_ddeng_upper", "거목 올려치기", BossMoveType.Attack,
+                            "거대한 철퇴를 아래에서 위로 걷어 올려.",
+                            "땡이 잡히면 들어 올리는 힘이 커져 HP 피해가 깊어져.",
+                            12, 5, 3.0f, 1, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 1, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 1"),
+                        Move("seven_ddeng_spin", "홍련 회전분쇄", BossMoveType.Defend,
+                            "철퇴를 몸 주위로 돌려 공격을 밀어내.",
+                            "칠월패가 섞이면 홍련 궤적이 닫히며 방어 뒤 자세를 크게 흔들어.",
+                            11, 7, 2.8f, 1, 1, BossSeotdaCondition.ContainsMonth, 7, 0, 2, 0, 3, 0,
+                            "7월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("seven_ddeng_barrage", "칠화 난타", BossMoveType.Skill,
+                            "철퇴를 연달아 내리쳐 일곱 갈래 충격을 겹쳐.",
+                            "정확한 7땡이면 마지막 타격이 폭발해. 빗나가면 무게에 끌려 위력이 낮아져.",
+                            16, 8, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 7, 7, 4, 4, 3, -3,
+                            "정확히 7월+7월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 3 / 불발: 스킬 -3",
+                            4, 3));
+                    break;
+                case "8땡":
+                    ConfigureProfile(profile, "8땡 · 아구", 72, 32, new Color(0.54f, 0.68f, 0.30f),
+                        Move("eight_ddeng_goose", "기러기 주문탄", BossMoveType.Attack,
+                            "부적을 접어 기러기 모양의 주문탄으로 날려.",
+                            "팔월패가 보이면 주문탄이 되돌아와 HP를 한 번 더 노려.",
+                            10, 4, 4.0f, 1, 0, BossSeotdaCondition.ContainsMonth, 8, 0, 2, 2, 0, 0,
+                            "8월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("eight_ddeng_curtain", "공산 장막", BossMoveType.Defend,
+                            "두루마리를 펼쳐 공격 앞에 부적 장막을 세워.",
+                            "일반 끗패에서는 빈 주문칸이 방패로 바뀌어 자세 압박이 커져.",
+                            10, 6, 3.3f, 1, 1, BossSeotdaCondition.OrdinaryHand, 0, 0, 2, 0, 2, 0,
+                            "일반 끗패: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
+                        Move("eight_ddeng_reed", "억새 지면풍", BossMoveType.Defend,
+                            "지면의 억새 바람을 감아 공격을 옆으로 흘려.",
+                            "팔월패가 섞이면 바람벽이 두꺼워져 막아낸 뒤 자세를 더 크게 흔들어.",
+                            11, 7, 2.7f, 1, 1, BossSeotdaCondition.ContainsMonth, 8, 0, 2, 0, 3, 0,
+                            "8월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("eight_ddeng_seal", "팔엽 봉인서", BossMoveType.Attack,
+                            "여덟 장의 부적을 원형으로 세워 한꺼번에 닫아.",
+                            "땡이 잡히면 봉인서가 완성돼 HP와 자세에 함께 압박을 줘.",
+                            12, 6, 2.2f, 2, 1, BossSeotdaCondition.Pair, 0, 0, 2, 2, 2, 0,
+                            "땡: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("eight_ddeng_chant", "팔땡 공산영창", BossMoveType.Skill,
+                            "공산의 부적을 모두 띄워 팔땡 주문을 완성해.",
+                            "정확한 8땡이면 주문진이 닫혀 큰 피해가 들어와. 실패하면 영창이 끊겨.",
+                            17, 9, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 8, 8, 4, 4, 4, -3,
+                            "정확히 8월+8월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -3",
+                            5, 4));
+                    break;
                 default:
                     throw new InvalidDataException($"지원하지 않는 적 프로필이야: {enemyId}");
             }
@@ -520,8 +707,9 @@ namespace CardBattle.EditorTools
         private static void ValidateBossCombatProfile(BossCombatProfile profile)
         {
             if (profile == null) throw new InvalidDataException("보스 전투 프로필이 생성되지 않았어.");
-            if (profile.moves == null || profile.moves.Count < 4)
-                throw new InvalidDataException($"{profile.bossId}: 고유 행동이 4개보다 적어.");
+            int minimumMoveCount = profile.encounterRank == EnemyEncounterRank.Normal ? 3 : 4;
+            if (profile.moves == null || profile.moves.Count < minimumMoveCount)
+                throw new InvalidDataException($"{profile.bossId}: 고유 행동이 {minimumMoveCount}개보다 적어.");
 
             var moveIds = new HashSet<string>();
             bool hasCadenceMove = false;
@@ -616,6 +804,22 @@ namespace CardBattle.EditorTools
                     cardA = "04_흑싸리_3.png";
                     cardB = "09_국화_3.png";
                     break;
+                case "1땡":
+                    profile.combatTitle = "소나무 창의 일땡 패객";
+                    profile.secondaryAccentColor = new Color(0.70f, 0.94f, 0.66f);
+                    profile.signatureCardChance = 0.70f;
+                    profile.signaturePairChance = 0.30f;
+                    cardA = "01_소나무_1.png";
+                    cardB = "01_소나무_3.png";
+                    break;
+                case "2땡":
+                    profile.combatTitle = "매화 검의 이땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.74f, 0.84f);
+                    profile.signatureCardChance = 0.71f;
+                    profile.signaturePairChance = 0.31f;
+                    cardA = "02_매화_1.png";
+                    cardB = "02_매화_3.png";
+                    break;
                 case "3땡":
                     profile.combatTitle = "벚꽃 창을 든 삼땡 패객";
                     profile.secondaryAccentColor = new Color(1f, 0.72f, 0.34f);
@@ -624,45 +828,163 @@ namespace CardBattle.EditorTools
                     cardA = "03_벚꽃_1.png";
                     cardB = "03_벚꽃_3.png";
                     break;
+                case "4땡":
+                    profile.combatTitle = "흑싸리 낫의 사땡 패객";
+                    profile.secondaryAccentColor = new Color(0.82f, 0.66f, 1f);
+                    profile.signatureCardChance = 0.72f;
+                    profile.signaturePairChance = 0.32f;
+                    cardA = "04_흑싸리_1.png";
+                    cardB = "04_흑싸리_3.png";
+                    break;
+                case "5땡":
+                    profile.combatTitle = "난초 물결의 오땡 패객";
+                    profile.secondaryAccentColor = new Color(0.48f, 0.90f, 1f);
+                    profile.signatureCardChance = 0.73f;
+                    profile.signaturePairChance = 0.33f;
+                    cardA = "05_난초_1.png";
+                    cardB = "05_난초_3.png";
+                    break;
+                case "6땡":
+                    profile.combatTitle = "모란 쌍검의 육땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.55f, 0.75f);
+                    profile.signatureCardChance = 0.74f;
+                    profile.signaturePairChance = 0.34f;
+                    cardA = "06_모란_1.png";
+                    cardB = "06_모란_3.png";
+                    break;
+                case "7땡":
+                    profile.combatTitle = "홍싸리 철퇴의 칠땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.62f, 0.40f);
+                    profile.signatureCardChance = 0.75f;
+                    profile.signaturePairChance = 0.35f;
+                    cardA = "07_홍싸리_1.png";
+                    cardB = "07_홍싸리_3.png";
+                    break;
+                case "8땡":
+                    profile.combatTitle = "공산 술법의 팔땡 패객";
+                    profile.secondaryAccentColor = new Color(0.84f, 0.92f, 0.48f);
+                    profile.signatureCardChance = 0.76f;
+                    profile.signaturePairChance = 0.36f;
+                    cardA = "08_공산_1.png";
+                    cardB = "08_공산_3.png";
+                    break;
                 default:
                     throw new InvalidDataException($"지원하지 않는 적 비주얼 프로필이야: {enemyId}");
             }
 
             profile.encounterRank = enemyId == "38" || enemyId == "18" || enemyId == "13"
                 ? EnemyEncounterRank.Boss
-                : enemyId == "3땡"
+                : NormalDdaengIds.Contains(enemyId)
                     ? EnemyEncounterRank.Normal
                     : EnemyEncounterRank.MidBoss;
             profile.signatureCardA = LoadSpriteAtPath($"{SeotdaCardDir}/{cardA}");
             profile.signatureCardB = LoadSpriteAtPath($"{SeotdaCardDir}/{cardB}");
+            ConfigureEnemyArtAlignment(profile, enemyId);
         }
 
         private static void ConfigureBossMoveArtwork(BossCombatProfile profile, string enemyId)
         {
-            if (enemyId != "3땡" || profile.moves == null) return;
+            if (profile.moves == null || !NormalDdaengIds.Contains(enemyId)) return;
 
-            AssignMoveArtwork(profile, "three_ddeng_drop", "내려찍기.png", 0.42f);
-            AssignMoveArtwork(profile, "three_ddeng_triple", "삼연화 베기.png", 0.52f);
-            AssignMoveArtwork(profile, "three_ddeng_curtain", "벚꽃 장막 걷어베기.png", 0.48f);
-            AssignMoveArtwork(profile, "three_ddeng_fall", "회전낙하참.png", 0.62f);
+            switch (enemyId)
+            {
+                case "1땡":
+                    AssignMoveArtwork(profile, enemyId, "one_ddeng_light", "약공.png", 0.44f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "one_ddeng_heavy", "강공.png", 0.54f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "one_ddeng_vertical", "상하베기.png", 0.64f, 1.18f);
+                    break;
+                case "2땡":
+                    AssignMoveArtwork(profile, enemyId, "two_ddeng_thrust", "찌르기.png", 0.44f, 1.05f);
+                    AssignMoveArtwork(profile, enemyId, "two_ddeng_blossom", "매화베기.png", 0.52f, 1.15f);
+                    AssignMoveArtwork(profile, enemyId, "two_ddeng_counter", "반격.png", 0.50f, 1.02f);
+                    AssignMoveArtwork(profile, enemyId, "two_ddeng_middle", "중단베기.png", 0.64f, 1.35f);
+                    break;
+                case "3땡":
+                    AssignMoveArtwork(profile, enemyId, "three_ddeng_drop", "내려찍기.png", 0.42f);
+                    AssignMoveArtwork(profile, enemyId, "three_ddeng_triple", "삼연화 베기.png", 0.52f);
+                    AssignMoveArtwork(profile, enemyId, "three_ddeng_curtain", "벚꽃 장막 걷어베기.png", 0.48f);
+                    AssignMoveArtwork(profile, enemyId, "three_ddeng_fall", "회전낙하참.png", 0.62f);
+                    break;
+                case "4땡":
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_slide", "미끄러지는 낫 베기.png", 0.50f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_counter", "뒤돌림 반격참.png", 0.52f, 1.08f);
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_dance", "사월 낫춤.png", 0.66f, 1.08f);
+                    break;
+                case "5땡":
+                    AssignMoveArtwork(profile, enemyId, "five_ddeng_wave", "창포 물결베기.png", 0.46f, 1.05f);
+                    AssignMoveArtwork(profile, enemyId, "five_ddeng_counter", "수면 반격.png", 0.50f);
+                    AssignMoveArtwork(profile, enemyId, "five_ddeng_fivefold", "창포 오연참.png", 0.58f, 1.03f);
+                    AssignMoveArtwork(profile, enemyId, "five_ddeng_flood", "창포홍수.png", 0.68f);
+                    break;
+                case "6땡":
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_step", "나비 순보.png", 0.44f);
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_poison", "나비 독무.png", 0.52f, 1.08f);
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_bloom", "모란 개화참.png", 0.54f);
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_combo", "육화 연속베기.png", 0.60f);
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_execute", "모란 처형.png", 0.70f, 1.35f);
+                    break;
+                case "7땡":
+                    AssignMoveArtwork(profile, enemyId, "seven_ddeng_charge", "홍싸리 돌진쇄.png", 0.48f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "seven_ddeng_upper", "거목 올려치기.png", 0.54f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "seven_ddeng_spin", "홍련 회전분쇄.png", 0.58f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "seven_ddeng_barrage", "칠화 난타.png", 0.68f, 1.18f);
+                    break;
+                case "8땡":
+                    AssignMoveArtwork(profile, enemyId, "eight_ddeng_goose", "기러기 주문탄.png", 0.46f);
+                    AssignMoveArtwork(profile, enemyId, "eight_ddeng_curtain", "공산 장막.png", 0.50f, 1.35f);
+                    AssignMoveArtwork(profile, enemyId, "eight_ddeng_reed", "억새 지면풍.png", 0.54f, 1.05f);
+                    AssignMoveArtwork(profile, enemyId, "eight_ddeng_seal", "팔엽 봉인서.png", 0.60f);
+                    AssignMoveArtwork(profile, enemyId, "eight_ddeng_chant", "팔땡 공산영창.png", 0.72f, 1.35f);
+                    break;
+            }
         }
 
-        private static void AssignMoveArtwork(BossCombatProfile profile, string moveId, string fileName, float poseSeconds)
+        private static void AssignMoveArtwork(BossCombatProfile profile, string enemyId, string moveId,
+            string fileName, float poseSeconds, float visualScale = 1f, Vector2 visualOffset = default)
         {
             var move = profile.moves.FirstOrDefault(candidate => candidate != null && candidate.moveId == moveId);
             if (move == null) return;
-            move.actionSprite = LoadSpriteAtPath($"Assets/Enemy/3땡/Skills/{fileName}");
+            move.actionSprite = LoadSpriteAtPath($"Assets/Enemy/{enemyId}/Skills/{fileName}");
             move.actionPoseSeconds = poseSeconds;
+            move.actionVisualScale = visualScale;
+            move.actionVisualOffset = visualOffset;
         }
 
         private static void EnsureEnemyArtImports(string enemyId)
         {
-            if (enemyId != "3땡") return;
+            if (!NormalDdaengIds.Contains(enemyId)) return;
             string enemyDir = $"Assets/Enemy/{enemyId}";
             if (!AssetDatabase.IsValidFolder(enemyDir)) return;
 
             foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { enemyDir }))
                 EnsureSpriteImport(AssetDatabase.GUIDToAssetPath(guid));
+        }
+
+        private static void ConfigureEnemyArtAlignment(BossCombatProfile profile, string enemyId)
+        {
+            profile.idleVisualScale = 1f;
+            profile.idleVisualOffset = Vector2.zero;
+            profile.hurtVisualScale = 1f;
+            profile.hurtVisualOffset = Vector2.zero;
+            profile.deathVisualScale = 1f;
+            profile.deathVisualOffset = Vector2.zero;
+
+            switch (enemyId)
+            {
+                case "1땡":
+                    profile.hurtVisualScale = 1.45f;
+                    profile.deathVisualScale = 1.18f;
+                    break;
+                case "2땡":
+                    profile.hurtVisualScale = 1.05f;
+                    profile.deathVisualScale = 1.08f;
+                    break;
+                case "7땡":
+                    profile.idleVisualScale = 1f;
+                    profile.hurtVisualScale = 1f;
+                    profile.deathVisualScale = 1f;
+                    break;
+            }
         }
 
         private static void ConfigureProfile(BossCombatProfile profile, string displayName, int hp, int pressure,
@@ -711,7 +1033,14 @@ namespace CardBattle.EditorTools
             "38" => "38광땡",
             "18" => "18광땡",
             "13" => "13광땡",
+            "1땡" => "1땡 · 제뉴",
+            "2땡" => "2땡 · 페비",
             "3땡" => "3땡 · 머지",
+            "4땡" => "4땡 · 에이",
+            "5땡" => "5땡 · 메이",
+            "6땡" => "6땡 · 주네",
+            "7땡" => "7땡 · 줄리",
+            "8땡" => "8땡 · 아구",
             _ => enemyId,
         };
 
@@ -721,7 +1050,14 @@ namespace CardBattle.EditorTools
             "땡잡이" => "ddengjabi",
             "멍구사" => "meonggusa",
             "구사" => "gusa",
+            "1땡" => "18",
+            "2땡" => "13",
             "3땡" => "13",
+            "4땡" => "amhaeng",
+            "5땡" => "ddengjabi",
+            "6땡" => "13",
+            "7땡" => "38",
+            "8땡" => "gusa",
             _ => enemyId,
         };
 
@@ -1118,6 +1454,46 @@ namespace CardBattle.EditorTools
         [MenuItem("Card Battle/Setup/3h. Build Battle Scene (3땡)")]
         public static void BuildBattleSceneThreeDdaeng() => BuildBattleSceneFor("3땡", "3땡_BattleScene", CardSuit.Heart, false);
 
+        [MenuItem("Card Battle/Setup/3i. Build Battle Scene (1땡)")]
+        public static void BuildBattleSceneOneDdaeng() => BuildBattleSceneFor("1땡", "1땡_BattleScene", CardSuit.Clover, false);
+
+        [MenuItem("Card Battle/Setup/3j. Build Battle Scene (2땡)")]
+        public static void BuildBattleSceneTwoDdaeng() => BuildBattleSceneFor("2땡", "2땡_BattleScene", CardSuit.Heart, false);
+
+        [MenuItem("Card Battle/Setup/3k. Build Battle Scene (4땡)")]
+        public static void BuildBattleSceneFourDdaeng() => BuildBattleSceneFor("4땡", "4땡_BattleScene", CardSuit.Spade, false);
+
+        [MenuItem("Card Battle/Setup/3l. Build Battle Scene (5땡)")]
+        public static void BuildBattleSceneFiveDdaeng() => BuildBattleSceneFor("5땡", "5땡_BattleScene", CardSuit.Clover, false);
+
+        [MenuItem("Card Battle/Setup/3m. Build Battle Scene (6땡)")]
+        public static void BuildBattleSceneSixDdaeng() => BuildBattleSceneFor("6땡", "6땡_BattleScene", CardSuit.Heart, false);
+
+        [MenuItem("Card Battle/Setup/3n. Build Battle Scene (7땡)")]
+        public static void BuildBattleSceneSevenDdaeng() => BuildBattleSceneFor("7땡", "7땡_BattleScene", CardSuit.Diamond, false);
+
+        [MenuItem("Card Battle/Setup/3o. Build Battle Scene (8땡)")]
+        public static void BuildBattleSceneEightDdaeng() => BuildBattleSceneFor("8땡", "8땡_BattleScene", CardSuit.Clover, false);
+
+        [MenuItem("Card Battle/Setup/3p. Build All Ddaeng Battle Scenes")]
+        public static void BuildAllDdaengBattleScenes()
+        {
+            BuildBossCombatProfiles();
+            BuildBoss38CombatUiPrefabs();
+            BuildBattleSceneOneDdaeng();
+            BuildBattleSceneTwoDdaeng();
+            BuildBattleSceneThreeDdaeng();
+            BuildBattleSceneFourDdaeng();
+            BuildBattleSceneFiveDdaeng();
+            BuildBattleSceneSixDdaeng();
+            BuildBattleSceneSevenDdaeng();
+            BuildBattleSceneEightDdaeng();
+            RegisterScenesInBuildSettings();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[CardBattleSetup] 1땡부터 8땡까지 전투 씬 생성 완료.");
+        }
+
         /// <summary>
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
@@ -1306,10 +1682,17 @@ namespace CardBattle.EditorTools
 
                 enemyAnimator = enemyPortrait.gameObject.AddComponent<EnemySpriteAnimator>();
                 enemyAnimator.targetImage = enemyPortrait;
+                enemyAnimator.idleVisualScale = bossProfile.idleVisualScale;
+                enemyAnimator.idleVisualOffset = bossProfile.idleVisualOffset;
+                enemyAnimator.hurtVisualScale = bossProfile.hurtVisualScale;
+                enemyAnimator.hurtVisualOffset = bossProfile.hurtVisualOffset;
+                enemyAnimator.deathVisualScale = bossProfile.deathVisualScale;
+                enemyAnimator.deathVisualOffset = bossProfile.deathVisualOffset;
                 enemyAnimator.idle = new SpriteSequence { frames = enemyIdleFrames, frameRate = 10f, loop = true, pingPong = enemyId == "18", pingPongEdgeHold = enemyId == "18" ? 0.1f : 0f };
                 enemyAnimator.attack = new SpriteSequence { frames = enemyAttackFrames, frameRate = 16f, loop = false };
-                enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = enemyId == "3땡" ? 2.5f : 18f, loop = false };
-                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = enemyId == "3땡" ? 2.4f : 10f, loop = enemyId != "3땡" };
+                bool isDdaengNormal = NormalDdaengIds.Contains(enemyId);
+                enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = isDdaengNormal ? 2.5f : 18f, loop = false };
+                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = isDdaengNormal ? 2.4f : 10f, loop = !isDdaengNormal };
                 EditorUtility.SetDirty(enemyAnimator);
             }
 
@@ -1765,7 +2148,14 @@ namespace CardBattle.EditorTools
             AddIfMissing($"{SceneDir}/땡잡이_BattleScene.unity");
             AddIfMissing($"{SceneDir}/멍구사_BattleScene.unity");
             AddIfMissing($"{SceneDir}/구사_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/1땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/2땡_BattleScene.unity");
             AddIfMissing($"{SceneDir}/3땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/4땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/5땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/6땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/7땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/8땡_BattleScene.unity");
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

@@ -70,6 +70,8 @@ namespace CardBattle
         [Header("행동 연출")]
         public Sprite actionSprite;
         [Min(0.1f)] public float actionPoseSeconds = 0.48f;
+        [Min(0.5f)] public float actionVisualScale = 1f;
+        public Vector2 actionVisualOffset;
     }
 
     [CreateAssetMenu(fileName = "BossCombatProfile", menuName = "Card Battle/Boss Combat Profile")]
@@ -90,6 +92,14 @@ namespace CardBattle
         public Sprite signatureCardB;
         [Range(0f, 1f)] public float signatureCardChance = 0.72f;
         [Range(0f, 1f)] public float signaturePairChance = 0.18f;
+
+        [Header("캐릭터 원화 정렬")]
+        [Min(0.5f)] public float idleVisualScale = 1f;
+        public Vector2 idleVisualOffset;
+        [Min(0.5f)] public float hurtVisualScale = 1f;
+        public Vector2 hurtVisualOffset;
+        [Min(0.5f)] public float deathVisualScale = 1f;
+        public Vector2 deathVisualOffset;
 
         [Header("행동 목록")]
         public List<BossMoveDefinition> moves = new();
