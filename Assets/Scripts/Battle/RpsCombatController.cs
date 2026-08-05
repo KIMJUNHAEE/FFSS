@@ -447,14 +447,14 @@ namespace CardBattle
             outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent)}\n{outcome.Message}";
 
             bool enemyAttackHitPlayer = enemyIntent.IsOffense && outcome.DamageToPlayer > 0;
-            bool enemyDefenseSucceeded = enemyIntent.IsDefense && outcome.BreakToPlayer > 0;
+            bool hasMovePose = !enemyIntent.IsStunned && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null;
             bool enemyTookHpDamage = outcome.DamageToEnemy > 0;
             bool hasImpact = outcome.DamageToPlayer > 0 || outcome.DamageToEnemy > 0 ||
                              outcome.BreakToPlayer > 0 || outcome.BreakToEnemy > 0;
 
-            if (enemyAnimator != null && enemyAttackHitPlayer)
+            if (enemyAnimator != null && hasMovePose)
                 yield return PlayAndWait(EnemyAnimState.Attack);
-            else if (enemyAnimator != null && enemyDefenseSucceeded && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null)
+            else if (enemyAnimator != null && enemyAttackHitPlayer)
                 yield return PlayAndWait(EnemyAnimState.Attack);
 
             ApplyOutcome(ref outcome);
