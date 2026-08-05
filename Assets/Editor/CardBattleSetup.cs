@@ -1355,17 +1355,17 @@ namespace CardBattle.EditorTools
 
             // 섰다 카드 2장 (적 턴에만 테이블 중앙에 공개)
             var seotdaCardA = CreatePanel("SeotdaCardA", hwatuTableContentParent,
-                useBoss38SmallTables ? new Vector2(0.4313f, 0.5077f) : new Vector2(0.416f, 0.07f),
-                useBoss38SmallTables ? new Vector2(0.4313f, 0.5077f) : new Vector2(0.464f, 0.244f),
+                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.416f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.3913f, 0.5077f) : new Vector2(0.464f, 0.244f),
                 Color.white);
-            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardA.rectTransform, new Vector2(0.4313f, 0.5077f), SeotdaCardSize);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardA.rectTransform, new Vector2(0.3913f, 0.5077f), SeotdaCardSize);
             seotdaCardA.preserveAspect = true;
             seotdaCardA.gameObject.SetActive(false);
             var seotdaCardB = CreatePanel("SeotdaCardB", hwatuTableContentParent,
-                useBoss38SmallTables ? new Vector2(0.6487f, 0.5077f) : new Vector2(0.536f, 0.07f),
-                useBoss38SmallTables ? new Vector2(0.6487f, 0.5077f) : new Vector2(0.584f, 0.244f),
+                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.536f, 0.07f),
+                useBoss38SmallTables ? new Vector2(0.6087f, 0.5077f) : new Vector2(0.584f, 0.244f),
                 Color.white);
-            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardB.rectTransform, new Vector2(0.6487f, 0.5077f), SeotdaCardSize);
+            if (useBoss38SmallTables) ConfigureFixedCentered(seotdaCardB.rectTransform, new Vector2(0.6087f, 0.5077f), SeotdaCardSize);
             seotdaCardB.preserveAspect = true;
             seotdaCardB.gameObject.SetActive(false);
 

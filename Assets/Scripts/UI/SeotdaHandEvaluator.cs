@@ -50,7 +50,11 @@ namespace CardBattle
             if (parts.Length < 3) return false;
             if (!int.TryParse(parts[0], out month)) return false;
 
-            isGwang = parts[^1] == "1" && (month == 1 || month == 3 || month == 8);
+            // 파일명 형식은 항상 "MM_이름_N"(광 여부 플래그는 세 번째 조각, parts[2]).
+            // Unity가 Sprite Mode: Multiple로 임포트하면 런타임 sprite.name 끝에 "_0" 같은
+            // 서브스프라이트 인덱스가 자동으로 덧붙어 parts[^1]이 더 이상 "N"이 아니게 되므로
+            // 마지막 조각이 아닌 고정 위치(parts[2])를 봐야 한다.
+            isGwang = parts[2] == "1" && (month == 1 || month == 3 || month == 8);
             return true;
         }
 
