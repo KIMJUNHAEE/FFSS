@@ -43,9 +43,10 @@ namespace CardBattle.EditorTools
         private static readonly string[] BossIds =
         {
             "38", "18", "13", "암행어사", "땡잡이", "멍구사", "구사",
-            "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡",
+            "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡", "9땡", "10땡",
         };
-        private static readonly string[] NormalDdaengIds = { "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡" };
+        private static readonly string[] NormalDdaengIds =
+            { "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡", "9땡", "10땡" };
         private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
         private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
         private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
@@ -73,6 +74,8 @@ namespace CardBattle.EditorTools
             BuildBattleSceneSixDdaeng();
             BuildBattleSceneSevenDdaeng();
             BuildBattleSceneEightDdaeng();
+            BuildBattleSceneNineDdaeng();
+            BuildBattleSceneTenDdaeng();
             BuildBootstrapScene();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
@@ -318,6 +321,8 @@ namespace CardBattle.EditorTools
                 EnsureBossCombatProfile("6땡"),
                 EnsureBossCombatProfile("7땡"),
                 EnsureBossCombatProfile("8땡"),
+                EnsureBossCombatProfile("9땡"),
+                EnsureBossCombatProfile("10땡"),
             };
             foreach (var profile in profiles) ValidateBossCombatProfile(profile);
             AssetDatabase.SaveAssets();
@@ -514,7 +519,7 @@ namespace CardBattle.EditorTools
                             5, 4));
                     break;
                 case "1땡":
-                    ConfigureProfile(profile, "1땡 · 제뉴", 52, 24, new Color(0.34f, 0.72f, 0.56f),
+                    ConfigureProfile(profile, "1땡", 52, 24, new Color(0.34f, 0.72f, 0.56f),
                         Move("one_ddeng_light", "솔잎 흘리기", BossMoveType.Defend,
                             "창대를 비스듬히 눕혀 들어오는 힘을 솔잎 궤적으로 흘려.",
                             "자주 사용하는 방어기야. 일월패가 나오면 창대의 회전이 단단해져 상대 자세까지 밀어내.",
@@ -533,7 +538,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "2땡":
-                    ConfigureProfile(profile, "2땡 · 페비", 55, 25, new Color(1f, 0.54f, 0.68f),
+                    ConfigureProfile(profile, "2땡", 55, 25, new Color(1f, 0.54f, 0.68f),
                         Move("two_ddeng_thrust", "찌르기", BossMoveType.Attack,
                             "매화검의 끝을 곧게 세워 한 점을 노려.",
                             "빠른 기본기야. 이월패가 섞이면 검끝에 매화가 피며 위력이 올라가.",
@@ -557,7 +562,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "3땡":
-                    ConfigureProfile(profile, "3땡 · 머지", 68, 28, new Color(0.96f, 0.30f, 0.55f),
+                    ConfigureProfile(profile, "3땡", 68, 28, new Color(0.96f, 0.30f, 0.55f),
                         Move("three_ddeng_drop", "내려찍기", BossMoveType.Attack,
                             "창끝을 세워 정면으로 짧고 빠르게 내려찍어.",
                             "기본 공격이라 자주 사용해. 3월패가 섞이면 꽃잎이 터지며 위력이 올라가.",
@@ -575,13 +580,13 @@ namespace CardBattle.EditorTools
                             "3월패 포함: 방어 +2, 방어 성공 시 얇은 게이지 추가 2"),
                         Move("three_ddeng_fall", "회전낙하참", BossMoveType.Skill,
                             "세 번째 적 턴부터 네 턴마다 높이 회전해 한 점으로 낙하해.",
-                            "정확한 3땡에서만 꽃고리가 완성되는 머지의 대표 기술이야. 빗나가면 위력이 낮아져.",
+                            "정확한 3땡에서만 꽃고리가 완성되는 3땡의 대표 기술이야. 빗나가면 위력이 낮아져.",
                             14, 7, 1f, 3, 2, BossSeotdaCondition.ExactMonths, 3, 3, 3, 3, 2, -2,
                             "정확히 3월+3월: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2 / 불발: 스킬 -2",
                             4, 3));
                     break;
                 case "4땡":
-                    ConfigureProfile(profile, "4땡 · 에이", 58, 26, new Color(0.56f, 0.34f, 0.78f),
+                    ConfigureProfile(profile, "4땡", 58, 26, new Color(0.56f, 0.34f, 0.78f),
                         Move("four_ddeng_slide", "미끄러지는 낫 베기", BossMoveType.Attack,
                             "지면을 스치듯 미끄러져 낫날을 옆으로 밀어 넣어.",
                             "사월패가 보이면 그림자가 길어져 HP와 자세를 함께 노려.",
@@ -600,7 +605,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "5땡":
-                    ConfigureProfile(profile, "5땡 · 메이", 61, 27, new Color(0.20f, 0.74f, 0.88f),
+                    ConfigureProfile(profile, "5땡", 61, 27, new Color(0.20f, 0.74f, 0.88f),
                         Move("five_ddeng_wave", "창포 물결베기", BossMoveType.Attack,
                             "부채 끝에서 얇은 물결을 세워 곧게 베어.",
                             "오월패가 섞이면 물결이 한 겹 더 겹쳐 HP 피해가 커져.",
@@ -624,7 +629,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "6땡":
-                    ConfigureProfile(profile, "6땡 · 주네", 64, 28, new Color(0.88f, 0.22f, 0.52f),
+                    ConfigureProfile(profile, "6땡", 64, 28, new Color(0.88f, 0.22f, 0.52f),
                         Move("six_ddeng_step", "나비 순보", BossMoveType.Defend,
                             "나비 잔상을 남기고 공격선 밖으로 짧게 빠져.",
                             "일반 끗패에서는 움직임이 가벼워져 방어 뒤 자세 압박이 커져.",
@@ -653,7 +658,7 @@ namespace CardBattle.EditorTools
                             5, 4));
                     break;
                 case "7땡":
-                    ConfigureProfile(profile, "7땡 · 줄리", 68, 30, new Color(0.88f, 0.20f, 0.24f),
+                    ConfigureProfile(profile, "7땡", 68, 30, new Color(0.88f, 0.20f, 0.24f),
                         Move("seven_ddeng_charge", "홍싸리 돌진쇄", BossMoveType.Attack,
                             "철퇴를 낮게 끌며 그대로 판을 가로질러.",
                             "칠월패가 보이면 돌진 끝의 충격이 자세까지 번져.",
@@ -677,7 +682,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "8땡":
-                    ConfigureProfile(profile, "8땡 · 아구", 72, 32, new Color(0.54f, 0.68f, 0.30f),
+                    ConfigureProfile(profile, "8땡", 72, 32, new Color(0.54f, 0.68f, 0.30f),
                         Move("eight_ddeng_goose", "기러기 주문탄", BossMoveType.Attack,
                             "부적을 접어 기러기 모양의 주문탄으로 날려.",
                             "팔월패가 보이면 주문탄이 되돌아와 HP를 한 번 더 노려.",
@@ -703,6 +708,64 @@ namespace CardBattle.EditorTools
                             "정확한 8땡이면 주문진이 닫혀 큰 피해가 들어와. 실패하면 영창이 끊겨.",
                             17, 9, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 8, 8, 4, 4, 4, -3,
                             "정확히 8월+8월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -3",
+                            5, 4));
+                    break;
+                case "9땡":
+                    ConfigureProfile(profile, "9땡", 76, 34, new Color(0.86f, 0.58f, 0.16f),
+                        Move("nine_ddeng_throw", "취월 잔던지기", BossMoveType.Attack,
+                            "술잔을 낮게 튕겨 초승달 궤도로 베어 와.",
+                            "구월패가 섞이면 잔에 남은 국화주가 터지며 HP 피해가 깊어져.",
+                            11, 4, 4.1f, 1, 0, BossSeotdaCondition.ContainsMonth, 9, 0, 2, 2, 0, 0,
+                            "9월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("nine_ddeng_mist", "술안개 장막", BossMoveType.Defend,
+                            "국화주 안개를 둥글게 말아 공격선을 흐려.",
+                            "일반 끗패에서는 안개가 넓게 퍼져 막아낸 뒤 상대 자세를 더 크게 흔들어.",
+                            11, 7, 3.2f, 1, 1, BossSeotdaCondition.OrdinaryHand, 0, 0, 2, 0, 3, 0,
+                            "일반 끗패: 방어 +2, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("nine_ddeng_poison", "국화 독무", BossMoveType.Attack,
+                            "금빛 국화 독환을 아홉 방향으로 피워 압박해.",
+                            "이름 있는 족보가 나오면 독환이 닫히며 HP와 자세를 함께 갉아.",
+                            12, 6, 2.7f, 2, 1, BossSeotdaCondition.SpecialHand, 0, 0, 2, 1, 2, 0,
+                            "이름 있는 족보: 공격 +2, 명중 시 HP 추가 1·얇은 게이지 추가 2"),
+                        Move("nine_ddeng_rampage", "구화 폭주", BossMoveType.Attack,
+                            "호리병을 크게 휘둘러 아홉 겹의 술불꽃을 폭주시켜.",
+                            "땡이 잡히면 마지막 불꽃이 한 번 더 닫혀 큰 HP 피해가 완성돼.",
+                            14, 6, 2.2f, 2, 2, BossSeotdaCondition.Pair, 0, 0, 3, 3, 1, 0,
+                            "땡: 공격 +3, 명중 시 HP 추가 3·얇은 게이지 추가 1"),
+                        Move("nine_ddeng_seal", "구땡 만취봉인", BossMoveType.Skill,
+                            "국화주를 원형으로 쏟아 판 전체를 만취 봉인으로 잠가.",
+                            "정확한 9땡이면 봉인이 완성돼. 조합이 어긋나면 취기가 역류해 위력이 크게 내려가.",
+                            18, 9, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 9, 9, 4, 4, 4, -3,
+                            "정확히 9월+9월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -3",
+                            5, 4));
+                    break;
+                case "10땡":
+                    ConfigureProfile(profile, "10땡", 80, 36, new Color(0.76f, 0.20f, 0.16f),
+                        Move("ten_ddeng_flash", "단풍 일섬", BossMoveType.Attack,
+                            "단풍 부채를 접어 붉은 일선을 곧게 그어.",
+                            "십월패가 보이면 일섬 뒤의 낙엽이 한 번 더 HP를 파고들어.",
+                            11, 4, 4.0f, 1, 0, BossSeotdaCondition.ContainsMonth, 10, 0, 2, 2, 0, 0,
+                            "10월패 포함: 공격 +2, 명중 시 HP 추가 2"),
+                        Move("ten_ddeng_dance", "단풍 회전무", BossMoveType.Defend,
+                            "부채와 단풍 고리를 회전시켜 공격을 바깥으로 흘려.",
+                            "일반 끗패에서는 회전 반경이 넓어져 막아낸 뒤 상대 자세를 크게 흔들어.",
+                            12, 7, 3.1f, 1, 1, BossSeotdaCondition.OrdinaryHand, 0, 0, 2, 0, 3, 0,
+                            "일반 끗패: 방어 +2, 방어 성공 시 얇은 게이지 추가 3"),
+                        Move("ten_ddeng_pierce", "사슴뿔 관통풍", BossMoveType.Attack,
+                            "사슴뿔 모양의 바람을 한 점으로 모아 관통시켜.",
+                            "이름 있는 족보라면 두 갈래 바람이 겹쳐 HP와 자세를 함께 노려.",
+                            13, 6, 2.7f, 2, 1, BossSeotdaCondition.SpecialHand, 0, 0, 2, 2, 2, 0,
+                            "이름 있는 족보: 공격 +2, 명중 시 HP 추가 2·얇은 게이지 추가 2"),
+                        Move("ten_ddeng_reign", "낙엽왕림", BossMoveType.Skill,
+                            "쌓인 낙엽을 왕관처럼 세운 뒤 한꺼번에 내려앉혀.",
+                            "땡이 잡히면 낙엽 고리가 닫혀 마지막 충격이 더 강해져.",
+                            15, 7, 2.0f, 2, 2, BossSeotdaCondition.Pair, 0, 0, 3, 3, 2, 0,
+                            "땡: 스킬 +3, 명중 시 HP 추가 3·얇은 게이지 추가 2"),
+                        Move("ten_ddeng_storm", "장땡 십연풍", BossMoveType.Skill,
+                            "열 갈래 단풍바람을 겹쳐 장땡의 거대한 풍륜을 완성해.",
+                            "정확한 10땡에서만 십연풍이 끝까지 이어져. 실패하면 풍륜이 갈라져 위력이 낮아져.",
+                            19, 10, 1f, 4, 3, BossSeotdaCondition.ExactMonths, 10, 10, 4, 4, 4, -3,
+                            "정확히 10월+10월: 스킬 +4, 명중 시 HP 추가 4·얇은 게이지 추가 4 / 불발: 스킬 -3",
                             5, 4));
                     break;
                 default:
@@ -874,6 +937,22 @@ namespace CardBattle.EditorTools
                     cardA = "08_공산_1.png";
                     cardB = "08_공산_3.png";
                     break;
+                case "9땡":
+                    profile.combatTitle = "국화주 호리병의 구땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.72f, 0.24f);
+                    profile.signatureCardChance = 0.77f;
+                    profile.signaturePairChance = 0.37f;
+                    cardA = "09_국화_1.png";
+                    cardB = "09_국화_3.png";
+                    break;
+                case "10땡":
+                    profile.combatTitle = "단풍 십연풍의 장땡 패객";
+                    profile.secondaryAccentColor = new Color(1f, 0.50f, 0.28f);
+                    profile.signatureCardChance = 0.78f;
+                    profile.signaturePairChance = 0.38f;
+                    cardA = "10_단풍_1.png";
+                    cardB = "10_단풍_3.png";
+                    break;
                 default:
                     throw new InvalidDataException($"지원하지 않는 적 비주얼 프로필이야: {enemyId}");
             }
@@ -973,6 +1052,30 @@ namespace CardBattle.EditorTools
                     AssignMoveMotion(profile, "eight_ddeng_reed", EnemyActionMotion.Flow, 1.16f);
                     AssignMoveMotion(profile, "eight_ddeng_seal", EnemyActionMotion.Ritual, 1.05f, 2);
                     AssignMoveMotion(profile, "eight_ddeng_chant", EnemyActionMotion.Ritual, 1.42f, 3);
+                    break;
+                case "9땡":
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_throw", "취월 잔던지기.png", 0.48f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_mist", "술안개 장막.png", 0.54f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_poison", "국화 독무.png", 0.58f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_rampage", "구화 폭주.png", 0.64f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_seal", "구땡 만취봉인.png", 0.72f);
+                    AssignMoveMotion(profile, "nine_ddeng_throw", EnemyActionMotion.QuickSlash, 1.02f);
+                    AssignMoveMotion(profile, "nine_ddeng_mist", EnemyActionMotion.Guard, 1.08f);
+                    AssignMoveMotion(profile, "nine_ddeng_poison", EnemyActionMotion.Flow, 1.14f);
+                    AssignMoveMotion(profile, "nine_ddeng_rampage", EnemyActionMotion.Barrage, 1.20f, 4);
+                    AssignMoveMotion(profile, "nine_ddeng_seal", EnemyActionMotion.Ritual, 1.46f, 3);
+                    break;
+                case "10땡":
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_flash", "단풍 일섬.png", 0.48f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_dance", "단풍 회전무.png", 0.56f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_pierce", "사슴뿔 관통풍.png", 0.58f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_reign", "낙엽왕림.png", 0.66f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_storm", "장땡 십연풍.png", 0.74f, 1.18f);
+                    AssignMoveMotion(profile, "ten_ddeng_flash", EnemyActionMotion.QuickSlash, 1.30f);
+                    AssignMoveMotion(profile, "ten_ddeng_dance", EnemyActionMotion.Spin, 1.24f, 2);
+                    AssignMoveMotion(profile, "ten_ddeng_pierce", EnemyActionMotion.Thrust, 1.36f);
+                    AssignMoveMotion(profile, "ten_ddeng_reign", EnemyActionMotion.FallingStrike, 1.44f);
+                    AssignMoveMotion(profile, "ten_ddeng_storm", EnemyActionMotion.Barrage, 1.30f, 5);
                     break;
             }
         }
@@ -1081,14 +1184,16 @@ namespace CardBattle.EditorTools
             "38" => "38광땡",
             "18" => "18광땡",
             "13" => "13광땡",
-            "1땡" => "1땡 · 제뉴",
-            "2땡" => "2땡 · 페비",
-            "3땡" => "3땡 · 머지",
-            "4땡" => "4땡 · 에이",
-            "5땡" => "5땡 · 메이",
-            "6땡" => "6땡 · 주네",
-            "7땡" => "7땡 · 줄리",
-            "8땡" => "8땡 · 아구",
+            "1땡" => "1땡",
+            "2땡" => "2땡",
+            "3땡" => "3땡",
+            "4땡" => "4땡",
+            "5땡" => "5땡",
+            "6땡" => "6땡",
+            "7땡" => "7땡",
+            "8땡" => "8땡",
+            "9땡" => "9땡",
+            "10땡" => "10땡",
             _ => enemyId,
         };
 
@@ -1106,6 +1211,8 @@ namespace CardBattle.EditorTools
             "6땡" => "13",
             "7땡" => "38",
             "8땡" => "gusa",
+            "9땡" => "gusa",
+            "10땡" => "38",
             _ => enemyId,
         };
 
@@ -1175,7 +1282,7 @@ namespace CardBattle.EditorTools
                 var profile = EnsureBossCombatProfile(bossId);
                 string skinKey = BossSkinKey(bossId);
                 bool isNormalDdaeng = NormalDdaengIds.Contains(bossId);
-                string normalSkinKey = isNormalDdaeng ? bossId.Substring(0, 1) : "";
+                string normalSkinKey = isNormalDdaeng ? bossId.Substring(0, bossId.Length - 1) : "";
                 string bossHudPath = isNormalDdaeng
                     ? $"{NormalEnemyCombatSkinDir}/HUD/enemy_{normalSkinKey}ddeng_hud.png"
                     : $"{BossCombatSkinDir}/HUD/boss_{skinKey}_hud.png";
@@ -1602,7 +1709,13 @@ namespace CardBattle.EditorTools
         [MenuItem("Card Battle/Setup/3o. Build Battle Scene (8땡)")]
         public static void BuildBattleSceneEightDdaeng() => BuildBattleSceneFor("8땡", "8땡_BattleScene", CardSuit.Clover, false);
 
-        [MenuItem("Card Battle/Setup/3p. Build All Ddaeng Battle Scenes")]
+        [MenuItem("Card Battle/Setup/3p. Build Battle Scene (9땡)")]
+        public static void BuildBattleSceneNineDdaeng() => BuildBattleSceneFor("9땡", "9땡_BattleScene", CardSuit.Diamond, false);
+
+        [MenuItem("Card Battle/Setup/3q. Build Battle Scene (10땡)")]
+        public static void BuildBattleSceneTenDdaeng() => BuildBattleSceneFor("10땡", "10땡_BattleScene", CardSuit.Heart, false);
+
+        [MenuItem("Card Battle/Setup/3r. Build All Ddaeng Battle Scenes")]
         public static void BuildAllDdaengBattleScenes()
         {
             BuildBossCombatProfiles();
@@ -1615,10 +1728,12 @@ namespace CardBattle.EditorTools
             BuildBattleSceneSixDdaeng();
             BuildBattleSceneSevenDdaeng();
             BuildBattleSceneEightDdaeng();
+            BuildBattleSceneNineDdaeng();
+            BuildBattleSceneTenDdaeng();
             RegisterScenesInBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 1땡부터 8땡까지 전투 씬 생성 완료.");
+            Debug.Log("[CardBattleSetup] 1땡부터 10땡까지 전투 씬 생성 완료.");
         }
 
         /// <summary>
@@ -2283,6 +2398,8 @@ namespace CardBattle.EditorTools
             AddIfMissing($"{SceneDir}/6땡_BattleScene.unity");
             AddIfMissing($"{SceneDir}/7땡_BattleScene.unity");
             AddIfMissing($"{SceneDir}/8땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/9땡_BattleScene.unity");
+            AddIfMissing($"{SceneDir}/10땡_BattleScene.unity");
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

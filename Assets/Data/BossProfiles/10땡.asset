@@ -1,0 +1,191 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3202b8fc50d5a844a22e3bf66ed86ac, type: 3}
+  m_Name: "10\uB561"
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.BossCombatProfile
+  bossId: "10\uB561"
+  displayName: "10\uB561"
+  encounterRank: 0
+  maxHp: 80
+  maxPressure: 36
+  accentColor: {r: 0.76, g: 0.2, b: 0.16, a: 1}
+  combatTitle: "\uB2E8\uD48D \uC2ED\uC5F0\uD48D\uC758 \uC7A5\uB561 \uD328\uAC1D"
+  secondaryAccentColor: {r: 1, g: 0.5, b: 0.28, a: 1}
+  signatureCardA: {fileID: 425036908414237729, guid: 29203d899e391fa4fa4708643852bcc9, type: 3}
+  signatureCardB: {fileID: 1228972397758296369, guid: 4b5629e3cae34c74bb76571ecad8b864, type: 3}
+  signatureCardChance: 0.78
+  signaturePairChance: 0.38
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: ten_ddeng_flash
+    displayName: "\uB2E8\uD48D \uC77C\uC12C"
+    moveType: 0
+    telegraph: "\uB2E8\uD48D \uBD80\uCC44\uB97C \uC811\uC5B4 \uBD89\uC740 \uC77C\uC120\uC744
+      \uACE7\uAC8C \uADF8\uC5B4."
+    description: "\uC2ED\uC6D4\uD328\uAC00 \uBCF4\uC774\uBA74 \uC77C\uC12C \uB4A4\uC758
+      \uB099\uC5FD\uC774 \uD55C \uBC88 \uB354 HP\uB97C \uD30C\uACE0\uB4E4\uC5B4."
+    power: 11
+    breakPower: 4
+    weight: 4
+    minimumTurn: 1
+    cooldownTurns: 0
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 10
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaBreakDamage: 0
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "10\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: de01bc20fa15e7345aad7af71191b8a2, type: 3}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1.18
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1.3
+    actionMotionRepetitions: 1
+  - moveId: ten_ddeng_dance
+    displayName: "\uB2E8\uD48D \uD68C\uC804\uBB34"
+    moveType: 1
+    telegraph: "\uBD80\uCC44\uC640 \uB2E8\uD48D \uACE0\uB9AC\uB97C \uD68C\uC804\uC2DC\uCF1C
+      \uACF5\uACA9\uC744 \uBC14\uAE65\uC73C\uB85C \uD758\uB824."
+    description: "\uC77C\uBC18 \uB057\uD328\uC5D0\uC11C\uB294 \uD68C\uC804 \uBC18\uACBD\uC774
+      \uB113\uC5B4\uC838 \uB9C9\uC544\uB0B8 \uB4A4 \uC0C1\uB300 \uC790\uC138\uB97C
+      \uD06C\uAC8C \uD754\uB4E4\uC5B4."
+    power: 12
+    breakPower: 7
+    weight: 3.1
+    minimumTurn: 1
+    cooldownTurns: 1
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 9
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 3
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uC77C\uBC18 \uB057\uD328: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 7b5a559b1d7d18a4cb53c59f4a8ef4ec, type: 3}
+    actionPoseSeconds: 0.56
+    actionVisualScale: 1.18
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 5
+    actionMotionIntensity: 1.24
+    actionMotionRepetitions: 2
+  - moveId: ten_ddeng_pierce
+    displayName: "\uC0AC\uC2B4\uBFD4 \uAD00\uD1B5\uD48D"
+    moveType: 0
+    telegraph: "\uC0AC\uC2B4\uBFD4 \uBAA8\uC591\uC758 \uBC14\uB78C\uC744 \uD55C \uC810\uC73C\uB85C
+      \uBAA8\uC544 \uAD00\uD1B5\uC2DC\uCF1C."
+    description: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4\uB77C\uBA74 \uB450 \uAC08\uB798
+      \uBC14\uB78C\uC774 \uACB9\uCCD0 HP\uC640 \uC790\uC138\uB97C \uD568\uAED8 \uB178\uB824."
+    power: 13
+    breakPower: 6
+    weight: 2.7
+    minimumTurn: 2
+    cooldownTurns: 1
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 8
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaBreakDamage: 2
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4: \uACF5\uACA9 +2, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: de9bea7954451fd448fa8b01b2704623, type: 3}
+    actionPoseSeconds: 0.58
+    actionVisualScale: 1.18
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 2
+    actionMotionIntensity: 1.36
+    actionMotionRepetitions: 1
+  - moveId: ten_ddeng_reign
+    displayName: "\uB099\uC5FD\uC655\uB9BC"
+    moveType: 2
+    telegraph: "\uC313\uC778 \uB099\uC5FD\uC744 \uC655\uAD00\uCC98\uB7FC \uC138\uC6B4
+      \uB4A4 \uD55C\uAEBC\uBC88\uC5D0 \uB0B4\uB824\uC549\uD600."
+    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uB099\uC5FD \uACE0\uB9AC\uAC00
+      \uB2EB\uD600 \uB9C8\uC9C0\uB9C9 \uCDA9\uACA9\uC774 \uB354 \uAC15\uD574\uC838."
+    power: 15
+    breakPower: 7
+    weight: 2
+    minimumTurn: 2
+    cooldownTurns: 2
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 4
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 3
+    seotdaBreakDamage: 2
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uB561: \uC2A4\uD0AC +3, \uBA85\uC911 \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740
+      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 55935c0d61df82346967a6e0fff72d3a, type: 3}
+    actionPoseSeconds: 0.66
+    actionVisualScale: 1.18
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 4
+    actionMotionIntensity: 1.44
+    actionMotionRepetitions: 1
+  - moveId: ten_ddeng_storm
+    displayName: "\uC7A5\uB561 \uC2ED\uC5F0\uD48D"
+    moveType: 2
+    telegraph: "\uC5F4 \uAC08\uB798 \uB2E8\uD48D\uBC14\uB78C\uC744 \uACB9\uCCD0 \uC7A5\uB561\uC758
+      \uAC70\uB300\uD55C \uD48D\uB95C\uC744 \uC644\uC131\uD574."
+    description: "\uC815\uD655\uD55C 10\uB561\uC5D0\uC11C\uB9CC \uC2ED\uC5F0\uD48D\uC774
+      \uB05D\uAE4C\uC9C0 \uC774\uC5B4\uC838. \uC2E4\uD328\uD558\uBA74 \uD48D\uB95C\uC774
+      \uAC08\uB77C\uC838 \uC704\uB825\uC774 \uB0AE\uC544\uC838."
+    power: 19
+    breakPower: 10
+    weight: 1
+    minimumTurn: 4
+    cooldownTurns: 3
+    cadenceTurns: 5
+    cadenceOffset: 4
+    seotdaCondition: 7
+    conditionValueA: 10
+    conditionValueB: 10
+    seotdaPowerBonus: 4
+    seotdaHpDamage: 4
+    seotdaBreakDamage: 4
+    seotdaFailurePowerDelta: -3
+    seotdaRule: "\uC815\uD655\uD788 10\uC6D4+10\uC6D4: \uC2A4\uD0AC +4, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4
+      / \uBD88\uBC1C: \uC2A4\uD0AC -3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 642a327159d30bb40a59b1d2f6ac4b2e, type: 3}
+    actionPoseSeconds: 0.74
+    actionVisualScale: 1.18
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 9
+    actionMotionIntensity: 1.3
+    actionMotionRepetitions: 5
