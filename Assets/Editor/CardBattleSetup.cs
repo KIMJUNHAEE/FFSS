@@ -33,6 +33,10 @@ namespace CardBattle.EditorTools
         private const string BossCombatSkinDir = "Assets/UI/BossCombatSkins";
         private const string NormalEnemyCombatSkinDir = "Assets/UI/NormalEnemySkins";
         private const string NormalEnemyStatusCorePath = "Assets/UI/NormalEnemySkins/Common/enemy_status_core.png";
+        private const string NormalEnemyHpFillPath = "Assets/UI/NormalEnemySkins/Common/enemy_hp_fill.png";
+        private const string NormalEnemyHpEmptyPath = "Assets/UI/NormalEnemySkins/Common/enemy_hp_empty.png";
+        private const string NormalEnemyBreakFillPath = "Assets/UI/NormalEnemySkins/Common/enemy_break_fill.png";
+        private const string NormalEnemyBreakEmptyPath = "Assets/UI/NormalEnemySkins/Common/enemy_break_empty.png";
         private const string Boss38CombatPrefabDir = "Assets/Prefabs/CombatUI38";
         private const string BossProfileDir = "Assets/Data/BossProfiles";
         private const string CombatIconDir = "Assets/UI/CommonCombat/Icons";
@@ -296,6 +300,106 @@ namespace CardBattle.EditorTools
         public static void BuildBoss38CombatUiPrefabs()
         {
             EnsureBoss38CombatUiPrefabs();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        [MenuItem("Card Battle/Setup/2d. Build Normal Ddaeng HUD And Detail Prefabs")]
+        public static void BuildNormalDdaengUiPrefabs()
+        {
+            Directory.CreateDirectory(Boss38CombatPrefabDir);
+            EnsureSpriteImport(NormalEnemyHpFillPath);
+            EnsureSpriteImport(NormalEnemyHpEmptyPath);
+            EnsureSpriteImport(NormalEnemyBreakFillPath);
+            EnsureSpriteImport(NormalEnemyBreakEmptyPath);
+            EnsureSpriteImport(NormalEnemyStatusCorePath);
+            EnsureSpriteImport(SkillDetailPanelPath);
+            AssetDatabase.ImportAsset(UiFontPath, ImportAssetOptions.ForceSynchronousImport);
+
+            var hpFillSprite = LoadSpriteAtPath(NormalEnemyHpFillPath);
+            var hpEmptySprite = LoadSpriteAtPath(NormalEnemyHpEmptyPath);
+            var breakFillSprite = LoadSpriteAtPath(NormalEnemyBreakFillPath);
+            var breakEmptySprite = LoadSpriteAtPath(NormalEnemyBreakEmptyPath);
+            var statusCoreSprite = LoadSpriteAtPath(NormalEnemyStatusCorePath);
+            var detailPanelSprite = LoadSpriteAtPath(SkillDetailPanelPath);
+
+            foreach (string enemyId in NormalDdaengIds)
+            {
+                var profile = EnsureBossCombatProfile(enemyId);
+                string skinKey = enemyId.Substring(0, enemyId.Length - 1);
+                string hudPath = $"{NormalEnemyCombatSkinDir}/HUD/enemy_{skinKey}ddeng_hud.png";
+                string intentPath = $"{NormalEnemyCombatSkinDir}/Intent/enemy_{skinKey}ddeng_intent.png";
+                EnsureSpriteImport(hudPath);
+                EnsureSpriteImport(intentPath);
+                BuildBossHudPrefab(LoadSpriteAtPath(hudPath), profile,
+                    hpFillSprite, breakFillSprite, hpEmptySprite, breakEmptySprite, statusCoreSprite);
+                BuildIntentBadgePrefab(LoadSpriteAtPath(intentPath), profile);
+                BuildEnemySkillDetailPanelPrefab(detailPanelSprite, profile);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        [MenuItem("Card Battle/Setup/2e. Apply Current Battle UI Layout To All Enemies")]
+        public static void ApplyCurrentBattleUiLayoutToAllEnemies()
+        {
+            Directory.CreateDirectory(Boss38CombatPrefabDir);
+            string playerHudPath = $"{Boss38CombatSkinDir}/poker_player_hud.png";
+            string commandPath = $"{Boss38CombatSkinDir}/poker_command_button.png";
+            string hpFillPath = $"{BossCombatSkinDir}/HUD/ornate_hp_fill.png";
+            string breakFillPath = $"{BossCombatSkinDir}/HUD/ornate_break_fill.png";
+            string attackIconPath = $"{CombatIconDir}/attack.png";
+            string defendIconPath = $"{CombatIconDir}/defense.png";
+
+            foreach (string path in new[]
+                     {
+                         playerHudPath, commandPath, hpFillPath, breakFillPath, EmptyBarFillPath,
+                         attackIconPath, defendIconPath, NormalEnemyStatusCorePath,
+                         NormalEnemyHpFillPath, NormalEnemyHpEmptyPath,
+                         NormalEnemyBreakFillPath, NormalEnemyBreakEmptyPath,
+                     })
+                EnsureSpriteImport(path);
+            AssetDatabase.ImportAsset(UiFontPath, ImportAssetOptions.ForceSynchronousImport);
+
+            var genericHpFill = LoadSpriteAtPath(hpFillPath);
+            var genericBreakFill = LoadSpriteAtPath(breakFillPath);
+            var genericEmptyFill = LoadSpriteAtPath(EmptyBarFillPath);
+            var normalHpFill = LoadSpriteAtPath(NormalEnemyHpFillPath);
+            var normalHpEmpty = LoadSpriteAtPath(NormalEnemyHpEmptyPath);
+            var normalBreakFill = LoadSpriteAtPath(NormalEnemyBreakFillPath);
+            var normalBreakEmpty = LoadSpriteAtPath(NormalEnemyBreakEmptyPath);
+            var statusCore = LoadSpriteAtPath(NormalEnemyStatusCorePath);
+
+            BuildPlayerHudPrefab(LoadSpriteAtPath(playerHudPath), LoadSpriteAtPath(attackIconPath),
+                LoadSpriteAtPath(defendIconPath), genericHpFill, genericBreakFill, genericEmptyFill);
+            BuildCommandButtonPrefab(LoadSpriteAtPath(commandPath));
+
+            foreach (string enemyId in BossIds)
+            {
+                var profile = AssetDatabase.LoadAssetAtPath<BossCombatProfile>($"{BossProfileDir}/{enemyId}.asset");
+                if (profile == null) continue;
+
+                bool isNormal = profile.encounterRank == EnemyEncounterRank.Normal;
+                string skinKey = BossSkinKey(enemyId);
+                string normalSkinKey = isNormal ? enemyId.Substring(0, enemyId.Length - 1) : "";
+                string hudPath = isNormal
+                    ? $"{NormalEnemyCombatSkinDir}/HUD/enemy_{normalSkinKey}ddeng_hud.png"
+                    : $"{BossCombatSkinDir}/HUD/boss_{skinKey}_hud.png";
+                string intentPath = isNormal
+                    ? $"{NormalEnemyCombatSkinDir}/Intent/enemy_{normalSkinKey}ddeng_intent.png"
+                    : $"{BossCombatSkinDir}/Intent/boss_{skinKey}_intent.png";
+                EnsureSpriteImport(hudPath);
+                EnsureSpriteImport(intentPath);
+                BuildBossHudPrefab(LoadSpriteAtPath(hudPath), profile,
+                    isNormal ? normalHpFill : genericHpFill,
+                    isNormal ? normalBreakFill : genericBreakFill,
+                    isNormal ? normalHpEmpty : genericEmptyFill,
+                    isNormal ? normalBreakEmpty : genericEmptyFill,
+                    statusCore);
+                BuildIntentBadgePrefab(LoadSpriteAtPath(intentPath), profile);
+            }
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
@@ -975,8 +1079,8 @@ namespace CardBattle.EditorTools
             {
                 case "1땡":
                     AssignMoveArtwork(profile, enemyId, "one_ddeng_light", "약공.png", 0.44f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "one_ddeng_heavy", "강공.png", 0.54f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "one_ddeng_vertical", "상하베기.png", 0.64f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "one_ddeng_heavy", "강공.png", 0.54f, 1.65f);
+                    AssignMoveArtwork(profile, enemyId, "one_ddeng_vertical", "상하베기.png", 0.64f, 1.65f);
                     AssignMoveMotion(profile, "one_ddeng_light", EnemyActionMotion.Guard, 0.92f);
                     AssignMoveMotion(profile, "one_ddeng_heavy", EnemyActionMotion.HeavySmash, 1.08f);
                     AssignMoveMotion(profile, "one_ddeng_vertical", EnemyActionMotion.FallingStrike, 1.18f);
@@ -985,7 +1089,7 @@ namespace CardBattle.EditorTools
                     AssignMoveArtwork(profile, enemyId, "two_ddeng_thrust", "찌르기.png", 0.44f, 1.05f);
                     AssignMoveArtwork(profile, enemyId, "two_ddeng_blossom", "매화베기.png", 0.52f, 1.15f);
                     AssignMoveArtwork(profile, enemyId, "two_ddeng_counter", "반격.png", 0.50f, 1.02f);
-                    AssignMoveArtwork(profile, enemyId, "two_ddeng_middle", "중단베기.png", 0.64f, 1.35f);
+                    AssignMoveArtwork(profile, enemyId, "two_ddeng_middle", "중단베기.png", 0.64f, 1.50f);
                     AssignMoveMotion(profile, "two_ddeng_thrust", EnemyActionMotion.Thrust, 1.05f);
                     AssignMoveMotion(profile, "two_ddeng_blossom", EnemyActionMotion.Spin, 0.90f);
                     AssignMoveMotion(profile, "two_ddeng_counter", EnemyActionMotion.Counter, 1.05f);
@@ -993,7 +1097,7 @@ namespace CardBattle.EditorTools
                     break;
                 case "3땡":
                     AssignMoveArtwork(profile, enemyId, "three_ddeng_drop", "내려찍기.png", 0.42f);
-                    AssignMoveArtwork(profile, enemyId, "three_ddeng_triple", "삼연화 베기.png", 0.52f);
+                    AssignMoveArtwork(profile, enemyId, "three_ddeng_triple", "삼연화 베기.png", 0.52f, 1.25f);
                     AssignMoveArtwork(profile, enemyId, "three_ddeng_curtain", "벚꽃 장막 걷어베기.png", 0.48f);
                     AssignMoveArtwork(profile, enemyId, "three_ddeng_fall", "회전낙하참.png", 0.62f);
                     AssignMoveMotion(profile, "three_ddeng_drop", EnemyActionMotion.HeavySmash, 0.95f);
@@ -1002,9 +1106,9 @@ namespace CardBattle.EditorTools
                     AssignMoveMotion(profile, "three_ddeng_fall", EnemyActionMotion.FallingStrike, 1.35f);
                     break;
                 case "4땡":
-                    AssignMoveArtwork(profile, enemyId, "four_ddeng_slide", "미끄러지는 낫 베기.png", 0.50f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "four_ddeng_counter", "뒤돌림 반격참.png", 0.52f, 1.08f);
-                    AssignMoveArtwork(profile, enemyId, "four_ddeng_dance", "사월 낫춤.png", 0.66f, 1.08f);
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_slide", "미끄러지는 낫 베기.png", 0.50f, 1.60f);
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_counter", "뒤돌림 반격참.png", 0.52f, 1.65f);
+                    AssignMoveArtwork(profile, enemyId, "four_ddeng_dance", "사월 낫춤.png", 0.66f, 2.00f);
                     AssignMoveMotion(profile, "four_ddeng_slide", EnemyActionMotion.Blink, 1.12f);
                     AssignMoveMotion(profile, "four_ddeng_counter", EnemyActionMotion.Counter, 1.18f);
                     AssignMoveMotion(profile, "four_ddeng_dance", EnemyActionMotion.Spin, 1.28f, 2);
@@ -1013,7 +1117,7 @@ namespace CardBattle.EditorTools
                     AssignMoveArtwork(profile, enemyId, "five_ddeng_wave", "창포 물결베기.png", 0.46f, 1.05f);
                     AssignMoveArtwork(profile, enemyId, "five_ddeng_counter", "수면 반격.png", 0.50f);
                     AssignMoveArtwork(profile, enemyId, "five_ddeng_fivefold", "창포 오연참.png", 0.58f, 1.03f);
-                    AssignMoveArtwork(profile, enemyId, "five_ddeng_flood", "창포홍수.png", 0.68f);
+                    AssignMoveArtwork(profile, enemyId, "five_ddeng_flood", "창포홍수.png", 0.68f, 1.40f);
                     AssignMoveMotion(profile, "five_ddeng_wave", EnemyActionMotion.Flow, 0.88f);
                     AssignMoveMotion(profile, "five_ddeng_counter", EnemyActionMotion.Counter, 0.92f);
                     AssignMoveMotion(profile, "five_ddeng_fivefold", EnemyActionMotion.Barrage, 0.90f, 5);
@@ -1024,7 +1128,7 @@ namespace CardBattle.EditorTools
                     AssignMoveArtwork(profile, enemyId, "six_ddeng_poison", "나비 독무.png", 0.52f, 1.08f);
                     AssignMoveArtwork(profile, enemyId, "six_ddeng_bloom", "모란 개화참.png", 0.54f);
                     AssignMoveArtwork(profile, enemyId, "six_ddeng_combo", "육화 연속베기.png", 0.60f);
-                    AssignMoveArtwork(profile, enemyId, "six_ddeng_execute", "모란 처형.png", 0.70f, 1.35f);
+                    AssignMoveArtwork(profile, enemyId, "six_ddeng_execute", "모란 처형.png", 0.70f, 1.75f);
                     AssignMoveMotion(profile, "six_ddeng_step", EnemyActionMotion.Blink, 1.18f);
                     AssignMoveMotion(profile, "six_ddeng_poison", EnemyActionMotion.Flow, 1.05f);
                     AssignMoveMotion(profile, "six_ddeng_bloom", EnemyActionMotion.Spin, 1.08f);
@@ -1055,10 +1159,10 @@ namespace CardBattle.EditorTools
                     break;
                 case "9땡":
                     AssignMoveArtwork(profile, enemyId, "nine_ddeng_throw", "취월 잔던지기.png", 0.48f);
-                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_mist", "술안개 장막.png", 0.54f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_mist", "술안개 장막.png", 0.54f, 1.35f);
                     AssignMoveArtwork(profile, enemyId, "nine_ddeng_poison", "국화 독무.png", 0.58f);
                     AssignMoveArtwork(profile, enemyId, "nine_ddeng_rampage", "구화 폭주.png", 0.64f);
-                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_seal", "구땡 만취봉인.png", 0.72f);
+                    AssignMoveArtwork(profile, enemyId, "nine_ddeng_seal", "구땡 만취봉인.png", 0.72f, 1.22f);
                     AssignMoveMotion(profile, "nine_ddeng_throw", EnemyActionMotion.QuickSlash, 1.02f);
                     AssignMoveMotion(profile, "nine_ddeng_mist", EnemyActionMotion.Guard, 1.08f);
                     AssignMoveMotion(profile, "nine_ddeng_poison", EnemyActionMotion.Flow, 1.14f);
@@ -1066,11 +1170,11 @@ namespace CardBattle.EditorTools
                     AssignMoveMotion(profile, "nine_ddeng_seal", EnemyActionMotion.Ritual, 1.46f, 3);
                     break;
                 case "10땡":
-                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_flash", "단풍 일섬.png", 0.48f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_dance", "단풍 회전무.png", 0.56f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_pierce", "사슴뿔 관통풍.png", 0.58f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_reign", "낙엽왕림.png", 0.66f, 1.18f);
-                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_storm", "장땡 십연풍.png", 0.74f, 1.18f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_flash", "단풍 일섬.png", 0.48f, 1.60f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_dance", "단풍 회전무.png", 0.56f, 1.75f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_pierce", "사슴뿔 관통풍.png", 0.58f, 1.55f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_reign", "낙엽왕림.png", 0.66f, 1.90f);
+                    AssignMoveArtwork(profile, enemyId, "ten_ddeng_storm", "장땡 십연풍.png", 0.74f, 1.75f);
                     AssignMoveMotion(profile, "ten_ddeng_flash", EnemyActionMotion.QuickSlash, 1.30f);
                     AssignMoveMotion(profile, "ten_ddeng_dance", EnemyActionMotion.Spin, 1.24f, 2);
                     AssignMoveMotion(profile, "ten_ddeng_pierce", EnemyActionMotion.Thrust, 1.36f);
@@ -1245,6 +1349,10 @@ namespace CardBattle.EditorTools
             EnsureSpriteImport(endTurnIconPath);
             EnsureSpriteImport(SkillDetailPanelPath);
             EnsureSpriteImport(NormalEnemyStatusCorePath);
+            EnsureSpriteImport(NormalEnemyHpFillPath);
+            EnsureSpriteImport(NormalEnemyHpEmptyPath);
+            EnsureSpriteImport(NormalEnemyBreakFillPath);
+            EnsureSpriteImport(NormalEnemyBreakEmptyPath);
             AssetDatabase.ImportAsset(UiFontPath, ImportAssetOptions.ForceSynchronousImport);
 
             var playerHudSprite = LoadSpriteAtPath(playerHudPath);
@@ -1254,12 +1362,17 @@ namespace CardBattle.EditorTools
             var breakFillSprite = LoadSpriteAtPath(breakFillPath);
             var emptyBarFillSprite = LoadSpriteAtPath(EmptyBarFillPath);
             var normalEnemyStatusCoreSprite = LoadSpriteAtPath(NormalEnemyStatusCorePath);
+            var normalEnemyHpFillSprite = LoadSpriteAtPath(NormalEnemyHpFillPath);
+            var normalEnemyHpEmptySprite = LoadSpriteAtPath(NormalEnemyHpEmptyPath);
+            var normalEnemyBreakFillSprite = LoadSpriteAtPath(NormalEnemyBreakFillPath);
+            var normalEnemyBreakEmptySprite = LoadSpriteAtPath(NormalEnemyBreakEmptyPath);
 
             var attackIcon = LoadSpriteAtPath(attackIconPath);
             var defendIcon = LoadSpriteAtPath(defendIconPath);
             var skillIcon = LoadSpriteAtPath(skillIconPath);
             var redrawIcon = LoadSpriteAtPath(redrawIconPath);
             var endTurnIcon = LoadSpriteAtPath(endTurnIconPath);
+            var skillDetailSprite = LoadSpriteAtPath(SkillDetailPanelPath);
             var assets = new Boss38CombatUiAssets
             {
                 playerHud = BuildPlayerHudPrefab(playerHudSprite, attackIcon, defendIcon,
@@ -1268,7 +1381,7 @@ namespace CardBattle.EditorTools
                 battleBanner = BuildBattleBannerPrefab(bannerSprite),
                 combatImpact = BuildCombatImpactPrefab(commandSprite),
                 battleResult = BuildBattleResultPrefab(bannerSprite, commandSprite, redrawIcon),
-                skillDetailPanel = BuildSkillDetailPanelPrefab(LoadSpriteAtPath(SkillDetailPanelPath)),
+                skillDetailPanel = BuildSkillDetailPanelPrefab(skillDetailSprite),
                 seotdaBack = LoadSpriteAtPath(seotdaBackPath),
                 attackIcon = attackIcon,
                 defendIcon = defendIcon,
@@ -1292,10 +1405,14 @@ namespace CardBattle.EditorTools
                 EnsureSpriteImport(bossHudPath);
                 EnsureSpriteImport(intentPath);
                 assets.bossHuds[bossId] = BuildBossHudPrefab(LoadSpriteAtPath(bossHudPath), profile,
-                    hpFillSprite, breakFillSprite, emptyBarFillSprite, normalEnemyStatusCoreSprite);
+                    isNormalDdaeng ? normalEnemyHpFillSprite : hpFillSprite,
+                    isNormalDdaeng ? normalEnemyBreakFillSprite : breakFillSprite,
+                    isNormalDdaeng ? normalEnemyHpEmptySprite : emptyBarFillSprite,
+                    isNormalDdaeng ? normalEnemyBreakEmptySprite : emptyBarFillSprite,
+                    normalEnemyStatusCoreSprite);
                 assets.intentBadges[bossId] = BuildIntentBadgePrefab(LoadSpriteAtPath(intentPath), profile);
                 if (isNormalDdaeng)
-                    assets.enemySkillDetailPanels[bossId] = BuildEnemySkillDetailPanelPrefab(LoadSpriteAtPath(intentPath), profile);
+                    assets.enemySkillDetailPanels[bossId] = BuildEnemySkillDetailPanelPrefab(skillDetailSprite, profile);
             }
 
             return assets;
@@ -1340,13 +1457,16 @@ namespace CardBattle.EditorTools
             attackImage.sprite = attackIcon;
             attackImage.preserveAspect = true;
             attackImage.raycastTarget = false;
+            attackImage.rectTransform.anchoredPosition = new Vector2(9.399994f, 4.100006f);
             var attackLabel = CreateText("AttackLabel", root.transform, new Vector2(0.40f, 0.50f), new Vector2(0.49f, 0.70f),
                 "공격", 18, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
+            attackLabel.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackLabel.fontStyle = FontStyle.Bold;
             EnableBestFit(attackLabel, 14, 18);
             AddTextOutline(attackLabel, Color.black, new Vector2(2f, -2f));
             var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.49f, 0.50f), new Vector2(0.61f, 0.70f),
                 "0", 30, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
+            attackValue.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackValue.fontStyle = FontStyle.Bold;
             EnableBestFit(attackValue, 22, 30);
             AddTextOutline(attackValue, Color.black, new Vector2(2f, -2f));
@@ -1355,30 +1475,39 @@ namespace CardBattle.EditorTools
             defenseImage.sprite = defendIcon;
             defenseImage.preserveAspect = true;
             defenseImage.raycastTarget = false;
+            defenseImage.rectTransform.anchoredPosition = new Vector2(9.399963f, 4.100037f);
             var defenseLabel = CreateText("DefenseLabel", root.transform, new Vector2(0.71f, 0.50f), new Vector2(0.80f, 0.70f),
                 "방어", 18, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
+            defenseLabel.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseLabel.fontStyle = FontStyle.Bold;
             EnableBestFit(defenseLabel, 14, 18);
             AddTextOutline(defenseLabel, Color.black, new Vector2(2f, -2f));
             var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.80f, 0.50f), new Vector2(0.92f, 0.70f),
                 "0", 30, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
+            defenseValue.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseValue.fontStyle = FontStyle.Bold;
             EnableBestFit(defenseValue, 22, 30);
             AddTextOutline(defenseValue, Color.black, new Vector2(2f, -2f));
 
-            CreateFillBar("HpBar", root.transform, new Vector2(0.335f, 0.378f), new Vector2(0.895f, 0.432f),
+            var hpFill = CreateFillBar("HpBar", root.transform, new Vector2(0.335f, 0.378f), new Vector2(0.895f, 0.432f),
                 Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
+            ApplyRectLayout((RectTransform)hpFill.transform.parent,
+                new Vector2(-3.494507f, 0.600006f), new Vector2(11.648f, 4.8101f));
             var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
+            hpText.rectTransform.anchoredPosition = new Vector2(0f, 1.289002f);
             hpText.fontStyle = FontStyle.Bold;
             EnableBestFit(hpText, 13, 18);
             AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
-            CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
+            var pressureFill = CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
                 Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
+            ApplyRectLayout((RectTransform)pressureFill.transform.parent,
+                new Vector2(-4.160034f, 3.699982f), new Vector2(18.304f, 0f));
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/PlayerPokerHUD.prefab");
         }
 
         private static GameObject BuildBossHudPrefab(Sprite sprite, BossCombatProfile profile,
-            Sprite hpFillSprite, Sprite breakFillSprite, Sprite emptyBarFillSprite, Sprite normalEnemyStatusCoreSprite)
+            Sprite hpFillSprite, Sprite breakFillSprite, Sprite hpEmptySprite, Sprite breakEmptySprite,
+            Sprite normalEnemyStatusCoreSprite)
         {
             bool isNormal = profile.encounterRank == EnemyEncounterRank.Normal;
             var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_HUD", sprite,
@@ -1396,33 +1525,42 @@ namespace CardBattle.EditorTools
             var name = CreateText("NameText", root.transform,
                 isNormal ? new Vector2(0.255f, 0.61f) : new Vector2(0.30f, 0.565f),
                 isNormal ? new Vector2(0.795f, 0.72f) : new Vector2(0.75f, 0.685f),
-                profile.displayName, isNormal ? 25 : 30, TextAnchor.MiddleLeft, new Color(1f, 0.92f, 0.58f));
+                profile.displayName, isNormal ? 25 : 30, TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.58f));
             name.fontStyle = FontStyle.Bold;
             EnableBestFit(name, isNormal ? 17 : 20, isNormal ? 25 : 30);
             AddTextOutline(name, new Color(0.08f, 0f, 0f, 0.98f), new Vector2(3f, -3f));
             var title = CreateText("TitleText", root.transform,
                 isNormal ? new Vector2(0.255f, 0.52f) : new Vector2(0.30f, 0.495f),
                 isNormal ? new Vector2(0.795f, 0.60f) : new Vector2(0.75f, 0.57f),
-                profile.combatTitle, isNormal ? 14 : 16, TextAnchor.MiddleLeft, profile.secondaryAccentColor);
+                profile.combatTitle, isNormal ? 14 : 16, TextAnchor.MiddleCenter, profile.secondaryAccentColor);
             title.fontStyle = FontStyle.Bold;
             EnableBestFit(title, isNormal ? 10 : 11, isNormal ? 14 : 16);
             AddTextOutline(title, Color.black, new Vector2(2f, -2f));
 
-            CreateFillBar("HpBar", root.transform,
-                isNormal ? new Vector2(0.255f, 0.345f) : new Vector2(0.292f, 0.338f),
-                isNormal ? new Vector2(0.795f, 0.405f) : new Vector2(0.798f, 0.397f),
-                Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
+            var hpFill = CreateFillBar("HpBar", root.transform,
+                isNormal ? new Vector2(0.246f, 0.292f) : new Vector2(0.292f, 0.338f),
+                isNormal ? new Vector2(0.810f, 0.443f) : new Vector2(0.798f, 0.397f),
+                Color.white, Color.white, hpFillSprite, hpEmptySprite);
+            float layoutScaleX = isNormal ? 1f : 680f / 560f;
+            float layoutScaleY = isNormal ? 1f : 294f / 242f;
+            ApplyRectLayout((RectTransform)hpFill.transform.parent,
+                new Vector2(-5.179504f * layoutScaleX, 8.953903f * layoutScaleY),
+                new Vector2(-12.9491f * layoutScaleX, -3.1078f * layoutScaleY));
             var hpText = CreateText("HpText", root.transform,
-                isNormal ? new Vector2(0.255f, 0.333f) : new Vector2(0.292f, 0.326f),
-                isNormal ? new Vector2(0.795f, 0.417f) : new Vector2(0.798f, 0.409f),
+                isNormal ? new Vector2(0.246f, 0.292f) : new Vector2(0.292f, 0.326f),
+                isNormal ? new Vector2(0.810f, 0.443f) : new Vector2(0.798f, 0.409f),
                 "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
+            hpText.rectTransform.anchoredPosition = new Vector2(0f, 7.399963f * layoutScaleY);
             hpText.fontStyle = FontStyle.Bold;
             EnableBestFit(hpText, 13, 18);
             AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
-            CreateFillBar("PressureBar", root.transform,
-                isNormal ? new Vector2(0.255f, 0.226f) : new Vector2(0.292f, 0.223f),
-                isNormal ? new Vector2(0.795f, 0.262f) : new Vector2(0.798f, 0.257f),
-                Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
+            var pressureFill = CreateFillBar("PressureBar", root.transform,
+                isNormal ? new Vector2(0.264f, 0.201f) : new Vector2(0.292f, 0.223f),
+                isNormal ? new Vector2(0.793f, 0.248f) : new Vector2(0.798f, 0.257f),
+                Color.white, Color.white, breakFillSprite, breakEmptySprite);
+            ApplyRectLayout((RectTransform)pressureFill.transform.parent,
+                new Vector2(-5.541992f * layoutScaleX, 12.1359f * layoutScaleY),
+                new Vector2(-5.884f * layoutScaleX, -1.3077f * layoutScaleY));
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Boss_{profile.bossId}_HUD.prefab");
         }
 
@@ -1437,7 +1575,7 @@ namespace CardBattle.EditorTools
             icon.preserveAspect = true;
             icon.raycastTarget = false;
             var label = CreateText("LabelText", root.transform, new Vector2(0.28f, 0.16f), new Vector2(0.91f, 0.84f),
-                "행동", 23, TextAnchor.MiddleCenter, Color.white);
+                "행동", 23, TextAnchor.MiddleLeft, Color.white);
             label.fontStyle = FontStyle.Bold;
             EnableBestFit(label, 17, 23);
             AddTextOutline(label, Color.black, new Vector2(2f, -2f));
@@ -1469,7 +1607,7 @@ namespace CardBattle.EditorTools
 
             var icon = CreatePanel("ActionIcon", root.transform,
                 isNormal ? new Vector2(0.43f, 0.75f) : new Vector2(0.40f, 0.75f),
-                isNormal ? new Vector2(0.57f, 0.89f) : new Vector2(0.60f, 0.91f), Color.white);
+                isNormal ? new Vector2(0.57f, 0.89f) : new Vector2(0.60f, 0.91f), new Color(1f, 1f, 1f, 0f));
             icon.preserveAspect = true;
             icon.raycastTarget = false;
             icon.enabled = false;
@@ -1478,6 +1616,7 @@ namespace CardBattle.EditorTools
                 isNormal ? new Vector2(0.16f, 0.585f) : new Vector2(0.15f, 0.49f),
                 isNormal ? new Vector2(0.84f, 0.695f) : new Vector2(0.85f, 0.635f),
                 "다음 행동", isNormal ? 22 : 24, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
+            action.rectTransform.anchoredPosition = new Vector2(0f, -5f);
             action.fontStyle = FontStyle.Bold;
             EnableBestFit(action, isNormal ? 14 : 15, isNormal ? 22 : 24);
             AddTextOutline(action, Color.black, new Vector2(3f, -3f));
@@ -1485,6 +1624,8 @@ namespace CardBattle.EditorTools
                 isNormal ? new Vector2(0.14f, 0.14f) : new Vector2(0.15f, 0.17f),
                 isNormal ? new Vector2(0.86f, 0.555f) : new Vector2(0.85f, 0.46f),
                 "", isNormal ? 15 : 16, TextAnchor.UpperCenter, Color.white);
+            ApplyRectLayout(stat.rectTransform,
+                new Vector2(-0.697388f, 27.6586f), new Vector2(-46.9498f, -55.3173f));
             stat.lineSpacing = 0.94f;
             EnableBestFit(stat, 10, isNormal ? 15 : 16);
             AddTextOutline(stat, Color.black, new Vector2(2f, -2f));
@@ -1493,31 +1634,26 @@ namespace CardBattle.EditorTools
 
         private static GameObject BuildEnemySkillDetailPanelPrefab(Sprite sprite, BossCombatProfile profile)
         {
-            var root = CreatePrefabImageRoot($"Enemy_{profile.bossId}_SkillDetail", sprite, new Vector2(430f, 500f));
+            var root = CreatePrefabImageRoot($"Enemy_{profile.bossId}_SkillDetail", sprite, new Vector2(780f, 438f));
             root.GetComponent<Image>().raycastTarget = false;
 
-            var actionIcon = CreatePanel("ActionIcon", root.transform, new Vector2(0.43f, 0.77f), new Vector2(0.57f, 0.90f), Color.white);
-            actionIcon.preserveAspect = true;
-            actionIcon.raycastTarget = false;
-            actionIcon.enabled = false;
-
-            var title = CreateText("TitleText", root.transform, new Vector2(0.17f, 0.59f), new Vector2(0.83f, 0.69f),
-                "기술 이름", 25, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.55f));
+            var title = CreateText("TitleText", root.transform, new Vector2(0.20f, 0.685f), new Vector2(0.80f, 0.815f),
+                "기술 이름", 27, TextAnchor.MiddleCenter, profile.secondaryAccentColor);
             title.fontStyle = FontStyle.Bold;
-            EnableBestFit(title, 16, 25);
+            EnableBestFit(title, 17, 27);
             AddTextOutline(title, Color.black, new Vector2(2f, -2f));
 
-            var value = CreateText("ValueText", root.transform, new Vector2(0.16f, 0.49f), new Vector2(0.84f, 0.57f),
-                "공격 0", 20, TextAnchor.MiddleCenter, Color.white);
+            var value = CreateText("ValueText", root.transform, new Vector2(0.20f, 0.555f), new Vector2(0.80f, 0.665f),
+                "공격 0", 21, TextAnchor.MiddleCenter, Color.white);
             value.fontStyle = FontStyle.Bold;
-            EnableBestFit(value, 13, 20);
+            EnableBestFit(value, 14, 21);
             AddTextOutline(value, Color.black, new Vector2(2f, -2f));
 
-            var body = CreateText("BodyText", root.transform, new Vector2(0.13f, 0.14f), new Vector2(0.87f, 0.475f),
-                "기술 설명", 17, TextAnchor.UpperLeft, new Color(0.94f, 0.96f, 1f));
-            body.lineSpacing = 1.06f;
-            EnableBestFit(body, 11, 17);
-            AddTextOutline(body, Color.black, new Vector2(1f, -1f));
+            var body = CreateText("BodyText", root.transform, new Vector2(0.12f, 0.175f), new Vector2(0.88f, 0.525f),
+                "기술 설명", 18, TextAnchor.UpperLeft, new Color(0.94f, 0.96f, 1f));
+            body.lineSpacing = 1.08f;
+            EnableBestFit(body, 12, 18);
+            AddTextOutline(body, new Color(0f, 0f, 0f, 0.9f), new Vector2(1.5f, -1.5f));
 
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Enemy_{profile.bossId}_SkillDetail.prefab");
         }
@@ -2473,6 +2609,12 @@ namespace CardBattle.EditorTools
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = minSize;
             text.resizeTextMaxSize = maxSize;
+        }
+
+        private static void ApplyRectLayout(RectTransform rect, Vector2 anchoredPosition, Vector2 sizeDelta)
+        {
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = sizeDelta;
         }
 
         private static Image CreateFillBar(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax,
