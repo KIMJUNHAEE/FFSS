@@ -1534,6 +1534,7 @@ namespace CardBattle.EditorTools
             Sprite normalEnemyStatusCoreSprite)
         {
             bool isNormal = profile.encounterRank == EnemyEncounterRank.Normal;
+            bool useGwangddaengGaugeLayout = profile.bossId == "13" || profile.bossId == "18" || profile.bossId == "38";
             var root = CreatePrefabImageRoot($"Boss_{profile.bossId}_HUD", sprite,
                 isNormal ? new Vector2(560f, 242f) : new Vector2(680f, 294f));
 
@@ -1551,6 +1552,7 @@ namespace CardBattle.EditorTools
                 isNormal ? new Vector2(0.795f, 0.72f) : new Vector2(0.75f, 0.685f),
                 profile.displayName, isNormal ? 25 : 30, TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.58f));
             name.fontStyle = FontStyle.Bold;
+            if (useGwangddaengGaugeLayout) name.rectTransform.anchoredPosition = new Vector2(-18f, 0f);
             EnableBestFit(name, isNormal ? 17 : 20, isNormal ? 25 : 30);
             AddTextOutline(name, new Color(0.08f, 0f, 0f, 0.98f), new Vector2(3f, -3f));
             var title = CreateText("TitleText", root.transform,
@@ -1558,6 +1560,7 @@ namespace CardBattle.EditorTools
                 isNormal ? new Vector2(0.795f, 0.60f) : new Vector2(0.75f, 0.57f),
                 profile.combatTitle, isNormal ? 14 : 16, TextAnchor.MiddleCenter, profile.secondaryAccentColor);
             title.fontStyle = FontStyle.Bold;
+            if (useGwangddaengGaugeLayout) title.rectTransform.anchoredPosition = new Vector2(-18f, 0f);
             EnableBestFit(title, isNormal ? 10 : 11, isNormal ? 14 : 16);
             AddTextOutline(title, Color.black, new Vector2(2f, -2f));
 
@@ -1568,13 +1571,19 @@ namespace CardBattle.EditorTools
             float layoutScaleX = isNormal ? 1f : 680f / 560f;
             float layoutScaleY = isNormal ? 1f : 294f / 242f;
             ApplyRectLayout((RectTransform)hpFill.transform.parent,
-                new Vector2(-5.179504f * layoutScaleX, 8.953903f * layoutScaleY),
-                new Vector2(-12.9491f * layoutScaleX, -3.1078f * layoutScaleY));
+                useGwangddaengGaugeLayout
+                    ? new Vector2(-4.158386f, 0.58151245f)
+                    : new Vector2(-5.179504f * layoutScaleX, 8.953903f * layoutScaleY),
+                useGwangddaengGaugeLayout
+                    ? new Vector2(18.7683f, 10.563f)
+                    : new Vector2(-12.9491f * layoutScaleX, -3.1078f * layoutScaleY));
             var hpText = CreateText("HpText", root.transform,
                 isNormal ? new Vector2(0.246f, 0.292f) : new Vector2(0.292f, 0.326f),
                 isNormal ? new Vector2(0.810f, 0.443f) : new Vector2(0.798f, 0.409f),
                 "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
-            hpText.rectTransform.anchoredPosition = new Vector2(0f, 7.399963f * layoutScaleY);
+            hpText.rectTransform.anchoredPosition = useGwangddaengGaugeLayout
+                ? Vector2.zero
+                : new Vector2(0f, 7.399963f * layoutScaleY);
             hpText.fontStyle = FontStyle.Bold;
             EnableBestFit(hpText, 13, 18);
             AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
@@ -1583,8 +1592,12 @@ namespace CardBattle.EditorTools
                 isNormal ? new Vector2(0.793f, 0.248f) : new Vector2(0.798f, 0.257f),
                 Color.white, Color.white, breakFillSprite, breakEmptySprite);
             ApplyRectLayout((RectTransform)pressureFill.transform.parent,
-                new Vector2(-5.541992f * layoutScaleX, 12.1359f * layoutScaleY),
-                new Vector2(-5.884f * layoutScaleX, -1.3077f * layoutScaleY));
+                useGwangddaengGaugeLayout
+                    ? new Vector2(-5.7607117f, 3.100006f)
+                    : new Vector2(-5.541992f * layoutScaleX, 12.1359f * layoutScaleY),
+                useGwangddaengGaugeLayout
+                    ? new Vector2(0.9936f, -1.5887f)
+                    : new Vector2(-5.884f * layoutScaleX, -1.3077f * layoutScaleY));
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/Boss_{profile.bossId}_HUD.prefab");
         }
 
