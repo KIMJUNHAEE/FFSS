@@ -9,9 +9,16 @@ namespace CardBattle
     {
         public GameObject tooltipRoot;
         public Text tooltipText;
+        public Text titleText;
+        public Text valueText;
+        public Text bodyText;
 
         [TextArea(3, 8)]
         public string message;
+
+        private string title;
+        private string valueLine;
+        private string body;
 
         private bool eventHovering;
         private bool rectHovering;
@@ -43,6 +50,18 @@ namespace CardBattle
         public void SetMessage(string value)
         {
             message = value;
+            title = string.Empty;
+            valueLine = string.Empty;
+            body = value;
+            RefreshVisibility();
+        }
+
+        public void SetContent(string titleValue, string valueLineValue, string bodyValue)
+        {
+            title = titleValue;
+            valueLine = valueLineValue;
+            body = bodyValue;
+            message = string.Join("\n", titleValue, valueLineValue, bodyValue);
             RefreshVisibility();
         }
 
@@ -67,8 +86,10 @@ namespace CardBattle
 
         private void RefreshVisibility()
         {
-            if (tooltipText)
-                tooltipText.text = message;
+            if (titleText) titleText.text = title;
+            if (valueText) valueText.text = valueLine;
+            if (bodyText) bodyText.text = body;
+            if (tooltipText && tooltipText != bodyText) tooltipText.text = message;
             SetVisible((eventHovering || rectHovering) && !string.IsNullOrEmpty(message));
         }
 

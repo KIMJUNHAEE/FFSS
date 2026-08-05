@@ -183,6 +183,10 @@ namespace CardBattle
         public Sprite skillActionIcon;
         public Sprite endTurnActionIcon;
         public IntentHoverTooltip enemyIntentTooltip;
+        public GameObject playerSkillDetailRoot;
+        public Text playerSkillTitleText;
+        public Text playerSkillValueText;
+        public Text playerSkillBodyText;
         public TurnBannerView battleIntro;
         public TurnBannerView turnBanner;
         public CombatImpactView combatImpactView;
@@ -245,6 +249,7 @@ namespace CardBattle
             if (playerStatusText) playerStatusText.text = "";
             if (combatLogText) combatLogText.text = "";
             if (combatReadout) combatReadout.SetActive(false);
+            if (playerSkillDetailRoot) playerSkillDetailRoot.SetActive(false);
 
             UpdateHpUI();
             PrimeBreakBar(playerBreakFill);
@@ -262,12 +267,12 @@ namespace CardBattle
             if (battleIntro != null)
             {
                 bool introFinished = false;
-                battleIntro.Show($"승부 개시\n플레이어 포커  VS  {enemyDisplayName}", true,
+                battleIntro.Show($"승부 개시\n플레이어  VS  {enemyDisplayName}", true,
                     () => introFinished = true);
                 yield return new WaitUntil(() => introFinished);
             }
 
-            yield return ShowTurnBanner("플레이어 포커 턴 시작", true);
+            yield return ShowTurnBanner("플레이어 턴 시작", true);
 
             if (pokerHand != null && !pokerHand.HasResolvedHand)
             {
@@ -302,7 +307,10 @@ namespace CardBattle
         private void HandleHandChanged(PokerHandResult result)
         {
             if (selectedAction == RpsAction.Skill && !CanUseSkill())
+            {
                 selectedAction = null;
+                HidePlayerSkillDetail();
+            }
 
             RefreshHandPreview();
             RefreshButtons();
@@ -319,6 +327,8 @@ namespace CardBattle
 
             selectedAction = action;
             if (playerStatusText) playerStatusText.text = $"{ActionLabel(action)} 선택";
+            if (action == RpsAction.Skill) ShowPlayerSkillDetail();
+            else HidePlayerSkillDetail();
             UpdateSelectionHighlight();
             RefreshButtons();
         }
@@ -329,6 +339,7 @@ namespace CardBattle
 
             var action = selectedAction.Value;
             selectedAction = null;
+            HidePlayerSkillDetail();
             combatLocked = true;
             UpdateSelectionHighlight();
             RefreshButtons();
@@ -342,10 +353,6 @@ namespace CardBattle
 
             if (pokerHand != null)
             {
-                bool actionFinished = false;
-                pokerHand.PlayCombatAnimation(playerAction, () => actionFinished = true);
-                yield return new WaitUntil(() => actionFinished);
-
                 bool retracted = false;
                 pokerHand.RetractToBacks(() => retracted = true);
                 yield return new WaitUntil(() => retracted);
@@ -675,6 +682,8 @@ namespace CardBattle
 
             if (outcome.DamageToEnemy > 0) ShakeHud(enemyHpFill, 13f);
             if (outcome.DamageToPlayer > 0) ShakeHud(playerHpFill, 13f);
+            if (outcome.BreakToEnemy > 0) ShakeHud(enemyBreakFill, 9f);
+            if (outcome.BreakToPlayer > 0) ShakeHud(playerBreakFill, 9f);
         }
 
         private CombatIntent BuildPlayerIntent(RpsAction action)
@@ -855,7 +864,7 @@ namespace CardBattle
             {
                 if (enemyActionText) enemyActionText.text = "<b>행동 불가</b>\n<size=17>이번 턴 스턴</size>";
                 if (enemyStatText) enemyStatText.text = "얇은 게이지가 가득 차\n이번 행동을 잃어";
-                if (enemyIntentTooltip) enemyIntentTooltip.SetMessage("보조 게이지가 가득 차서 이번 행동을 잃어.");
+                if (enemyIntentTooltip) enemyIntentTooltip.SetContent("행동 불가", "이번 턴 스턴", "보조 게이지가 가득 차서 이번 행동을 잃어.");
                 UpdateEnemyActionIcon(IntentKind.Stunned, null);
                 RefreshHandPreview();
                 return;
@@ -877,28 +886,39 @@ namespace CardBattle
 
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
             if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>";
-            if (enemyIntentTooltip) enemyIntentTooltip.SetMessage(BuildEnemyIntentTooltip(pendingEnemyIntent, power, formula, move));
+            if (enemyIntentTooltip)
+                enemyIntentTooltip.SetContent(moveName, $"{label} {power}", BuildEnemyIntentTooltipBody(pendingEnemyIntent, formula, move));
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
 
             // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
             RefreshHandPreview();
         }
 
-        private string BuildEnemyIntentTooltip(IntentKind kind, int power, string formula, BossMoveDefinition move)
+        private string BuildEnemyIntentTooltipBody(IntentKind kind, string formula, BossMoveDefinition move)
         {
-            if (kind == IntentKind.Stunned) return "스턴 상태라 이번 행동을 잃어.";
-
-            string moveName = move != null && !string.IsNullOrWhiteSpace(move.displayName)
-                ? move.displayName
-                : ActionLabel(kind);
             string description = move != null && !string.IsNullOrWhiteSpace(move.description)
                 ? move.description
                 : kind == IntentKind.Defend ? "수치 싸움에서 이기면 상대의 얇은 게이지를 채워." : "수치 싸움에서 이기면 상대 HP를 깎아.";
             string rule = move != null && !string.IsNullOrWhiteSpace(move.seotdaRule)
                 ? move.seotdaRule
                 : "섯다패 공개 후 추가 효과가 정해져.";
-            string color = kind == IntentKind.Defend ? "#7CC7FF" : kind == IntentKind.Skill ? "#FFD85A" : "#FF7068";
-            return $"<size=20><b>{moveName}</b></size>\n<color={color}><b>{ActionLabel(kind)} {power}</b></color>  ·  {formula}\n\n{description}\n\n<color=#FFD989><b>섯다 추가 효과</b></color>\n{rule}";
+            return $"<color=#D6DEEA>{description}</color>\n\n<color=#AFC8E8>{formula}</color>\n<color=#FFD989><b>섯다 추가 효과</b></color>\n{rule}";
+        }
+
+        private void ShowPlayerSkillDetail()
+        {
+            if (!playerSkillDetailRoot) return;
+            var values = CalculatePlayerNumbers(pokerHand != null ? pokerHand.CurrentResult : default);
+            if (playerSkillTitleText) playerSkillTitleText.text = $"{values.RankName} 특수기";
+            if (playerSkillValueText) playerSkillValueText.text = $"스킬 {values.Skill}   |   압박 {values.BreakPower + values.Skill / 4}";
+            if (playerSkillBodyText)
+                playerSkillBodyText.text = "현재 포커 족보의 힘을 집중해 강한 공격을 준비해.\n턴 종료를 누르면 공개된 적 행동과 수치를 겨뤄.\n\n<color=#FFD989><b>특수 족보 보너스</b></color>\n높은 족보일수록 스킬 위력과 압박 수치가 함께 올라가.";
+            playerSkillDetailRoot.SetActive(true);
+        }
+
+        private void HidePlayerSkillDetail()
+        {
+            if (playerSkillDetailRoot) playerSkillDetailRoot.SetActive(false);
         }
 
         private SeotdaEffect BuildEnemySeotdaEffect(SeotdaHandResult hand, IntentKind kind, BossMoveDefinition move)
@@ -952,7 +972,7 @@ namespace CardBattle
         {
             PrepareNextEnemyIntent();
             if (combatReadout) combatReadout.SetActive(false);
-            yield return ShowTurnBanner("플레이어 포커 턴 시작", true);
+            yield return ShowTurnBanner("플레이어 턴 시작", true);
 
             if (pokerHand != null)
             {
@@ -1060,22 +1080,23 @@ namespace CardBattle
 
             var hand = pokerHand != null ? pokerHand.CurrentResult : default;
             var values = CalculatePlayerNumbers(hand);
-            int tier = hand.IsValid ? hand.Tier : 0;
-            int redBonus = hand.IsValid ? hand.RedCount * redSuitAttackBonus : 0;
-            int blackBonus = hand.IsValid ? hand.BlackCount * blackSuitDefenseBonus : 0;
-            int tierPower = tier * handTierPowerBonus;
-            int highRankBonus = hand.IsValid ? Mathf.Clamp(hand.HighRank - 10, 0, 4) : 0;
 
-            string totals = $"<color=#FF746B><b>공격 <size=23>{values.Attack}</size></b></color>     <color=#77C8FF><b>방어 <size=23>{values.Defense}</size></b></color>";
-            string attackDetails = $"기본 {playerBaseAttack} + 붉은 문양 {redBonus}\n족보 {tierPower} + 높은 패 {highRankBonus}";
-            string defenseDetails = $"기본 {playerBaseDefense} + 검은 문양 {blackBonus}\n족보 {tierPower}";
-            if (playerStatText) playerStatText.text = $"{totals}\n{attackDetails}\n{defenseDetails}";
+            if (playerStatText)
+                playerStatText.text = $"<color=#FF746B><b>공격 {values.Attack}</b></color>     <color=#77C8FF><b>방어 {values.Defense}</b></color>";
 
             var weaknessPreview = EvaluateWeaknessPreview(hand, values);
             if (playerAttackValueText) playerAttackValueText.text = values.Attack.ToString();
             if (playerDefenseValueText) playerDefenseValueText.text = values.Defense.ToString();
-            if (playerAttackFormulaText) playerAttackFormulaText.text = attackDetails;
-            if (playerDefenseFormulaText) playerDefenseFormulaText.text = defenseDetails;
+            if (playerAttackFormulaText)
+            {
+                playerAttackFormulaText.text = string.Empty;
+                playerAttackFormulaText.gameObject.SetActive(false);
+            }
+            if (playerDefenseFormulaText)
+            {
+                playerDefenseFormulaText.text = string.Empty;
+                playerDefenseFormulaText.gameObject.SetActive(false);
+            }
             if (playerStatusText != null && selectedAction == null)
             {
                 playerStatusText.text = values.CanSkill
@@ -1189,14 +1210,14 @@ namespace CardBattle
 
             if (outcome.BreakToEnemy > 0)
             {
-                combatImpactView.Show(defendActionIcon, "방어 압박",
-                    $"{enemyDisplayName}  균형 +{outcome.BreakToEnemy}", false,
+                combatImpactView.ShowGuard(defendActionIcon, "완벽 방어",
+                    $"{enemyDisplayName}  균형 +{outcome.BreakToEnemy}", true,
                     new Color(0.36f, 0.78f, 1f), onComplete);
                 return;
             }
 
-            combatImpactView.Show(ActionIcon(enemyIntent.Kind), "가드 압박",
-                $"플레이어  균형 +{outcome.BreakToPlayer}", true,
+            combatImpactView.ShowGuard(defendActionIcon, "방어 돌파",
+                $"플레이어  균형 +{outcome.BreakToPlayer}", false,
                 new Color(0.42f, 0.72f, 1f), onComplete);
         }
 
@@ -1234,9 +1255,9 @@ namespace CardBattle
 
         private void UpdateHpUI()
         {
-            if (playerHpText) playerHpText.text = $"{playerHp} / {playerMaxHp}";
+            if (playerHpText) playerHpText.text = $"HP  {playerHp} / {playerMaxHp}";
             SetBarRatio(playerHpFill, SafeRatio(playerHp, playerMaxHp));
-            if (enemyHpText) enemyHpText.text = $"{enemyHp} / {enemyMaxHp}";
+            if (enemyHpText) enemyHpText.text = $"HP  {enemyHp} / {enemyMaxHp}";
             SetBarRatio(enemyHpFill, SafeRatio(enemyHp, enemyMaxHp));
         }
 
@@ -1263,7 +1284,7 @@ namespace CardBattle
 
         private IEnumerator AnimateFill(Image fill, float target, float duration)
         {
-            float start = fill.rectTransform.anchorMax.x;
+            float start = fill.fillAmount;
             float elapsed = 0f;
             while (elapsed < duration)
             {
@@ -1284,7 +1305,7 @@ namespace CardBattle
 
             var rt = fill.rectTransform;
             rt.anchorMin = Vector2.zero;
-            rt.anchorMax = new Vector2(clamped, 1f);
+            rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
         }
