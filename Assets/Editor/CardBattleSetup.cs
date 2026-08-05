@@ -660,7 +660,7 @@ namespace CardBattle.EditorTools
             var icon = CreatePanel("IconImage", root.transform, new Vector2(0.045f, 0.10f), new Vector2(0.29f, 0.90f), Color.white);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
-            var label = CreateText("LabelText", root.transform, new Vector2(0.30f, 0.18f), new Vector2(0.91f, 0.82f),
+            var label = CreateText("LabelText", root.transform, new Vector2(0.28f, 0.16f), new Vector2(0.91f, 0.84f),
                 "행동", 23, TextAnchor.MiddleCenter, Color.white);
             label.fontStyle = FontStyle.Bold;
             EnableBestFit(label, 17, 23);
@@ -1230,16 +1230,16 @@ namespace CardBattle.EditorTools
             Button skillButton;
             if (useBoss38SmallTables)
             {
-                attackButton = InstantiateCommandButtonFixed(boss38Ui.commandButton, canvasT, "AttackButton",
-                    new Vector2(-275f, 315f), boss38Ui.attackIcon, "공격");
-                defendButton = InstantiateCommandButtonFixed(boss38Ui.commandButton, canvasT, "DefendButton",
-                    new Vector2(-275f, 197f), boss38Ui.defendIcon, "방어");
-                skillButton = InstantiateCommandButtonFixed(boss38Ui.commandButton, canvasT, "SkillButton",
-                    new Vector2(-275f, 79f), boss38Ui.skillIcon, "스킬");
-                redrawButton = InstantiateCommandButtonFixed(boss38Ui.commandButton, canvasT, "RedrawButton",
-                    new Vector2(-165f, 257f), boss38Ui.redrawIcon, "다시뽑기");
-                endTurnButton = InstantiateCommandButtonFixed(boss38Ui.commandButton, canvasT, "EndTurnButton",
-                    new Vector2(-165f, 132f), boss38Ui.endTurnIcon, "턴 종료");
+                attackButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "AttackButton",
+                    new Vector2(0.695f, 0.245f), new Vector2(0.835f, 0.34f), boss38Ui.attackIcon, "공격");
+                defendButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "DefendButton",
+                    new Vector2(0.695f, 0.135f), new Vector2(0.835f, 0.23f), boss38Ui.defendIcon, "방어");
+                skillButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "SkillButton",
+                    new Vector2(0.695f, 0.025f), new Vector2(0.835f, 0.12f), boss38Ui.skillIcon, "스킬");
+                redrawButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "RedrawButton",
+                    new Vector2(0.845f, 0.19f), new Vector2(0.985f, 0.285f), boss38Ui.redrawIcon, "다시뽑기");
+                endTurnButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "EndTurnButton",
+                    new Vector2(0.845f, 0.075f), new Vector2(0.985f, 0.17f), boss38Ui.endTurnIcon, "턴 종료");
             }
             else
             {
@@ -1662,24 +1662,6 @@ namespace CardBattle.EditorTools
             Vector2 anchorMin, Vector2 anchorMax, Sprite icon, string label)
         {
             var instance = InstantiateUiPrefab(prefab, parent, name, anchorMin, anchorMax);
-            var button = instance.GetComponent<Button>();
-            var iconImage = FindUi<Image>(instance, "IconImage");
-            var labelText = FindUi<Text>(instance, "LabelText");
-            iconImage.sprite = icon;
-            iconImage.enabled = icon != null;
-            labelText.text = label;
-            labelText.resizeTextForBestFit = true;
-            labelText.resizeTextMinSize = 17;
-            labelText.resizeTextMaxSize = 23;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            return button;
-        }
-
-        private static Button InstantiateCommandButtonFixed(GameObject prefab, Transform parent, string name,
-            Vector2 anchoredPosition, Sprite icon, string label)
-        {
-            var instance = InstantiateUiPrefabFixed(prefab, parent, name,
-                new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), anchoredPosition);
             var button = instance.GetComponent<Button>();
             var iconImage = FindUi<Image>(instance, "IconImage");
             var labelText = FindUi<Text>(instance, "LabelText");
