@@ -404,6 +404,30 @@ namespace CardBattle.EditorTools
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
 
+        [MenuItem("Card Battle/Setup/2f. Apply Current Intent Text Layout To All Enemies")]
+        public static void ApplyCurrentIntentTextLayoutToAllEnemies()
+        {
+            Directory.CreateDirectory(Boss38CombatPrefabDir);
+
+            foreach (string enemyId in BossIds)
+            {
+                var profile = AssetDatabase.LoadAssetAtPath<BossCombatProfile>($"{BossProfileDir}/{enemyId}.asset");
+                if (profile == null) continue;
+
+                bool isNormal = profile.encounterRank == EnemyEncounterRank.Normal;
+                string skinKey = BossSkinKey(enemyId);
+                string normalSkinKey = isNormal ? enemyId.Substring(0, enemyId.Length - 1) : "";
+                string intentPath = isNormal
+                    ? $"{NormalEnemyCombatSkinDir}/Intent/enemy_{normalSkinKey}ddeng_intent.png"
+                    : $"{BossCombatSkinDir}/Intent/boss_{skinKey}_intent.png";
+                EnsureSpriteImport(intentPath);
+                BuildIntentBadgePrefab(LoadSpriteAtPath(intentPath), profile);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        }
+
         [MenuItem("Card Battle/Setup/1b. Create Boss Combat Profiles")]
         public static void BuildBossCombatProfiles()
         {
@@ -1615,10 +1639,10 @@ namespace CardBattle.EditorTools
             var action = CreateText("ActionText", root.transform,
                 isNormal ? new Vector2(0.16f, 0.585f) : new Vector2(0.15f, 0.49f),
                 isNormal ? new Vector2(0.84f, 0.695f) : new Vector2(0.85f, 0.635f),
-                "다음 행동", isNormal ? 22 : 24, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
-            action.rectTransform.anchoredPosition = new Vector2(0f, -5f);
+                "다음 행동", 15, TextAnchor.MiddleCenter, new Color(1f, 0.84f, 0.50f));
+            action.rectTransform.anchoredPosition = new Vector2(0f, -10.1f);
             action.fontStyle = FontStyle.Bold;
-            EnableBestFit(action, isNormal ? 14 : 15, isNormal ? 22 : 24);
+            EnableBestFit(action, 1, 15);
             AddTextOutline(action, Color.black, new Vector2(3f, -3f));
             var stat = CreateText("StatText", root.transform,
                 isNormal ? new Vector2(0.14f, 0.14f) : new Vector2(0.15f, 0.17f),
