@@ -38,12 +38,26 @@ namespace CardBattle
         public SpriteSequence hurt;
         public SpriteSequence death;
 
+        [Header("원화별 화면 정렬")]
+        [Min(0.5f)] public float idleVisualScale = 1f;
+        public Vector2 idleVisualOffset;
+        [Min(0.5f)] public float hurtVisualScale = 1f;
+        public Vector2 hurtVisualOffset;
+        [Min(0.5f)] public float deathVisualScale = 1f;
+        public Vector2 deathVisualOffset;
+
         public EnemyAnimState CurrentState { get; private set; } = EnemyAnimState.Idle;
 
         private Coroutine playRoutine;
+        private Vector3 baseLocalScale;
+        private Vector2 baseAnchoredPosition;
+        private Quaternion baseLocalRotation;
+        private Color baseColor;
+        private bool visualStateReady;
 
         private void Start()
         {
+            EnsureVisualState();
             Play(EnemyAnimState.Idle);
         }
 
@@ -57,12 +71,14 @@ namespace CardBattle
             // 재생돼야 하므로 이 스킵 대상에서 제외.
             if (state == CurrentState && playRoutine != null && sequence != null && sequence.loop) return;
 
+            bool animateEntry = state != CurrentState;
             CurrentState = state;
             if (playRoutine != null) StopCoroutine(playRoutine);
-            playRoutine = StartCoroutine(PlayRoutine(sequence, state, onComplete));
+            playRoutine = StartCoroutine(PlayRoutine(sequence, state, animateEntry, onComplete));
         }
 
-        public void PlayActionPose(Sprite pose, float duration, Action onComplete = null)
+        public void PlayActionPose(Sprite pose, float duration, float visualScale = 1f,
+            Vector2 visualOffset = default, Action onComplete = null)
         {
             if (pose == null)
             {
@@ -73,7 +89,7 @@ namespace CardBattle
             if (CurrentState == EnemyAnimState.Death) return;
             CurrentState = EnemyAnimState.Attack;
             if (playRoutine != null) StopCoroutine(playRoutine);
-            playRoutine = StartCoroutine(PlayActionPoseRoutine(pose, duration, onComplete));
+            playRoutine = StartCoroutine(PlayActionPoseRoutine(pose, duration, visualScale, visualOffset, onComplete));
         }
 
         private SpriteSequence GetSequence(EnemyAnimState state) => state switch
@@ -84,7 +100,7 @@ namespace CardBattle
             _ => idle,
         };
 
-        private IEnumerator PlayRoutine(SpriteSequence sequence, EnemyAnimState state, Action onComplete)
+        private IEnumerator PlayRoutine(SpriteSequence sequence, EnemyAnimState state, bool animateEntry, Action onComplete)
         {
             if (sequence == null || sequence.frames.Count == 0 || targetImage == null)
             {
@@ -98,10 +114,25 @@ namespace CardBattle
             int lastIndex = sequence.frames.Count - 1;
             int i = 0;
             int direction = 1;
+            float visualScale = VisualScale(state);
+            Vector2 visualOffset = VisualOffset(state);
+
+            if (animateEntry)
+                yield return FadeSwap(sequence.frames[0], visualScale, visualOffset, state == EnemyAnimState.Death ? 0.16f : 0.10f);
+            else
+            {
+                EnsureVisualState();
+                ApplyVisualTransform(visualScale, visualOffset);
+                targetImage.sprite = sequence.frames[0];
+                targetImage.color = baseColor;
+            }
 
             while (true)
             {
-                targetImage.sprite = sequence.frames[i];
+                if (i > 0 && state == EnemyAnimState.Death)
+                    yield return FadeSwap(sequence.frames[i], visualScale, visualOffset, 0.12f);
+                else
+                    targetImage.sprite = sequence.frames[i];
                 float wait = frameDuration;
                 if (sequence.loop && sequence.pingPong && (i == 0 || i == lastIndex))
                     wait += sequence.pingPongEdgeHold;
@@ -131,12 +162,129 @@ namespace CardBattle
             }
         }
 
-        private IEnumerator PlayActionPoseRoutine(Sprite pose, float duration, Action onComplete)
+        private IEnumerator PlayActionPoseRoutine(Sprite pose, float duration, float visualScale,
+            Vector2 visualOffset, Action onComplete)
         {
-            if (targetImage != null) targetImage.sprite = pose;
-            yield return new WaitForSeconds(Mathf.Max(0.1f, duration));
+            if (targetImage == null)
+            {
+                onComplete?.Invoke();
+                yield break;
+            }
+
+            yield return FadeSwap(pose, visualScale, visualOffset, 0.10f);
+
+            Vector2 actionPosition = baseAnchoredPosition + visualOffset;
+            yield return TweenTransform(visualScale * 1.045f, actionPosition + new Vector2(0f, 12f), 0.09f);
+            yield return TweenTransform(visualScale, actionPosition, 0.11f);
+
+            float hold = Mathf.Max(0.08f, duration - 0.20f);
+            yield return new WaitForSeconds(hold);
             onComplete?.Invoke();
             Play(EnemyAnimState.Idle);
+        }
+
+        private IEnumerator FadeSwap(Sprite nextSprite, float visualScale, Vector2 visualOffset, float duration)
+        {
+            EnsureVisualState();
+            if (targetImage == null) yield break;
+
+            var rt = targetImage.rectTransform;
+            float half = Mathf.Max(0.035f, duration * 0.5f);
+            Color startColor = targetImage.color;
+            Vector3 startScale = rt.localScale;
+            Vector2 startPosition = rt.anchoredPosition;
+
+            for (float elapsed = 0f; elapsed < half; elapsed += Time.unscaledDeltaTime)
+            {
+                float t = Smooth01(elapsed / half);
+                targetImage.color = new Color(startColor.r, startColor.g, startColor.b,
+                    Mathf.Lerp(startColor.a, 0.12f, t));
+                rt.localScale = Vector3.LerpUnclamped(startScale, startScale * 0.965f, t);
+                rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, startPosition + new Vector2(0f, -8f), t);
+                yield return null;
+            }
+
+            targetImage.sprite = nextSprite;
+            Vector3 destinationScale = baseLocalScale * visualScale;
+            Vector2 destinationPosition = baseAnchoredPosition + visualOffset;
+            Vector3 revealScale = destinationScale * 1.055f;
+            Vector2 revealPosition = destinationPosition + new Vector2(0f, 14f);
+            rt.localScale = revealScale;
+            rt.anchoredPosition = revealPosition;
+
+            for (float elapsed = 0f; elapsed < half; elapsed += Time.unscaledDeltaTime)
+            {
+                float t = Smooth01(elapsed / half);
+                targetImage.color = new Color(baseColor.r, baseColor.g, baseColor.b,
+                    Mathf.Lerp(0.12f, baseColor.a, t));
+                rt.localScale = Vector3.LerpUnclamped(revealScale, destinationScale, t);
+                rt.anchoredPosition = Vector2.LerpUnclamped(revealPosition, destinationPosition, t);
+                yield return null;
+            }
+
+            targetImage.color = baseColor;
+            ApplyVisualTransform(visualScale, visualOffset);
+        }
+
+        private IEnumerator TweenTransform(float visualScale, Vector2 destinationPosition, float duration)
+        {
+            EnsureVisualState();
+            var rt = targetImage.rectTransform;
+            Vector3 startScale = rt.localScale;
+            Vector2 startPosition = rt.anchoredPosition;
+            Vector3 destinationScale = baseLocalScale * visualScale;
+            float safeDuration = Mathf.Max(0.01f, duration);
+
+            for (float elapsed = 0f; elapsed < safeDuration; elapsed += Time.unscaledDeltaTime)
+            {
+                float t = Smooth01(elapsed / safeDuration);
+                rt.localScale = Vector3.LerpUnclamped(startScale, destinationScale, t);
+                rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, destinationPosition, t);
+                yield return null;
+            }
+
+            rt.localScale = destinationScale;
+            rt.anchoredPosition = destinationPosition;
+        }
+
+        private float VisualScale(EnemyAnimState state) => state switch
+        {
+            EnemyAnimState.Hurt => hurtVisualScale,
+            EnemyAnimState.Death => deathVisualScale,
+            _ => idleVisualScale,
+        };
+
+        private Vector2 VisualOffset(EnemyAnimState state) => state switch
+        {
+            EnemyAnimState.Hurt => hurtVisualOffset,
+            EnemyAnimState.Death => deathVisualOffset,
+            _ => idleVisualOffset,
+        };
+
+        private void EnsureVisualState()
+        {
+            if (visualStateReady || targetImage == null) return;
+            var rt = targetImage.rectTransform;
+            baseLocalScale = rt.localScale;
+            baseAnchoredPosition = rt.anchoredPosition;
+            baseLocalRotation = rt.localRotation;
+            baseColor = targetImage.color;
+            visualStateReady = true;
+        }
+
+        private void ApplyVisualTransform(float visualScale, Vector2 visualOffset)
+        {
+            if (targetImage == null) return;
+            var rt = targetImage.rectTransform;
+            rt.localScale = baseLocalScale * visualScale;
+            rt.anchoredPosition = baseAnchoredPosition + visualOffset;
+            rt.localRotation = baseLocalRotation;
+        }
+
+        private static float Smooth01(float value)
+        {
+            value = Mathf.Clamp01(value);
+            return value * value * (3f - 2f * value);
         }
     }
 }

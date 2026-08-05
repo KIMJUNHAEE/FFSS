@@ -1,0 +1,147 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3202b8fc50d5a844a22e3bf66ed86ac, type: 3}
+  m_Name: "5\uB561"
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.BossCombatProfile
+  bossId: "5\uB561"
+  displayName: "5\uB561 \xB7 \uBA54\uC774"
+  encounterRank: 0
+  maxHp: 61
+  maxPressure: 27
+  accentColor: {r: 0.2, g: 0.74, b: 0.88, a: 1}
+  combatTitle: "\uB09C\uCD08 \uBB3C\uACB0\uC758 \uC624\uB561 \uD328\uAC1D"
+  secondaryAccentColor: {r: 0.48, g: 0.9, b: 1, a: 1}
+  signatureCardA: {fileID: 9104469764320228770, guid: dc0b8e1fa863e4b429189ae2e605965f, type: 3}
+  signatureCardB: {fileID: 7572069263020404282, guid: 32c2e9d02f914c445bc116e19b79209a, type: 3}
+  signatureCardChance: 0.73
+  signaturePairChance: 0.33
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: five_ddeng_wave
+    displayName: "\uCC3D\uD3EC \uBB3C\uACB0\uBCA0\uAE30"
+    moveType: 0
+    telegraph: "\uBD80\uCC44 \uB05D\uC5D0\uC11C \uC587\uC740 \uBB3C\uACB0\uC744 \uC138\uC6CC
+      \uACE7\uAC8C \uBCA0\uC5B4."
+    description: "\uC624\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBB3C\uACB0\uC774
+      \uD55C \uACB9 \uB354 \uACB9\uCCD0 HP \uD53C\uD574\uAC00 \uCEE4\uC838."
+    power: 9
+    breakPower: 4
+    weight: 4.3
+    minimumTurn: 1
+    cooldownTurns: 0
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 5
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaBreakDamage: 0
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "5\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: e8ae3480d41b83247af5e77f838cb94a, type: 3}
+    actionPoseSeconds: 0.46
+    actionVisualScale: 1.05
+    actionVisualOffset: {x: 0, y: 0}
+  - moveId: five_ddeng_counter
+    displayName: "\uC218\uBA74 \uBC18\uACA9"
+    moveType: 1
+    telegraph: "\uC218\uBA74\uC744 \uAC70\uC6B8\uCC98\uB7FC \uD3B4 \uACF5\uACA9 \uBC29\uD5A5\uC744
+      \uBE44\uD2C0\uC5B4."
+    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uB418\uB3CC\uC544\uC624\uB294
+      \uBB3C\uACB0\uC774 \uC0C1\uB300 \uC790\uC138\uAE4C\uC9C0 \uBB34\uB108\uB728\uB824."
+    power: 10
+    breakPower: 6
+    weight: 3
+    minimumTurn: 1
+    cooldownTurns: 1
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 4
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 2
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uB561: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5 \uC2DC \uC587\uC740
+      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 907d8cd473f7f4b419ed9b2e01413cd0, type: 3}
+    actionPoseSeconds: 0.5
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+  - moveId: five_ddeng_fivefold
+    displayName: "\uCC3D\uD3EC \uC624\uC5F0\uCC38"
+    moveType: 0
+    telegraph: "\uB2E4\uC12F \uAC08\uB798 \uBB3C\uC904\uAE30\uB97C \uC5F0\uB2EC\uC544
+      \uC811\uC5B4 \uB123\uC5B4."
+    description: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4\uAC00 \uB098\uC624\uBA74
+      \uB9C8\uC9C0\uB9C9 \uBB3C\uACB0\uC774 \uB354 \uAE4A\uAC8C \uC774\uC5B4\uC838."
+    power: 11
+    breakPower: 5
+    weight: 2.5
+    minimumTurn: 2
+    cooldownTurns: 1
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 8
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaBreakDamage: 1
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4: \uACF5\uACA9 +2, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 1"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 032a2e63d8b7fe941874e6c39f24402f, type: 3}
+    actionPoseSeconds: 0.58
+    actionVisualScale: 1.03
+    actionVisualOffset: {x: 0, y: 0}
+  - moveId: five_ddeng_flood
+    displayName: "\uCC3D\uD3EC\uD64D\uC218"
+    moveType: 2
+    telegraph: "\uB450 \uBD80\uCC44\uC758 \uBB3C\uAE38\uC744 \uD569\uCCD0 \uAC70\uB300\uD55C
+      \uD30C\uB3C4\uB97C \uC77C\uC73C\uCF1C."
+    description: "\uC815\uD655\uD55C 5\uB561\uC774\uBA74 \uD64D\uC218\uAC00 \uC644\uC131\uB3FC.
+      \uBE57\uB098\uAC00\uBA74 \uBB3C\uAE38\uC774 \uAC08\uB77C\uC838 \uC704\uB825\uC774
+      \uB0B4\uB824\uAC00."
+    power: 15
+    breakPower: 7
+    weight: 1
+    minimumTurn: 3
+    cooldownTurns: 2
+    cadenceTurns: 4
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 5
+    conditionValueB: 5
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 3
+    seotdaBreakDamage: 3
+    seotdaFailurePowerDelta: -2
+    seotdaRule: "\uC815\uD655\uD788 5\uC6D4+5\uC6D4: \uC2A4\uD0AC +3, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3
+      / \uBD88\uBC1C: \uC2A4\uD0AC -2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 1c37c705174147f4da986fda05c10910, type: 3}
+    actionPoseSeconds: 0.68
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
