@@ -11,6 +11,22 @@ namespace CardBattle
         Skill,
     }
 
+    public enum EnemyActionMotion
+    {
+        QuickSlash,
+        HeavySmash,
+        Thrust,
+        RisingSlash,
+        FallingStrike,
+        Spin,
+        Counter,
+        Flow,
+        Blink,
+        Barrage,
+        Ritual,
+        Guard,
+    }
+
     public enum EnemyEncounterRank
     {
         Normal,
@@ -72,6 +88,9 @@ namespace CardBattle
         [Min(0.1f)] public float actionPoseSeconds = 0.48f;
         [Min(0.5f)] public float actionVisualScale = 1f;
         public Vector2 actionVisualOffset;
+        public EnemyActionMotion actionMotion = EnemyActionMotion.QuickSlash;
+        [Range(0.5f, 2f)] public float actionMotionIntensity = 1f;
+        [Range(1, 6)] public int actionMotionRepetitions = 1;
     }
 
     [CreateAssetMenu(fileName = "BossCombatProfile", menuName = "Card Battle/Boss Combat Profile")]
