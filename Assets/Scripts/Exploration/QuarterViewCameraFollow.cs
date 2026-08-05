@@ -6,7 +6,7 @@ namespace CardBattle.Exploration
     public sealed class QuarterViewCameraFollow : MonoBehaviour
     {
         [SerializeField] private Transform target;
-        [SerializeField] private Vector3 offset = new(6f, 7f, -6f);
+        [SerializeField] private Vector3 offset = new(0f, 7f, -6f);
         [SerializeField] private Vector3 lookAtOffset = new(0f, 1f, 0f);
         [SerializeField] private float positionDamping = 10f;
         [SerializeField] private float rotationDamping = 12f;

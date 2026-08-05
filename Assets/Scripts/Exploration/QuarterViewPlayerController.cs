@@ -12,6 +12,9 @@ namespace CardBattle.Exploration
         [SerializeField] private float turnSpeed = 720f;
         [SerializeField] private bool lockToGroundPlane = true;
         [SerializeField] private float groundY = 0f;
+        [SerializeField] private bool constrainToWorldBounds = false;
+        [SerializeField] private Vector2 worldBoundsMin = new(-34f, -20f);
+        [SerializeField] private Vector2 worldBoundsMax = new(34f, 20f);
 
         [Header("View")]
         [SerializeField] private Transform cameraTransform = null;
@@ -124,8 +127,24 @@ namespace CardBattle.Exploration
             Vector3 motion = planarDirection * moveSpeed;
             controller.Move(motion * Time.deltaTime);
 
+            if (constrainToWorldBounds)
+                ClampToWorldBounds();
+
             if (lockToGroundPlane)
                 SnapToGroundPlane();
+        }
+
+        private void ClampToWorldBounds()
+        {
+            float minX = Mathf.Min(worldBoundsMin.x, worldBoundsMax.x);
+            float maxX = Mathf.Max(worldBoundsMin.x, worldBoundsMax.x);
+            float minZ = Mathf.Min(worldBoundsMin.y, worldBoundsMax.y);
+            float maxZ = Mathf.Max(worldBoundsMin.y, worldBoundsMax.y);
+
+            Vector3 position = transform.position;
+            position.x = Mathf.Clamp(position.x, minX, maxX);
+            position.z = Mathf.Clamp(position.z, minZ, maxZ);
+            transform.position = position;
         }
 
         private void TurnToward(Vector3 planarDirection)

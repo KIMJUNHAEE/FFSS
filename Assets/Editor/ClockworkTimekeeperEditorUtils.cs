@@ -18,6 +18,15 @@ namespace CardBattle.EditorTools
         public static void SetVector3(UnityEngine.Object target, string fieldName, Vector3 value) =>
             WithProperty(target, fieldName, prop => prop.vector3Value = value);
 
+        public static void SetVector2(UnityEngine.Object target, string fieldName, Vector2 value) =>
+            WithProperty(target, fieldName, prop => prop.vector2Value = value);
+
+        public static void SetInt(UnityEngine.Object target, string fieldName, int value) =>
+            WithProperty(target, fieldName, prop => prop.intValue = value);
+
+        public static void SetString(UnityEngine.Object target, string fieldName, string value) =>
+            WithProperty(target, fieldName, prop => prop.stringValue = value);
+
         public static void SetObjectReference(UnityEngine.Object target, string fieldName, UnityEngine.Object value) =>
             WithProperty(target, fieldName, prop => prop.objectReferenceValue = value);
 

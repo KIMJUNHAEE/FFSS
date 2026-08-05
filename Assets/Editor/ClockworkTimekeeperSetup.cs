@@ -29,24 +29,29 @@ namespace CardBattle.EditorTools
         private const string MetallicMapPath = CharacterDir + "/ClockworkTimekeeper_Metallic.png";
         private const string RoughnessMapPath = CharacterDir + "/ClockworkTimekeeper_Roughness.png";
         private const string MaterialPath = CharacterDir + "/ClockworkTimekeeper_URPLit.mat";
-        private const string MapMaterialPath = CharacterDir + "/MapRoamingGround_URPUnlit.mat";
-        private const string ScreenBackdropMeshPath = CharacterDir + "/ScreenBackdropMesh.asset";
         private const string AnimatorPath = CharacterDir + "/ClockworkTimekeeper.controller";
         private const string Renderer3DPath = SettingsDir + "/Universal3DRenderer.asset";
         private const string UrpAssetPath = SettingsDir + "/UniversalRP.asset";
         private const string PrefabPath = PrefabDir + "/ClockworkTimekeeperPlayer.prefab";
         private const string ScenePath = SceneDir + "/ClockworkTimekeeper_MapRoaming.unity";
-        private const string DemoBackgroundPath = "Assets/BackGround/38_BackGround.png";
+        private const string HexTileResourceDir = "Assets/Resources/ClockworkTimekeeper/HexTiles";
+        private const string HexTileResourceFolder = "ClockworkTimekeeper/HexTiles";
 
-        private const float TargetVisualHeight = 2f;
-        private const float MapWidth = 22f;
-        private const float MapDepth = 12.375f;
-        private const float BackdropDistanceFromCamera = 80f;
+        private const float TargetVisualHeight = 2.35f;
+        private const float HexTileRadius = 1.8f;
+        private const int HexMainPathLength = 18;
+        private const int HexBranchCount = 6;
+        private const int HexMinBranchLength = 3;
+        private const int HexMaxBranchLength = 4;
+        private const int HexSoftRadiusLimit = 5;
+        private const int HexMinInteractionDistance = 4;
         private const string SpeedParameter = "Speed";
         private const string IdleStateName = "Idle";
         private const string WalkStateName = "Walk";
         private const float WalkSpeedThreshold = 0.05f;
         private const float TransitionDuration = 0.12f;
+        private static readonly Vector3 CameraOffset = new(0f, 5.8f, -9.5f);
+        private static readonly Vector3 CameraLookAtOffset = new(0f, 0.8f, 0f);
 
         [MenuItem("Card Battle/Exploration/Setup Clockwork Timekeeper Map Roaming Scene")]
         public static void RunAll()
@@ -55,6 +60,7 @@ namespace CardBattle.EditorTools
             Directory.CreateDirectory(PrefabDir);
             Directory.CreateDirectory(SceneDir);
             Directory.CreateDirectory(SettingsDir);
+            Directory.CreateDirectory(HexTileResourceDir);
 
             ImportCharacterAssets();
             Material material = CreateMaterial();
@@ -71,6 +77,8 @@ namespace CardBattle.EditorTools
         [MenuItem("Card Battle/Exploration/Build Map Roaming Scene")]
         public static void BuildQuarterViewDemoSceneMenu()
         {
+            ImportCharacterAssets();
+
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
             if (prefab == null)
             {
@@ -87,7 +95,7 @@ namespace CardBattle.EditorTools
 
         private static void ImportCharacterAssets()
         {
-            string[] paths = { ModelPath, IdlePath, WalkPath, BaseMapPath, NormalMapPath, MetallicMapPath, RoughnessMapPath, DemoBackgroundPath };
+            string[] paths = { ModelPath, IdlePath, WalkPath, BaseMapPath, NormalMapPath, MetallicMapPath, RoughnessMapPath };
             foreach (string path in paths)
             {
                 if (File.Exists(path))
@@ -95,6 +103,43 @@ namespace CardBattle.EditorTools
                 else
                     Debug.LogWarning($"[ClockworkTimekeeperSetup] Missing asset: {path}");
             }
+
+            if (Directory.Exists(HexTileResourceDir))
+            {
+                AssetDatabase.ImportAsset(
+                    HexTileResourceDir,
+                    ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ImportRecursive);
+                ConfigureHexTileTextureImporters();
+            }
+        }
+
+        private static void ConfigureHexTileTextureImporters()
+        {
+            foreach (string file in Directory.GetFiles(HexTileResourceDir, "*.png").OrderBy(path => path))
+            {
+                string assetPath = ToAssetPath(file);
+                if (AssetImporter.GetAtPath(assetPath) is not TextureImporter importer)
+                    continue;
+
+                importer.mipmapEnabled = true;
+                importer.filterMode = FilterMode.Trilinear;
+                importer.anisoLevel = 16;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                SetTextureImporterMipBias(importer, -0.35f);
+                importer.SaveAndReimport();
+            }
+        }
+
+        private static void SetTextureImporterMipBias(TextureImporter importer, float mipBias)
+        {
+            var serializedImporter = new SerializedObject(importer);
+            SerializedProperty textureSettings = serializedImporter.FindProperty("m_TextureSettings");
+            SerializedProperty mipBiasProperty = textureSettings?.FindPropertyRelative("mipBias");
+            if (mipBiasProperty == null)
+                return;
+
+            mipBiasProperty.floatValue = mipBias;
+            serializedImporter.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Material CreateMaterial()
@@ -251,6 +296,7 @@ namespace CardBattle.EditorTools
             ClockworkTimekeeperEditorUtils.SetBool(mover, "buildVisualWrapperOnAwake", true);
             ClockworkTimekeeperEditorUtils.SetBool(mover, "lockToGroundPlane", true);
             ClockworkTimekeeperEditorUtils.SetFloat(mover, "groundY", 0f);
+            ClockworkTimekeeperEditorUtils.SetBool(mover, "constrainToWorldBounds", false);
             ClockworkTimekeeperEditorUtils.SetFloat(mover, "animatorDampTime", 0f);
             ClockworkTimekeeperEditorUtils.SetFloat(mover, "walkStopGraceTime", 0.08f);
 
@@ -283,10 +329,12 @@ namespace CardBattle.EditorTools
 
             CreateLighting();
             Camera camera = CreateCamera(player.transform, rendererIndex);
-            CreateGround(camera);
+            CreateHexTileMap(player.transform);
 
             QuarterViewCameraFollow follow = camera.gameObject.AddComponent<QuarterViewCameraFollow>();
             ClockworkTimekeeperEditorUtils.SetObjectReference(follow, "target", player.transform);
+            ClockworkTimekeeperEditorUtils.SetVector3(follow, "offset", CameraOffset);
+            ClockworkTimekeeperEditorUtils.SetVector3(follow, "lookAtOffset", CameraLookAtOffset);
             ClockworkTimekeeperEditorUtils.SetBool(follow, "followTargetVertical", false);
             ClockworkTimekeeperEditorUtils.SetFloat(follow, "targetGroundY", 0f);
             follow.SetTarget(player.transform);
@@ -318,89 +366,27 @@ namespace CardBattle.EditorTools
             return camera;
         }
 
-        private static void CreateGround(Camera camera)
+        private static void CreateHexTileMap(Transform player)
         {
-            CreateScreenBackdrop(camera);
-            CreateGroundCollider();
-        }
-
-        private static void CreateScreenBackdrop(Camera camera)
-        {
-            GameObject backdrop = new("2D Screen Backdrop", typeof(MeshFilter), typeof(MeshRenderer), typeof(CameraFittedBackdrop));
-            backdrop.transform.SetParent(camera.transform, false);
-            backdrop.transform.localPosition = new Vector3(0f, 0f, BackdropDistanceFromCamera);
-            backdrop.transform.localRotation = Quaternion.identity;
-            backdrop.transform.localScale = Vector3.one;
-
-            MeshRenderer renderer = backdrop.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = CreateMapMaterial();
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            renderer.sortingOrder = -100;
-
-            backdrop.GetComponent<MeshFilter>().sharedMesh = CreateOrUpdateBackdropMesh();
-
-            CameraFittedBackdrop fittedBackdrop = backdrop.GetComponent<CameraFittedBackdrop>();
-            ClockworkTimekeeperEditorUtils.SetObjectReference(fittedBackdrop, "targetCamera", camera);
-            ClockworkTimekeeperEditorUtils.SetFloat(fittedBackdrop, "distanceFromCamera", BackdropDistanceFromCamera);
-            ClockworkTimekeeperEditorUtils.SetFloat(fittedBackdrop, "overscan", 1.02f);
-            ClockworkTimekeeperEditorUtils.SetBool(fittedBackdrop, "matchTextureAspect", true);
-        }
-
-        private static void CreateGroundCollider()
-        {
-            GameObject ground = new("GroundCollider", typeof(BoxCollider));
-            ground.transform.position = Vector3.zero;
-
-            BoxCollider collider = ground.GetComponent<BoxCollider>();
-            collider.center = new Vector3(0f, -0.08f, 0f);
-            collider.size = new Vector3(MapWidth, 0.16f, MapDepth);
-        }
-
-        private static Mesh CreateOrUpdateBackdropMesh()
-        {
-            Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(ScreenBackdropMeshPath);
-            if (mesh == null)
-            {
-                mesh = new Mesh { name = "ScreenBackdropMesh" };
-                AssetDatabase.CreateAsset(mesh, ScreenBackdropMeshPath);
-            }
-
-            ExplorationGeometryUtility.BuildUnitQuad(mesh);
-            EditorUtility.SetDirty(mesh);
-            return mesh;
-        }
-
-        private static Material CreateMapMaterial()
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ??
-                            Shader.Find("Unlit/Texture") ??
-                            Shader.Find("Sprites/Default");
-
-            Material material = AssetDatabase.LoadAssetAtPath<Material>(MapMaterialPath);
-            if (material == null)
-            {
-                material = new Material(shader)
-                {
-                    name = "MapRoamingGround_URPUnlit"
-                };
-                AssetDatabase.CreateAsset(material, MapMaterialPath);
-            }
-            else if (shader != null && material.shader != shader)
-            {
-                material.shader = shader;
-            }
-
-            Texture2D background = LoadTexture(DemoBackgroundPath);
-            if (background != null)
-                SetTextureIfPresent(material, "_BaseMap", background, "_MainTex");
-            else
-                Debug.LogWarning($"[ClockworkTimekeeperSetup] Background texture was not found at {DemoBackgroundPath}.");
-
-            SetColorIfPresent(material, "_BaseColor", Color.white, "_Color");
-            SetFloatIfPresent(material, "_Cull", 0f);
-            EditorUtility.SetDirty(material);
-            return material;
+            GameObject tileMap = new("Procedural Hex Tile Map", typeof(HexTileMapGenerator));
+            HexTileMapGenerator generator = tileMap.GetComponent<HexTileMapGenerator>();
+            ClockworkTimekeeperEditorUtils.SetString(generator, "tileResourceFolder", HexTileResourceFolder);
+            ClockworkTimekeeperEditorUtils.SetString(generator, "plainRoadTextureName", "hex_plain_road");
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "tileRadius", HexTileRadius);
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "plainRoadMeshScale", 1f);
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "interactionMeshScale", 1f);
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "plainRoadUvPadding", 0.04f);
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "interactionUvPadding", 0.04f);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "mainPathLength", HexMainPathLength);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "branchCount", HexBranchCount);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "minBranchLength", HexMinBranchLength);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "maxBranchLength", HexMaxBranchLength);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "softRadiusLimit", HexSoftRadiusLimit);
+            ClockworkTimekeeperEditorUtils.SetInt(generator, "minInteractionHexDistance", HexMinInteractionDistance);
+            ClockworkTimekeeperEditorUtils.SetFloat(generator, "interactionTileChance", 0f);
+            ClockworkTimekeeperEditorUtils.SetBool(generator, "generatePreviewInEditMode", true);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(generator, "playerTarget", player);
+            ClockworkTimekeeperEditorUtils.SetBool(generator, "placePlayerAtStart", true);
         }
 
         private static void CreateLighting()
@@ -579,6 +565,15 @@ namespace CardBattle.EditorTools
                 material.SetTexture(property, texture);
             else if (!string.IsNullOrEmpty(fallback) && material.HasProperty(fallback))
                 material.SetTexture(fallback, texture);
+        }
+
+        private static void SetTextureScaleIfPresent(Material material, Vector2 scale, params string[] properties)
+        {
+            foreach (string property in properties)
+            {
+                if (material.HasProperty(property))
+                    material.SetTextureScale(property, scale);
+            }
         }
 
         private static void SetFloatIfPresent(Material material, string property, float value)

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.BossCombatProfile
   bossId: 13
   displayName: "13\uAD11\uB561"
+  encounterRank: 2
   maxHp: 92
   maxPressure: 35
   accentColor: {r: 0.82, g: 0.26, b: 0.42, a: 1}
@@ -23,6 +24,12 @@ MonoBehaviour:
   signatureCardB: {fileID: -6894402780853681277, guid: 9a610c34a0a524748abf12a1b6f75634, type: 3}
   signatureCardChance: 0.76
   signaturePairChance: 0.22
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: 13_piercing_arrow
     displayName: "\uC77C\uC810\uAD00\uD1B5"
@@ -48,6 +55,13 @@ MonoBehaviour:
     seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +3, \uBA85\uC911 \uC2DC
       HP \uCD94\uAC00 2 / \uBD88\uBC1C: \uACF5\uACA9 -1"
     icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
   - moveId: 13_three_arrow
     displayName: "\uC0BC\uC5F0\uD30C\uB9C8"
     moveType: 0
@@ -72,6 +86,13 @@ MonoBehaviour:
     seotdaRule: "3\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
       HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
     icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
   - moveId: 13_bow_step
     displayName: "\uAD81\uC2E0\uD758\uB9AC\uAE30"
     moveType: 1
@@ -96,6 +117,13 @@ MonoBehaviour:
     seotdaRule: "\uAC11\uC624 \uC774\uD558: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
       \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
     icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
   - moveId: 13_exorcism
     displayName: "\uC77C\uC0BC\uBA78\uAD11"
     moveType: 2
@@ -122,3 +150,10 @@ MonoBehaviour:
       \uC2DC HP \uCD94\uAC00 4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2
       / \uBD88\uBC1C: \uC2A4\uD0AC -4"
     icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
