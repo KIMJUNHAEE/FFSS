@@ -278,135 +278,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5204800391266037658, guid: f30cb176a64f57943b2ae513783617a6, type: 3}
   m_PrefabInstance: {fileID: 503973406}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1055366934
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1055366938}
-  - component: {fileID: 1055366937}
-  - component: {fileID: 1055366936}
-  - component: {fileID: 1055366935}
-  - component: {fileID: 1055366933}
-  m_Layer: 0
-  m_Name: 2D Screen Backdrop
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!65 &1055366935
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055366934}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 22, y: 0.16, z: 12.375}
-  m_Center: {x: 0, y: -0.08, z: 0}
---- !u!23 &1055366936
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055366934}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 3217e139d28fca84abecd6fdaf182b22, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1055366937
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055366934}
-  m_Mesh: {fileID: 4300000, guid: 6aa0eb3b991ba6241ab8e0a9c1d5853f, type: 2}
---- !u!4 &1055366938
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055366934}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1055366933
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055366934}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5eb5b9312a440a084c695cfc8594ce0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.CameraFittedBackdrop
-  targetCamera: {fileID: 1457999031}
-  distanceFromCamera: 80
-  overscan: 1.02
-  matchTextureAspect: 1
 --- !u!1 &1457999027
 GameObject:
   m_ObjectHideFlags: 0
@@ -437,11 +308,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 39842c0cc900c614bb0197c00dc90cc6, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.QuarterViewCameraFollow
   target: {fileID: 503973407}
-  offset: {x: 6, y: 7, z: -6}
-  lookAtOffset: {x: 0, y: 1, z: 0}
+  offset: {x: 0, y: 5.8, z: -9.5}
+  lookAtOffset: {x: 0, y: 0.8, z: 0}
   positionDamping: 10
   rotationDamping: 12
   followTargetVertical: 0
@@ -456,7 +327,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -557,14 +428,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1457999027}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.27984816, y: -0.3647052, z: 0.1159169, w: 0.8804763}
-  m_LocalPosition: {x: 6, y: 7, z: -6}
+  m_LocalRotation: {x: 0.23987682, y: 0, z: 0, w: 0.97080333}
+  m_LocalPosition: {x: 0, y: 5.8, z: -9.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1848222900
+  m_LocalEulerAnglesHint: {x: 27.758541, y: 0, z: 0}
+--- !u!1 &2400000000
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -572,22 +443,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1848222901}
-  - component: {fileID: 1848222902}
+  - component: {fileID: 2400000001}
+  - component: {fileID: 2400000002}
   m_Layer: 0
-  m_Name: GroundCollider
+  m_Name: Procedural Hex Tile Map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1848222901
+--- !u!4 &2400000001
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1848222900}
+  m_GameObject: {fileID: 2400000000}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -596,33 +467,48 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1848222902
-BoxCollider:
+--- !u!114 &2400000002
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1848222900}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
+  m_GameObject: {fileID: 2400000000}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 22, y: 0.16, z: 12.375}
-  m_Center: {x: 0, y: -0.08, z: 0}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f4e13f752a64df3a72ee54bb1222042, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.HexTileMapGenerator
+  tileResourceFolder: ClockworkTimekeeper/HexTiles
+  plainRoadTextureName: hex_plain_road
+  interactionTextureNames:
+  - hex_heart_plaza
+  - hex_spade_plaza
+  - hex_club_plaza
+  - hex_diamond_plaza
+  tileRadius: 1.8
+  tileY: -0.03
+  plainRoadMeshScale: 1
+  interactionMeshScale: 1
+  plainRoadUvPadding: 0.04
+  interactionUvPadding: 0.04
+  randomSeed: 0
+  mainPathLength: 18
+  branchCount: 6
+  minBranchLength: 3
+  maxBranchLength: 4
+  softRadiusLimit: 5
+  minInteractionHexDistance: 4
+  interactionTileChance: 0
+  generateOnStart: 1
+  generatePreviewInEditMode: 1
+  playerTarget: {fileID: 503973407}
+  placePlayerAtStart: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 503973406}
-  - {fileID: 1055366938}
   - {fileID: 334177028}
   - {fileID: 1457999032}
-  - {fileID: 1848222901}
+  - {fileID: 2400000001}
