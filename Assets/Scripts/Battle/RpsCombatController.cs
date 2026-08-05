@@ -92,13 +92,15 @@ namespace CardBattle
 
         private readonly struct SeotdaEffect
         {
-            public SeotdaEffect(int hpDamage, int breakDamage, string label)
+            public SeotdaEffect(int powerDelta, int hpDamage, int breakDamage, string label)
             {
+                PowerDelta = powerDelta;
                 HpDamage = hpDamage;
                 BreakDamage = breakDamage;
                 Label = label;
             }
 
+            public int PowerDelta { get; }
             public int HpDamage { get; }
             public int BreakDamage { get; }
             public string Label { get; }
@@ -712,17 +714,18 @@ namespace CardBattle
             var kind = pendingEnemyIntent;
             var move = pendingEnemyMove;
             var values = CalculateEnemyNumbers();
-            int power = move != null
+            int basePower = move != null
                 ? move.power
                 : kind == IntentKind.Defend ? values.Defense : values.Attack;
             int breakPower = move != null ? move.breakPower : values.BreakPower;
             string sourceName = move != null && !string.IsNullOrWhiteSpace(move.displayName)
                 ? move.displayName
                 : values.RankName;
-            string formula = move != null ? $"{sourceName} 기본 수치 {power}" : kind == IntentKind.Defend
-                ? values.DefenseFormula
-                : values.AttackFormula;
             var effect = BuildEnemySeotdaEffect(hand, kind, move);
+            int power = Mathf.Max(1, basePower + effect.PowerDelta);
+            string formula = move != null
+                ? BuildRevealedPowerLine(kind, basePower, power, effect)
+                : kind == IntentKind.Defend ? values.DefenseFormula : values.AttackFormula;
             hasPendingEnemyIntent = false;
 
             return new CombatIntent(enemyDisplayName, kind, sourceName, power, breakPower, formula,
@@ -773,13 +776,26 @@ namespace CardBattle
 
             enemyIntentTurn++;
             var candidates = new List<BossMoveDefinition>();
+            var cadenceMoves = new List<BossMoveDefinition>();
             foreach (var move in bossProfile.moves)
             {
                 if (move == null || move.minimumTurn > enemyIntentTurn) continue;
                 string id = MoveId(move);
                 if (enemyMoveReadyTurns.TryGetValue(id, out int readyTurn) && enemyIntentTurn < readyTurn) continue;
+
+                if (move.cadenceTurns > 0)
+                {
+                    int firstTurn = Mathf.Max(move.minimumTurn, move.cadenceOffset > 0 ? move.cadenceOffset : move.minimumTurn);
+                    if (enemyIntentTurn >= firstTurn && (enemyIntentTurn - firstTurn) % move.cadenceTurns == 0)
+                        cadenceMoves.Add(move);
+                    continue;
+                }
+
                 candidates.Add(move);
             }
+
+            if (cadenceMoves.Count > 0)
+                candidates = cadenceMoves;
 
             if (candidates.Count > 1 && !string.IsNullOrEmpty(lastEnemyMoveId))
                 candidates.RemoveAll(move => MoveId(move) == lastEnemyMoveId);
@@ -787,7 +803,8 @@ namespace CardBattle
             if (candidates.Count == 0)
             {
                 foreach (var move in bossProfile.moves)
-                    if (move != null && move.minimumTurn <= enemyIntentTurn) candidates.Add(move);
+                    if (move != null && move.minimumTurn <= enemyIntentTurn && move.cadenceTurns == 0)
+                        candidates.Add(move);
             }
 
             if (candidates.Count == 0) return null;
@@ -872,9 +889,6 @@ namespace CardBattle
 
             var move = pendingEnemyMove;
             int power = move != null ? move.power : pendingEnemyIntent == IntentKind.Defend ? values.Defense : values.Attack;
-            string formula = move != null ? $"기본 수치 {power}" : pendingEnemyIntent == IntentKind.Defend
-                ? values.DefenseFormula
-                : values.AttackFormula;
             string label = ActionLabel(pendingEnemyIntent);
             string moveName = move != null && !string.IsNullOrWhiteSpace(move.displayName) ? move.displayName : $"다음 {label}";
             string telegraph = move != null && !string.IsNullOrWhiteSpace(move.telegraph)
@@ -887,14 +901,14 @@ namespace CardBattle
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
             if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>";
             if (enemyIntentTooltip)
-                enemyIntentTooltip.SetContent(moveName, $"{label} {power}", BuildEnemyIntentTooltipBody(pendingEnemyIntent, formula, move));
+                enemyIntentTooltip.SetContent(moveName, $"{label} {power}", BuildEnemyIntentTooltipBody(pendingEnemyIntent, move));
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
 
             // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
             RefreshHandPreview();
         }
 
-        private string BuildEnemyIntentTooltipBody(IntentKind kind, string formula, BossMoveDefinition move)
+        private string BuildEnemyIntentTooltipBody(IntentKind kind, BossMoveDefinition move)
         {
             string description = move != null && !string.IsNullOrWhiteSpace(move.description)
                 ? move.description
@@ -902,7 +916,10 @@ namespace CardBattle
             string rule = move != null && !string.IsNullOrWhiteSpace(move.seotdaRule)
                 ? move.seotdaRule
                 : "섯다패 공개 후 추가 효과가 정해져.";
-            return $"<color=#D6DEEA>{description}</color>\n\n<color=#AFC8E8>{formula}</color>\n<color=#FFD989><b>섯다 추가 효과</b></color>\n{rule}";
+            string timing = move != null && move.cadenceTurns > 0
+                ? $"\n<color=#AFC8E8>주기: {move.cadenceTurns}턴마다 준비</color>"
+                : string.Empty;
+            return $"<color=#D6DEEA>{description}</color>{timing}\n\n<color=#FFD989><b>패 공개 시 변주</b></color>\n{rule}";
         }
 
         private void ShowPlayerSkillDetail()
@@ -923,44 +940,61 @@ namespace CardBattle
 
         private SeotdaEffect BuildEnemySeotdaEffect(SeotdaHandResult hand, IntentKind kind, BossMoveDefinition move)
         {
-            if (!hand.IsValid)
-                return new SeotdaEffect(0, 0, "섯다 효과 없음");
+            if (!hand.IsValid || move == null || move.seotdaCondition == BossSeotdaCondition.None)
+                return new SeotdaEffect(0, 0, 0, "패 변주 없음");
 
-            int conditionBonus = move != null && move.seotdaTierThreshold > 0 && hand.Tier >= move.seotdaTierThreshold
-                ? move.seotdaSuccessBonus
-                : 0;
-
-            if (kind == IntentKind.Attack || kind == IntentKind.Skill)
+            bool triggered = BossSeotdaRuleEvaluator.Matches(hand, move);
+            if (!triggered)
             {
-                int bonusDamage = Mathf.Clamp(hand.AttackBias + hand.Tier / 3 + conditionBonus, 0, 12);
-                if (bonusDamage > 0)
-                    return new SeotdaEffect(bonusDamage, 0, $"{hand.DisplayName}: 명중 시 추가 피해 {bonusDamage}");
+                int missDelta = move.seotdaFailurePowerDelta;
+                string missText = missDelta < 0
+                    ? $"{hand.DisplayName}: 조건 불발 · {ActionLabel(kind)} {-missDelta} 감소"
+                    : $"{hand.DisplayName}: 조건 불발";
+                return new SeotdaEffect(missDelta, 0, 0, missText);
             }
 
-            if (kind == IntentKind.Defend)
-            {
-                int bonusBreak = Mathf.Clamp(hand.DefenseBias + hand.Tier / 3 + conditionBonus, 0, 12);
-                if (bonusBreak > 0)
-                    return new SeotdaEffect(0, bonusBreak, $"{hand.DisplayName}: 방어 성공 시 보조 게이지 +{bonusBreak}");
-            }
+            var changes = new List<string>();
+            if (move.seotdaPowerBonus != 0)
+                changes.Add($"{ActionLabel(kind)} {(move.seotdaPowerBonus > 0 ? "+" : string.Empty)}{move.seotdaPowerBonus}");
+            if (move.seotdaHpDamage > 0)
+                changes.Add($"성공 시 HP 추가 {move.seotdaHpDamage}");
+            if (move.seotdaBreakDamage > 0)
+                changes.Add($"성공 시 얇은 게이지 +{move.seotdaBreakDamage}");
 
-            return new SeotdaEffect(0, 0, $"{hand.DisplayName}: 추가 효과 없음");
+            string detail = changes.Count > 0 ? string.Join(" · ", changes) : "조건 발동";
+            return new SeotdaEffect(move.seotdaPowerBonus, move.seotdaHpDamage, move.seotdaBreakDamage,
+                $"{hand.DisplayName}: {detail}");
         }
 
         private void ApplyEnemySeotdaEffect(ref CombatOutcome outcome, CombatIntent enemyIntent)
         {
             if (!enemyIntent.HasEffect) return;
 
-            if (enemyIntent.IsOffense && outcome.DamageToPlayer > 0 && enemyIntent.EffectHpDamage > 0)
+            bool enemySucceeded = enemyIntent.IsOffense
+                ? outcome.DamageToPlayer > 0
+                : enemyIntent.IsDefense && outcome.BreakToPlayer > 0;
+            if (!enemySucceeded) return;
+
+            if (enemyIntent.EffectHpDamage > 0)
             {
                 outcome.DamageToPlayer += enemyIntent.EffectHpDamage;
-                outcome.Message += $"\n섯다 효과: {enemyIntent.EffectLabel}.";
             }
-            else if (enemyIntent.Kind == IntentKind.Defend && outcome.BreakToPlayer > 0 && enemyIntent.EffectBreakDamage > 0)
+            if (enemyIntent.EffectBreakDamage > 0)
             {
                 outcome.BreakToPlayer += enemyIntent.EffectBreakDamage;
-                outcome.Message += $"\n섯다 효과: {enemyIntent.EffectLabel}.";
             }
+
+            outcome.Message += $"\n패 변주: {enemyIntent.EffectLabel}.";
+        }
+
+        private static string BuildRevealedPowerLine(IntentKind kind, int basePower, int finalPower, SeotdaEffect effect)
+        {
+            string label = ActionLabel(kind);
+            if (basePower == finalPower)
+                return $"예고 {label} {basePower} · {effect.Label}";
+
+            string delta = finalPower > basePower ? $"+{finalPower - basePower}" : $"-{basePower - finalPower}";
+            return $"예고 {label} {basePower} · 패 변주 {delta} → <b>{finalPower}</b>";
         }
 
         private void StartNextPlayerHand()

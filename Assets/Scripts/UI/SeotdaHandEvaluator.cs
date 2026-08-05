@@ -5,13 +5,18 @@ namespace CardBattle
 {
     public readonly struct SeotdaHandResult
     {
-        public SeotdaHandResult(string displayName, int tier, int attackBias, int defenseBias, bool isSpecial)
+        public SeotdaHandResult(string displayName, int tier, int attackBias, int defenseBias, bool isSpecial,
+            int monthA, int monthB, bool isGwangA, bool isGwangB)
         {
             DisplayName = displayName;
             Tier = tier;
             AttackBias = attackBias;
             DefenseBias = defenseBias;
             IsSpecial = isSpecial;
+            MonthA = monthA;
+            MonthB = monthB;
+            IsGwangA = isGwangA;
+            IsGwangB = isGwangB;
         }
 
         public string DisplayName { get; }
@@ -19,7 +24,18 @@ namespace CardBattle
         public int AttackBias { get; }
         public int DefenseBias { get; }
         public bool IsSpecial { get; }
+        public int MonthA { get; }
+        public int MonthB { get; }
+        public bool IsGwangA { get; }
+        public bool IsGwangB { get; }
         public bool IsValid => !string.IsNullOrEmpty(DisplayName);
+        public bool IsPair => IsValid && MonthA == MonthB;
+        public bool IsGwangPair => IsValid && IsGwangA && IsGwangB && MonthA != MonthB;
+
+        public bool ContainsMonth(int month) => MonthA == month || MonthB == month;
+
+        public bool HasMonths(int monthA, int monthB) =>
+            (MonthA == monthA && MonthB == monthB) || (MonthA == monthB && MonthB == monthA);
     }
 
     public static class SeotdaHandEvaluator
@@ -52,28 +68,35 @@ namespace CardBattle
             if (g1 && g2 && m1 != m2)
             {
                 var gwangPair = new HashSet<int> { m1, m2 };
-                if (gwangPair.SetEquals(new[] { 3, 8 })) return new SeotdaHandResult("38광땡", 9, 5, 2, true);
-                if (gwangPair.SetEquals(new[] { 1, 8 })) return new SeotdaHandResult("18광땡", 8, 4, 2, true);
-                if (gwangPair.SetEquals(new[] { 1, 3 })) return new SeotdaHandResult("13광땡", 7, 3, 2, true);
+                if (gwangPair.SetEquals(new[] { 3, 8 })) return Result("38광땡", 9, 5, 2, true, m1, m2, g1, g2);
+                if (gwangPair.SetEquals(new[] { 1, 8 })) return Result("18광땡", 8, 4, 2, true, m1, m2, g1, g2);
+                if (gwangPair.SetEquals(new[] { 1, 3 })) return Result("13광땡", 7, 3, 2, true, m1, m2, g1, g2);
             }
 
             if (m1 == m2)
-                return new SeotdaHandResult($"{m1}땡", 5 + Mathf.Clamp(m1 / 3, 0, 3), 2, 3, true);
+                return Result($"{m1}땡", 5 + Mathf.Clamp(m1 / 3, 0, 3), 2, 3, true, m1, m2, g1, g2);
 
             var months = new HashSet<int> { m1, m2 };
-            if (months.SetEquals(new[] { 1, 2 })) return new SeotdaHandResult("알리", 5, 2, 2, true);
-            if (months.SetEquals(new[] { 1, 4 })) return new SeotdaHandResult("독사", 4, 2, 1, true);
-            if (months.SetEquals(new[] { 1, 9 })) return new SeotdaHandResult("구삥", 4, 1, 2, true);
-            if (months.SetEquals(new[] { 1, 10 })) return new SeotdaHandResult("장삥", 4, 1, 2, true);
-            if (months.SetEquals(new[] { 4, 6 })) return new SeotdaHandResult("세륙", 4, 2, 1, true);
+            if (months.SetEquals(new[] { 1, 2 })) return Result("알리", 5, 2, 2, true, m1, m2, g1, g2);
+            if (months.SetEquals(new[] { 1, 4 })) return Result("독사", 4, 2, 1, true, m1, m2, g1, g2);
+            if (months.SetEquals(new[] { 1, 9 })) return Result("구삥", 4, 1, 2, true, m1, m2, g1, g2);
+            if (months.SetEquals(new[] { 1, 10 })) return Result("장삥", 4, 1, 2, true, m1, m2, g1, g2);
+            if (months.SetEquals(new[] { 4, 6 })) return Result("세륙", 4, 2, 1, true, m1, m2, g1, g2);
 
             int sum = (m1 + m2) % 10;
             return sum switch
             {
-                9 => new SeotdaHandResult("갑오", 3, 1, 1, false),
-                0 => new SeotdaHandResult("망통", 0, 0, 0, false),
-                _ => new SeotdaHandResult($"{sum}끗", Mathf.Clamp(sum / 3, 1, 3), 0, 1, false),
+                9 => Result("갑오", 3, 1, 1, false, m1, m2, g1, g2),
+                0 => Result("망통", 0, 0, 0, false, m1, m2, g1, g2),
+                _ => Result($"{sum}끗", Mathf.Clamp(sum / 3, 1, 3), 0, 1, false, m1, m2, g1, g2),
             };
+        }
+
+        private static SeotdaHandResult Result(string name, int tier, int attackBias, int defenseBias,
+            bool isSpecial, int monthA, int monthB, bool isGwangA, bool isGwangB)
+        {
+            return new SeotdaHandResult(name, tier, attackBias, defenseBias, isSpecial,
+                monthA, monthB, isGwangA, isGwangB);
         }
     }
 }

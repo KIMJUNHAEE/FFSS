@@ -25,53 +25,101 @@ MonoBehaviour:
   signaturePairChance: 0.24
   moves:
   - moveId: 18_ring_strike
-    displayName: "\uAE08\uB95C \uD0C0\uACA9"
+    displayName: "\uAE08\uB95C \uC555\uC9C4"
     moveType: 0
-    telegraph: "\uD669\uAE08 \uACE0\uB9AC\uB97C \uD68C\uC804\uC2DC\uCF1C \uACE7\uAC8C
-      \uBC00\uC5B4\uBD99\uC5EC."
-    description: "\uC548\uC815\uC801\uC778 \uC815\uBA74 \uACF5\uACA9\uC73C\uB85C
-      \uD50C\uB808\uC774\uC5B4\uC758 \uACF5\uACA9 \uC120\uD0DD\uC744 \uACAC\uC81C\uD574."
+    telegraph: "\uC77C\uC6D4\uC758 \uAE08\uB95C\uC744 \uC55E\uC73C\uB85C \uAD74\uB824
+      \uC790\uC138\uB97C \uBB34\uB108\uB728\uB824."
+    description: "HP\uBCF4\uB2E4 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C \uD754\uB4DC\uB294
+      \uACAC\uC81C \uACF5\uACA9\uC774\uC57C."
     power: 12
-    breakPower: 5
+    breakPower: 6
     weight: 4
     minimumTurn: 1
     cooldownTurns: 0
-    seotdaTierThreshold: 6
-    seotdaSuccessBonus: 2
-    seotdaRule: "\uB192\uC740 \uB561\uC774\uBA74 \uBA85\uC911 \uCD94\uAC00 \uD53C\uD574
-      +2"
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 1
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 2
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
     icon: {fileID: 0}
   - moveId: 18_eight_gate
     displayName: "\uD314\uBB38 \uC218\uD638"
     moveType: 1
-    telegraph: "\uC5EC\uB35F \uBB38\uC591\uC774 \uACB9\uCE58\uBA70 \uACF5\uACA9\uB85C\uB97C
-      \uB2EB\uC544."
-    description: "\uBC29\uC5B4 \uC218\uCE58\uAC00 \uB192\uACE0 \uC131\uACF5 \uC2DC
-      \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C \uD06C\uAC8C \uC555\uBC15\uD574."
-    power: 14
-    breakPower: 8
-    weight: 3.5
+    telegraph: "\uD314\uC6D4\uC758 \uBB38\uC591\uC774 \uACB9\uCE58\uBA70 \uACF5\uACA9\uB85C\uB97C
+      \uC644\uC804\uD788 \uB2EB\uC544."
+    description: "\uC774 \uBCF4\uC2A4\uC758 \uD575\uC2EC \uBC29\uC5B4. \uC5B4\uC911\uAC04\uD55C
+      \uACF5\uACA9\uC740 \uB9C9\uD78C \uB4A4 \uD070 \uC555\uBC15\uC73C\uB85C \uB3CC\uC544\uC640."
+    power: 15
+    breakPower: 9
+    weight: 3.6
     minimumTurn: 1
     cooldownTurns: 1
-    seotdaTierThreshold: 5
-    seotdaSuccessBonus: 3
-    seotdaRule: "\uC54C\uB9AC \uC774\uC0C1\uC774\uBA74 \uBC29\uC5B4 \uC131\uACF5
-      \uAC8C\uC774\uC9C0 \uD53C\uD574 +3"
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 8
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 4
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4"
+    icon: {fileID: 0}
+  - moveId: 18_low_orbit
+    displayName: "\uC800\uD328\uC724\uD68C"
+    moveType: 1
+    telegraph: "\uB0AE\uC740 \uD328\uB97C \uAE08\uB95C \uC548\uCABD\uC73C\uB85C \uC228\uACA8
+      \uBC29\uC5B4\uC758 \uCD95\uC73C\uB85C \uBC14\uAFD4."
+    description: "\uC57D\uD55C \uC12F\uB2E4\uD328\uC77C\uC218\uB85D \uB2E8\uB2E8\uD574\uC9C0\uB294
+      \uC5ED\uC804 \uBC29\uC5B4\uB77C\uC11C, \uACF5\uAC1C \uD328\uB97C \uBCF4\uACE0
+      \uACB0\uACFC\uAC00 \uD06C\uAC8C \uB2EC\uB77C\uC838."
+    power: 13
+    breakPower: 7
+    weight: 2.7
+    minimumTurn: 1
+    cooldownTurns: 1
+    cadenceTurns: 0
+    cadenceOffset: 0
+    seotdaCondition: 3
+    conditionValueA: 3
+    conditionValueB: 0
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 3
+    seotdaFailurePowerDelta: 0
+    seotdaRule: "\uAC11\uC624 \uC774\uD558: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
     icon: {fileID: 0}
   - moveId: 18_seal
-    displayName: "\uC77C\uD314 \uBD09\uC778\uC9C4"
+    displayName: "\uC77C\uD314\uBD09\uC778"
     moveType: 2
-    telegraph: "\uC77C\uAD11\uACFC \uD314\uAD11\uC744 \uC787\uB294 \uBD09\uC778\uC9C4\uC744
-      \uC804\uAC1C\uD574."
-    description: "\uACF5\uACA9\uACFC \uAC8C\uC774\uC9C0 \uC555\uBC15\uC744 \uD568\uAED8
-      \uAC70\uB294 \uC758\uC2DD\uD615 \uD544\uC0B4\uAE30\uC57C."
-    power: 16
-    breakPower: 9
-    weight: 1.4
-    minimumTurn: 2
+    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
+      \uC77C\uC6D4\uACFC \uD314\uC6D4\uC758 \uBD09\uC778\uC744 \uB9DE\uCDB0."
+    description: "\uD53C\uD574\uB7C9\uBCF4\uB2E4 \uC2A4\uD134 \uC9C1\uC804\uAE4C\uC9C0
+      \uBAB0\uC544\uBD99\uC774\uB294 \uBD09\uC778\uAE30\uC57C. \uC815\uD655\uD55C
+      \uC77C\uD314 \uC870\uD569\uC744 \uACBD\uACC4\uD574\uC57C \uD574."
+    power: 17
+    breakPower: 10
+    weight: 1
+    minimumTurn: 3
     cooldownTurns: 2
-    seotdaTierThreshold: 8
-    seotdaSuccessBonus: 4
-    seotdaRule: "18\uAD11\uB561 \uC774\uC0C1\uC774\uBA74 \uBA85\uC911 \uCD94\uAC00
-      \uD53C\uD574 +4"
+    cadenceTurns: 4
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 1
+    conditionValueB: 8
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaBreakDamage: 6
+    seotdaFailurePowerDelta: -2
+    seotdaRule: "\uC815\uD655\uD788 1\uC6D4+8\uC6D4: \uC2A4\uD0AC +2, \uBA85\uC911
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 6 / \uBD88\uBC1C: \uC2A4\uD0AC
+      -2"
     icon: {fileID: 0}
