@@ -6,7 +6,8 @@ namespace CardBattle
     public readonly struct SeotdaHandResult
     {
         public SeotdaHandResult(string displayName, int tier, int attackBias, int defenseBias, bool isSpecial,
-            int monthA, int monthB, bool isGwangA, bool isGwangB)
+            int monthA, int monthB, bool isGwangA, bool isGwangB,
+            OpponentSeotdaCardDefinition signatureCard = null, bool signatureTriggered = false)
         {
             DisplayName = displayName;
             Tier = tier;
@@ -17,6 +18,8 @@ namespace CardBattle
             MonthB = monthB;
             IsGwangA = isGwangA;
             IsGwangB = isGwangB;
+            SignatureCard = signatureCard;
+            SignatureTriggered = signatureTriggered;
         }
 
         public string DisplayName { get; }
@@ -28,6 +31,9 @@ namespace CardBattle
         public int MonthB { get; }
         public bool IsGwangA { get; }
         public bool IsGwangB { get; }
+        public OpponentSeotdaCardDefinition SignatureCard { get; }
+        public bool SignatureTriggered { get; }
+        public bool HasSignatureCard => SignatureCard != null;
         public bool IsValid => !string.IsNullOrEmpty(DisplayName);
         public bool IsPair => IsValid && MonthA == MonthB;
         public bool IsGwangPair => IsValid && IsGwangA && IsGwangB && MonthA != MonthB;
@@ -36,6 +42,16 @@ namespace CardBattle
 
         public bool HasMonths(int monthA, int monthB) =>
             (MonthA == monthA && MonthB == monthB) || (MonthA == monthB && MonthB == monthA);
+
+        public SeotdaHandResult WithSignature(OpponentSeotdaCardDefinition definition, bool triggered)
+        {
+            if (definition == null) return this;
+            int tier = Tier + (triggered ? definition.TierBonus : 0);
+            string state = triggered ? "발동" : "대기";
+            string name = $"{definition.DisplayName} [{state}] · {DisplayName}";
+            return new SeotdaHandResult(name, tier, AttackBias, DefenseBias, true, MonthA, MonthB,
+                IsGwangA, IsGwangB, definition, triggered);
+        }
     }
 
     public static class SeotdaHandEvaluator
@@ -50,7 +66,7 @@ namespace CardBattle
             if (parts.Length < 3) return false;
             if (!int.TryParse(parts[0], out month)) return false;
 
-            isGwang = parts[^1] == "1" && (month == 1 || month == 3 || month == 8);
+            isGwang = parts[2] == "1" && (month == 1 || month == 3 || month == 8);
             return true;
         }
 
@@ -60,11 +76,40 @@ namespace CardBattle
             return result.IsValid ? result.DisplayName : string.Empty;
         }
 
-        public static SeotdaHandResult EvaluateDetails(Sprite a, Sprite b)
+        public static SeotdaHandResult EvaluateDetails(Sprite a, Sprite b) => EvaluateDetails(a, b, null, null);
+
+        public static SeotdaHandResult EvaluateDetails(Sprite a, Sprite b,
+            OpponentSeotdaCardDefinition signatureDefinition, Sprite signatureSprite)
         {
-            if (!TryParse(a, out var m1, out var g1) || !TryParse(b, out var m2, out var g2))
+            if (!TryParseCard(a, signatureDefinition, signatureSprite, out int m1, out bool g1, out bool signatureA) ||
+                !TryParseCard(b, signatureDefinition, signatureSprite, out int m2, out bool g2, out bool signatureB))
                 return default;
 
+            var result = EvaluateParsed(m1, m2, g1, g2);
+            if (!result.IsValid || signatureDefinition == null || (!signatureA && !signatureB)) return result;
+
+            int otherMonth = signatureA ? m2 : m1;
+            bool otherCardIsGwang = signatureA ? g2 : g1;
+            bool triggered = signatureDefinition.IsTriggered(result, otherMonth, otherCardIsGwang);
+            return result.WithSignature(signatureDefinition, triggered);
+        }
+
+        private static bool TryParseCard(Sprite sprite, OpponentSeotdaCardDefinition signatureDefinition,
+            Sprite signatureSprite, out int month, out bool isGwang, out bool isSignature)
+        {
+            isSignature = signatureDefinition != null && signatureSprite != null && sprite == signatureSprite;
+            if (isSignature)
+            {
+                month = signatureDefinition.Month;
+                isGwang = signatureDefinition.IsGwang;
+                return true;
+            }
+
+            return TryParse(sprite, out month, out isGwang);
+        }
+
+        private static SeotdaHandResult EvaluateParsed(int m1, int m2, bool g1, bool g2)
+        {
             if (g1 && g2 && m1 != m2)
             {
                 var gwangPair = new HashSet<int> { m1, m2 };

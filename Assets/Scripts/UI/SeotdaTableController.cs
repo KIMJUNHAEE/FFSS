@@ -32,7 +32,6 @@ namespace CardBattle
         [SerializeField] private float retractDuration = 0.28f;
 
         private Coroutine drawRoutine;
-
         public SeotdaHandResult LastResult { get; private set; }
 
         public void ShowEnemyHandAnimated(Action<SeotdaHandResult> onComplete)
@@ -231,6 +230,19 @@ namespace CardBattle
             Shuffle(pool);
             result.AddRange(pool.Take(Mathf.Max(0, count - result.Count)));
             return result;
+        }
+
+        public void ConfigureBossProfile(BossCombatProfile profile)
+        {
+            if (profile == null) return;
+
+            signatureSprites.Clear();
+            if (profile.signatureCardA != null) signatureSprites.Add(profile.signatureCardA);
+            if (profile.signatureCardB != null && profile.signatureCardB != profile.signatureCardA)
+                signatureSprites.Add(profile.signatureCardB);
+            signatureCardChance = profile.signatureCardChance;
+            signaturePairChance = profile.signaturePairChance;
+
         }
 
         private static void Shuffle<T>(IList<T> items)

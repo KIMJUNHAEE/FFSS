@@ -55,7 +55,7 @@ namespace CardBattle
         {
             public CombatIntent(string owner, IntentKind kind, string sourceName, int power, int breakPower,
                 string formula, int effectHpDamage = 0, int effectBreakDamage = 0, string effectLabel = "",
-                float weaknessRatio = 0f)
+                float weaknessRatio = 0f, float penetrationThreshold = 0f, float weaknessBreakBonus = 0f)
             {
                 Owner = owner;
                 Kind = kind;
@@ -67,6 +67,8 @@ namespace CardBattle
                 EffectBreakDamage = effectBreakDamage;
                 EffectLabel = effectLabel;
                 WeaknessRatio = weaknessRatio;
+                PenetrationThreshold = penetrationThreshold;
+                WeaknessBreakBonus = weaknessBreakBonus;
             }
 
             public string Owner { get; }
@@ -88,6 +90,8 @@ namespace CardBattle
             /// 갖지 않음). 0이면 약점 비활성.</summary>
             public float WeaknessRatio { get; }
             public bool HasWeakness => WeaknessRatio > 0f;
+            public float PenetrationThreshold { get; }
+            public float WeaknessBreakBonus { get; }
         }
 
         private readonly struct SeotdaEffect
@@ -117,6 +121,7 @@ namespace CardBattle
 
         [Header("기본 스탯")]
         public BossCombatProfile bossProfile;
+        public EquipmentLoadout equipmentLoadout;
         [SerializeField] private int playerMaxHp = 90;
         [SerializeField] private int enemyMaxHp = 90;
         [SerializeField] private int playerMaxBreak = 36;
@@ -135,6 +140,11 @@ namespace CardBattle
         [SerializeField] private int skillBaseBonus = 10;
         [SerializeField] private int skillTierBonus = 3;
         [SerializeField] private int baseBreakPower = 5;
+        [SerializeField] private int aceAllPowerBonus = 2;
+        [SerializeField] private int courtCardSkillBonus = 1;
+        [SerializeField] private int redJokerAttackBonus = 3;
+        [SerializeField] private int blackJokerDefenseBonus = 3;
+        [SerializeField] private int jokerSkillBonus = 2;
 
         [Header("약점 속성 (포커 무늬, 원페어 이상일 때 손패 5장 중 약점 무늬 비율로 격파 배율/관통 결정)")]
         public CardSuit enemyWeakness = CardSuit.None;
@@ -234,6 +244,8 @@ namespace CardBattle
         private void Start()
         {
             Time.timeScale = 1f;
+            ResolveEquipmentLoadout();
+            ApplyEquipmentBaseStats();
             ApplyBossProfile();
             playerHp = playerMaxHp;
             enemyHp = enemyMaxHp;
@@ -575,7 +587,10 @@ namespace CardBattle
         {
             int diff = attacker.Power - defender.Power;
             // 관통: 원래는 방어에 막힐 상황(diff<=0)이어도 공격자의 약점 비율이 문턱값 이상이면 그대로 HP 피해로 뚫고 들어감
-            bool penetrates = diff <= 0 && attacker.WeaknessRatio >= weaknessPenetrationThreshold;
+            float penetrationThreshold = attacker.PenetrationThreshold > 0f
+                ? attacker.PenetrationThreshold
+                : weaknessPenetrationThreshold;
+            bool penetrates = diff <= 0 && attacker.WeaknessRatio >= penetrationThreshold;
 
             if (diff > 0 || penetrates)
             {
@@ -641,7 +656,7 @@ namespace CardBattle
             note = "";
             if (!source.HasWeakness) return breakDamage;
 
-            float multiplier = 1f + weaknessBreakMultiplierPerRatio * source.WeaknessRatio;
+            float multiplier = 1f + (weaknessBreakMultiplierPerRatio + source.WeaknessBreakBonus) * source.WeaknessRatio;
             note = $" <color=#FFD34E>(약점 격파강화 ×{multiplier:0.#})</color>";
             return Mathf.RoundToInt(breakDamage * multiplier);
         }
@@ -696,13 +711,18 @@ namespace CardBattle
             var result = pokerHand != null ? pokerHand.CurrentResult : default;
             var values = CalculatePlayerNumbers(result);
             float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
+            var equipmentContext = BuildEquipmentContext(result, weaknessRatio);
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
+            float weaknessBreakBonus = EquipmentPercent(EquipmentStat.WeaknessBreakPercent, equipmentContext);
 
             return action switch
             {
-                RpsAction.Defend => new CombatIntent("플레이어", IntentKind.Defend, values.RankName, values.Defense, values.BreakPower, values.DefenseFormula, weaknessRatio: weaknessRatio),
+                RpsAction.Defend => new CombatIntent("플레이어", IntentKind.Defend, values.RankName, values.Defense, values.BreakPower, values.DefenseFormula,
+                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus),
                 RpsAction.Skill => new CombatIntent("플레이어", IntentKind.Skill, values.RankName, values.Skill, values.BreakPower + values.Skill / 4, values.SkillFormula),
                 RpsAction.Stunned => new CombatIntent("플레이어", IntentKind.Stunned, "스턴", 0, 0, ""),
-                _ => new CombatIntent("플레이어", IntentKind.Attack, values.RankName, values.Attack, values.BreakPower, values.AttackFormula, weaknessRatio: weaknessRatio),
+                _ => new CombatIntent("플레이어", IntentKind.Attack, values.RankName, values.Attack, values.BreakPower, values.AttackFormula,
+                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus),
             };
         }
 
@@ -742,18 +762,71 @@ namespace CardBattle
             int red = result.IsValid ? result.RedCount : 0;
             int black = result.IsValid ? result.BlackCount : 0;
             int highRankKick = result.IsValid ? Mathf.Clamp(result.HighRank - 10, 0, 4) : 0;
-            int attack = playerBaseAttack + red * redSuitAttackBonus + tier * handTierPowerBonus + highRankKick;
-            int defense = playerBaseDefense + black * blackSuitDefenseBonus + tier * handTierPowerBonus;
-            int breakPower = baseBreakPower + black + tier * 2;
-            int skill = attack + skillBaseBonus + tier * skillTierBonus;
-            int redBonus = red * redSuitAttackBonus;
-            int blackBonus = black * blackSuitDefenseBonus;
-            int tierPower = tier * handTierPowerBonus;
-            string attackFormula = $"기{playerBaseAttack}+빨{redBonus}+족{tierPower}+높{highRankKick}";
-            string defenseFormula = $"기{playerBaseDefense}+검{blackBonus}+족{tierPower}";
-            string skillFormula = $"{attack}+스{skillBaseBonus}+족{tier * skillTierBonus}";
+            float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
+            var context = BuildEquipmentContext(result, weaknessRatio);
+            int equipmentAttack = EquipmentModifier(EquipmentStat.Attack, context);
+            int equipmentDefense = EquipmentModifier(EquipmentStat.Defense, context);
+            int equipmentSkill = EquipmentModifier(EquipmentStat.Skill, context);
+            int equipmentBreak = EquipmentModifier(EquipmentStat.BreakPower, context);
+            int redPower = redSuitAttackBonus + EquipmentModifier(EquipmentStat.RedCardAttack, context);
+            int blackPower = blackSuitDefenseBonus + EquipmentModifier(EquipmentStat.BlackCardDefense, context);
+            int tierPowerPerLevel = handTierPowerBonus + EquipmentModifier(EquipmentStat.HandTierPower, context);
+            int acePower = result.AceCount * aceAllPowerBonus;
+            int courtSkill = result.CourtCardCount * courtCardSkillBonus;
+            int redJokerPower = result.HasRedJoker ? redJokerAttackBonus : 0;
+            int blackJokerPower = result.HasBlackJoker ? blackJokerDefenseBonus : 0;
+            int jokerSkill = result.JokerCount * jokerSkillBonus;
+            int attack = playerBaseAttack + equipmentAttack + red * redPower + tier * tierPowerPerLevel +
+                         highRankKick + acePower + redJokerPower;
+            int defense = playerBaseDefense + equipmentDefense + black * blackPower + tier * tierPowerPerLevel +
+                          acePower + blackJokerPower;
+            int breakPower = baseBreakPower + equipmentBreak + black + tier * 2;
+            int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill + jokerSkill;
+            int redBonus = red * redPower;
+            int blackBonus = black * blackPower;
+            int tierPower = tier * tierPowerPerLevel;
+            string attackFormula = $"기{playerBaseAttack}+장{equipmentAttack}+빨{redBonus}+족{tierPower}+높{highRankKick}+A{acePower}+적J{redJokerPower}";
+            string defenseFormula = $"기{playerBaseDefense}+장{equipmentDefense}+검{blackBonus}+족{tierPower}+A{acePower}+흑J{blackJokerPower}";
+            string skillFormula = $"{attack}+스{skillBaseBonus}+족{tier * skillTierBonus}+장{equipmentSkill}+궁{courtSkill}+J{jokerSkill}";
             return new CombatNumbers(rankName, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
+        }
+
+        private void ResolveEquipmentLoadout()
+        {
+            if (equipmentLoadout == null) equipmentLoadout = GetComponent<EquipmentLoadout>();
+            if (equipmentLoadout == null) equipmentLoadout = gameObject.AddComponent<EquipmentLoadout>();
+            equipmentLoadout.EnsureDefaults();
+        }
+
+        private void ApplyEquipmentBaseStats()
+        {
+            if (equipmentLoadout == null) return;
+            playerMaxHp = Mathf.Max(1,
+                playerMaxHp + equipmentLoadout.Modifier(EquipmentStat.MaxHp, EquipmentContext.Empty));
+            playerMaxBreak = Mathf.Max(1,
+                playerMaxBreak + equipmentLoadout.Modifier(EquipmentStat.MaxBreak, EquipmentContext.Empty));
+        }
+
+        private EquipmentContext BuildEquipmentContext(PokerHandResult result, float weaknessRatio)
+        {
+            return new EquipmentContext(result, playerHp, playerMaxHp, Mathf.Max(1, enemyIntentTurn), weaknessRatio);
+        }
+
+        private int EquipmentModifier(EquipmentStat stat, EquipmentContext context)
+        {
+            return equipmentLoadout != null ? equipmentLoadout.Modifier(stat, context) : 0;
+        }
+
+        private float EquipmentPercent(EquipmentStat stat, EquipmentContext context)
+        {
+            return EquipmentModifier(stat, context) / 100f;
+        }
+
+        private float EffectivePenetrationThreshold(EquipmentContext context)
+        {
+            float modifier = EquipmentPercent(EquipmentStat.PenetrationThresholdPercent, context);
+            return Mathf.Clamp(weaknessPenetrationThreshold + modifier, 0.2f, 1f);
         }
 
         private CombatNumbers CalculateEnemyNumbers()
@@ -770,6 +843,7 @@ namespace CardBattle
                 enemyDisplayName = bossProfile.displayName;
             enemyMaxHp = Mathf.Max(1, bossProfile.maxHp);
             enemyMaxBreak = Mathf.Max(1, bossProfile.maxPressure);
+            if (seotdaTable != null) seotdaTable.ConfigureBossProfile(bossProfile);
         }
 
         private BossMoveDefinition SelectEnemyMove()
@@ -943,30 +1017,55 @@ namespace CardBattle
 
         private SeotdaEffect BuildEnemySeotdaEffect(SeotdaHandResult hand, IntentKind kind, BossMoveDefinition move)
         {
-            if (!hand.IsValid || move == null || move.seotdaCondition == BossSeotdaCondition.None)
-                return new SeotdaEffect(0, 0, 0, "패 변주 없음");
+            if (!hand.IsValid) return new SeotdaEffect(0, 0, 0, "패 변주 없음");
 
-            bool triggered = BossSeotdaRuleEvaluator.Matches(hand, move);
-            if (!triggered)
+            int powerDelta = 0;
+            int hpDamage = 0;
+            int breakDamage = 0;
+            var labels = new List<string>();
+
+            if (hand.HasSignatureCard)
             {
-                int missDelta = move.seotdaFailurePowerDelta;
-                string missText = missDelta < 0
-                    ? $"{hand.DisplayName}: 조건 불발 · {ActionLabel(kind)} {-missDelta} 감소"
-                    : $"{hand.DisplayName}: 조건 불발";
-                return new SeotdaEffect(missDelta, 0, 0, missText);
+                var signature = hand.SignatureCard;
+                if (hand.SignatureTriggered)
+                {
+                    powerDelta += signature.PowerBonus;
+                    hpDamage += signature.HpDamage;
+                    breakDamage += signature.BreakDamage;
+                    labels.Add($"{signature.DisplayName} 발동: {signature.EffectText}");
+                }
+                else
+                {
+                    labels.Add($"{signature.DisplayName} 조건 대기");
+                }
             }
 
-            var changes = new List<string>();
-            if (move.seotdaPowerBonus != 0)
-                changes.Add($"{ActionLabel(kind)} {(move.seotdaPowerBonus > 0 ? "+" : string.Empty)}{move.seotdaPowerBonus}");
-            if (move.seotdaHpDamage > 0)
-                changes.Add($"성공 시 HP 추가 {move.seotdaHpDamage}");
-            if (move.seotdaBreakDamage > 0)
-                changes.Add($"성공 시 얇은 게이지 +{move.seotdaBreakDamage}");
+            if (move != null && move.seotdaCondition != BossSeotdaCondition.None)
+            {
+                bool moveTriggered = BossSeotdaRuleEvaluator.Matches(hand, move);
+                if (!moveTriggered)
+                {
+                    powerDelta += move.seotdaFailurePowerDelta;
+                    labels.Add(move.seotdaFailurePowerDelta < 0
+                        ? $"기술 조건 불발: {ActionLabel(kind)} {-move.seotdaFailurePowerDelta} 감소"
+                        : "기술 조건 불발");
+                }
+                else
+                {
+                    powerDelta += move.seotdaPowerBonus;
+                    hpDamage += move.seotdaHpDamage;
+                    breakDamage += move.seotdaBreakDamage;
+                    var changes = new List<string>();
+                    if (move.seotdaPowerBonus != 0)
+                        changes.Add($"{ActionLabel(kind)} {(move.seotdaPowerBonus > 0 ? "+" : string.Empty)}{move.seotdaPowerBonus}");
+                    if (move.seotdaHpDamage > 0) changes.Add($"성공 시 HP 추가 {move.seotdaHpDamage}");
+                    if (move.seotdaBreakDamage > 0) changes.Add($"성공 시 얇은 게이지 +{move.seotdaBreakDamage}");
+                    labels.Add(changes.Count > 0 ? string.Join(" · ", changes) : "기술 조건 발동");
+                }
+            }
 
-            string detail = changes.Count > 0 ? string.Join(" · ", changes) : "조건 발동";
-            return new SeotdaEffect(move.seotdaPowerBonus, move.seotdaHpDamage, move.seotdaBreakDamage,
-                $"{hand.DisplayName}: {detail}");
+            string label = labels.Count > 0 ? string.Join(" / ", labels) : "패 변주 없음";
+            return new SeotdaEffect(powerDelta, hpDamage, breakDamage, label);
         }
 
         private void ApplyEnemySeotdaEffect(ref CombatOutcome outcome, CombatIntent enemyIntent)
@@ -1178,6 +1277,8 @@ namespace CardBattle
         {
             float ratio = PokerHandEvaluator.WeaknessRatio(hand, enemyWeakness);
             if (ratio <= 0f || !hasPendingEnemyIntent) return new WeaknessPreview(ratio, false, false, false);
+            var equipmentContext = BuildEquipmentContext(hand, ratio);
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
 
             var enemyValues = CalculateEnemyNumbers();
             int enemyPower = pendingEnemyMove != null
@@ -1189,7 +1290,7 @@ namespace CardBattle
 
             // 공격을 냈을 때 원래는 막힐 상황(방어값 >= 공격값)인지, 그리고 관통 문턱을 넘었는지
             bool wouldBeBlocked = enemyDefending && values.Attack <= enemyPower;
-            bool penetrates = wouldBeBlocked && ratio >= weaknessPenetrationThreshold;
+            bool penetrates = wouldBeBlocked && ratio >= penetrationThreshold;
 
             // 방어를 냈을 때 실제로 격파 피해를 주는 상황이라 약점 배율이 붙는 경우
             bool wouldBonusBreak =
@@ -1209,14 +1310,18 @@ namespace CardBattle
             if (!preview.Active || weaknessEffectText == null) return;
 
             string attackLine;
+            var hand = pokerHand != null ? pokerHand.CurrentResult : default;
+            var equipmentContext = BuildEquipmentContext(hand, preview.Ratio);
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
             if (preview.Penetrates)
                 attackLine = "공격 → <color=#FFD34E><b>약점 관통!</b></color> 방어 무시하고 HP 피해";
             else if (preview.WouldBeBlocked)
-                attackLine = $"공격 → 막힘 (관통 문턱 {weaknessPenetrationThreshold:P0} 미달)";
+                attackLine = $"공격 → 막힘 (관통 문턱 {penetrationThreshold:P0} 미달)";
             else
                 attackLine = "공격 → 평소와 동일 (뚫어야 할 방어가 없음)";
 
-            float multiplier = 1f + weaknessBreakMultiplierPerRatio * preview.Ratio;
+            float equipmentBonus = EquipmentPercent(EquipmentStat.WeaknessBreakPercent, equipmentContext);
+            float multiplier = 1f + (weaknessBreakMultiplierPerRatio + equipmentBonus) * preview.Ratio;
             string defenseLine = preview.BonusBreak
                 ? $"방어 → <color=#FFD34E><b>격파 강화!</b></color> 보조 게이지 피해 ×{multiplier:0.#}"
                 : "방어 → 이번엔 격파 피해 없음";
