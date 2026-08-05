@@ -29,6 +29,11 @@ namespace CardBattle
         {
             hitRect = transform as RectTransform;
             rootCanvas = GetComponentInParent<Canvas>();
+            if (tooltipRoot != null && titleText != null && valueText != null && bodyText != null &&
+                tooltipRoot.transform is RectTransform tooltipRect)
+            {
+                tooltipRect.sizeDelta = new Vector2(780f, 438f);
+            }
             SetVisible(false);
         }
 
