@@ -184,29 +184,29 @@ namespace FFSS.Editor
             Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.82f));
             Stretch(dim.rectTransform);
 
-            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1340f, 760f), Vector2.zero);
+            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1260f, 690f), Vector2.zero);
             Image frameImage = frame.gameObject.AddComponent<Image>();
-            frameImage.sprite = UsesBlankPanel(spec.Id)
-                ? SpriteAt("Assets/UI/BossCombatSkins/Common/skill_detail_panel.png")
-                : SpriteAt(BulkRoot + spec.PanelSprite + ".png");
+            frameImage.sprite = StandardPanelSprite(spec.Id);
             frameImage.preserveAspect = false;
             frameImage.raycastTarget = true;
-            if (UsesBlankPanel(spec.Id))
+
+            Sprite bannerSprite = BannerSprite(spec.Id);
+            if (bannerSprite != null)
             {
-                Image emblem = CreateImage("Screen Emblem", frame, ScreenIcon(spec.Id), Color.white);
-                emblem.rectTransform.sizeDelta = new Vector2(68f, 68f);
-                emblem.rectTransform.anchoredPosition = new Vector2(0f, 264f);
-                emblem.preserveAspect = true;
+                Image banner = CreateImage("Screen Banner", frame, bannerSprite, Color.white);
+                banner.rectTransform.sizeDelta = new Vector2(680f, 106f);
+                banner.rectTransform.anchoredPosition = new Vector2(0f, 264f);
+                banner.preserveAspect = false;
             }
 
-            build.Heading = CreateText("Heading", frame, spec.Heading, 42, TextAnchor.MiddleCenter,
-                new Color(1f, 0.81f, 0.28f), new Vector2(900f, 56f), new Vector2(0f, 195f));
-            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 22, TextAnchor.MiddleCenter,
-                new Color(0.88f, 0.91f, 0.97f), new Vector2(980f, 36f), new Vector2(0f, 155f));
+            build.Heading = CreateText("Heading", frame, spec.Heading, 36, TextAnchor.MiddleCenter,
+                new Color(1f, 0.84f, 0.38f), new Vector2(580f, 48f), new Vector2(0f, 270f));
+            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 20, TextAnchor.MiddleCenter,
+                new Color(0.88f, 0.91f, 0.97f), new Vector2(900f, 34f), new Vector2(0f, 198f));
             build.Currency = CreateText("Currency", frame, string.Empty, 24, TextAnchor.MiddleRight,
-                new Color(1f, 0.78f, 0.2f), new Vector2(300f, 38f), new Vector2(455f, 155f));
+                new Color(1f, 0.78f, 0.2f), new Vector2(250f, 34f), new Vector2(440f, 198f));
             build.Body = CreateText("Body", frame, DefaultBody(spec.Id), 20, TextAnchor.MiddleCenter,
-                new Color(0.93f, 0.94f, 0.98f), new Vector2(1050f, 46f), new Vector2(0f, 100f));
+                new Color(0.93f, 0.94f, 0.98f), new Vector2(980f, 58f), new Vector2(0f, 142f));
             build.Body.horizontalOverflow = HorizontalWrapMode.Wrap;
             build.Body.verticalOverflow = VerticalWrapMode.Truncate;
             if (spec.Id == UIScreenId.Load)
@@ -250,7 +250,7 @@ namespace FFSS.Editor
 
             if (spec.Id != UIScreenId.ActTransition && spec.Id != UIScreenId.Result)
             {
-                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(590f, 250f));
+                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(560f, 270f));
             }
             ConfigureController(build);
             return Save(build.Root, spec.Path);
@@ -721,9 +721,31 @@ namespace FFSS.Editor
             };
         }
 
-        private static bool UsesBlankPanel(UIScreenId id)
+        private static Sprite StandardPanelSprite(UIScreenId id)
         {
-            return false;
+            string fileName = id switch
+            {
+                UIScreenId.Event => "event_story_panel.png",
+                UIScreenId.Reward => "reward_panel.png",
+                UIScreenId.Shop => "shop_detail_panel.png",
+                _ => "modal_large.png"
+            };
+            return SpriteAt("Assets/Art/Production/UI/Atlas/03_panels_modals/" + fileName);
+        }
+
+        private static Sprite BannerSprite(UIScreenId id)
+        {
+            string fileName = id switch
+            {
+                UIScreenId.Event => "banner_event.png",
+                UIScreenId.Reward => "banner_reward.png",
+                UIScreenId.Rest => "banner_rest.png",
+                UIScreenId.Shop => "banner_shop.png",
+                _ => null
+            };
+            return string.IsNullOrWhiteSpace(fileName)
+                ? null
+                : SpriteAt("Assets/Art/Production/UI/Atlas/11_banners_tabs/" + fileName);
         }
 
         private static Sprite ActionButtonSprite(UIScreenId id, int index)

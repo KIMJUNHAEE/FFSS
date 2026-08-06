@@ -760,6 +760,53 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void DynamicRunScreensUseBlankAtlasFramesWithoutBakedTextCollisions()
+        {
+            string[] screenNames =
+            {
+                "EventScreen",
+                "RewardScreen",
+                "ShopScreen",
+                "RestScreen"
+            };
+
+            foreach (string screenName in screenNames)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"Assets/Prefabs/UI/Screens/{screenName}.prefab");
+                Assert.That(prefab, Is.Not.Null, screenName);
+
+                Transform frame = prefab.transform.Find("Art Frame");
+                Assert.That(frame, Is.Not.Null, screenName);
+                var frameImage = frame.GetComponent<UnityEngine.UI.Image>();
+                Assert.That(frameImage, Is.Not.Null, screenName);
+                Assert.That(
+                    AssetDatabase.GetAssetPath(frameImage.sprite),
+                    Does.StartWith("Assets/Art/Production/UI/Atlas/03_panels_modals/"),
+                    screenName);
+
+                RectTransform body = frame.Find("Body") as RectTransform;
+                RectTransform firstAction = frame.Find("Action 1") as RectTransform;
+                Assert.That(body, Is.Not.Null, screenName);
+                Assert.That(firstAction, Is.Not.Null, screenName);
+                float requiredSeparation = (body.rect.height + firstAction.rect.height) * 0.5f;
+                Assert.That(
+                    Mathf.Abs(body.anchoredPosition.y - firstAction.anchoredPosition.y),
+                    Is.GreaterThan(requiredSeparation),
+                    $"{screenName} body overlaps its first action row.");
+            }
+
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/Screens/EventScreen.prefab")
+                    .transform.Find("Art Frame/Screen Banner"),
+                Is.Not.Null);
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/Screens/RewardScreen.prefab")
+                    .transform.Find("Art Frame/Screen Banner"),
+                Is.Not.Null);
+        }
+
+        [Test]
         public void CardWorkshopPrefabExposesInspectableCardActionsAndPaging()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
