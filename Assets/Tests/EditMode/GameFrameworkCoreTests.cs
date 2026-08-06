@@ -1091,35 +1091,31 @@ namespace FFSS.Framework.Tests
         [Test]
         public void EveryEnemyExclusiveSeotdaCardLoadsItsVisibleFace()
         {
-            Assert.That(CardBattle.OpponentSeotdaCardCatalog.All, Has.Count.EqualTo(17));
-            foreach (CardBattle.OpponentSeotdaCardDefinition definition in
-                     CardBattle.OpponentSeotdaCardCatalog.All)
-            {
-                Sprite sprite = CardBattle.OpponentSeotdaCardCatalog.LoadSprite(definition);
-                Assert.That(sprite, Is.Not.Null, definition.BossId);
-            }
-
             string[] profileGuids = AssetDatabase.FindAssets(
                 "t:BossCombatProfile",
                 new[] { "Assets/Data/BossProfiles" });
             Assert.That(profileGuids, Has.Length.EqualTo(17));
             for (int i = 0; i < profileGuids.Length; i++)
             {
-                CardBattle.BossCombatProfile profile =
-                    AssetDatabase.LoadAssetAtPath<CardBattle.BossCombatProfile>(
-                        AssetDatabase.GUIDToAssetPath(profileGuids[i]));
-                Assert.That(profile.exclusiveSeotdaCard, Is.Not.Null, profile.bossId);
-                Assert.That(profile.exclusiveSeotdaCard.enemyId, Is.EqualTo(profile.bossId));
-                Assert.That(profile.exclusiveSeotdaCard.faceSprite, Is.Not.Null, profile.bossId);
-                Assert.That(profile.exclusiveSeotdaCard.RequiredPartnerMonth, Is.InRange(1, 10), profile.bossId);
-                Assert.That(profile.exclusiveSeotdaDeck, Is.Not.Null, profile.bossId);
-                Assert.That(profile.exclusiveSeotdaDeck.IsConfigured, Is.True, profile.bossId);
-                Assert.That(profile.exclusiveSeotdaDeck.cards.Select(card => card.month).Distinct(),
-                    Is.EquivalentTo(Enumerable.Range(1, 10)), profile.bossId);
-                Assert.That(profile.exclusiveSeotdaDeck.cards.Count(card => card.variant == "A"),
-                    Is.EqualTo(10), profile.bossId);
-                Assert.That(profile.exclusiveSeotdaDeck.cards.Count(card => card.variant == "B"),
-                    Is.EqualTo(10), profile.bossId);
+                UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
+                    AssetDatabase.GUIDToAssetPath(profileGuids[i]));
+                var serializedProfile = new SerializedObject(profile);
+                string bossId = serializedProfile.FindProperty("bossId").stringValue;
+                var card = serializedProfile.FindProperty("exclusiveSeotdaCard").objectReferenceValue as
+                    EnemySeotdaSignatureCardDefinition;
+                var deck = serializedProfile.FindProperty("exclusiveSeotdaDeck").objectReferenceValue as
+                    EnemySeotdaDeckDefinition;
+
+                Assert.That(card, Is.Not.Null, bossId);
+                Assert.That(card.enemyId, Is.EqualTo(bossId));
+                Assert.That(card.faceSprite, Is.Not.Null, bossId);
+                Assert.That(card.RequiredPartnerMonth, Is.InRange(1, 10), bossId);
+                Assert.That(deck, Is.Not.Null, bossId);
+                Assert.That(deck.IsConfigured, Is.True, bossId);
+                Assert.That(deck.cards.Select(entry => entry.month).Distinct(),
+                    Is.EquivalentTo(Enumerable.Range(1, 10)), bossId);
+                Assert.That(deck.cards.Count(entry => entry.variant == "A"), Is.EqualTo(10), bossId);
+                Assert.That(deck.cards.Count(entry => entry.variant == "B"), Is.EqualTo(10), bossId);
             }
         }
 
@@ -1134,10 +1130,22 @@ namespace FFSS.Framework.Tests
                 primary.name = "03월_A_38광땡_광열 군림";
                 secondary.name = "03월_B_38광땡_광열 군림";
 
-                Assert.That(CardBattle.SeotdaHandEvaluator.TryParse(primary, out int primaryMonth,
-                    out bool primaryGwang), Is.True);
-                Assert.That(CardBattle.SeotdaHandEvaluator.TryParse(secondary, out int secondaryMonth,
-                    out bool secondaryGwang), Is.True);
+                Type evaluatorType = AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(assembly => assembly.GetType("CardBattle.SeotdaHandEvaluator"))
+                    .FirstOrDefault(type => type != null);
+                Assert.That(evaluatorType, Is.Not.Null);
+                MethodInfo tryParse = evaluatorType.GetMethod("TryParse", BindingFlags.Public | BindingFlags.Static);
+                Assert.That(tryParse, Is.Not.Null);
+
+                object[] primaryArguments = { primary, 0, false };
+                object[] secondaryArguments = { secondary, 0, false };
+                Assert.That((bool)tryParse.Invoke(null, primaryArguments), Is.True);
+                Assert.That((bool)tryParse.Invoke(null, secondaryArguments), Is.True);
+
+                int primaryMonth = (int)primaryArguments[1];
+                int secondaryMonth = (int)secondaryArguments[1];
+                bool primaryGwang = (bool)primaryArguments[2];
+                bool secondaryGwang = (bool)secondaryArguments[2];
                 Assert.That(primaryMonth, Is.EqualTo(3));
                 Assert.That(secondaryMonth, Is.EqualTo(3));
                 Assert.That(primaryGwang, Is.True);
@@ -1171,11 +1179,20 @@ namespace FFSS.Framework.Tests
                 image.color = new Color(0.4f, 0.5f, 0.6f, 0f);
                 image.type = UnityEngine.UI.Image.Type.Filled;
                 image.fillAmount = 0f;
-                Sprite expected = CardBattle.OpponentSeotdaCardCatalog.LoadSprite(
-                    CardBattle.OpponentSeotdaCardCatalog.All[0]);
+                string[] cardGuids = AssetDatabase.FindAssets(
+                    "t:EnemySeotdaSignatureCardDefinition",
+                    new[] { "Assets/Data/Production/SeotdaCards" });
+                Assert.That(cardGuids, Is.Not.Empty);
+                var card = AssetDatabase.LoadAssetAtPath<EnemySeotdaSignatureCardDefinition>(
+                    AssetDatabase.GUIDToAssetPath(cardGuids[0]));
+                Sprite expected = card.faceSprite;
+                Assert.That(expected, Is.Not.Null);
 
-                MethodInfo method = typeof(CardBattle.SeotdaTableController).GetMethod(
-                    "SetCardSprite",
+                Type controllerType = AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
+                    .FirstOrDefault(type => type != null);
+                Assert.That(controllerType, Is.Not.Null);
+                MethodInfo method = controllerType.GetMethod("SetCardSprite",
                     BindingFlags.NonPublic | BindingFlags.Static);
                 Assert.That(method, Is.Not.Null);
                 method.Invoke(null, new object[] { image, expected });
