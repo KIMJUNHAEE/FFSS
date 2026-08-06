@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using NUnit.Framework;
 using UnityEditor;
@@ -112,6 +114,58 @@ namespace FFSS.Framework.Tests
             Assert.That(definition.Allows(GameFlowState.Title, GameFlowState.Combat), Is.False);
 
             UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void ProductionRunDefinitionCreatesCompletePokerDeck()
+        {
+            RunDefinition definition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+
+            Assert.That(definition, Is.Not.Null);
+            RunState state = definition.CreateState(38);
+            var cardIds = new HashSet<string>();
+            for (int i = 0; i < state.pokerDeck.cards.Count; i++)
+            {
+                cardIds.Add(state.pokerDeck.cards[i].cardId);
+            }
+
+            Assert.That(state.pokerDeck.cards, Has.Count.EqualTo(54));
+            Assert.That(cardIds, Has.Count.EqualTo(54));
+        }
+
+        [Test]
+        public void ProductionKernelPrefabExposesServiceAndUiHierarchy()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Framework/GameKernel.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(7));
+            Assert.That(
+                prefab.transform.Find("UI Manager/Runtime UI Canvas/Safe Area/Screens"),
+                Is.Not.Null);
+            Assert.That(
+                prefab.transform.Find("UI Manager/Runtime UI Canvas/Safe Area/Overlays"),
+                Is.Not.Null);
+            Assert.That(
+                prefab.transform.Find("UI Manager/Runtime UI Canvas/Safe Area/Modals"),
+                Is.Not.Null);
+
+            Transform oneShotPool = prefab.transform.Find("Audio Manager/One Shot Pool");
+            Assert.That(oneShotPool, Is.Not.Null);
+            Assert.That(oneShotPool.childCount, Is.EqualTo(12));
+        }
+
+        [Test]
+        public void ProductionAudioCatalogResolvesImportedClip()
+        {
+            AudioCueCatalog catalog = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
+                "Assets/Data/Framework/AudioCueCatalog.asset");
+
+            Assert.That(catalog, Is.Not.Null);
+            AudioCueDefinition cue = catalog.Get("sfx.card.deal");
+            Assert.That(cue.PickClip(), Is.Not.Null);
         }
 
         private sealed class TestService : IGameService
