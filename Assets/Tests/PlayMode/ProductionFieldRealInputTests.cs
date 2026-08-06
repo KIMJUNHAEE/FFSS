@@ -294,6 +294,48 @@ namespace FFSS.Framework.Tests
             Assert.That(SceneManager.GetActiveScene().name, Does.StartWith("Combat_"));
             Assert.That(GameKernel.Services.Get<RunManager>().Current.activeEnemyRule?.enemyId,
                 Is.EqualTo(enemyId));
+
+            Component controller = null;
+            yield return WaitUntilSeconds(
+                () => (controller = FindCombatController()) != null && CombatHandReady(controller),
+                15f,
+                "Combat loaded but its first poker hand never accepted input.");
+
+            Type controllerType = controller.GetType();
+            object hand = controllerType.GetField("pokerHand")?.GetValue(controller);
+            Type handType = hand?.GetType();
+            Button redraw = controllerType.GetField("redrawButton")?.GetValue(controller) as Button;
+            Button attack = controllerType.GetField("attackButton")?.GetValue(controller) as Button;
+            Button endTurn = controllerType.GetField("endTurnButton")?.GetValue(controller) as Button;
+            Assert.That(hand, Is.Not.Null);
+            Assert.That(redraw, Is.Not.Null);
+            Assert.That(attack, Is.Not.Null);
+            Assert.That(endTurn, Is.Not.Null);
+
+            yield return Click(redraw);
+            yield return WaitUntilSeconds(
+                () => (bool)handType.GetProperty("HasResolvedHand").GetValue(hand) &&
+                      (int)handType.GetProperty("RedrawsRemaining").GetValue(hand) == 0,
+                8f,
+                "A real redraw click did not consume the turn's redraw resource.");
+            Assert.That(redraw.interactable, Is.False);
+
+            yield return Click(attack);
+            yield return WaitUntilSeconds(
+                () => endTurn.interactable,
+                3f,
+                "A real attack click did not arm turn end.");
+            yield return Click(endTurn);
+            yield return WaitUntilSeconds(
+                () => !(bool)handType.GetProperty("HasResolvedHand").GetValue(hand),
+                5f,
+                "A real turn-end click did not gather the poker hand.");
+            yield return WaitUntilSeconds(
+                () => (bool)handType.GetProperty("HasResolvedHand").GetValue(hand) &&
+                      (int)handType.GetProperty("RedrawsRemaining").GetValue(hand) == 1 &&
+                      redraw.interactable,
+                20f,
+                "The enemy Seotda turn did not return real pointer control to the player.");
         }
 
         private IEnumerator ClickFieldCommandAndClose(
@@ -384,6 +426,28 @@ namespace FFSS.Framework.Tests
                     component != null &&
                     component.GetType().FullName ==
                     "CardBattle.Exploration.QuarterViewPlayerController");
+        }
+
+        private static Component FindCombatController()
+        {
+            return Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(component =>
+                    component != null &&
+                    component.GetType().FullName == "CardBattle.RpsCombatController");
+        }
+
+        private static bool CombatHandReady(Component controller)
+        {
+            if (controller == null)
+                return false;
+
+            Type type = controller.GetType();
+            object hand = type.GetField("pokerHand")?.GetValue(controller);
+            Button attack = type.GetField("attackButton")?.GetValue(controller) as Button;
+            return hand != null && attack != null && attack.interactable &&
+                   (bool)(hand.GetType().GetProperty("HasResolvedHand")?.GetValue(hand) ?? false);
         }
 
         private static Component FindEventNode()
@@ -506,6 +570,19 @@ namespace FFSS.Framework.Tests
                     yield break;
                 yield return null;
             }
+            Assert.Fail(message);
+        }
+
+        private static IEnumerator WaitUntilSeconds(Func<bool> predicate, float timeoutSeconds, string message)
+        {
+            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                if (predicate())
+                    yield break;
+                yield return null;
+            }
+
             Assert.Fail(message);
         }
 
