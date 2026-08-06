@@ -72,6 +72,68 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EnemySeotdaStatePreservesHiddenInformationAcrossSave()
+        {
+            var state = new EnemyRuleState { enemyId = "38_gwang" };
+            state.Seotda.shoeOrder.AddRange(new[] { "hwatu.03.gwang", "hwatu.08.gwang" });
+            state.Seotda.faceCard = new SeotdaCardRuntimeState
+            {
+                cardId = "hwatu.03.gwang",
+                month = 3,
+                isGwang = true,
+                isSignature = true
+            };
+            state.Seotda.hiddenCard = new SeotdaCardRuntimeState
+            {
+                cardId = "hwatu.08.gwang",
+                month = 8,
+                isGwang = true,
+                isSignature = true
+            };
+            state.Seotda.preview.riskBand = EnemySeotdaRiskBand.Signature;
+            state.Seotda.preview.damageMinimum = 13;
+            state.Seotda.preview.damageMaximum = 21;
+            state.Seotda.preview.signaturePossible = true;
+            state.Seotda.StripModifier("heat.bonus");
+
+            string json = JsonUtility.ToJson(state);
+            EnemyRuleState restored = JsonUtility.FromJson<EnemyRuleState>(json);
+
+            Assert.That(restored.Seotda.shoeOrder, Is.EqualTo(new[] { "hwatu.03.gwang", "hwatu.08.gwang" }));
+            Assert.That(restored.Seotda.faceCard.month, Is.EqualTo(3));
+            Assert.That(restored.Seotda.hiddenCard.month, Is.EqualTo(8));
+            Assert.That(restored.Seotda.preview.riskBand, Is.EqualTo(EnemySeotdaRiskBand.Signature));
+            Assert.That(restored.Seotda.preview.damageMaximum, Is.EqualTo(21));
+            Assert.That(restored.Seotda.IsModifierStripped("heat.bonus"), Is.True);
+        }
+
+        [Test]
+        public void EnemySeotdaStateBlocksHandsWithinThreeTurnWindow()
+        {
+            var state = new EnemySeotdaRuntimeState();
+
+            state.RecordHand("pair.1");
+            state.RecordHand("pair.2");
+            state.RecordHand("pair.3");
+
+            Assert.That(state.WasHandPlayedRecently("pair.1"), Is.True);
+            state.RecordHand("pair.4");
+            Assert.That(state.WasHandPlayedRecently("pair.1"), Is.False);
+            Assert.That(state.WasHandPlayedRecently("pair.4"), Is.True);
+        }
+
+        [Test]
+        public void EnemySeotdaSignatureUseHonorsEncounterCap()
+        {
+            var state = new EnemySeotdaRuntimeState();
+
+            Assert.That(state.TryUseSignature(2), Is.True);
+            Assert.That(state.TryUseSignature(2), Is.True);
+            Assert.That(state.TryUseSignature(2), Is.False);
+            Assert.That(state.signatureUseCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void DeterministicRngContinuesFromStoredState()
         {
             var first = new DeterministicRng(12345);
