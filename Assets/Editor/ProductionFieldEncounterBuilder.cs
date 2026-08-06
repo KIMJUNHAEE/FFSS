@@ -8,6 +8,8 @@ using FFSS.Framework.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -343,9 +345,24 @@ namespace FFSS.Editor
             generator.Generate();
 
             EnsureKernelInstance();
+            EnsureEventSystem();
             EnsureFieldEntryPoint();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, FieldScenePath);
+        }
+
+        private static void EnsureEventSystem()
+        {
+            EventSystem existing = UnityEngine.Object.FindFirstObjectByType<EventSystem>(
+                FindObjectsInactive.Include);
+            if (existing != null)
+                return;
+
+            var eventSystemObject = new GameObject(
+                "EventSystem",
+                typeof(EventSystem),
+                typeof(InputSystemUIInputModule));
+            eventSystemObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
         }
 
         private static void ConfigureLandmarkVisuals(SerializedProperty landmarks)
