@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FFSS.Framework.Core;
 using UnityEngine;
 
@@ -87,7 +88,11 @@ namespace FFSS.Framework.Run
             Current.player.currentPressure = Math.Max(0, Math.Min(Current.player.maxPressure, currentPressure));
         }
 
-        public RunRewardState PrepareReward(string enemyId, int gold, params string[] itemChoiceIds)
+        public RunRewardState PrepareReward(
+            string enemyId,
+            int gold,
+            IReadOnlyList<string> itemChoiceIds = null,
+            IReadOnlyList<string> cardChoiceInstanceIds = null)
         {
             RequireRun();
             Current.pendingReward = new RunRewardState
@@ -97,7 +102,10 @@ namespace FFSS.Framework.Run
                 gold = Math.Max(0, gold),
                 itemChoiceIds = itemChoiceIds == null
                     ? new System.Collections.Generic.List<string>()
-                    : new System.Collections.Generic.List<string>(itemChoiceIds)
+                    : new System.Collections.Generic.List<string>(itemChoiceIds),
+                cardChoiceInstanceIds = cardChoiceInstanceIds == null
+                    ? new System.Collections.Generic.List<string>()
+                    : new System.Collections.Generic.List<string>(cardChoiceInstanceIds)
             };
             return Current.pendingReward;
         }
@@ -108,14 +116,22 @@ namespace FFSS.Framework.Run
             RunRewardState reward = Current.pendingReward ??
                                     throw new InvalidOperationException("There is no pending reward.");
             Current.gold += Math.Max(0, reward.gold);
-            if (!string.IsNullOrWhiteSpace(selectedItemId) && reward.itemChoiceIds.Contains(selectedItemId) &&
+            if (!string.IsNullOrWhiteSpace(selectedItemId) &&
+                reward.itemChoiceIds != null &&
+                reward.itemChoiceIds.Contains(selectedItemId) &&
                 !Current.inventoryItemIds.Contains(selectedItemId))
             {
                 Current.inventoryItemIds.Add(selectedItemId);
             }
 
-            if (!string.IsNullOrWhiteSpace(selectedCardInstanceId) &&
-                Current.pokerDeck.cards.Exists(card => card != null && card.instanceId == selectedCardInstanceId))
+            bool canClaimCard = !string.IsNullOrWhiteSpace(selectedCardInstanceId) &&
+                                reward.cardChoiceInstanceIds != null &&
+                                reward.cardChoiceInstanceIds.Contains(selectedCardInstanceId);
+            if (canClaimCard &&
+                Current.pokerDeck.cards.Exists(card =>
+                    card != null &&
+                    card.instanceId == selectedCardInstanceId &&
+                    card.enhancementLevel < 3))
             {
                 RunCardState card = Current.pokerDeck.cards.Find(value => value.instanceId == selectedCardInstanceId);
                 card.enhancementLevel++;

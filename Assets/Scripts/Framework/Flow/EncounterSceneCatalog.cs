@@ -12,6 +12,8 @@ namespace FFSS.Framework.Flow
         public string sceneName;
         [Min(1)] public int act = 1;
         [Min(0)] public int rewardGold = 20;
+        public List<string> rewardItemIds = new List<string>();
+        public List<int> rewardItemWeights = new List<int>();
         public EnemyEncounterDefinition encounter;
     }
 

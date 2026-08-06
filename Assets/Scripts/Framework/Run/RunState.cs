@@ -123,6 +123,7 @@ namespace FFSS.Framework.Run
         public string enemyId;
         public int gold;
         public List<string> itemChoiceIds = new List<string>();
+        public List<string> cardChoiceInstanceIds = new List<string>();
     }
 
     [Serializable]

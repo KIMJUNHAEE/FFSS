@@ -378,16 +378,28 @@ namespace CardBattle.UI
             SetText(currency, reward == null ? "보상 없음" : $"{reward.gold}냥 획득");
             SetText(body, "장비를 선택하거나 카드 한 장을 연마하고, 다음 지역으로 돌아간다.");
             int itemCount = reward?.itemChoiceIds.Count ?? 0;
+            int cardCount = reward?.cardChoiceInstanceIds?.Count ?? 0;
             for (int i = 0; i < actions.Count; i++)
             {
                 if (i < itemCount)
                 {
-                    SetAction(i, reward.itemChoiceIds[i], "장비 보상", true);
+                    string itemId = reward.itemChoiceIds[i];
+                    EquipmentDefinition item = EquipmentCatalog.Get(itemId);
+                    string label = item != null ? item.DisplayName : itemId;
+                    string detail = item != null ? $"{RarityLabel(item.Rarity)} 장비 · {item.EffectText}" : "장비 보상";
+                    SetAction(i, label, detail, true);
                 }
-                else if (i - itemCount < run.pokerDeck.cards.Count)
+                else if (i - itemCount < cardCount)
                 {
-                    RunCardState card = run.pokerDeck.cards[i - itemCount];
-                    SetAction(i, card.cardId, $"카드 연마 +{card.enhancementLevel + 1}", true);
+                    string cardInstanceId = reward.cardChoiceInstanceIds[i - itemCount];
+                    RunCardState card = run.pokerDeck.FindCard(cardInstanceId);
+                    if (card == null)
+                    {
+                        SetAction(i, string.Empty, string.Empty, false);
+                        continue;
+                    }
+
+                    SetAction(i, card.cardId, $"카드 연마 {card.enhancementLevel} → {card.enhancementLevel + 1}", true);
                 }
                 else
                 {
@@ -882,8 +894,10 @@ namespace CardBattle.UI
                 ? reward.itemChoiceIds[selectedAction]
                 : null;
             int cardIndex = selectedAction - itemCount;
-            string selectedCard = cardIndex >= 0 && cardIndex < run.pokerDeck.cards.Count
-                ? run.pokerDeck.cards[cardIndex].instanceId
+            string selectedCard = reward?.cardChoiceInstanceIds != null &&
+                                  cardIndex >= 0 &&
+                                  cardIndex < reward.cardChoiceInstanceIds.Count
+                ? reward.cardChoiceInstanceIds[cardIndex]
                 : null;
             GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(selectedItem, selectedCard);
         }
@@ -1033,6 +1047,16 @@ namespace CardBattle.UI
         {
             TimeSpan time = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
             return $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
+        }
+
+        private static string RarityLabel(EquipmentRarity rarity)
+        {
+            return rarity switch
+            {
+                EquipmentRarity.Legendary => "전설",
+                EquipmentRarity.Rare => "희귀",
+                _ => "일반"
+            };
         }
 
         private static string EquipmentSlotName(int index)

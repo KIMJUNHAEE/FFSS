@@ -100,6 +100,17 @@ namespace FFSS.Framework.Persistence
                 data.schemaVersion = 5;
             }
 
+            if (data.schemaVersion < 6)
+            {
+                if (data.run?.pendingReward != null)
+                {
+                    data.run.pendingReward.itemChoiceIds ??= new System.Collections.Generic.List<string>();
+                    data.run.pendingReward.cardChoiceInstanceIds ??= new System.Collections.Generic.List<string>();
+                }
+
+                data.schemaVersion = 6;
+            }
+
             return data;
         }
     }
