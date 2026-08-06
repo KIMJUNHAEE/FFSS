@@ -8,7 +8,6 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -16,28 +15,26 @@ using Object = UnityEngine.Object;
 
 namespace FFSS.Framework.Tests
 {
-    public sealed class ProductionFieldRealInputTests
+    public sealed class ProductionFieldRealInputTests : InputTestFixture
     {
         private const string FieldScene = "Production_Field";
         private Keyboard keyboard;
         private Mouse mouse;
 
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public override void Setup()
         {
+            base.Setup();
             keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
             mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
-            yield return null;
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public override void TearDown()
         {
-            if (keyboard != null && keyboard.added)
-                InputSystem.RemoveDevice(keyboard);
-            if (mouse != null && mouse.added)
-                InputSystem.RemoveDevice(mouse);
-            yield return null;
+            keyboard = null;
+            mouse = null;
+            base.TearDown();
         }
 
         [UnityTest]
@@ -60,7 +57,7 @@ namespace FFSS.Framework.Tests
             Key[] directions = { Key.W, Key.D, Key.S, Key.A };
             for (int i = 0; i < directions.Length; i++)
             {
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
+                Press(keyboard[directions[i]]);
                 for (int frame = 0; frame < 40; frame++)
                 {
                     yield return null;
@@ -68,7 +65,7 @@ namespace FFSS.Framework.Tests
                         farthestDistance,
                         Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
                 }
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                Release(keyboard[directions[i]]);
                 yield return null;
             }
 
@@ -141,13 +138,11 @@ namespace FFSS.Framework.Tests
                 camera,
                 rect.TransformPoint(rect.rect.center));
 
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            Set(mouse.position, position);
             yield return null;
-            InputSystem.QueueStateEvent(
-                mouse,
-                new MouseState { position = position }.WithButton(MouseButton.Left));
+            Press(mouse.leftButton);
             yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            Release(mouse.leftButton);
             yield return null;
         }
 
