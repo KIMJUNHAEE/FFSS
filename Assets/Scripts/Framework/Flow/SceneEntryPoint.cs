@@ -24,10 +24,7 @@ namespace FFSS.Framework.Flow
 
             GameServiceRegistry services = GameKernel.Services;
             GameFlowManager flow = services.Get<GameFlowManager>();
-            if (flow.Current != state)
-            {
-                flow.TryChangeState(state);
-            }
+            flow.SynchronizeSceneState(state);
 
             if (showInitialScreen)
             {
