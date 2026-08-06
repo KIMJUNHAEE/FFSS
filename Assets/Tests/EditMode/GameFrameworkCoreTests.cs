@@ -145,7 +145,14 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(7));
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(8));
+            CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
+            Assert.That(combat, Is.Not.Null);
+            SerializedObject combatSerialized = new SerializedObject(combat);
+            Assert.That(
+                combatSerialized.FindProperty("rules").objectReferenceValue,
+                Is.SameAs(AssetDatabase.LoadAssetAtPath<CombatRulesDefinition>(
+                    "Assets/Data/Framework/Combat/CombatRules.asset")));
             Assert.That(
                 prefab.transform.Find("UI Manager/Runtime UI Canvas/Safe Area/Screens"),
                 Is.Not.Null);
