@@ -40,6 +40,17 @@ namespace CardBattle
             routine = StartCoroutine(ShowGuardRoutine(icon, headline, value, playerGuarded, accent, onComplete));
         }
 
+        public void HideImmediate()
+        {
+            if (routine != null)
+            {
+                StopCoroutine(routine);
+                routine = null;
+            }
+
+            SetHidden();
+        }
+
         private IEnumerator ShowRoutine(Sprite icon, string headline, string value, bool targetsPlayer, Color accent,
             Action onComplete)
         {

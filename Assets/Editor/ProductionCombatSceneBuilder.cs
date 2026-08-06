@@ -124,11 +124,46 @@ namespace FFSS.Editor
                 changed = true;
             }
 
+            LegacyCombatFlowBridge flowBridge = source.GetComponent<LegacyCombatFlowBridge>();
+            if (flowBridge == null)
+            {
+                flowBridge = source.gameObject.AddComponent<LegacyCombatFlowBridge>();
+                changed = true;
+            }
+
+            if (flowBridge.Source != source || flowBridge.ResultView != source.battleResultView)
+            {
+                flowBridge.Configure(source, source.battleResultView);
+                EditorUtility.SetDirty(flowBridge);
+                changed = true;
+            }
+
             changed |= SetLegacyRootActive(source.playerHpText, canvas, false);
             changed |= SetLegacyRootActive(source.enemyHpText, canvas, false);
             changed |= SetLegacyRootActive(source.enemyActionText, canvas, false);
+            changed |= SetLegacyRootActive(source.enemyActionIcon, canvas, false);
             changed |= SetLegacyRootActive(source.enemyIntentTooltip, canvas, false);
+            changed |= DisableMissingCommandIcon(source.attackButton);
             return changed;
+        }
+
+        private static bool DisableMissingCommandIcon(Button button)
+        {
+            if (button == null)
+            {
+                return false;
+            }
+
+            Image icon = button.GetComponentsInChildren<Image>(true)
+                .FirstOrDefault(value => value.name == "IconImage");
+            if (icon == null || icon.sprite != null || !icon.enabled)
+            {
+                return false;
+            }
+
+            icon.enabled = false;
+            EditorUtility.SetDirty(icon);
+            return true;
         }
 
         private static bool ConfigureCanvas(Canvas canvas)
@@ -214,6 +249,7 @@ namespace FFSS.Editor
         {
             RpsCombatController source = SingleInScene<RpsCombatController>(scene);
             LegacyCombatPresentationBridge[] bridges = ComponentsInScene<LegacyCombatPresentationBridge>(scene);
+            LegacyCombatFlowBridge[] flowBridges = ComponentsInScene<LegacyCombatFlowBridge>(scene);
             CombatPresentationController[] presentations = ComponentsInScene<CombatPresentationController>(scene)
                 .Where(value => value.gameObject.activeInHierarchy)
                 .ToArray();
@@ -225,6 +261,12 @@ namespace FFSS.Editor
             if (presentations.Length != 1 || presentations[0] != bridges[0].Presentation)
             {
                 throw new InvalidOperationException($"Production presentation validation failed: {scene.path}");
+            }
+
+            if (flowBridges.Length != 1 || flowBridges[0].Source != source ||
+                flowBridges[0].ResultView != source.battleResultView)
+            {
+                throw new InvalidOperationException($"Production flow bridge validation failed: {scene.path}");
             }
         }
 

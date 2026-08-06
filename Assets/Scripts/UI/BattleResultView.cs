@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,22 +15,55 @@ namespace CardBattle
         public Text titleText;
         public Text subtitleText;
         public Button retryButton;
+        public Text actionButtonText;
 
         private Coroutine routine;
+        private Action confirmAction;
 
         private void Awake()
         {
-            if (retryButton) retryButton.onClick.AddListener(RetryBattle);
+            if (retryButton)
+            {
+                retryButton.onClick.AddListener(Confirm);
+                if (actionButtonText == null)
+                    actionButtonText = retryButton.GetComponentInChildren<Text>(true);
+            }
             SetHidden();
+        }
+
+        private void OnDestroy()
+        {
+            if (retryButton) retryButton.onClick.RemoveListener(Confirm);
         }
 
         public void Show(bool victory, string enemyName)
         {
-            if (routine != null) StopCoroutine(routine);
-            routine = StartCoroutine(ShowRoutine(victory, enemyName));
+            string subtitle = victory
+                ? $"{enemyName}과의 승부에서 이겼어"
+                : $"{enemyName}에게 패했어. 패를 다시 읽어보자";
+            Present(victory, subtitle, "다시 승부", RetryBattle);
         }
 
-        private IEnumerator ShowRoutine(bool victory, string enemyName)
+        public void ShowWithAction(
+            bool victory,
+            string subtitle,
+            string actionLabel,
+            Action onConfirm)
+        {
+            Present(victory, subtitle, actionLabel, onConfirm);
+        }
+
+        private void Present(bool victory, string subtitle, string actionLabel, Action onConfirm)
+        {
+            confirmAction = onConfirm ?? RetryBattle;
+            if (actionButtonText != null)
+                actionButtonText.text = actionLabel;
+
+            if (routine != null) StopCoroutine(routine);
+            routine = StartCoroutine(ShowRoutine(victory, subtitle));
+        }
+
+        private IEnumerator ShowRoutine(bool victory, string subtitle)
         {
             if (titleText)
             {
@@ -37,9 +71,7 @@ namespace CardBattle
                 titleText.color = victory ? new Color(1f, 0.84f, 0.32f) : new Color(1f, 0.34f, 0.30f);
             }
             if (subtitleText)
-                subtitleText.text = victory
-                    ? $"{enemyName}과의 승부에서 이겼어"
-                    : $"{enemyName}에게 패했어. 패를 다시 읽어보자";
+                subtitleText.text = subtitle;
 
             if (canvasGroup)
             {
@@ -79,7 +111,13 @@ namespace CardBattle
             routine = null;
         }
 
-        private void RetryBattle()
+        private void Confirm()
+        {
+            Time.timeScale = 1f;
+            confirmAction?.Invoke();
+        }
+
+        private static void RetryBattle()
         {
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

@@ -17,6 +17,7 @@ namespace CardBattle
     public class RpsCombatController : MonoBehaviour
     {
         public event System.Action<RpsCombatPresentationSnapshot> PresentationChanged;
+        public event System.Action<RpsCombatResult> CombatEnded;
 
         private enum IntentKind
         {
@@ -1224,11 +1225,15 @@ namespace CardBattle
 
         private void CheckGameOver()
         {
-            if (enemyHp > 0 && playerHp > 0) return;
+            if (gameOver || (enemyHp > 0 && playerHp > 0)) return;
 
             gameOver = true;
             combatLocked = true;
             RefreshButtons();
+            battleIntro?.HideImmediate();
+            turnBanner?.HideImmediate();
+            combatImpactView?.HideImmediate();
+            if (combatReadout) combatReadout.SetActive(false);
 
             bool victory = enemyHp <= 0;
             if (battleResultView != null)
@@ -1237,6 +1242,12 @@ namespace CardBattle
                 winPanel.SetActive(true);
             else if (!victory && losePanel)
                 losePanel.SetActive(true);
+
+            CombatEnded?.Invoke(new RpsCombatResult(
+                victory,
+                enemyDisplayName,
+                playerHp,
+                playerBreakCharge));
         }
 
         private static string ActionLabel(RpsAction action) => action switch

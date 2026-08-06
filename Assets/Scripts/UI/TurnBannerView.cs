@@ -39,6 +39,17 @@ namespace CardBattle
             slideDistance = slide;
         }
 
+        public void HideImmediate()
+        {
+            if (routine != null)
+            {
+                StopCoroutine(routine);
+                routine = null;
+            }
+
+            SetHidden();
+        }
+
         private IEnumerator ShowRoutine(string message, bool playerSide, Action onComplete)
         {
             if (label) label.text = message;

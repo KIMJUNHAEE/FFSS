@@ -540,6 +540,24 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [Test]
+        public void ProductionBattleSceneConnectsLegacyResultToRunFlow()
+        {
+            const string path = "Assets/Scenes/Production/Battles/Combat_Boss_Gwang_38.unity";
+            Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            try
+            {
+                Assert.That(FindInScene(scene, "RpsCombatController"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "LegacyCombatPresentationBridge"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "LegacyCombatFlowBridge"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "BattleResultView"), Is.Not.Null);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
         private static CombatIntent Intent(
             CombatSide side,
             CombatStance stance,
