@@ -1215,6 +1215,52 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void Gwang38RuntimeUsesItsCompleteDeckAndBack()
+        {
+            UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
+                "Assets/Data/BossProfiles/38.asset");
+            var serializedProfile = new SerializedObject(profile);
+            var expectedDeck = serializedProfile.FindProperty("exclusiveSeotdaDeck").objectReferenceValue as
+                EnemySeotdaDeckDefinition;
+            Assert.That(expectedDeck, Is.Not.Null);
+            Assert.That(expectedDeck.IsConfigured, Is.True);
+
+            Type controllerType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
+                .FirstOrDefault(type => type != null);
+            Assert.That(controllerType, Is.Not.Null);
+
+            var root = new GameObject("Gwang38SeotdaRuntimeTest");
+            try
+            {
+                Component controller = root.AddComponent(controllerType);
+                controllerType.GetMethod("ConfigureBossProfile", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new[] { profile });
+
+                var runtimeDeck = controllerType.GetField("deckSprites", BindingFlags.Public | BindingFlags.Instance)
+                    ?.GetValue(controller) as List<Sprite>;
+                Sprite runtimeBack = controllerType.GetField("backSprite", BindingFlags.Public | BindingFlags.Instance)
+                    ?.GetValue(controller) as Sprite;
+
+                Assert.That(runtimeDeck, Is.Not.Null);
+                Assert.That(runtimeDeck, Has.Count.EqualTo(20));
+                Assert.That(runtimeBack, Is.SameAs(expectedDeck.backSprite));
+                Assert.That(runtimeDeck, Is.EquivalentTo(expectedDeck.cards.Select(card => card.faceSprite)));
+
+                controllerType.GetMethod("PrepareEnemyHandPreview", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new object[] { 13, -2, 6 });
+                Sprite preparedFace = controllerType.GetProperty("PreparedFaceSprite")
+                    ?.GetValue(controller) as Sprite;
+                Assert.That(preparedFace, Is.Not.Null);
+                Assert.That(expectedDeck.cards.Select(card => card.faceSprite), Does.Contain(preparedFace));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void ProductionEnemyRuleMetersAreDataDrivenAndInspectable()
         {
             string[] guids = AssetDatabase.FindAssets(
