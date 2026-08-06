@@ -60,7 +60,8 @@ namespace FFSS.Framework.Persistence
                 return null;
             }
 
-            SaveGameData data = JsonUtility.FromJson<SaveGameData>(repository.Read(slot));
+            SaveGameData data = SaveDataMigrations.Upgrade(
+                JsonUtility.FromJson<SaveGameData>(repository.Read(slot)));
             ValidateData(data);
             services.Get<RunManager>().Restore(data.run);
             return data;

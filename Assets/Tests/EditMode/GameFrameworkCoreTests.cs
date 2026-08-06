@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
@@ -133,6 +134,8 @@ namespace FFSS.Framework.Tests
 
             Assert.That(state.pokerDeck.cards, Has.Count.EqualTo(54));
             Assert.That(cardIds, Has.Count.EqualTo(54));
+            Assert.That(state.player.maxPressure, Is.EqualTo(36));
+            Assert.That(state.player.currentPressure, Is.Zero);
         }
 
         [Test]
@@ -202,6 +205,103 @@ namespace FFSS.Framework.Tests
                 AssetDatabase.LoadAssetAtPath<SceneAsset>(
                     "Assets/Scenes/ClockworkTimekeeper_MapRoaming.unity"),
                 Is.Not.Null);
+        }
+
+        [Test]
+        public void HigherOffenseDealsItsFullPowerInAnOffenseClash()
+        {
+            CombatResolution result = CombatResolver.Resolve(
+                Intent(CombatSide.Player, CombatStance.Offense, 16, 5),
+                Intent(CombatSide.Enemy, CombatStance.Offense, 13, 5),
+                CombatRuleValues.Default);
+
+            Assert.That(result.winner, Is.EqualTo(CombatSide.Player));
+            Assert.That(result.hpDamageToEnemy, Is.EqualTo(16));
+            Assert.That(result.hpDamageToPlayer, Is.Zero);
+        }
+
+        [Test]
+        public void SuccessfulDefensePressuresTheAttacker()
+        {
+            CombatResolution result = CombatResolver.Resolve(
+                Intent(CombatSide.Player, CombatStance.Defense, 12, 5),
+                Intent(CombatSide.Enemy, CombatStance.Offense, 9, 4),
+                CombatRuleValues.Default);
+
+            Assert.That(result.winner, Is.EqualTo(CombatSide.Player));
+            Assert.That(result.pressureToEnemy, Is.EqualTo(8));
+            Assert.That(result.hpDamageToEnemy, Is.Zero);
+        }
+
+        [Test]
+        public void SeotdaBonusRemainsSeparateFromEnemyBaseAction()
+        {
+            CombatIntent enemy = Intent(CombatSide.Enemy, CombatStance.Offense, 10, 3);
+            enemy.conditionalPowerBonus = 4;
+            enemy.bonusHpDamage = 3;
+            enemy.bonusTrigger = CombatBonusTrigger.Always;
+            enemy.bonusLabel = "seotda.38.gwang";
+
+            CombatResolution result = CombatResolver.Resolve(
+                Intent(CombatSide.Player, CombatStance.Defense, 20, 5),
+                enemy,
+                CombatRuleValues.Default);
+
+            Assert.That(enemy.basePower, Is.EqualTo(10));
+            Assert.That(enemy.Power, Is.EqualTo(14));
+            Assert.That(result.winner, Is.EqualTo(CombatSide.Player));
+            Assert.That(result.hpDamageToPlayer, Is.EqualTo(3));
+            Assert.That(result.enemyBonusLabel, Is.EqualTo("seotda.38.gwang"));
+        }
+
+        [Test]
+        public void FullPressureStunsForOneTurnThenResets()
+        {
+            CombatantState state = CombatantState.Create("enemy", "Enemy", 80, 12);
+
+            Assert.That(state.ApplyPressure(12), Is.True);
+            Assert.That(state.currentPressure, Is.EqualTo(12));
+            Assert.That(state.ConsumeStunTurn(), Is.True);
+            Assert.That(state.IsStunned, Is.False);
+            Assert.That(state.currentPressure, Is.Zero);
+        }
+
+        [Test]
+        public void VersionOneSaveMigratesToEmptyPressureGauge()
+        {
+            var data = new SaveGameData
+            {
+                schemaVersion = 1,
+                run = new RunState { player = new PlayerRunState() }
+            };
+#pragma warning disable CS0618
+            data.run.player.maxBalance = 36;
+            data.run.player.currentBalance = 20;
+#pragma warning restore CS0618
+
+            SaveDataMigrations.Upgrade(data);
+
+            Assert.That(data.schemaVersion, Is.EqualTo(2));
+            Assert.That(data.run.player.maxPressure, Is.EqualTo(36));
+            Assert.That(data.run.player.currentPressure, Is.Zero);
+        }
+
+        private static CombatIntent Intent(
+            CombatSide side,
+            CombatStance stance,
+            int power,
+            int pressurePower)
+        {
+            return new CombatIntent
+            {
+                side = side,
+                action = stance == CombatStance.Offense
+                    ? CombatActionType.Attack
+                    : CombatActionType.Defend,
+                stance = stance,
+                basePower = power,
+                pressurePower = pressurePower
+            };
         }
 
         private sealed class TestService : IGameService

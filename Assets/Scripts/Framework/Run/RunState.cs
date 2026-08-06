@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FFSS.Framework.Combat;
 
 namespace FFSS.Framework.Run
 {
@@ -8,7 +9,11 @@ namespace FFSS.Framework.Run
     {
         public int maxHp;
         public int currentHp;
+        public int maxPressure;
+        public int currentPressure;
+        [Obsolete("Use maxPressure.")]
         public int maxBalance;
+        [Obsolete("Use currentPressure.")]
         public int currentBalance;
         public int baseAttack;
         public int baseDefense;
@@ -30,6 +35,7 @@ namespace FFSS.Framework.Run
         public PlayerRunState player = new PlayerRunState();
         public RunPokerDeckState pokerDeck = new RunPokerDeckState();
         public EnemyRuleState activeEnemyRule;
+        public CombatEncounterState activeCombat;
         public List<string> equippedItemIds = new List<string>();
         public List<string> inventoryItemIds = new List<string>();
         public List<string> completedEventIds = new List<string>();

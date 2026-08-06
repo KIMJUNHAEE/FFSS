@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FFSS.Framework.Run
 {
@@ -8,7 +9,8 @@ namespace FFSS.Framework.Run
     {
         [Header("Starting player")]
         [SerializeField, Min(1)] private int maximumHp = 90;
-        [SerializeField, Min(1)] private int maximumBalance = 36;
+        [FormerlySerializedAs("maximumBalance")]
+        [SerializeField, Min(1)] private int maximumPressure = 36;
         [SerializeField, Min(0)] private int baseAttack = 8;
         [SerializeField, Min(0)] private int baseDefense = 7;
         [SerializeField, Min(0)] private int baseBreakPower = 5;
@@ -33,8 +35,8 @@ namespace FFSS.Framework.Run
                 {
                     maxHp = maximumHp,
                     currentHp = maximumHp,
-                    maxBalance = maximumBalance,
-                    currentBalance = maximumBalance,
+                    maxPressure = maximumPressure,
+                    currentPressure = 0,
                     baseAttack = baseAttack,
                     baseDefense = baseDefense,
                     baseBreakPower = baseBreakPower
