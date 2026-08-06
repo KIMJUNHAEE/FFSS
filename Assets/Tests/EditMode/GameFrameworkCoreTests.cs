@@ -642,6 +642,71 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EveryProductionMediaCueLoadsItsRuntimeAsset()
+        {
+            AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
+                "Assets/Data/Framework/AudioCueCatalog.asset");
+            var audioSerialized = new SerializedObject(audio);
+            SerializedProperty audioCues = audioSerialized.FindProperty("cues");
+            Assert.That(audioCues.arraySize, Is.EqualTo(67));
+            var audioIds = new HashSet<string>();
+            for (int i = 0; i < audioCues.arraySize; i++)
+            {
+                var cue = audioCues.GetArrayElementAtIndex(i).objectReferenceValue as AudioCueDefinition;
+                Assert.That(cue, Is.Not.Null, $"Audio catalog entry {i}");
+                Assert.That(audioIds.Add(cue.CueId), Is.True, $"Duplicate audio cue: {cue.CueId}");
+                Assert.That(cue.PickClip(), Is.Not.Null, cue.CueId);
+            }
+
+            VfxCueCatalog vfx = AssetDatabase.LoadAssetAtPath<VfxCueCatalog>(
+                "Assets/Data/Framework/VfxCueCatalog.asset");
+            var vfxSerialized = new SerializedObject(vfx);
+            SerializedProperty vfxCues = vfxSerialized.FindProperty("cues");
+            Assert.That(vfxCues.arraySize, Is.EqualTo(26));
+            var vfxIds = new HashSet<string>();
+            for (int i = 0; i < vfxCues.arraySize; i++)
+            {
+                var cue = vfxCues.GetArrayElementAtIndex(i).objectReferenceValue as VfxCueDefinition;
+                Assert.That(cue, Is.Not.Null, $"VFX catalog entry {i}");
+                Assert.That(vfxIds.Add(cue.CueId), Is.True, $"Duplicate VFX cue: {cue.CueId}");
+                Assert.That(cue.PickPrefab(), Is.Not.Null, cue.CueId);
+            }
+        }
+
+        [Test]
+        public void QuarterViewMovementKeepsCardinalAndDiagonalSpeedEqual()
+        {
+            Type controllerType = Type.GetType(
+                "CardBattle.Exploration.QuarterViewPlayerController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+            MethodInfo compose = controllerType.GetMethod(
+                "ComposeCameraRelativeDirection",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(compose, Is.Not.Null);
+
+            Vector3 forward = new Vector3(0.42f, -0.76f, 0.91f);
+            Vector3 right = new Vector3(0.91f, 0.21f, -0.42f);
+            Vector2[] inputs =
+            {
+                Vector2.up,
+                Vector2.down,
+                Vector2.left,
+                Vector2.right,
+                new Vector2(1f, 1f),
+                new Vector2(-1f, 1f),
+                new Vector2(1f, -1f),
+                new Vector2(-1f, -1f)
+            };
+
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                var direction = (Vector3)compose.Invoke(null, new object[] { inputs[i], forward, right });
+                Assert.That(direction.y, Is.EqualTo(0f).Within(0.0001f), inputs[i].ToString());
+                Assert.That(direction.magnitude, Is.EqualTo(1f).Within(0.0001f), inputs[i].ToString());
+            }
+        }
+
+        [Test]
         public void ProductionEnemyMovesExposeInspectableAudioAndVfxBeats()
         {
             AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(

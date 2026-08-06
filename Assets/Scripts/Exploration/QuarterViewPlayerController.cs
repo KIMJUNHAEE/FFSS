@@ -129,19 +129,33 @@ namespace CardBattle.Exploration
             if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) input.y -= 1f;
             if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) input.y += 1f;
 
+            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
+            Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
+
+            return ComposeCameraRelativeDirection(input, forward, right);
+        }
+
+        public static Vector3 ComposeCameraRelativeDirection(
+            Vector2 input,
+            Vector3 cameraForward,
+            Vector3 cameraRight)
+        {
             input = Vector2.ClampMagnitude(input, 1f);
             if (input.sqrMagnitude <= 0.0001f)
                 return Vector3.zero;
 
-            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
-            Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
+            cameraForward.y = 0f;
+            cameraRight.y = 0f;
+            cameraForward = cameraForward.sqrMagnitude > 0.0001f
+                ? cameraForward.normalized
+                : Vector3.forward;
+            cameraRight = cameraRight.sqrMagnitude > 0.0001f
+                ? cameraRight.normalized
+                : Vector3.right;
 
-            forward.y = 0f;
-            right.y = 0f;
-            forward.Normalize();
-            right.Normalize();
-
-            return Vector3.ClampMagnitude((right * input.x) + (forward * input.y), 1f);
+            return Vector3.ClampMagnitude(
+                (cameraRight * input.x) + (cameraForward * input.y),
+                1f);
         }
 
         private void Move(Vector3 planarDirection)
