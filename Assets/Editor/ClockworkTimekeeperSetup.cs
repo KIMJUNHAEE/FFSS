@@ -93,6 +93,24 @@ namespace CardBattle.EditorTools
             AssetDatabase.Refresh();
         }
 
+        [MenuItem("Card Battle/Exploration/Add Field Tracker To Player Prefab")]
+        public static void AddFieldTrackerToPlayerPrefab()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                if (root.GetComponent<FieldExplorationTracker>() == null)
+                    root.AddComponent<FieldExplorationTracker>();
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+
         private static void ImportCharacterAssets()
         {
             string[] paths = { ModelPath, IdlePath, WalkPath, BaseMapPath, NormalMapPath, MetallicMapPath, RoughnessMapPath };
@@ -290,6 +308,7 @@ namespace CardBattle.EditorTools
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
             QuarterViewPlayerController mover = root.AddComponent<QuarterViewPlayerController>();
+            root.AddComponent<FieldExplorationTracker>();
             ClockworkTimekeeperEditorUtils.SetObjectReference(mover, "visualRoot", visualRoot.transform);
             ClockworkTimekeeperEditorUtils.SetObjectReference(mover, "animator", animator);
             ClockworkTimekeeperEditorUtils.SetVector3(mover, "visualEulerOffset", Vector3.zero);

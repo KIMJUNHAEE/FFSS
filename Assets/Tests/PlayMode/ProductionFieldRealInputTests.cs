@@ -170,6 +170,13 @@ namespace FFSS.Framework.Tests
             Assert.That(farthestDistance, Is.GreaterThan(1.1f),
                 "Real keyboard input could not move the player away from the starting tile.");
 
+            RunActProgressState fieldProgress = GameKernel.Services.Get<RunManager>()
+                .Current.CurrentActProgress;
+            Assert.That(fieldProgress.hasCurrentCell, Is.True,
+                "Field movement never recorded the player's current hex coordinate.");
+            Assert.That(fieldProgress.visitedTileIds, Has.Count.GreaterThan(1),
+                "Real movement did not record more than the starting hex as visited.");
+
             yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap, true);
             yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Equipment);
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
@@ -352,6 +359,19 @@ namespace FFSS.Framework.Tests
             Assert.That(modal, Is.Not.Null,
                 $"A real pointer click did not open {expectedScreen}.");
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.True);
+
+            if (expectedScreen == UIScreenId.FieldMap)
+            {
+                Text subtitle = modal.GetComponentsInChildren<Text>(true)
+                    .FirstOrDefault(text => text.name == "Subtitle");
+                RunActProgressState progress = GameKernel.Services.Get<RunManager>()
+                    .Current.CurrentActProgress;
+                Assert.That(subtitle, Is.Not.Null);
+                Assert.That(subtitle.text, Does.Contain($"[{progress.currentAxialX}, {progress.currentAxialY}]"),
+                    "The map did not show the player's recorded current hex coordinate.");
+                Assert.That(subtitle.text, Does.Contain($"걸어 본 타일 {progress.visitedTileIds.Count}"),
+                    "The map did not show the actual number of tiles visited by movement.");
+            }
 
             if (exerciseFirstAction)
             {

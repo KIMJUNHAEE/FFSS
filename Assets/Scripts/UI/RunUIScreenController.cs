@@ -259,7 +259,12 @@ namespace CardBattle.UI
             }
 
             RunActProgressState act = run.CurrentActProgress;
-            SetText(subtitle, $"탐색 {run.visitedNodeIds.Count}/{act.generatedTileCount}  ·  발견 {run.discoveredNodeIds.Count}");
+            act.visitedTileIds ??= new List<string>();
+            string position = act.hasCurrentCell
+                ? $"현재 [{act.currentAxialX}, {act.currentAxialY}]"
+                : "현재 위치 확인 중";
+            SetText(subtitle,
+                $"{position}  ·  걸어 본 타일 {act.visitedTileIds.Count}/{act.generatedTileCount}  ·  발견 건물 {run.discoveredNodeIds.Count}");
             SetText(body, act.bossDoorUnlocked
                 ? "보스문이 열렸다. 지도 끝의 붉은 문양으로 향하자."
                 : $"보스문 조건: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")}");

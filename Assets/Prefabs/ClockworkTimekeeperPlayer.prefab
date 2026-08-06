@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5204800391266037658}
   - component: {fileID: 4063447301307657329}
   - component: {fileID: 868972132606234280}
+  - component: {fileID: 2515014315801333283}
   m_Layer: 0
   m_Name: ClockworkTimekeeperPlayer
   m_TagString: Untagged
@@ -78,6 +79,7 @@ MonoBehaviour:
   constrainToWorldBounds: 1
   worldBoundsMin: {x: -24, y: -14}
   worldBoundsMax: {x: 24, y: 14}
+  walkableMap: {fileID: 0}
   cameraTransform: {fileID: 0}
   visualRoot: {fileID: 7418585417818141530}
   visualEulerOffset: {x: 0, y: 0, z: 0}
@@ -92,6 +94,19 @@ MonoBehaviour:
   - sfx.footstep.stone.01
   - sfx.footstep.stone.02
   footstepInterval: 0.42
+--- !u!114 &2515014315801333283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5595933269440487336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eddacaba6aeddac41b6137f860070d2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldExplorationTracker
+  map: {fileID: 0}
 --- !u!1001 &7025234286157239473
 PrefabInstance:
   m_ObjectHideFlags: 0

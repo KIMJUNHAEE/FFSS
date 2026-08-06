@@ -111,6 +111,21 @@ namespace FFSS.Framework.Persistence
                 data.schemaVersion = 6;
             }
 
+            if (data.schemaVersion < 7)
+            {
+                if (data.run?.actProgress != null)
+                {
+                    for (int i = 0; i < data.run.actProgress.Count; i++)
+                    {
+                        RunActProgressState progress = data.run.actProgress[i];
+                        if (progress != null)
+                            progress.visitedTileIds ??= new System.Collections.Generic.List<string>();
+                    }
+                }
+
+                data.schemaVersion = 7;
+            }
+
             return data;
         }
     }
