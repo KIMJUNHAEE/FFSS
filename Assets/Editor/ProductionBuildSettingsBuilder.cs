@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using FFSS.Framework.Flow;
 using UnityEditor;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace FFSS.Editor
@@ -53,6 +55,38 @@ namespace FFSS.Editor
             PlayerSettings.runInBackground = true;
             AssetDatabase.SaveAssets();
             Debug.Log($"FFSS playable build settings configured with {paths.Count} production scenes.");
+        }
+
+        [MenuItem("FFSS/Production/Build WebGL Player")]
+        public static void BuildWebGL()
+        {
+            Configure();
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL))
+                throw new InvalidOperationException("Unity WebGL Build Support is not installed.");
+
+            string configuredOutput = Environment.GetEnvironmentVariable("FFSS_WEBGL_OUTPUT");
+            string output = Path.GetFullPath(string.IsNullOrWhiteSpace(configuredOutput)
+                ? "Builds/WebGL"
+                : configuredOutput);
+            Directory.CreateDirectory(output);
+
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            var options = new BuildPlayerOptions
+            {
+                scenes = Array.ConvertAll(EditorBuildSettings.scenes, scene => scene.path),
+                locationPathName = output,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            BuildSummary summary = report.summary;
+            if (summary.result != BuildResult.Succeeded)
+                throw new InvalidOperationException(
+                    $"WebGL build failed: {summary.result}, errors={summary.totalErrors}.");
+
+            Debug.Log($"FFSS WebGL build succeeded: {output} ({summary.totalSize} bytes)");
         }
     }
 }

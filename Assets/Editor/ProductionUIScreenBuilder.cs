@@ -93,12 +93,52 @@ namespace FFSS.Editor
             }
 
             AddLoadButtonToTitle();
+            EnsureRunStatusOptionsPath();
             ConfigureCatalog(specs, created);
             ConfigureFieldSceneEntry();
             BuildResultScene();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS all 17 run UI screens are ready as inspectable prefabs.");
+        }
+
+        [MenuItem("FFSS/Production/Ensure Run Status Options Path")]
+        public static void EnsureRunStatusOptionsPath()
+        {
+            const string path = ScreenRoot + "/RunStatusScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Transform frame = root.transform.Find("Art Frame");
+                if (frame == null)
+                {
+                    throw new InvalidOperationException("Run status Art Frame is missing.");
+                }
+
+                Transform existing = frame.Find("Options");
+                Button button;
+                Text label;
+                if (existing == null)
+                {
+                    button = CreateCommandButton("Options", frame, "설정", new Vector2(210f, -294f), out label);
+                }
+                else
+                {
+                    button = existing.GetComponent<Button>();
+                    label = existing.GetComponentInChildren<Text>(true);
+                }
+
+                RunUIScreenController controller = root.GetComponent<RunUIScreenController>();
+                var serialized = new SerializedObject(controller);
+                SetReference(serialized, "secondaryButton", button);
+                SetReference(serialized, "secondaryLabel", label);
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         private static ScreenSpec[] CreateSpecs()
@@ -145,39 +185,50 @@ namespace FFSS.Editor
                 : SpriteAt(BulkRoot + spec.PanelSprite + ".png");
             frameImage.preserveAspect = false;
             frameImage.raycastTarget = true;
+            if (UsesBlankPanel(spec.Id))
+            {
+                Image emblem = CreateImage("Screen Emblem", frame, ScreenIcon(spec.Id), Color.white);
+                emblem.rectTransform.sizeDelta = new Vector2(68f, 68f);
+                emblem.rectTransform.anchoredPosition = new Vector2(0f, 264f);
+                emblem.preserveAspect = true;
+            }
 
-            build.Heading = CreateText("Heading", frame, spec.Heading, 44, TextAnchor.MiddleCenter,
-                new Color(1f, 0.81f, 0.28f), new Vector2(900f, 64f), new Vector2(0f, 235f));
-            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 24, TextAnchor.MiddleCenter,
-                new Color(0.88f, 0.91f, 0.97f), new Vector2(980f, 42f), new Vector2(0f, 188f));
+            build.Heading = CreateText("Heading", frame, spec.Heading, 42, TextAnchor.MiddleCenter,
+                new Color(1f, 0.81f, 0.28f), new Vector2(900f, 56f), new Vector2(0f, 195f));
+            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 22, TextAnchor.MiddleCenter,
+                new Color(0.88f, 0.91f, 0.97f), new Vector2(980f, 36f), new Vector2(0f, 155f));
             build.Currency = CreateText("Currency", frame, string.Empty, 24, TextAnchor.MiddleRight,
-                new Color(1f, 0.78f, 0.2f), new Vector2(300f, 44f), new Vector2(455f, 190f));
-            build.Body = CreateText("Body", frame, DefaultBody(spec.Id), 22, TextAnchor.MiddleCenter,
-                new Color(0.93f, 0.94f, 0.98f), new Vector2(1050f, 88f), new Vector2(0f, 120f));
+                new Color(1f, 0.78f, 0.2f), new Vector2(300f, 38f), new Vector2(455f, 155f));
+            build.Body = CreateText("Body", frame, DefaultBody(spec.Id), 20, TextAnchor.MiddleCenter,
+                new Color(0.93f, 0.94f, 0.98f), new Vector2(1050f, 46f), new Vector2(0f, 100f));
             build.Body.horizontalOverflow = HorizontalWrapMode.Wrap;
             build.Body.verticalOverflow = VerticalWrapMode.Truncate;
             if (spec.Id == UIScreenId.Load)
             {
-                build.Body.rectTransform.sizeDelta = new Vector2(1050f, 34f);
-                build.Body.rectTransform.anchoredPosition = new Vector2(0f, 145f);
                 build.Body.fontSize = 18;
             }
 
-            CreateActionSlots(frame, build, spec.Actions);
-            build.Status = CreateText("Status", frame, string.Empty, 19, TextAnchor.MiddleCenter,
-                new Color(0.72f, 0.79f, 0.9f), new Vector2(1000f, 42f), new Vector2(0f, -226f));
+            CreateActionSlots(frame, build, spec.Id, spec.Actions);
+            build.Status = CreateText("Status", frame, string.Empty, 18, TextAnchor.MiddleLeft,
+                new Color(0.72f, 0.79f, 0.9f), new Vector2(620f, 36f), new Vector2(-220f, -294f));
 
             bool hasPrimary = spec.Id == UIScreenId.Reward || spec.Id == UIScreenId.BossDoor ||
                               spec.Id == UIScreenId.ActTransition || spec.Id == UIScreenId.Result;
             if (hasPrimary)
             {
-                build.PrimaryButton = CreateCommandButton("Primary", frame, PrimaryText(spec.Id), new Vector2(210f, -302f), out Text label);
+                build.PrimaryButton = CreateCommandButton("Primary", frame, PrimaryText(spec.Id), new Vector2(210f, -294f), out Text label);
                 build.PrimaryLabel = label;
             }
 
             if (spec.Id == UIScreenId.FieldMap)
             {
-                build.SecondaryButton = CreateCommandButton("Run Status", frame, "런 현황", new Vector2(210f, -302f), out Text label);
+                build.SecondaryButton = CreateCommandButton("Run Status", frame, "런 현황", new Vector2(210f, -294f), out Text label);
+                build.SecondaryLabel = label;
+            }
+
+            if (spec.Id == UIScreenId.RunStatus)
+            {
+                build.SecondaryButton = CreateCommandButton("Options", frame, "설정", new Vector2(210f, -294f), out Text label);
                 build.SecondaryLabel = label;
             }
 
@@ -193,7 +244,7 @@ namespace FFSS.Editor
 
             if (spec.Id != UIScreenId.ActTransition && spec.Id != UIScreenId.Result)
             {
-                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(600f, 270f));
+                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(590f, 250f));
             }
             ConfigureController(build);
             return Save(build.Root, spec.Path);
@@ -288,16 +339,17 @@ namespace FFSS.Editor
             return new ScreenBuild { Root = root, Screen = screen };
         }
 
-        private static void CreateActionSlots(RectTransform frame, ScreenBuild build, int count)
+        private static void CreateActionSlots(RectTransform frame, ScreenBuild build, UIScreenId screenId, int count)
         {
             for (int i = 0; i < count; i++)
             {
                 int column = count <= 3 ? 0 : i % 2;
                 int row = count <= 3 ? i : i / 2;
                 float x = count <= 3 ? 0f : (column == 0 ? -285f : 285f);
-                float y = 75f - row * 105f;
+                float y = count <= 3 ? 20f - row * 100f : 20f - row * 92f;
                 float width = count <= 3 ? 900f : 530f;
-                RectTransform host = CreateRect($"Action {i + 1}", frame, new Vector2(width, 92f), new Vector2(x, y));
+                float height = count <= 3 ? 82f : 78f;
+                RectTransform host = CreateRect($"Action {i + 1}", frame, new Vector2(width, height), new Vector2(x, y));
                 Image image = host.gameObject.AddComponent<Image>();
                 image.sprite = SpriteAt("Assets/UI/38Battle/CombatSkin/poker_command_button.png");
                 image.preserveAspect = false;
@@ -309,11 +361,18 @@ namespace FFSS.Editor
                 colors.disabledColor = new Color(0.35f, 0.38f, 0.44f, 0.65f);
                 button.colors = colors;
 
-                Text label = CreateText("Label", host, $"선택 {i + 1}", 22, TextAnchor.MiddleLeft,
-                    Color.white, new Vector2(width - 150f, 34f), new Vector2(55f, 17f));
-                Text detail = CreateText("Detail", host, string.Empty, 15, TextAnchor.MiddleLeft,
-                    new Color(0.75f, 0.82f, 0.92f), new Vector2(width - 150f, 30f), new Vector2(55f, -18f));
-                build.Actions.Add(new RunScreenActionSlot { button = button, label = label, detail = detail, icon = image });
+                float textWidth = width - (count <= 3 ? 300f : 150f);
+                Text label = CreateText("Label", host, $"선택 {i + 1}", 21, TextAnchor.MiddleLeft,
+                    Color.white, new Vector2(textWidth, 30f), new Vector2(55f, 14f));
+                Text detail = CreateText("Detail", host, string.Empty, 14, TextAnchor.MiddleLeft,
+                    new Color(0.75f, 0.82f, 0.92f), new Vector2(textWidth, 26f), new Vector2(55f, -15f));
+                detail.horizontalOverflow = HorizontalWrapMode.Wrap;
+                detail.verticalOverflow = VerticalWrapMode.Truncate;
+                Image icon = CreateImage("Icon", host, ScreenIcon(screenId), Color.white);
+                icon.rectTransform.sizeDelta = new Vector2(44f, 44f);
+                icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : -214f, 0f);
+                icon.preserveAspect = true;
+                build.Actions.Add(new RunScreenActionSlot { button = button, label = label, detail = detail, icon = icon });
             }
         }
 
@@ -618,8 +677,31 @@ namespace FFSS.Editor
         private static bool UsesBlankPanel(UIScreenId id)
         {
             return id == UIScreenId.Load || id == UIScreenId.FieldMap || id == UIScreenId.Equipment ||
+                   id == UIScreenId.Shop || id == UIScreenId.CardWorkshop || id == UIScreenId.Event ||
+                   id == UIScreenId.Reward || id == UIScreenId.Rest ||
                    id == UIScreenId.BossDoor || id == UIScreenId.ActTransition ||
                    id == UIScreenId.RunStatus || id == UIScreenId.Options;
+        }
+
+        private static Sprite ScreenIcon(UIScreenId id)
+        {
+            string path = id switch
+            {
+                UIScreenId.Load => BulkRoot + "101_relic_card.png",
+                UIScreenId.FieldMap => BulkRoot + "090_map_node_fight.png",
+                UIScreenId.Equipment => BulkRoot + "097_relic_blade.png",
+                UIScreenId.Shop => BulkRoot + "093_map_node_shop.png",
+                UIScreenId.CardWorkshop => BulkRoot + "101_relic_card.png",
+                UIScreenId.Event => BulkRoot + "092_map_node_event.png",
+                UIScreenId.Reward => BulkRoot + "100_relic_coin.png",
+                UIScreenId.Rest => BulkRoot + "094_map_node_rest.png",
+                UIScreenId.BossDoor => BulkRoot + "095_map_node_boss.png",
+                UIScreenId.ActTransition => BulkRoot + "096_relic_sun.png",
+                UIScreenId.RunStatus => BulkRoot + "099_relic_hour.png",
+                UIScreenId.Options => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_09_gear.png",
+                _ => BulkRoot + "101_relic_card.png"
+            };
+            return SpriteAt(path);
         }
 
         private static void SetReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)

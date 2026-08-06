@@ -20,11 +20,21 @@ namespace FFSS.Editor
             Directory.CreateDirectory(output);
             var screens = new Dictionary<string, string>
             {
+                { "title", ScreenRoot + "/TitleScreen.prefab" },
                 { "load", ScreenRoot + "/LoadScreen.prefab" },
                 { "field_hud", ScreenRoot + "/FieldHudScreen.prefab" },
+                { "field_map", ScreenRoot + "/FieldMapScreen.prefab" },
+                { "equipment", ScreenRoot + "/EquipmentScreen.prefab" },
                 { "shop", ScreenRoot + "/ShopScreen.prefab" },
+                { "card_workshop", ScreenRoot + "/CardWorkshopScreen.prefab" },
                 { "event", ScreenRoot + "/EventScreen.prefab" },
+                { "break", ScreenRoot + "/BreakScreen.prefab" },
+                { "reward", ScreenRoot + "/RewardScreen.prefab" },
                 { "rest", ScreenRoot + "/RestScreen.prefab" },
+                { "boss_door", ScreenRoot + "/BossDoorScreen.prefab" },
+                { "act_transition", ScreenRoot + "/ActTransitionScreen.prefab" },
+                { "run_status", ScreenRoot + "/RunStatusScreen.prefab" },
+                { "options", ScreenRoot + "/OptionsScreen.prefab" },
                 { "result", ScreenRoot + "/ResultScreen.prefab" }
             };
 
@@ -32,6 +42,7 @@ namespace FFSS.Editor
             {
                 RenderPrefab(pair.Key, pair.Value, 1920, 1080, output);
                 RenderPrefab(pair.Key, pair.Value, 1280, 720, output);
+                RenderPrefab(pair.Key, pair.Value, 960, 540, output);
             }
 
             Debug.Log($"FFSS UI visual QA rendered to {output}");

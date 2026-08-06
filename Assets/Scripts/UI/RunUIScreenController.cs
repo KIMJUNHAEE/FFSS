@@ -344,15 +344,16 @@ namespace CardBattle.UI
             RunRewardState reward = run.pendingReward;
             SetText(currency, reward == null ? "보상 없음" : $"{reward.gold}냥 획득");
             SetText(body, "장비를 선택하거나 카드 한 장을 연마하고, 다음 지역으로 돌아간다.");
+            int itemCount = reward?.itemChoiceIds.Count ?? 0;
             for (int i = 0; i < actions.Count; i++)
             {
-                if (reward != null && i < reward.itemChoiceIds.Count)
+                if (i < itemCount)
                 {
                     SetAction(i, reward.itemChoiceIds[i], "장비 보상", true);
                 }
-                else if (i < run.pokerDeck.cards.Count)
+                else if (i - itemCount < run.pokerDeck.cards.Count)
                 {
-                    RunCardState card = run.pokerDeck.cards[i];
+                    RunCardState card = run.pokerDeck.cards[i - itemCount];
                     SetAction(i, card.cardId, $"카드 연마 +{card.enhancementLevel + 1}", true);
                 }
                 else
@@ -539,6 +540,10 @@ namespace CardBattle.UI
             else if (ScreenId == UIScreenId.FieldMap)
             {
                 Show(UIScreenId.RunStatus);
+            }
+            else if (ScreenId == UIScreenId.RunStatus)
+            {
+                Show(UIScreenId.Options);
             }
             else
             {
@@ -789,10 +794,16 @@ namespace CardBattle.UI
         private void ClaimReward()
         {
             RunState run = CurrentRun();
-            string selectedCard = selectedAction < run.pokerDeck.cards.Count
-                ? run.pokerDeck.cards[selectedAction].instanceId
+            RunRewardState reward = run.pendingReward;
+            int itemCount = reward?.itemChoiceIds.Count ?? 0;
+            string selectedItem = selectedAction >= 0 && selectedAction < itemCount
+                ? reward.itemChoiceIds[selectedAction]
                 : null;
-            GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(null, selectedCard);
+            int cardIndex = selectedAction - itemCount;
+            string selectedCard = cardIndex >= 0 && cardIndex < run.pokerDeck.cards.Count
+                ? run.pokerDeck.cards[cardIndex].instanceId
+                : null;
+            GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(selectedItem, selectedCard);
         }
 
         private static void EnterFieldOrResult()

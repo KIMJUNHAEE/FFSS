@@ -420,6 +420,14 @@ namespace FFSS.Framework.Tests
                 prefab.transform.Find("UI Manager/Runtime UI Canvas/Safe Area/Modals"),
                 Is.Not.Null);
 
+            UnityEngine.UI.CanvasScaler scaler = prefab.GetComponentInChildren<UnityEngine.UI.CanvasScaler>(true);
+            Assert.That(scaler, Is.Not.Null);
+            Assert.That(scaler.uiScaleMode, Is.EqualTo(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize));
+            Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1920f, 1080f)));
+            Assert.That(scaler.screenMatchMode,
+                Is.EqualTo(UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight));
+            Assert.That(scaler.matchWidthOrHeight, Is.EqualTo(0.5f).Within(0.001f));
+
             Transform oneShotPool = prefab.transform.Find("Audio Manager/One Shot Pool");
             Assert.That(oneShotPool, Is.Not.Null);
             Assert.That(oneShotPool.childCount, Is.EqualTo(12));
@@ -624,6 +632,21 @@ namespace FFSS.Framework.Tests
             Assert.That(serialized.FindProperty("secondaryButton").objectReferenceValue, Is.Not.Null);
             Assert.That(serialized.FindProperty("previousPageButton").objectReferenceValue, Is.Not.Null);
             Assert.That(serialized.FindProperty("nextPageButton").objectReferenceValue, Is.Not.Null);
+        }
+
+        [Test]
+        public void RunStatusPrefabProvidesAnInspectableOptionsPath()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/RunStatusScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Options"), Is.Not.Null);
+            Component controller = prefab.GetComponent("RunUIScreenController");
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(
+                new SerializedObject(controller).FindProperty("secondaryButton").objectReferenceValue,
+                Is.Not.Null);
         }
 
         [Test]
@@ -957,6 +980,8 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
                 Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.signatureCardA, Is.Not.Null, encounter.enemyId);
+                Assert.That(encounter.signatureCardB, Is.Not.Null, encounter.enemyId);
 
                 var moveIds = new HashSet<string>();
                 bool hasOffense = false;
@@ -966,6 +991,8 @@ namespace FFSS.Framework.Tests
                 {
                     EnemyMoveDefinition move = encounter.moves[moveIndex];
                     Assert.That(moveIds.Add(move.Id), Is.True, $"{encounter.enemyId}: {move.Id}");
+                    Assert.That(move.telegraph, Is.Not.Empty, $"{encounter.enemyId}: {move.Id}");
+                    Assert.That(move.seotdaRule, Is.Not.Empty, $"{encounter.enemyId}: {move.Id}");
                     hasOffense |= move.stance == CombatStance.Offense;
                     hasDefense |= move.stance == CombatStance.Defense;
                     hasSpecialTiming |= move.action == CombatActionType.Skill || move.cadenceRounds > 0;
