@@ -315,6 +315,9 @@ namespace CardBattle.Exploration
 
         private static int PlazaRadiusFor(int index, int areaCount, int targetCount)
         {
+            if (targetCount >= 36 && (index == 0 || index == areaCount - 1))
+                return 2;
+
             if (targetCount >= 68 && index > 0 && index < areaCount - 1 && index % 2 == 0)
                 return 2;
 

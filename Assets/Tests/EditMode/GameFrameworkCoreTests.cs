@@ -60,6 +60,20 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void PokerDeckCapsEquipmentRedrawsAtTwoAdditionalUses()
+        {
+            var deck = new RunPokerDeckState { bonusRedraws = 8 };
+
+            Assert.That(deck.RedrawLimit, Is.EqualTo(3));
+            Assert.That(deck.RedrawsRemaining, Is.EqualTo(3));
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.False);
+            Assert.That(deck.RedrawsRemaining, Is.Zero);
+        }
+
+        [Test]
         public void PokerDeckPersistsReservationStorageAndTopOrder()
         {
             var deck = new RunPokerDeckState();
@@ -327,15 +341,18 @@ namespace FFSS.Framework.Tests
             Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
             Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
             Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
+            CollectionAssert.AreEquivalent(
+                new[] { "7땡", "8땡", "9땡", "10땡" },
+                campaign.GetAct(3).normalEnemyIds);
 
-            int[] expectedNodeCounts = { 12, 15, 17 };
+            int[] expectedNodeCounts = { 11, 14, 16 };
             for (int act = 1; act <= 3; act++)
             {
                 RunActDefinition definition = campaign.GetAct(act);
                 Assert.That(definition.normalEnemyIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.eventIds.Count, Is.GreaterThanOrEqualTo(definition.requiredEvents), $"act {act}");
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
-                Assert.That(definition.restCount, Is.EqualTo(1), $"act {act}");
+                Assert.That(definition.restCount, Is.Zero, $"act {act}");
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
                                 definition.shopCount + definition.restCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
@@ -381,6 +398,37 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void CombatRewardOnlyUpgradesDraftedCardsAndCapsAtThree()
+        {
+            var host = new GameObject("Run Reward Test");
+            try
+            {
+                RunManager runs = host.AddComponent<RunManager>();
+                var run = new RunState();
+                run.pokerDeck.cards.Add(new RunCardState("card-a", "poker.heart.01") { enhancementLevel = 2 });
+                run.pokerDeck.cards.Add(new RunCardState("card-b", "poker.spade.02") { enhancementLevel = 3 });
+                run.pokerDeck.cards.Add(new RunCardState("card-c", "poker.club.03"));
+                SetCurrentRun(runs, run);
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-a", "card-b" });
+                runs.ClaimReward(null, "card-a");
+                Assert.That(run.pokerDeck.FindCard("card-a").enhancementLevel, Is.EqualTo(3));
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-b" });
+                runs.ClaimReward(null, "card-b");
+                Assert.That(run.pokerDeck.FindCard("card-b").enhancementLevel, Is.EqualTo(3));
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-a" });
+                runs.ClaimReward(null, "card-c");
+                Assert.That(run.pokerDeck.FindCard("card-c").enhancementLevel, Is.Zero);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void HexGeneratorBuildsRoamingFieldsInsteadOfSingleFileMazes()
         {
             var host = new GameObject("Hex Generator Test");
@@ -421,7 +469,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(cellSet.Contains(Vector2Int.zero), Is.True);
                 Assert.That(cellSet.Contains(bossCell), Is.True);
                 Assert.That(leafCount, Is.LessThanOrEqualTo(Mathf.Max(2, cells.Count / 20)));
-                Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.42f));
+                Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.35f));
             }
             finally
             {
@@ -1074,6 +1122,62 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/GameFlowDefinition.asset");
             Assert.That(flow.Allows(GameFlowState.Boot, GameFlowState.Field), Is.True);
             Assert.That(flow.Allows(GameFlowState.Reward, GameFlowState.ActTransition), Is.True);
+        }
+
+        [Test]
+        public void ProductionEncounterRewardsExposeEquipmentChoices()
+        {
+            EncounterSceneCatalog catalog = AssetDatabase.LoadAssetAtPath<EncounterSceneCatalog>(
+                "Assets/Data/Framework/EncounterSceneCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+
+            foreach (EncounterSceneEntry entry in catalog.Entries)
+            {
+                Assert.That(entry.rewardItemIds, Is.Not.Null, entry.enemyId);
+                Assert.That(entry.rewardItemIds.Count, Is.GreaterThanOrEqualTo(3), entry.enemyId);
+                Assert.That(entry.rewardItemIds.Distinct().Count(), Is.EqualTo(entry.rewardItemIds.Count),
+                    entry.enemyId);
+                Assert.That(entry.rewardItemWeights, Is.Not.Null, entry.enemyId);
+                Assert.That(entry.rewardItemWeights.Count, Is.EqualTo(entry.rewardItemIds.Count), entry.enemyId);
+                Assert.That(entry.rewardItemWeights.All(weight => weight > 0), Is.True, entry.enemyId);
+            }
+        }
+
+        [Test]
+        public void CombatControllerUsesRunPlayerStatsAsItsBaseline()
+        {
+            Type controllerType = Type.GetType("CardBattle.RpsCombatController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+
+            var host = new GameObject("Combat Controller Stat Sync Test");
+            try
+            {
+                Component controller = host.AddComponent(controllerType);
+                var state = new PlayerRunState
+                {
+                    maxHp = 111,
+                    currentHp = 73,
+                    maxPressure = 41,
+                    currentPressure = 9,
+                    baseAttack = 6,
+                    baseDefense = 5,
+                    baseBreakPower = 4
+                };
+
+                controllerType.GetMethod("ApplyRunPlayerState")?.Invoke(controller, new object[] { state });
+
+                Assert.That(ReadPrivateInt(controller, "playerMaxHp"), Is.EqualTo(111));
+                Assert.That(ReadPrivateInt(controller, "playerHp"), Is.EqualTo(73));
+                Assert.That(ReadPrivateInt(controller, "playerMaxBreak"), Is.EqualTo(41));
+                Assert.That(ReadPrivateInt(controller, "playerBreakCharge"), Is.EqualTo(9));
+                Assert.That(ReadPrivateInt(controller, "playerBaseAttack"), Is.EqualTo(6));
+                Assert.That(ReadPrivateInt(controller, "playerBaseDefense"), Is.EqualTo(5));
+                Assert.That(ReadPrivateInt(controller, "baseBreakPower"), Is.EqualTo(4));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
         }
 
         [Test]
@@ -1797,6 +1901,24 @@ namespace FFSS.Framework.Tests
             }
 
             return null;
+        }
+
+        private static int ReadPrivateInt(Component component, string fieldName)
+        {
+            FieldInfo field = component.GetType().GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, fieldName);
+            return (int)field.GetValue(component);
+        }
+
+        private static void SetCurrentRun(RunManager runs, RunState run)
+        {
+            FieldInfo field = typeof(RunManager).GetField(
+                "<Current>k__BackingField",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null);
+            field.SetValue(runs, run);
         }
 
         private static EnemyEncounterDefinition Encounter(params EnemyMoveDefinition[] moves)
