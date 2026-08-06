@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
@@ -529,6 +531,12 @@ namespace FFSS.Framework.Tests
                 "playerHp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
             int playerPressureBefore = (int)controllerType.GetField(
                 "playerBreakCharge", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+            AudioManager audio = GameKernel.Services.Get<AudioManager>();
+            VfxManager vfx = GameKernel.Services.Get<VfxManager>();
+            int audioPlayCountBefore = audio.TotalPlayCount;
+            int vfxPlayCountBefore = vfx.TotalPlayCount;
+            Assert.That(audio.CurrentMusicCueId, Does.StartWith("bgm."),
+                "Combat entered without selecting a battle music cue.");
 
             attack.onClick.Invoke();
             yield return WaitFrames(2);
@@ -560,6 +568,12 @@ namespace FFSS.Framework.Tests
                 "The enemy Seotda cards never became readable in their final table slots.");
             AssertVisibleCard(faceSlot, "revealed Seotda front card");
             AssertVisibleCard(hiddenSlot, "hidden Seotda card");
+            Assert.That(audio.TotalPlayCount, Is.GreaterThan(audioPlayCountBefore),
+                "The enemy turn did not play any configured audio cue at runtime.");
+            Assert.That(vfx.TotalPlayCount, Is.GreaterThan(vfxPlayCountBefore),
+                "The enemy turn did not spawn any configured VFX prefab at runtime.");
+            Assert.That(vfx.LastPlayedCueId, Is.Not.Empty,
+                "The runtime VFX manager did not record the spawned cue.");
             float previousTimeScale = Time.timeScale;
             Time.timeScale = 0f;
             yield return CaptureScreenshot("flow_combat_1ddaeng_seotda_face", 1280, 720);

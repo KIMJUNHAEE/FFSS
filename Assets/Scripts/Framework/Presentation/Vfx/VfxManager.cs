@@ -14,6 +14,9 @@ namespace FFSS.Framework.Presentation.Vfx
         private readonly Dictionary<GameObject, GameObject> origins = new Dictionary<GameObject, GameObject>();
         private readonly HashSet<GameObject> activeInstances = new HashSet<GameObject>();
 
+        public int TotalPlayCount { get; private set; }
+        public string LastPlayedCueId { get; private set; } = string.Empty;
+
         public bool TryPlay(
             string cueId,
             Vector3 position,
@@ -46,6 +49,8 @@ namespace FFSS.Framework.Presentation.Vfx
             instance.SetActive(true);
             RestartPresentation(instance);
             activeInstances.Add(instance);
+            TotalPlayCount++;
+            LastPlayedCueId = cueId;
             StartCoroutine(ReleaseAfter(instance, cue.Lifetime, cue.UseUnscaledTime));
             return instance;
         }
@@ -68,6 +73,8 @@ namespace FFSS.Framework.Presentation.Vfx
             pools.Clear();
             origins.Clear();
             activeInstances.Clear();
+            TotalPlayCount = 0;
+            LastPlayedCueId = string.Empty;
         }
 
         protected override void OnShutdown()
@@ -84,6 +91,7 @@ namespace FFSS.Framework.Presentation.Vfx
             activeInstances.Clear();
             pools.Clear();
             origins.Clear();
+            LastPlayedCueId = string.Empty;
         }
 
         private GameObject Acquire(GameObject prefab)

@@ -24,6 +24,9 @@ namespace FFSS.Framework.Presentation.Audio
         private bool useFirstMusicSource = true;
         private Coroutine musicFade;
 
+        public int TotalPlayCount { get; private set; }
+        public string CurrentMusicCueId { get; private set; } = string.Empty;
+
         public int Play(string cueId, Vector3? worldPosition = null)
         {
             AudioCueDefinition cue = catalog.Get(cueId);
@@ -55,6 +58,7 @@ namespace FFSS.Framework.Presentation.Audio
             lastPlayedClips[cue.CueId] = clip;
             sequencePlayCounts[cue.CueId] = sequencePlayIndex + 1;
             source.Play();
+            TotalPlayCount++;
             return playbackId;
         }
 
@@ -83,6 +87,8 @@ namespace FFSS.Framework.Presentation.Audio
                 return;
             }
 
+            CurrentMusicCueId = cueId;
+
             AudioSource incoming = useFirstMusicSource ? musicSourceA : musicSourceB;
             AudioSource outgoing = useFirstMusicSource ? musicSourceB : musicSourceA;
             useFirstMusicSource = !useFirstMusicSource;
@@ -102,6 +108,8 @@ namespace FFSS.Framework.Presentation.Audio
             lastPlayedAt.Clear();
             lastPlayedClips.Clear();
             sequencePlayCounts.Clear();
+            TotalPlayCount = 0;
+            CurrentMusicCueId = string.Empty;
         }
 
         protected override void OnShutdown()
@@ -122,6 +130,7 @@ namespace FFSS.Framework.Presentation.Audio
             lastPlayedAt.Clear();
             lastPlayedClips.Clear();
             sequencePlayCounts.Clear();
+            CurrentMusicCueId = string.Empty;
         }
 
         private void Update()
@@ -212,6 +221,7 @@ namespace FFSS.Framework.Presentation.Audio
             incoming.pitch = cue.PickPitch();
             incoming.volume = 0f;
             incoming.Play();
+            TotalPlayCount++;
 
             float outgoingVolume = outgoing != null ? outgoing.volume : 0f;
             float duration = Mathf.Max(0.01f, fadeSeconds);
