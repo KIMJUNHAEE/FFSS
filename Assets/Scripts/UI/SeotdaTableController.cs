@@ -122,7 +122,11 @@ namespace CardBattle
 
             if (rankText)
             {
-                rankText.text = LastResult.IsValid ? LastResult.DisplayName : string.Empty;
+                rankText.text = LastResult.IsValid
+                    ? ruleState.Seotda.preview.hiddenCardRevealed
+                        ? LastResult.DisplayName
+                        : BandLabel(PreparedHandBand)
+                    : string.Empty;
                 rankText.transform.localScale = Vector3.one * 0.78f;
                 rankText.gameObject.SetActive(true);
                 yield return ScaleTo(rankText.rectTransform, Vector3.one, 0.16f);
@@ -397,10 +401,7 @@ namespace CardBattle
                 preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
             }
 
-            if (!useSignature)
-            {
-                AvoidRecentHandRepeat();
-            }
+            AvoidRecentHandRepeat();
 
             ruleState.Seotda.faceCard = CreateCardState(preparedFaceSprite);
             ruleState.Seotda.hiddenCard = CreateCardState(preparedHiddenSprite);
