@@ -1,0 +1,169 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: "\uC554\uD589\uC5B4\uC0AC"
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: "\uC554\uD589\uC5B4\uC0AC"
+  displayName: "\uC554\uD589\uC5B4\uC0AC"
+  rank: 1
+  maximumHp: 116
+  maximumPressure: 44
+  combatTitle: "\uAD11\uB561\uC744 \uBCA0\uB294 \uB9C8\uD328"
+  primaryColor: {r: 0.78, g: 0.16, b: 0.2, a: 1}
+  secondaryColor: {r: 0.56, g: 0.72, b: 1, a: 1}
+  signatureCardA: {fileID: 824052245774486454, guid: 20a1854dc97fe80448d522776a00a793, type: 3}
+  signatureCardB: {fileID: 3248066798809565289, guid: cd057554a1fc572489589d942d9a956c, type: 3}
+  signatureCardChance: 0.74
+  signaturePairChance: 0.23
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: magistrate_badge
+    displayName: "\uB9C8\uD328\uC77C\uC12C"
+    action: 0
+    stance: 0
+    telegraph: "\uC871\uBCF4\uAC00 \uC131\uB9BD\uD558\uBA74 \uB9C8\uD328\uB97C \uBC1D\uD788\uACE0
+      \uACE7\uBC14\uB85C \uAC70\uB9AC\uB97C \uC881\uD600."
+    description: "\uD2B9\uC218 \uC871\uBCF4\uB97C \uC99D\uD45C\uB85C \uC0BC\uC544
+      \uC815\uBA74 \uACF5\uACA9\uC758 \uAD8C\uC704\uB97C \uB192\uC5EC."
+    basePower: 15
+    pressurePower: 6
+    weight: 4
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 8
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 0
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4: \uACF5\uACA9 +2, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: magistrate_order
+    displayName: "\uAD11\uD328\uC555\uC218"
+    action: 1
+    stance: 1
+    telegraph: "\uAD11\uD328\uAC00 \uBCF4\uC774\uBA74 \uD638\uB839\uACFC \uD568\uAED8
+      \uD328\uC758 \uAE30\uC138\uB97C \uC555\uC218\uD574."
+    description: "\uAC15\uD55C \uAD11 \uC870\uD569\uC744 \uC624\uD788\uB824 \uBC29\uC5B4\uC640
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uC555\uBC15\uC73C\uB85C \uBC14\uAFB8\uB294
+      \uD310\uACB0\uC774\uC57C."
+    basePower: 14
+    pressurePower: 8
+    weight: 3.3
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 2
+    conditionValueA: 7
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 5
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "13\uAD11\uB561 \uC774\uC0C1: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 5"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: magistrate_reveal
+    displayName: "\uC554\uD589\uCD9C\uB450"
+    action: 0
+    stance: 0
+    telegraph: "\uC0AC\uC6D4\uACFC \uCE60\uC6D4\uC758 \uB9C8\uD328\uAC00 \uB9DE\uC73C\uBA74
+      \uC228\uC5B4 \uC788\uB358 \uCE7C\uC744 \uB4DC\uB7EC\uB0B4."
+    description: "\uC554\uD589\uC5B4\uC0AC\uC758 \uB300\uD45C \uD328\uAC00 \uC644\uC131\uB420
+      \uB54C HP\uC640 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C \uB3D9\uC2DC\uC5D0 \uBCA0\uC5B4."
+    basePower: 14
+    pressurePower: 7
+    weight: 2.5
+    minimumRound: 2
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 7
+    conditionValueA: 4
+    conditionValueB: 7
+    seotdaPowerBonus: 4
+    seotdaHpDamage: 3
+    seotdaPressureDamage: 3
+    seotdaFailurePowerDelta: -1
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 4\uC6D4+7\uC6D4: \uACF5\uACA9 +4, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3
+      / \uBD88\uBC1C: \uACF5\uACA9 -1"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: magistrate_judgment
+    displayName: "\uAD11\uD328\uCC98\uB2E8"
+    action: 2
+    stance: 0
+    telegraph: "\uB124 \uBC88\uC9F8 \uC801 \uD134\uB9C8\uB2E4 \uAD11\uD328\uC758
+      \uC8C4\uBAA9\uC744 \uC120\uACE0\uD558\uACE0 \uBC1C\uB3C4\uB97C \uC900\uBE44\uD574."
+    description: "\uAD11 \uB450 \uC7A5\uC774 \uC7A1\uD788\uBA74 \uCC98\uB2E8\uC774
+      \uC644\uC131\uB418\uACE0, \uC544\uB2C8\uB77C\uBA74 \uC120\uACE0\uAC00 \uD754\uB4E4\uB824
+      \uC704\uB825\uC774 \uB0AE\uC544\uC838."
+    basePower: 19
+    pressurePower: 9
+    weight: 1
+    minimumRound: 4
+    cooldownRounds: 3
+    cadenceRounds: 4
+    cadenceOffset: 4
+    seotdaCondition: 5
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 4
+    seotdaHpDamage: 4
+    seotdaPressureDamage: 4
+    seotdaFailurePowerDelta: -3
+    bonusTrigger: 0
+    seotdaRule: "\uAD11 \uB450 \uC7A5: \uC2A4\uD0AC +4, \uBA85\uC911 \uC2DC HP \uCD94\uAC00
+      4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4 / \uBD88\uBC1C: \uC2A4\uD0AC
+      -3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1

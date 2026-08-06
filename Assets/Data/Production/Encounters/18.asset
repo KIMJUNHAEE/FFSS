@@ -1,0 +1,168 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: 18
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: 18
+  displayName: "18\uAD11\uB561"
+  rank: 2
+  maximumHp: 98
+  maximumPressure: 38
+  combatTitle: "\uAE08\uB95C\uC758 \uAD11\uD328 \xB7 \uC77C\uD314\uAD11\uB561"
+  primaryColor: {r: 0.94, g: 0.42, b: 0.18, a: 1}
+  secondaryColor: {r: 1, g: 0.82, b: 0.28, a: 1}
+  signatureCardA: {fileID: 216013294941232667, guid: d49ae1e1664074e4eb40e4ca203b4f16, type: 3}
+  signatureCardB: {fileID: -7760254853913181831, guid: 7f158a042ca72fc4795ca00a1a0fe6bc, type: 3}
+  signatureCardChance: 0.78
+  signaturePairChance: 0.24
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: 18_ring_strike
+    displayName: "\uAE08\uB95C \uC555\uC9C4"
+    action: 0
+    stance: 0
+    telegraph: "\uC77C\uC6D4\uC758 \uAE08\uB95C\uC744 \uC55E\uC73C\uB85C \uAD74\uB824
+      \uC790\uC138\uB97C \uBB34\uB108\uB728\uB824."
+    description: "HP\uBCF4\uB2E4 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C \uD754\uB4DC\uB294
+      \uACAC\uC81C \uACF5\uACA9\uC774\uC57C."
+    basePower: 12
+    pressurePower: 6
+    weight: 4
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 1
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: 18_eight_gate
+    displayName: "\uD314\uBB38 \uC218\uD638"
+    action: 1
+    stance: 1
+    telegraph: "\uD314\uC6D4\uC758 \uBB38\uC591\uC774 \uACB9\uCE58\uBA70 \uACF5\uACA9\uB85C\uB97C
+      \uC644\uC804\uD788 \uB2EB\uC544."
+    description: "\uC774 \uBCF4\uC2A4\uC758 \uD575\uC2EC \uBC29\uC5B4. \uC5B4\uC911\uAC04\uD55C
+      \uACF5\uACA9\uC740 \uB9C9\uD78C \uB4A4 \uD070 \uC555\uBC15\uC73C\uB85C \uB3CC\uC544\uC640."
+    basePower: 15
+    pressurePower: 9
+    weight: 3.6
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 8
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 4
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: 18_low_orbit
+    displayName: "\uC800\uD328\uC724\uD68C"
+    action: 1
+    stance: 1
+    telegraph: "\uB0AE\uC740 \uD328\uB97C \uAE08\uB95C \uC548\uCABD\uC73C\uB85C \uC228\uACA8
+      \uBC29\uC5B4\uC758 \uCD95\uC73C\uB85C \uBC14\uAFD4."
+    description: "\uC57D\uD55C \uC12F\uB2E4\uD328\uC77C\uC218\uB85D \uB2E8\uB2E8\uD574\uC9C0\uB294
+      \uC5ED\uC804 \uBC29\uC5B4\uB77C\uC11C, \uACF5\uAC1C \uD328\uB97C \uBCF4\uACE0
+      \uACB0\uACFC\uAC00 \uD06C\uAC8C \uB2EC\uB77C\uC838."
+    basePower: 13
+    pressurePower: 7
+    weight: 2.7
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 3
+    conditionValueA: 3
+    conditionValueB: 0
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 3
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uAC11\uC624 \uC774\uD558: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: 18_seal
+    displayName: "\uC77C\uD314\uBD09\uC778"
+    action: 2
+    stance: 0
+    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
+      \uC77C\uC6D4\uACFC \uD314\uC6D4\uC758 \uBD09\uC778\uC744 \uB9DE\uCDB0."
+    description: "\uD53C\uD574\uB7C9\uBCF4\uB2E4 \uC2A4\uD134 \uC9C1\uC804\uAE4C\uC9C0
+      \uBAB0\uC544\uBD99\uC774\uB294 \uBD09\uC778\uAE30\uC57C. \uC815\uD655\uD55C
+      \uC77C\uD314 \uC870\uD569\uC744 \uACBD\uACC4\uD574\uC57C \uD574."
+    basePower: 17
+    pressurePower: 10
+    weight: 1
+    minimumRound: 3
+    cooldownRounds: 2
+    cadenceRounds: 4
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 1
+    conditionValueB: 8
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 6
+    seotdaFailurePowerDelta: -2
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 1\uC6D4+8\uC6D4: \uC2A4\uD0AC +2, \uBA85\uC911
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 6 / \uBD88\uBC1C: \uC2A4\uD0AC
+      -2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1

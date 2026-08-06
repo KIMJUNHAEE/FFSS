@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: "4\uB561"
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: "4\uB561"
+  displayName: "4\uB561"
+  rank: 0
+  maximumHp: 58
+  maximumPressure: 26
+  combatTitle: "\uD751\uC2F8\uB9AC \uB0AB\uC758 \uC0AC\uB561 \uD328\uAC1D"
+  primaryColor: {r: 0.56, g: 0.34, b: 0.78, a: 1}
+  secondaryColor: {r: 0.82, g: 0.66, b: 1, a: 1}
+  signatureCardA: {fileID: 824052245774486454, guid: 20a1854dc97fe80448d522776a00a793, type: 3}
+  signatureCardB: {fileID: -3908408049924532514, guid: f356f10c3984b734db6ac4372caf9f8a, type: 3}
+  signatureCardChance: 0.72
+  signaturePairChance: 0.32
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: four_ddeng_slide
+    displayName: "\uBBF8\uB044\uB7EC\uC9C0\uB294 \uB0AB \uBCA0\uAE30"
+    action: 0
+    stance: 0
+    telegraph: "\uC9C0\uBA74\uC744 \uC2A4\uCE58\uB4EF \uBBF8\uB044\uB7EC\uC838 \uB0AB\uB0A0\uC744
+      \uC606\uC73C\uB85C \uBC00\uC5B4 \uB123\uC5B4."
+    description: "\uC0AC\uC6D4\uD328\uAC00 \uBCF4\uC774\uBA74 \uADF8\uB9BC\uC790\uAC00
+      \uAE38\uC5B4\uC838 HP\uC640 \uC790\uC138\uB97C \uD568\uAED8 \uB178\uB824."
+    basePower: 10
+    pressurePower: 4
+    weight: 4.2
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 4
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 1
+    seotdaPressureDamage: 1
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "4\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 1\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 1"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 86c8921b265c1204a8df99a4bca1370a, type: 3}
+    actionPoseSeconds: 0.5
+    actionVisualScale: 1.6
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 8
+    actionMotionIntensity: 1.12
+    actionMotionRepetitions: 1
+  - moveId: four_ddeng_counter
+    displayName: "\uB4A4\uB3CC\uB9BC \uBC18\uACA9\uCC38"
+    action: 1
+    stance: 1
+    telegraph: "\uBAB8\uC744 \uB3CC\uB824 \uACF5\uACA9\uC120\uC744 \uD53C\uD55C \uB4A4
+      \uB0AB\uB4F1\uC73C\uB85C \uBC00\uC5B4\uB0B4."
+    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uD68C\uC804 \uBC18\uACBD\uC774
+      \uB113\uC5B4\uC838 \uBC29\uC5B4\uC640 \uC790\uC138 \uC555\uBC15\uC774 \uD568\uAED8
+      \uAC15\uD574\uC838."
+    basePower: 10
+    pressurePower: 6
+    weight: 3
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 4
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uB561: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5 \uC2DC \uC587\uC740
+      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 7cc0081ae9ca9f444870a7844343f756, type: 3}
+    actionPoseSeconds: 0.52
+    actionVisualScale: 1.65
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 6
+    actionMotionIntensity: 1.18
+    actionMotionRepetitions: 1
+  - moveId: four_ddeng_dance
+    displayName: "\uC0AC\uC6D4 \uB0AB\uCDA4"
+    action: 2
+    stance: 0
+    telegraph: "\uAC80\uC740 \uB0AB\uACFC \uBCF4\uB78F\uBE5B \uADA4\uC801\uC744 \uC6D0\uBB34\uCC98\uB7FC
+      \uACB9\uCCD0."
+    description: "\uC815\uD655\uD55C 4\uB561\uC5D0\uC11C\uB9CC \uB0AB\uCDA4\uC758
+      \uACE0\uB9AC\uAC00 \uC644\uC131\uB3FC. \uC2E4\uD328\uD558\uBA74 \uD68C\uC804\uC774
+      \uD06C\uAC8C \uD480\uB824."
+    basePower: 14
+    pressurePower: 7
+    weight: 1
+    minimumRound: 3
+    cooldownRounds: 2
+    cadenceRounds: 4
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 4
+    conditionValueB: 4
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 3
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: -2
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 4\uC6D4+4\uC6D4: \uC2A4\uD0AC +3, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2
+      / \uBD88\uBC1C: \uC2A4\uD0AC -2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: ce4fce2b9fa13164089c25b2b3219cbf, type: 3}
+    actionPoseSeconds: 0.66
+    actionVisualScale: 2
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 5
+    actionMotionIntensity: 1.28
+    actionMotionRepetitions: 2

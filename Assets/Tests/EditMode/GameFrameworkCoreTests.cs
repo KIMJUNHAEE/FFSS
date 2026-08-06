@@ -356,6 +356,65 @@ namespace FFSS.Framework.Tests
             UnityEngine.Object.DestroyImmediate(encounter);
         }
 
+        [Test]
+        public void ProductionEnemyEncountersCoverAllRanksAndDistinctMoveSets()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            var enemyIds = new HashSet<string>();
+            int normalCount = 0;
+            int midBossCount = 0;
+            int bossCount = 0;
+
+            Assert.That(guids, Has.Length.EqualTo(17));
+            for (int i = 0; i < guids.Length; i++)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guids[i]));
+                Assert.That(encounter, Is.Not.Null);
+                Assert.That(encounter.enemyId, Is.Not.Empty);
+                Assert.That(enemyIds.Add(encounter.enemyId), Is.True, encounter.enemyId);
+                Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
+                Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
+
+                var moveIds = new HashSet<string>();
+                bool hasOffense = false;
+                bool hasDefense = false;
+                bool hasSpecialTiming = false;
+                for (int moveIndex = 0; moveIndex < encounter.moves.Count; moveIndex++)
+                {
+                    EnemyMoveDefinition move = encounter.moves[moveIndex];
+                    Assert.That(moveIds.Add(move.Id), Is.True, $"{encounter.enemyId}: {move.Id}");
+                    hasOffense |= move.stance == CombatStance.Offense;
+                    hasDefense |= move.stance == CombatStance.Defense;
+                    hasSpecialTiming |= move.action == CombatActionType.Skill || move.cadenceRounds > 0;
+                }
+
+                Assert.That(hasOffense, Is.True, encounter.enemyId);
+                Assert.That(hasDefense, Is.True, encounter.enemyId);
+                Assert.That(hasSpecialTiming, Is.True, encounter.enemyId);
+
+                switch (encounter.rank)
+                {
+                    case EnemyEncounterRank.Normal:
+                        normalCount++;
+                        break;
+                    case EnemyEncounterRank.MidBoss:
+                        midBossCount++;
+                        break;
+                    case EnemyEncounterRank.Boss:
+                        bossCount++;
+                        break;
+                }
+            }
+
+            Assert.That(normalCount, Is.EqualTo(10));
+            Assert.That(midBossCount, Is.EqualTo(4));
+            Assert.That(bossCount, Is.EqualTo(3));
+        }
+
         private static CombatIntent Intent(
             CombatSide side,
             CombatStance stance,

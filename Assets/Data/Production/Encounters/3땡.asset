@@ -1,0 +1,169 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: "3\uB561"
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: "3\uB561"
+  displayName: "3\uB561"
+  rank: 0
+  maximumHp: 68
+  maximumPressure: 28
+  combatTitle: "\uBC9A\uAF43 \uCC3D\uC744 \uB4E0 \uC0BC\uB561 \uD328\uAC1D"
+  primaryColor: {r: 0.96, g: 0.3, b: 0.55, a: 1}
+  secondaryColor: {r: 1, g: 0.72, b: 0.34, a: 1}
+  signatureCardA: {fileID: -6894402780853681277, guid: 9a610c34a0a524748abf12a1b6f75634, type: 3}
+  signatureCardB: {fileID: -216548992430189932, guid: 658d35140ee22e24f8f9a48e193bf706, type: 3}
+  signatureCardChance: 0.76
+  signaturePairChance: 0.34
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: three_ddeng_drop
+    displayName: "\uB0B4\uB824\uCC0D\uAE30"
+    action: 0
+    stance: 0
+    telegraph: "\uCC3D\uB05D\uC744 \uC138\uC6CC \uC815\uBA74\uC73C\uB85C \uC9E7\uACE0
+      \uBE60\uB974\uAC8C \uB0B4\uB824\uCC0D\uC5B4."
+    description: "\uAE30\uBCF8 \uACF5\uACA9\uC774\uB77C \uC790\uC8FC \uC0AC\uC6A9\uD574.
+      3\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uAF43\uC78E\uC774 \uD130\uC9C0\uBA70
+      \uC704\uB825\uC774 \uC62C\uB77C\uAC00."
+    basePower: 9
+    pressurePower: 4
+    weight: 4.5
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 3
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 1
+    seotdaPressureDamage: 0
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "3\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 1"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: d0ec778aa9aa0d84cab6e09ea057736e, type: 3}
+    actionPoseSeconds: 0.42
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 1
+    actionMotionIntensity: 0.95
+    actionMotionRepetitions: 1
+  - moveId: three_ddeng_triple
+    displayName: "\uC0BC\uC5F0\uD654 \uBCA0\uAE30"
+    action: 0
+    stance: 0
+    telegraph: "\uC138 \uAC08\uB798 \uAF43\uC790\uAD6D\uC744 \uC5F0\uB2EC\uC544 \uADF8\uC73C\uBA70
+      HP\uC640 \uC790\uC138\uB97C \uD568\uAED8 \uB178\uB824."
+    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uC138 \uBC88\uC9F8 \uCC38\uACA9\uC774
+      \uC774\uC5B4\uC838 \uD53C\uD574\uC640 \uC587\uC740 \uAC8C\uC774\uC9C0 \uC555\uBC15\uC774
+      \uD568\uAED8 \uCEE4\uC838."
+    basePower: 11
+    pressurePower: 5
+    weight: 3.4
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 4
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 1
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uB561: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740
+      \uAC8C\uC774\uC9C0 \uCD94\uAC00 1"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 802999619c5c92f4683fe83ac8d786a0, type: 3}
+    actionPoseSeconds: 0.52
+    actionVisualScale: 1.25
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 9
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 3
+  - moveId: three_ddeng_curtain
+    displayName: "\uBC9A\uAF43 \uC7A5\uB9C9 \uAC77\uC5B4\uBCA0\uAE30"
+    action: 1
+    stance: 1
+    telegraph: "\uBC9A\uAF43 \uC7A5\uB9C9\uC744 \uD3BC\uCCD0 \uACF5\uACA9\uC120\uC744
+      \uD758\uB9B0 \uB4A4 \uCC3D\uB0A0\uB85C \uBC00\uC5B4\uB0B4."
+    description: "\uB9C9\uC544\uB0B4\uBA74 HP \uB300\uC2E0 \uC0C1\uB300\uC758 \uC587\uC740
+      \uAC8C\uC774\uC9C0\uB97C \uD754\uB4DC\uB294 \uBC29\uC5B4 \uD589\uB3D9\uC774\uC57C."
+    basePower: 10
+    pressurePower: 6
+    weight: 3.1
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 3
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "3\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: e1a80a7851ed57344a4c54aa2adee3fc, type: 3}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 6
+    actionMotionIntensity: 0.92
+    actionMotionRepetitions: 1
+  - moveId: three_ddeng_fall
+    displayName: "\uD68C\uC804\uB099\uD558\uCC38"
+    action: 2
+    stance: 0
+    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
+      \uB192\uC774 \uD68C\uC804\uD574 \uD55C \uC810\uC73C\uB85C \uB099\uD558\uD574."
+    description: "\uC815\uD655\uD55C 3\uB561\uC5D0\uC11C\uB9CC \uAF43\uACE0\uB9AC\uAC00
+      \uC644\uC131\uB418\uB294 3\uB561\uC758 \uB300\uD45C \uAE30\uC220\uC774\uC57C.
+      \uBE57\uB098\uAC00\uBA74 \uC704\uB825\uC774 \uB0AE\uC544\uC838."
+    basePower: 14
+    pressurePower: 7
+    weight: 1
+    minimumRound: 3
+    cooldownRounds: 2
+    cadenceRounds: 4
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 3
+    conditionValueB: 3
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 3
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: -2
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 3\uC6D4+3\uC6D4: \uC2A4\uD0AC +3, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2
+      / \uBD88\uBC1C: \uC2A4\uD0AC -2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 1436d920b677b6f4fbb622387ede8818, type: 3}
+    actionPoseSeconds: 0.62
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 4
+    actionMotionIntensity: 1.35
+    actionMotionRepetitions: 1

@@ -1,0 +1,168 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: "\uBA4D\uAD6C\uC0AC"
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: "\uBA4D\uAD6C\uC0AC"
+  displayName: "\uBA4D\uAD6C\uC0AC"
+  rank: 1
+  maximumHp: 94
+  maximumPressure: 36
+  combatTitle: "\uC5F4\uB057\uC5D0 \uC228\uC740 \uC554\uC0B4\uD328"
+  primaryColor: {r: 0.3, g: 0.78, b: 0.66, a: 1}
+  secondaryColor: {r: 0.52, g: 1, b: 0.78, a: 1}
+  signatureCardA: {fileID: 824052245774486454, guid: 20a1854dc97fe80448d522776a00a793, type: 3}
+  signatureCardB: {fileID: 5515842458978040273, guid: 181f834d2931895449d2a8a90c429127, type: 3}
+  signatureCardChance: 0.78
+  signaturePairChance: 0.26
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: meonggusa_hidden_blade
+    displayName: "\uD5C8\uD328\uBE44\uC218"
+    action: 0
+    stance: 0
+    telegraph: "\uB0AE\uC740 \uD328\uB97C \uBBF8\uB07C\uB85C \uB450\uACE0 \uC2DC\uC57C
+      \uBC16\uC5D0\uC11C \uBE44\uC218\uB97C \uB358\uC838."
+    description: "\uC88B\uC740 \uC871\uBCF4\uAC00 \uC544\uB2C8\uB77C \uAC11\uC624
+      \uC774\uD558\uC77C \uB54C \uB354 \uB0A0\uCE74\uB85C\uC6CC\uC9C0\uB294 \uC554\uC0B4
+      \uACF5\uACA9\uC774\uC57C."
+    basePower: 14
+    pressurePower: 5
+    weight: 4
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 3
+    conditionValueA: 3
+    conditionValueB: 0
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 0
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uAC11\uC624 \uC774\uD558: \uACF5\uACA9 +3, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: meonggusa_silence
+    displayName: "\uBB34\uC74C\uC7A0\uD589"
+    action: 1
+    stance: 1
+    telegraph: "\uC774\uB984 \uC5C6\uB294 \uB057\uD328 \uC0AC\uC774\uB85C \uAE30\uCC99\uC744
+      \uC9C0\uC6B0\uACE0 \uACF5\uACA9\uC120\uC744 \uBE44\uC6CC."
+    description: "\uD2B9\uC218 \uC871\uBCF4\uAC00 \uC544\uB2D0 \uB54C \uD68C\uD53C
+      \uACBD\uB85C\uAC00 \uC5F4\uB9AC\uB294 \uC800\uD328 \uD2B9\uD654 \uBC29\uC5B4\uC57C."
+    basePower: 11
+    pressurePower: 7
+    weight: 3.1
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 9
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 3
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 3
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uC77C\uBC18 \uB057\uD328: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: meonggusa_ninth_cut
+    displayName: "\uAD6C\uC6D4\uC794\uC601"
+    action: 0
+    stance: 0
+    telegraph: "\uAD6C\uC6D4\uD328\uC758 \uC794\uC601\uC744 \uB0A8\uAE30\uACE0 \uBC18\uB300\uD3B8\uC5D0\uC11C
+      \uB450 \uBC88\uC9F8 \uCE7C\uC774 \uB4E4\uC5B4\uC640."
+    description: "\uBA85\uC911\uD558\uBA74 HP\uC640 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C
+      \uC791\uAC8C \uB098\uB220 \uAE4E\uB294 \uC5F0\uC18D \uACF5\uACA9\uC774\uC57C."
+    basePower: 13
+    pressurePower: 6
+    weight: 3
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 9
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "9\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1
+  - moveId: meonggusa_execute
+    displayName: "\uBA4D\uAD6C\uC0AC\xB7\uC808\uBA85"
+    action: 2
+    stance: 0
+    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uB9C8\uB2E4 \uC0AC\uC6D4\uACFC
+      \uAD6C\uC6D4\uC758 \uCE7C\uB05D\uC744 \uD55C \uC810\uC5D0 \uBAA8\uC544."
+    description: "\uC815\uD655\uD55C \uC0AC\uAD6C\uC5D0\uC11C\uB9CC \uC808\uBA85\uC774
+      \uC644\uC131\uB3FC. \uC870\uD569\uC774 \uC5B4\uAE0B\uB098\uBA74 \uBAB8\uC744
+      \uB4DC\uB7EC\uB0B4 \uD06C\uAC8C \uC57D\uD574\uC838."
+    basePower: 18
+    pressurePower: 8
+    weight: 1
+    minimumRound: 3
+    cooldownRounds: 2
+    cadenceRounds: 3
+    cadenceOffset: 3
+    seotdaCondition: 7
+    conditionValueA: 4
+    conditionValueB: 9
+    seotdaPowerBonus: 5
+    seotdaHpDamage: 4
+    seotdaPressureDamage: 4
+    seotdaFailurePowerDelta: -4
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 4\uC6D4+9\uC6D4: \uC2A4\uD0AC +5, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4
+      / \uBD88\uBC1C: \uC2A4\uD0AC -4"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 0}
+    actionPoseSeconds: 0.48
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 0
+    actionMotionIntensity: 1
+    actionMotionRepetitions: 1

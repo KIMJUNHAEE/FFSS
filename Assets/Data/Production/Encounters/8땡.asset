@@ -1,0 +1,201 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3c4aa9c70b5b3e44913d3f36846620f, type: 3}
+  m_Name: "8\uB561"
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyEncounterDefinition
+  enemyId: "8\uB561"
+  displayName: "8\uB561"
+  rank: 0
+  maximumHp: 72
+  maximumPressure: 32
+  combatTitle: "\uACF5\uC0B0 \uC220\uBC95\uC758 \uD314\uB561 \uD328\uAC1D"
+  primaryColor: {r: 0.54, g: 0.68, b: 0.3, a: 1}
+  secondaryColor: {r: 0.84, g: 0.92, b: 0.48, a: 1}
+  signatureCardA: {fileID: -7760254853913181831, guid: 7f158a042ca72fc4795ca00a1a0fe6bc, type: 3}
+  signatureCardB: {fileID: 2148310242111156280, guid: ec7d6f64ae9e58549bda4032b370ab30, type: 3}
+  signatureCardChance: 0.76
+  signaturePairChance: 0.36
+  idleVisualScale: 1
+  idleVisualOffset: {x: 0, y: 0}
+  hurtVisualScale: 1
+  hurtVisualOffset: {x: 0, y: 0}
+  deathVisualScale: 1
+  deathVisualOffset: {x: 0, y: 0}
+  moves:
+  - moveId: eight_ddeng_goose
+    displayName: "\uAE30\uB7EC\uAE30 \uC8FC\uBB38\uD0C4"
+    action: 0
+    stance: 0
+    telegraph: "\uBD80\uC801\uC744 \uC811\uC5B4 \uAE30\uB7EC\uAE30 \uBAA8\uC591\uC758
+      \uC8FC\uBB38\uD0C4\uC73C\uB85C \uB0A0\uB824."
+    description: "\uD314\uC6D4\uD328\uAC00 \uBCF4\uC774\uBA74 \uC8FC\uBB38\uD0C4\uC774
+      \uB418\uB3CC\uC544\uC640 HP\uB97C \uD55C \uBC88 \uB354 \uB178\uB824."
+    basePower: 10
+    pressurePower: 4
+    weight: 4
+    minimumRound: 1
+    cooldownRounds: 0
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 8
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 0
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
+      HP \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: efbd833707227ad4d9c53127da0e78fa, type: 3}
+    actionPoseSeconds: 0.46
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 2
+    actionMotionIntensity: 0.88
+    actionMotionRepetitions: 1
+  - moveId: eight_ddeng_curtain
+    displayName: "\uACF5\uC0B0 \uC7A5\uB9C9"
+    action: 1
+    stance: 1
+    telegraph: "\uB450\uB8E8\uB9C8\uB9AC\uB97C \uD3BC\uCCD0 \uACF5\uACA9 \uC55E\uC5D0
+      \uBD80\uC801 \uC7A5\uB9C9\uC744 \uC138\uC6CC."
+    description: "\uC77C\uBC18 \uB057\uD328\uC5D0\uC11C\uB294 \uBE48 \uC8FC\uBB38\uCE78\uC774
+      \uBC29\uD328\uB85C \uBC14\uB00C\uC5B4 \uC790\uC138 \uC555\uBC15\uC774 \uCEE4\uC838."
+    basePower: 10
+    pressurePower: 6
+    weight: 3.3
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 9
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uC77C\uBC18 \uB057\uD328: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 79a47d31b5122854298d1fbe4851f6d9, type: 3}
+    actionPoseSeconds: 0.5
+    actionVisualScale: 1.35
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 11
+    actionMotionIntensity: 1.12
+    actionMotionRepetitions: 1
+  - moveId: eight_ddeng_reed
+    displayName: "\uC5B5\uC0C8 \uC9C0\uBA74\uD48D"
+    action: 1
+    stance: 1
+    telegraph: "\uC9C0\uBA74\uC758 \uC5B5\uC0C8 \uBC14\uB78C\uC744 \uAC10\uC544 \uACF5\uACA9\uC744
+      \uC606\uC73C\uB85C \uD758\uB824."
+    description: "\uD314\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBC14\uB78C\uBCBD\uC774
+      \uB450\uAEBC\uC6CC\uC838 \uB9C9\uC544\uB0B8 \uB4A4 \uC790\uC138\uB97C \uB354
+      \uD06C\uAC8C \uD754\uB4E4\uC5B4."
+    basePower: 11
+    pressurePower: 7
+    weight: 2.7
+    minimumRound: 1
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 6
+    conditionValueA: 8
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 0
+    seotdaPressureDamage: 3
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 20304d0ec64458d49bfdee29d66da9f2, type: 3}
+    actionPoseSeconds: 0.54
+    actionVisualScale: 1.05
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 7
+    actionMotionIntensity: 1.16
+    actionMotionRepetitions: 1
+  - moveId: eight_ddeng_seal
+    displayName: "\uD314\uC5FD \uBD09\uC778\uC11C"
+    action: 0
+    stance: 0
+    telegraph: "\uC5EC\uB35F \uC7A5\uC758 \uBD80\uC801\uC744 \uC6D0\uD615\uC73C\uB85C
+      \uC138\uC6CC \uD55C\uAEBC\uBC88\uC5D0 \uB2EB\uC544."
+    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uBD09\uC778\uC11C\uAC00 \uC644\uC131\uB3FC
+      HP\uC640 \uC790\uC138\uC5D0 \uD568\uAED8 \uC555\uBC15\uC744 \uC918."
+    basePower: 12
+    pressurePower: 6
+    weight: 2.2
+    minimumRound: 2
+    cooldownRounds: 1
+    cadenceRounds: 0
+    cadenceOffset: 0
+    seotdaCondition: 4
+    conditionValueA: 0
+    conditionValueB: 0
+    seotdaPowerBonus: 2
+    seotdaHpDamage: 2
+    seotdaPressureDamage: 2
+    seotdaFailurePowerDelta: 0
+    bonusTrigger: 0
+    seotdaRule: "\uB561: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740
+      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: 6281e59a28d622c428cc1456f1fbffdf, type: 3}
+    actionPoseSeconds: 0.6
+    actionVisualScale: 1
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 10
+    actionMotionIntensity: 1.05
+    actionMotionRepetitions: 2
+  - moveId: eight_ddeng_chant
+    displayName: "\uD314\uB561 \uACF5\uC0B0\uC601\uCC3D"
+    action: 2
+    stance: 0
+    telegraph: "\uACF5\uC0B0\uC758 \uBD80\uC801\uC744 \uBAA8\uB450 \uB744\uC6CC \uD314\uB561
+      \uC8FC\uBB38\uC744 \uC644\uC131\uD574."
+    description: "\uC815\uD655\uD55C 8\uB561\uC774\uBA74 \uC8FC\uBB38\uC9C4\uC774
+      \uB2EB\uD600 \uD070 \uD53C\uD574\uAC00 \uB4E4\uC5B4\uC640. \uC2E4\uD328\uD558\uBA74
+      \uC601\uCC3D\uC774 \uB04A\uACA8."
+    basePower: 17
+    pressurePower: 9
+    weight: 1
+    minimumRound: 4
+    cooldownRounds: 3
+    cadenceRounds: 5
+    cadenceOffset: 4
+    seotdaCondition: 7
+    conditionValueA: 8
+    conditionValueB: 8
+    seotdaPowerBonus: 4
+    seotdaHpDamage: 4
+    seotdaPressureDamage: 4
+    seotdaFailurePowerDelta: -3
+    bonusTrigger: 0
+    seotdaRule: "\uC815\uD655\uD788 8\uC6D4+8\uC6D4: \uC2A4\uD0AC +4, \uBA85\uC911
+      \uC2DC HP \uCD94\uAC00 4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4
+      / \uBD88\uBC1C: \uC2A4\uD0AC -3"
+    icon: {fileID: 0}
+    actionSprite: {fileID: 21300000, guid: c0eb81ab3cc920344b5d91d860c876cd, type: 3}
+    actionPoseSeconds: 0.72
+    actionVisualScale: 1.35
+    actionVisualOffset: {x: 0, y: 0}
+    actionMotion: 10
+    actionMotionIntensity: 1.42
+    actionMotionRepetitions: 3
