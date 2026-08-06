@@ -130,7 +130,44 @@ namespace FFSS.Editor
             encounter.ruleMeter.normalColor = encounter.secondaryColor;
             encounter.ruleMeter.warningColor = Color.Lerp(encounter.secondaryColor, new Color(1f, 0.35f, 0.12f), 0.55f);
             encounter.ruleMeter.criticalColor = new Color(1f, 0.18f, 0.14f, 1f);
+            encounter.ruleRuntime ??= new EnemyRuleRuntimeDefinition();
+            encounter.ruleRuntime.kind = RuleKind(spec.EnemyId);
+            encounter.ruleRuntime.redrawThreshold = spec.EnemyId switch
+            {
+                "1땡" => 3,
+                "38" => 4,
+                _ => 3
+            };
+            encounter.ruleRuntime.meterGain = 1;
+            encounter.ruleRuntime.skillGain = 2;
+            encounter.ruleRuntime.defenseDecay = 1;
+            encounter.ruleRuntime.breakDecay = 2;
             EditorUtility.SetDirty(encounter);
+        }
+
+        private static EnemyRuleBehaviorKind RuleKind(string enemyId)
+        {
+            return enemyId switch
+            {
+                "1땡" => EnemyRuleBehaviorKind.PineRedraw,
+                "2땡" => EnemyRuleBehaviorKind.ReadRepeatedAction,
+                "3땡" => EnemyRuleBehaviorKind.RepeatActionTrace,
+                "4땡" => EnemyRuleBehaviorKind.RedrawRisk,
+                "5땡" => EnemyRuleBehaviorKind.UniqueActionCycle,
+                "6땡" => EnemyRuleBehaviorKind.CardPoison,
+                "7땡" => EnemyRuleBehaviorKind.BalanceTremor,
+                "8땡" => EnemyRuleBehaviorKind.CardSeal,
+                "9땡" => EnemyRuleBehaviorKind.Intoxication,
+                "10땡" => EnemyRuleBehaviorKind.FinalCountdown,
+                "땡잡이" => EnemyRuleBehaviorKind.PairTracking,
+                "멍구사" => EnemyRuleBehaviorKind.Suspicion,
+                "구사" => EnemyRuleBehaviorKind.LowHandReversal,
+                "암행어사" => EnemyRuleBehaviorKind.ActionHistoryCharge,
+                "13" => EnemyRuleBehaviorKind.TargetAim,
+                "18" => EnemyRuleBehaviorKind.SuitWheel,
+                "38" => EnemyRuleBehaviorKind.GwangHeat,
+                _ => throw new ArgumentOutOfRangeException(nameof(enemyId), enemyId, "Unknown enemy rule")
+            };
         }
 
         private static GameObject BuildBasePrefab(EnemyEncounterDefinition previewEncounter)

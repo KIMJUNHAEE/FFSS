@@ -141,16 +141,17 @@ namespace CardBattle
 
             state.SetCounter("turn.redraw.replaced", replaced);
             state.SetCounter("turn.redraw.kept", kept);
-            switch (encounter.enemyId)
+            EnemyRuleRuntimeDefinition rule = encounter.ruleRuntime;
+            switch (rule.kind)
             {
-                case "1땡" when replaced >= 3:
-                    AddMeter(1);
+                case EnemyRuleBehaviorKind.PineRedraw when replaced >= rule.redrawThreshold:
+                    AddMeter(rule.meterGain);
                     break;
-                case "4땡":
+                case EnemyRuleBehaviorKind.RedrawRisk:
                     SetMeter(replaced);
                     break;
-                case "38" when replaced >= 4:
-                    AddMeter(1);
+                case EnemyRuleBehaviorKind.GwangHeat when replaced >= rule.redrawThreshold:
+                    AddMeter(rule.meterGain);
                     break;
             }
         }
@@ -164,78 +165,78 @@ namespace CardBattle
 
             state.turnNumber++;
             state.lastMoveId = result.EnemyMoveId;
-            switch (encounter.enemyId)
+            switch (encounter.ruleRuntime.kind)
             {
-                case "1땡":
+                case EnemyRuleBehaviorKind.PineRedraw:
                     if (GetMeter() >= encounter.ruleMeter.maximumValue && IsOffense(result.EnemyAction))
                     {
                         SetMeter(0);
                     }
                     break;
-                case "2땡":
+                case EnemyRuleBehaviorKind.ReadRepeatedAction:
                     TrackReadAction(result.PlayerAction);
                     break;
-                case "3땡":
+                case EnemyRuleBehaviorKind.RepeatActionTrace:
                     TrackRepeatedAction(result.PlayerAction, resetOnStun: result.EnemyStunned);
                     break;
-                case "4땡":
+                case EnemyRuleBehaviorKind.RedrawRisk:
                     SetMeter(0);
                     break;
-                case "5땡":
+                case EnemyRuleBehaviorKind.UniqueActionCycle:
                     TrackActionCycle(result.PlayerAction);
                     break;
-                case "6땡":
+                case EnemyRuleBehaviorKind.CardPoison:
                     if (ContainsMoveId(result, "poison") || ContainsMoveId(result, "bloom"))
                     {
-                        AddMeter(1);
+                        AddMeter(encounter.ruleRuntime.meterGain);
                     }
                     if (result.EnemyStunned)
                     {
                         SetMeter(0);
                     }
                     break;
-                case "7땡":
+                case EnemyRuleBehaviorKind.BalanceTremor:
                     if (result.PressureToPlayer > 0)
                     {
-                        AddMeter(1);
+                        AddMeter(encounter.ruleRuntime.meterGain);
                     }
                     if (result.EnemyStunned)
                     {
                         SetMeter(0);
                     }
                     break;
-                case "8땡":
+                case EnemyRuleBehaviorKind.CardSeal:
                     SetMeter(ContainsMoveId(result, "seal") || ContainsMoveId(result, "chant")
                         ? encounter.ruleMeter.maximumValue
                         : GetMeter() - 1);
                     break;
-                case "9땡":
+                case EnemyRuleBehaviorKind.Intoxication:
                     TrackIntoxication(result);
                     break;
-                case "10땡":
+                case EnemyRuleBehaviorKind.FinalCountdown:
                     TrackClock(result);
                     break;
-                case "땡잡이":
+                case EnemyRuleBehaviorKind.PairTracking:
                     TrackPairHunt(result);
                     break;
-                case "멍구사":
+                case EnemyRuleBehaviorKind.Suspicion:
                     TrackSuspicion(result);
                     break;
-                case "구사":
+                case EnemyRuleBehaviorKind.LowHandReversal:
                     TrackLowHandStreak(result);
                     break;
-                case "암행어사":
+                case EnemyRuleBehaviorKind.ActionHistoryCharge:
                     TrackRepeatedAction(result.PlayerAction, resetOnStun: false);
                     break;
-                case "13":
+                case EnemyRuleBehaviorKind.TargetAim:
                     SetMeter(ContainsMoveId(result, "piercing") || ContainsMoveId(result, "three_arrow")
                         ? encounter.ruleMeter.maximumValue
                         : Mathf.Max(0, GetMeter() - 1));
                     break;
-                case "18":
+                case EnemyRuleBehaviorKind.SuitWheel:
                     SetMeter((GetMeter() + 1) % (encounter.ruleMeter.maximumValue + 1));
                     break;
-                case "38":
+                case EnemyRuleBehaviorKind.GwangHeat:
                     TrackHeat(result);
                     break;
             }
@@ -322,12 +323,12 @@ namespace CardBattle
             if (result.PlayerHandRank is (PokerHandRank.OnePair or PokerHandRank.TwoPair or
                 PokerHandRank.ThreeKind or PokerHandRank.FullHouse or PokerHandRank.FourKind))
             {
-                AddMeter(1);
+                AddMeter(encounter.ruleRuntime.meterGain);
             }
             else if (result.DamageToEnemy > 0 &&
                      result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.Straight or PokerHandRank.Flush))
             {
-                AddMeter(-1);
+                AddMeter(-encounter.ruleRuntime.defenseDecay);
             }
         }
 
@@ -335,11 +336,11 @@ namespace CardBattle
         {
             if (result.DamageToPlayer > 0)
             {
-                AddMeter(1);
+                AddMeter(encounter.ruleRuntime.meterGain);
             }
             else if (result.DamageToEnemy > 0 && result.PlayerHandTier <= 2)
             {
-                AddMeter(-1);
+                AddMeter(-encounter.ruleRuntime.defenseDecay);
             }
         }
 
@@ -347,37 +348,37 @@ namespace CardBattle
         {
             bool lowHandHit = result.DamageToEnemy > 0 &&
                               result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.OnePair);
-            SetMeter(lowHandHit ? GetMeter() + 1 : 0);
+            SetMeter(lowHandHit ? GetMeter() + encounter.ruleRuntime.meterGain : 0);
         }
 
         private void TrackHeat(RpsCombatExchangeResult result)
         {
             if (result.EnemyStunned)
             {
-                AddMeter(-2);
+                AddMeter(-encounter.ruleRuntime.breakDecay);
                 return;
             }
 
             if (result.PlayerAction == RpsAction.Skill)
             {
-                AddMeter(2);
+                AddMeter(encounter.ruleRuntime.skillGain);
             }
             else if (result.PlayerAction == RpsAction.Attack && result.DamageToEnemy > 0 &&
                      result.PlayerHandRank >= PokerHandRank.OnePair)
             {
-                AddMeter(1);
+                AddMeter(encounter.ruleRuntime.meterGain);
             }
 
             if (result.PlayerAction == RpsAction.Defend && result.PressureToEnemy > 0 &&
                 result.PlayerHandRank == PokerHandRank.HighCard)
             {
-                AddMeter(-1);
+                AddMeter(-encounter.ruleRuntime.defenseDecay);
             }
         }
 
         private bool Ready()
         {
-            if (encounter == null || encounter.ruleMeter == null || meterView == null)
+            if (encounter == null || encounter.ruleMeter == null || encounter.ruleRuntime == null || meterView == null)
             {
                 return false;
             }

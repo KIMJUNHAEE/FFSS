@@ -674,6 +674,7 @@ namespace FFSS.Framework.Tests
                 "t:EnemyEncounterDefinition",
                 new[] { "Assets/Data/Production/Encounters" });
             var stateKeys = new HashSet<string>();
+            var behaviorKinds = new HashSet<EnemyRuleBehaviorKind>();
 
             Assert.That(guids, Has.Length.EqualTo(17));
             for (int i = 0; i < guids.Length; i++)
@@ -688,6 +689,9 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.ruleMeter.warningThreshold,
                     Is.InRange(encounter.ruleMeter.minimumValue, encounter.ruleMeter.maximumValue),
                     encounter.enemyId);
+                Assert.That(encounter.ruleRuntime, Is.Not.Null, encounter.enemyId);
+                Assert.That(behaviorKinds.Add(encounter.ruleRuntime.kind), Is.True, encounter.enemyId);
+                Assert.That(encounter.ruleRuntime.meterGain, Is.GreaterThan(0), encounter.enemyId);
 
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                     $"Assets/Prefabs/Production/Combat/RuleMeters/EnemyRuleMeter_{encounter.enemyId}.prefab");

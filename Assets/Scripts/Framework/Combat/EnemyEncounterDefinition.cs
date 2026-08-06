@@ -51,6 +51,38 @@ namespace FFSS.Framework.Combat
         History
     }
 
+    public enum EnemyRuleBehaviorKind
+    {
+        PineRedraw,
+        ReadRepeatedAction,
+        RepeatActionTrace,
+        RedrawRisk,
+        UniqueActionCycle,
+        CardPoison,
+        BalanceTremor,
+        CardSeal,
+        Intoxication,
+        FinalCountdown,
+        PairTracking,
+        Suspicion,
+        LowHandReversal,
+        ActionHistoryCharge,
+        TargetAim,
+        SuitWheel,
+        GwangHeat
+    }
+
+    [Serializable]
+    public sealed class EnemyRuleRuntimeDefinition
+    {
+        public EnemyRuleBehaviorKind kind;
+        [Min(0)] public int redrawThreshold = 3;
+        [Min(1)] public int meterGain = 1;
+        [Min(1)] public int skillGain = 2;
+        [Min(1)] public int defenseDecay = 1;
+        [Min(1)] public int breakDecay = 2;
+    }
+
     [Serializable]
     public sealed class EnemyRuleMeterDefinition
     {
@@ -155,5 +187,6 @@ namespace FFSS.Framework.Combat
 
         [Header("Enemy rule meter")]
         public EnemyRuleMeterDefinition ruleMeter = new EnemyRuleMeterDefinition();
+        public EnemyRuleRuntimeDefinition ruleRuntime = new EnemyRuleRuntimeDefinition();
     }
 }
