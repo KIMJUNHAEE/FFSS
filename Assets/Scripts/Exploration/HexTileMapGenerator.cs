@@ -53,6 +53,7 @@ namespace CardBattle.Exploration
         [SerializeField] private float interactionMeshScale = 1f;
         [SerializeField, Range(0f, 0.2f)] private float plainRoadUvPadding = 0.04f;
         [SerializeField, Range(0f, 0.2f)] private float interactionUvPadding = 0.04f;
+        [SerializeField] private Material tileMaterialTemplate = null;
 
         [Header("Layout")]
         [SerializeField] private int randomSeed = 0;
@@ -893,6 +894,11 @@ namespace CardBattle.Exploration
             tile.GetComponent<MeshFilter>().sharedMesh = GetOrCreateMesh(texture.name, isInteractionTile);
 
             Material material = CreateMaterial(texture);
+            if (material == null)
+            {
+                DestroyRuntimeObject(tile);
+                return;
+            }
             tile.GetComponent<MeshRenderer>().sharedMaterial = material;
 
             generatedTiles.Add(tile);
@@ -969,18 +975,31 @@ namespace CardBattle.Exploration
             return mesh;
         }
 
-        private static Material CreateMaterial(Texture2D texture)
+        private Material CreateMaterial(Texture2D texture)
         {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ??
-                            Shader.Find("Unlit/Texture") ??
-                            Shader.Find("Standard");
-            var material = new Material(shader)
+            Material material;
+            if (tileMaterialTemplate != null)
             {
-                name = $"HexTile_{texture.name}",
-                mainTexture = texture,
-                renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry - 5,
-                hideFlags = HideFlags.DontSave,
-            };
+                material = new Material(tileMaterialTemplate);
+            }
+            else
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ??
+                                Shader.Find("Unlit/Texture") ??
+                                Shader.Find("Standard");
+                if (shader == null)
+                {
+                    Debug.LogError("[HexTileMapGenerator] No tile material template or compatible shader is available.");
+                    return null;
+                }
+
+                material = new Material(shader);
+            }
+
+            material.name = $"HexTile_{texture.name}";
+            material.mainTexture = texture;
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry - 5;
+            material.hideFlags = HideFlags.DontSave;
 
             SetTextureIfPresent(material, texture, "_BaseMap", "_MainTex");
             SetColorIfPresent(material, Color.white, "_BaseColor", "_Color");
