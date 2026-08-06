@@ -626,6 +626,7 @@ RectTransform:
   - {fileID: 4931734}
   - {fileID: 1133203318}
   - {fileID: 1921880693}
+  - {fileID: 1142964988}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -667,7 +668,7 @@ MonoBehaviour:
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 1
+  m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -1183,6 +1184,10 @@ PrefabInstance:
     - target: {fileID: 8805773051765481039, guid: 0ded93d3067d7134ca9b633b3d49f139, type: 3}
       propertyPath: m_Name
       value: EnemyIntentBadge
+      objectReference: {fileID: 0}
+    - target: {fileID: 8805773051765481039, guid: 0ded93d3067d7134ca9b633b3d49f139, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1791,6 +1796,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerHUD
       objectReference: {fileID: 0}
+    - target: {fileID: 4028641720493753017, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4201367467086598084, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -2271,6 +2280,10 @@ PrefabInstance:
     - target: {fileID: 4129209560351453609, guid: 648eda0e4a1c158428dccefb9b598b4a, type: 3}
       propertyPath: m_Name
       value: EnemyHUD
+      objectReference: {fileID: 0}
+    - target: {fileID: 4129209560351453609, guid: 648eda0e4a1c158428dccefb9b598b4a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7731218867506823436, guid: 648eda0e4a1c158428dccefb9b598b4a, type: 3}
       propertyPath: m_Pivot.x
@@ -2932,6 +2945,119 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ace7fb68214564489d7fca54af16b11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.TurnBannerView
+--- !u!1001 &1142964987
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 75791595}
+    m_Modifications:
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7998260557015220866, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+      propertyPath: m_Name
+      value: '[Production] Combat Presentation'
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+--- !u!224 &1142964988 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 868855492654056839, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+  m_PrefabInstance: {fileID: 1142964987}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1142964989 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 728275031564985499, guid: 427f44918f139f44992957f3fd03ee11, type: 3}
+  m_PrefabInstance: {fileID: 1142964987}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 410fef8b5f84eb44d9b673a22b16e248, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.CombatPresentationController
 --- !u!1 &1163240341
 GameObject:
   m_ObjectHideFlags: 0
@@ -4190,6 +4316,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2091819176}
   - component: {fileID: 2091819175}
+  - component: {fileID: 2091819177}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -4227,6 +4354,11 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
+  aceAllPowerBonus: 2
+  courtCardSkillBonus: 1
+  redJokerAttackBonus: 3
+  blackJokerDefenseBonus: 3
+  jokerSkillBonus: 2
   enemyWeakness: 2
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -4296,6 +4428,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2091819177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2091819174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e1d579c57b76da4bb9661338fe707c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatPresentationBridge
+  source: {fileID: 2091819175}
+  presentation: {fileID: 1142964989}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

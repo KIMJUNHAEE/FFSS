@@ -171,6 +171,7 @@ RectTransform:
   - {fileID: 1382806662}
   - {fileID: 478585200}
   - {fileID: 1436805938}
+  - {fileID: 1147266328}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -212,7 +213,7 @@ MonoBehaviour:
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 1
+  m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -774,6 +775,10 @@ PrefabInstance:
     - target: {fileID: 1251584000286141330, guid: 69a9deb8a250d2f46a23795c25652129, type: 3}
       propertyPath: m_Name
       value: EnemyIntentBadge
+      objectReference: {fileID: 0}
+    - target: {fileID: 1251584000286141330, guid: 69a9deb8a250d2f46a23795c25652129, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3872972699077572993, guid: 69a9deb8a250d2f46a23795c25652129, type: 3}
       propertyPath: m_Pivot.x
@@ -1531,6 +1536,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemyHUD
       objectReference: {fileID: 0}
+    - target: {fileID: 7611264996309491432, guid: f4918f742b0dbd9418456a0b1426c0f4, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1584,6 +1593,7 @@ GameObject:
   m_Component:
   - component: {fileID: 675467358}
   - component: {fileID: 675467357}
+  - component: {fileID: 675467359}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -1621,6 +1631,11 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
+  aceAllPowerBonus: 2
+  courtCardSkillBonus: 1
+  redJokerAttackBonus: 3
+  blackJokerDefenseBonus: 3
+  jokerSkillBonus: 2
   enemyWeakness: 1
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -1663,7 +1678,7 @@ MonoBehaviour:
   playerSkillBodyText: {fileID: 1903037053}
   battleIntro: {fileID: 1382806663}
   turnBanner: {fileID: 478585201}
-  combatImpactView: {fileID: 1004442708}
+  combatImpactView: {fileID: 0}
   battleResultView: {fileID: 1436805939}
   combatLogText: {fileID: 1426610354}
   combatReadout: {fileID: 1426610355}
@@ -1690,6 +1705,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &675467359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675467356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e1d579c57b76da4bb9661338fe707c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatPresentationBridge
+  source: {fileID: 675467357}
+  presentation: {fileID: 1147266329}
 --- !u!1 &683854901
 GameObject:
   m_ObjectHideFlags: 0
@@ -2171,7 +2200,7 @@ PrefabInstance:
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2057502640}
+      objectReference: {fileID: 0}
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -2278,17 +2307,119 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6192391814097943109, guid: d6639cb33fe775e469905af0aa80a72e, type: 3}
   m_PrefabInstance: {fileID: 1004442706}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1004442708 stripped
+--- !u!1001 &1147266327
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 67110377}
+    m_Modifications:
+    - target: {fileID: 33312002682779742, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_Name
+      value: '[Production] Combat Presentation'
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+--- !u!224 &1147266328 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4097369578415526833, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+  m_PrefabInstance: {fileID: 1147266327}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1147266329 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7960935918450534545, guid: d6639cb33fe775e469905af0aa80a72e, type: 3}
-  m_PrefabInstance: {fileID: 1004442706}
+  m_CorrespondingSourceObject: {fileID: 612290646188566848, guid: 6665e163493513c43aad7e3563e73ec2, type: 3}
+  m_PrefabInstance: {fileID: 1147266327}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Script: {fileID: 11500000, guid: 410fef8b5f84eb44d9b673a22b16e248, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.CombatImpactView
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.CombatPresentationController
 --- !u!1001 &1169208511
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2466,36 +2597,6 @@ MonoBehaviour:
   m_EffectColor: {r: 0, g: 0, b: 0, a: 0.85}
   m_EffectDistance: {x: 2, y: -2}
   m_UseGraphicAlpha: 1
---- !u!114 &205769683
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 205769680}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2fd29f102d90ea24c99727bf6464063d, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1255641487
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3889,6 +3990,10 @@ PrefabInstance:
     - target: {fileID: 4028641720493753017, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
       propertyPath: m_Name
       value: PlayerHUD
+      objectReference: {fileID: 0}
+    - target: {fileID: 4028641720493753017, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4201367467086598084, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
       propertyPath: m_Pivot.x

@@ -11,6 +11,9 @@ namespace CardBattle
 
         private bool hasRendered;
 
+        public RpsCombatController Source => source;
+        public CombatPresentationController Presentation => presentation;
+
         public void Configure(RpsCombatController combatSource, CombatPresentationController targetPresentation)
         {
             Unsubscribe();
