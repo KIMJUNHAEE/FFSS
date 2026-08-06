@@ -46,6 +46,11 @@ namespace FFSS.Framework.Flow
 
         public EncounterSceneCatalog Catalog => catalog;
 
+        public static string GetCompletionId(string enemyId)
+        {
+            return $"encounter.{enemyId}";
+        }
+
         public bool TryEnterEncounter(string enemyId)
         {
             if (string.IsNullOrWhiteSpace(enemyId))
@@ -57,6 +62,11 @@ namespace FFSS.Framework.Flow
             GameFlowManager flow = services.Get<GameFlowManager>();
             SceneFlowManager scenes = services.Get<SceneFlowManager>();
             if (!runs.HasActiveRun || scenes.IsLoading)
+            {
+                return false;
+            }
+
+            if (runs.Current.completedEventIds.Contains(GetCompletionId(enemyId)))
             {
                 return false;
             }
@@ -89,6 +99,12 @@ namespace FFSS.Framework.Flow
 
             EncounterSceneEntry entry = catalog.Get(runs.Current.activeEnemyRule.enemyId);
             runs.UpdatePlayerVitals(playerHp, playerPressure);
+            string completionId = GetCompletionId(entry.enemyId);
+            if (!runs.Current.completedEventIds.Contains(completionId))
+            {
+                runs.Current.completedEventIds.Add(completionId);
+            }
+
             runs.CompleteEncounter();
             RunRewardState reward = runs.PrepareReward(entry.enemyId, entry.rewardGold);
             services.Get<GameFlowManager>().TryChangeState(GameFlowState.Reward);

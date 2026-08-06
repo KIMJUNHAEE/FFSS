@@ -4,6 +4,24 @@ using UnityEngine;
 
 namespace CardBattle.Exploration
 {
+    public readonly struct GeneratedHexTile
+    {
+        public GeneratedHexTile(GameObject tile, Vector2Int cell, bool isInteraction, bool isBoss, int order)
+        {
+            Tile = tile;
+            Cell = cell;
+            IsInteraction = isInteraction;
+            IsBoss = isBoss;
+            Order = order;
+        }
+
+        public GameObject Tile { get; }
+        public Vector2Int Cell { get; }
+        public bool IsInteraction { get; }
+        public bool IsBoss { get; }
+        public int Order { get; }
+    }
+
     [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class HexTileMapGenerator : MonoBehaviour
@@ -53,8 +71,16 @@ namespace CardBattle.Exploration
         [SerializeField] private bool placePlayerAtStart = true;
 
         private readonly List<GameObject> generatedTiles = new();
+        private readonly List<GeneratedHexTile> generatedTileDescriptors = new();
         private readonly List<Material> generatedMaterials = new();
         private readonly Dictionary<string, Mesh> generatedMeshes = new();
+        private int runtimeSeed;
+        private bool hasRuntimeSeed;
+
+        public event Action GenerationStarted;
+        public event Action<IReadOnlyList<GeneratedHexTile>> GenerationCompleted;
+
+        public IReadOnlyList<GeneratedHexTile> GeneratedTiles => generatedTileDescriptors;
 
         private void OnEnable()
         {
@@ -77,12 +103,14 @@ namespace CardBattle.Exploration
         [ContextMenu("Regenerate Hex Map")]
         public void Generate()
         {
+            GenerationStarted?.Invoke();
             ClearGenerated();
 
             Texture2D plainRoadTexture = LoadTileTexture(plainRoadTextureName);
             if (plainRoadTexture == null)
             {
                 Debug.LogWarning($"[HexTileMapGenerator] Missing plain road texture: {tileResourceFolder}/{plainRoadTextureName}");
+                GenerationCompleted?.Invoke(generatedTileDescriptors);
                 return;
             }
 
@@ -104,6 +132,20 @@ namespace CardBattle.Exploration
                 Vector3 position = playerTarget.position;
                 playerTarget.position = new Vector3(0f, position.y, 0f);
             }
+
+            GenerationCompleted?.Invoke(generatedTileDescriptors);
+        }
+
+        public void SetRuntimeSeed(int seed)
+        {
+            runtimeSeed = seed;
+            hasRuntimeSeed = true;
+        }
+
+        public void ClearRuntimeSeed()
+        {
+            runtimeSeed = 0;
+            hasRuntimeSeed = false;
         }
 
         private Texture2D[] LoadTileTextures(string[] textureNames)
@@ -421,6 +463,9 @@ namespace CardBattle.Exploration
 
         private int GetEffectiveSeed()
         {
+            if (hasRuntimeSeed)
+                return runtimeSeed;
+
             if (randomSeed != 0)
                 return randomSeed;
 
@@ -447,6 +492,12 @@ namespace CardBattle.Exploration
             tile.GetComponent<MeshRenderer>().sharedMaterial = material;
 
             generatedTiles.Add(tile);
+            generatedTileDescriptors.Add(new GeneratedHexTile(
+                tile,
+                cell,
+                isInteractionTile,
+                isBossTile,
+                generatedTileDescriptors.Count));
             generatedMaterials.Add(material);
         }
 
@@ -539,6 +590,7 @@ namespace CardBattle.Exploration
             foreach (GameObject tile in generatedTiles)
                 DestroyRuntimeObject(tile);
             generatedTiles.Clear();
+            generatedTileDescriptors.Clear();
 
             for (int i = transform.childCount - 1; i >= 0; i--)
             {

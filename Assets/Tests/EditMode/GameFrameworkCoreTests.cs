@@ -10,7 +10,9 @@ using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FFSS.Framework.Tests
 {
@@ -246,6 +248,48 @@ namespace FFSS.Framework.Tests
                     Is.Not.Null,
                     entry.sceneName);
             }
+        }
+
+        [Test]
+        public void ProductionFieldUsesInspectableEncounterPrefabs()
+        {
+            string[] prefabPaths =
+            {
+                "Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_Boss.prefab"
+            };
+
+            foreach (string path in prefabPaths)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.That(prefab, Is.Not.Null, path);
+                Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
+                Assert.That(prefab.GetComponent("FieldEncounterNode"), Is.Not.Null, path);
+                Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+            }
+        }
+
+        [Test]
+        public void ProductionFieldSceneContainsDirectEncounterFlow()
+        {
+            const string path = "Assets/Scenes/Production/Field/Production_Field.unity";
+            Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            try
+            {
+                Assert.That(FindInScene(scene, "HexTileMapGenerator"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "FieldEncounterDistributor"), Is.Not.Null);
+                Assert.That(FindInScene<GameKernel>(scene), Is.Not.Null);
+                Assert.That(FindInScene<SceneEntryPoint>(scene), Is.Not.Null);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+
+            GameFlowDefinition flow = AssetDatabase.LoadAssetAtPath<GameFlowDefinition>(
+                "Assets/Data/Framework/GameFlowDefinition.asset");
+            Assert.That(flow.Allows(GameFlowState.Boot, GameFlowState.Field), Is.True);
         }
 
         [Test]
@@ -512,6 +556,36 @@ namespace FFSS.Framework.Tests
                 basePower = power,
                 pressurePower = pressurePower
             };
+        }
+
+        private static T FindInScene<T>(Scene scene) where T : Component
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                T component = roots[i].GetComponentInChildren<T>(true);
+                if (component != null)
+                    return component;
+            }
+
+            return null;
+        }
+
+        private static Component FindInScene(Scene scene, string typeName)
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                Component[] components = roots[i].GetComponentsInChildren<Component>(true);
+                for (int componentIndex = 0; componentIndex < components.Length; componentIndex++)
+                {
+                    Component component = components[componentIndex];
+                    if (component != null && component.GetType().Name == typeName)
+                        return component;
+                }
+            }
+
+            return null;
         }
 
         private static EnemyEncounterDefinition Encounter(params EnemyMoveDefinition[] moves)

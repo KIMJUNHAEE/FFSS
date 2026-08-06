@@ -404,7 +404,7 @@ Camera:
   far clip plane: 100
   field of view: 60
   orthographic: 1
-  orthographic size: 7
+  orthographic size: 5.8
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -428,13 +428,119 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1457999027}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23987682, y: 0, z: 0, w: 0.97080333}
+  m_LocalRotation: {x: 0.23987682, y: 0, z: 0, w: 0.9708033}
   m_LocalPosition: {x: 0, y: 5.8, z: -9.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 27.758541, y: 0, z: 0}
+--- !u!1001 &1741917495
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 797056175282437661, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_Name
+      value: GameKernel
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1212280368425730850, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e16ad0a5593bd3147bf8facfd20377d9, type: 3}
+--- !u!1 &1812092249
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1812092251}
+  - component: {fileID: 1812092250}
+  m_Layer: 0
+  m_Name: Production Field Entry
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1812092250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1812092249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87a18851e3b04ba45ab6a458d5884023, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Flow.SceneEntryPoint
+  state: 3
+  showInitialScreen: 0
+  initialScreen: 0
+  musicCueId: bgm.roam
+  musicFadeSeconds: 0.8
+--- !u!4 &1812092251
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1812092249}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2400000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -445,6 +551,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2400000001}
   - component: {fileID: 2400000002}
+  - component: {fileID: 2400000003}
   m_Layer: 0
   m_Name: Procedural Hex Tile Map
   m_TagString: Untagged
@@ -492,7 +599,7 @@ MonoBehaviour:
   interactionMeshScale: 1
   plainRoadUvPadding: 0.04
   interactionUvPadding: 0.04
-  randomSeed: 0
+  randomSeed: 1701
   mainPathLength: 18
   branchCount: 6
   minBranchLength: 3
@@ -504,6 +611,28 @@ MonoBehaviour:
   generatePreviewInEditMode: 1
   playerTarget: {fileID: 503973407}
   placePlayerAtStart: 1
+--- !u!114 &2400000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2400000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a32626e9593c25c4ab773cc486cb3238, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldEncounterDistributor
+  catalog: {fileID: 11400000, guid: 51892f281553c6146afaed12688193d7, type: 2}
+  previewAct: 1
+  startRunWhenOpenedDirectly: 1
+  directOpenSeed: 1701
+  mapGenerator: {fileID: 2400000002}
+  player: {fileID: 503973407}
+  normalMarkerPrefab: {fileID: 4807638215478891337, guid: 730b85afae6311f4895a9c559718d378, type: 3}
+  midBossMarkerPrefab: {fileID: 5178568705539571068, guid: c07d708506e80704bb53c39ed5476d15, type: 3}
+  bossMarkerPrefab: {fileID: 5593290950820448502, guid: c2c687ac73645694a860a3c5f2b7e8bc, type: 3}
+  activationRadius: 0.85
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -512,3 +641,5 @@ SceneRoots:
   - {fileID: 334177028}
   - {fileID: 1457999032}
   - {fileID: 2400000001}
+  - {fileID: 1741917495}
+  - {fileID: 1812092251}
