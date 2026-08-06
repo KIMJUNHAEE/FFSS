@@ -84,15 +84,48 @@ namespace CardBattle.Exploration
 
         public IReadOnlyList<GeneratedHexTile> GeneratedTiles => generatedTileDescriptors;
 
+        public bool TryGetCell(Vector3 worldPosition, out Vector2Int cell)
+        {
+            Vector3 local = transform.InverseTransformPoint(worldPosition);
+            float usableRadius = Mathf.Max(0.1f, tileRadius);
+            float maximumX = usableRadius * Mathf.Sqrt(3f) * 0.5f;
+            float nearestDistance = float.MaxValue;
+            cell = default;
+            bool found = false;
+
+            for (int i = 0; i < generatedTileDescriptors.Count; i++)
+            {
+                GeneratedHexTile descriptor = generatedTileDescriptors[i];
+                if (descriptor.Tile == null)
+                    continue;
+
+                Vector3 offset = local - descriptor.Tile.transform.localPosition;
+                float x = Mathf.Abs(offset.x);
+                float z = Mathf.Abs(offset.z);
+                if (x > maximumX || z + x / Mathf.Sqrt(3f) > usableRadius)
+                    continue;
+
+                float distance = offset.x * offset.x + offset.z * offset.z;
+                if (distance >= nearestDistance)
+                    continue;
+
+                nearestDistance = distance;
+                cell = descriptor.Cell;
+                found = true;
+            }
+
+            return found;
+        }
+
         public Vector3 ConstrainMovement(Vector3 currentWorldPosition, Vector3 desiredWorldPosition)
         {
-            if (generatedTileDescriptors.Count == 0 || IsWalkable(desiredWorldPosition))
+            if (generatedTileDescriptors.Count == 0 || IsWalkable(desiredWorldPosition, 0f))
                 return desiredWorldPosition;
 
             Vector3 slideX = new(desiredWorldPosition.x, desiredWorldPosition.y, currentWorldPosition.z);
             Vector3 slideZ = new(currentWorldPosition.x, desiredWorldPosition.y, desiredWorldPosition.z);
-            bool canSlideX = IsWalkable(slideX);
-            bool canSlideZ = IsWalkable(slideZ);
+            bool canSlideX = IsWalkable(slideX, 0f);
+            bool canSlideZ = IsWalkable(slideZ, 0f);
             if (canSlideX && canSlideZ)
             {
                 float xDistance = (slideX - currentWorldPosition).sqrMagnitude;
@@ -107,7 +140,7 @@ namespace CardBattle.Exploration
             return currentWorldPosition;
         }
 
-        public bool IsWalkable(Vector3 worldPosition, float edgePadding = 0.18f)
+        public bool IsWalkable(Vector3 worldPosition, float edgePadding = 0f)
         {
             Vector3 local = transform.InverseTransformPoint(worldPosition);
             float usableRadius = Mathf.Max(0.1f, tileRadius - Mathf.Max(0f, edgePadding));

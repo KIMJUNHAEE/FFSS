@@ -83,6 +83,10 @@ namespace FFSS.Framework.Run
         public bool midBossDefeated;
         public bool bossDoorUnlocked;
         public bool bossDefeated;
+        public bool hasCurrentCell;
+        public int currentAxialX;
+        public int currentAxialY;
+        public List<string> visitedTileIds = new List<string>();
         public List<RunFieldNodeState> fieldNodes = new List<RunFieldNodeState>();
     }
 

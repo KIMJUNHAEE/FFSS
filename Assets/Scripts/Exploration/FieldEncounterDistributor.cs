@@ -375,7 +375,10 @@ namespace CardBattle.Exploration
                 FieldEncounterNode encounter = marker.GetComponent<FieldEncounterNode>();
                 if (encounter != null)
                 {
-                    encounter.Configure(planned.contentId, player, activationRadius, planned.nodeId);
+                    float radius = view != null
+                        ? Mathf.Max(activationRadius, view.SuggestedActivationRadius)
+                        : activationRadius;
+                    encounter.Configure(planned.contentId, player, radius, planned.nodeId);
                     encounter.enabled = Application.isPlaying;
                 }
             }
@@ -522,9 +525,10 @@ namespace CardBattle.Exploration
                 RunFieldContentType.Shop => 2.25f,
                 RunFieldContentType.Rest => 2.25f,
                 RunFieldContentType.BossDoor => 2.5f,
-                RunFieldContentType.MidBoss => 1.15f,
-                RunFieldContentType.Event => 1.1f,
-                _ => 0.85f
+                RunFieldContentType.MidBoss => 2.1f,
+                RunFieldContentType.Event => 1.75f,
+                RunFieldContentType.Combat => 1.75f,
+                _ => 1.5f
             };
         }
 

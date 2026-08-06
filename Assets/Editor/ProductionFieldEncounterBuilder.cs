@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CardBattle.Exploration;
+using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Run;
@@ -8,6 +10,8 @@ using FFSS.Framework.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -22,14 +26,10 @@ namespace FFSS.Editor
         private const string KernelPrefabPath = "Assets/Prefabs/Framework/GameKernel.prefab";
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
         private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
-        private const string NormalIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/090_map_node_fight.png";
-        private const string MidBossIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/091_map_node_elite.png";
-        private const string BossIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/095_map_node_boss.png";
-        private const string EventIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/092_map_node_event.png";
-        private const string ShopIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/093_map_node_shop.png";
-        private const string RestIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/094_map_node_rest.png";
         private const string BuildingRoot = "Assets/Art/Production/Field/Buildings";
         private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
+        private const string EncounterRoot = "Assets/Data/Production/Encounters";
+        private const string EnemyArtRoot = "Assets/Enemy";
 
         private readonly struct LandmarkSeed
         {
@@ -61,6 +61,11 @@ namespace FFSS.Editor
         {
             new LandmarkSeed(1, RunFieldContentType.Road, 1, 1, "북문 진입문", 3.8f),
             new LandmarkSeed(1, RunFieldContentType.Road, 2, 2, "장터 약방", 3.35f),
+            new LandmarkSeed(1, RunFieldContentType.Combat, 1, 1, "소나무 검문소", 3.15f),
+            new LandmarkSeed(1, RunFieldContentType.Combat, 2, 2, "매화 패거리 주둔지", 3.15f),
+            new LandmarkSeed(1, RunFieldContentType.Combat, 3, 3, "벚꽃 패거리 주둔지", 3.15f),
+            new LandmarkSeed(1, RunFieldContentType.Combat, 4, 4, "등나무 패거리 주둔지", 3.15f),
+            new LandmarkSeed(1, RunFieldContentType.MidBoss, 1, 5, "중간보스 주둔지", 3.5f),
             new LandmarkSeed(1, RunFieldContentType.Event, 1, 1, "무너진 장터 수레", 1.8f),
             new LandmarkSeed(1, RunFieldContentType.Event, 2, 2, "잠긴 약방 약궤", 1.9f),
             new LandmarkSeed(1, RunFieldContentType.Event, 3, 4, "부서진 시계탑 종", 2.0f),
@@ -70,6 +75,11 @@ namespace FFSS.Editor
 
             new LandmarkSeed(2, RunFieldContentType.Road, 1, 7, "수로 진료소", 3.45f),
             new LandmarkSeed(2, RunFieldContentType.Road, 2, 9, "관아 창고", 3.35f),
+            new LandmarkSeed(2, RunFieldContentType.Combat, 1, 7, "오동 패거리 진료소", 3.2f),
+            new LandmarkSeed(2, RunFieldContentType.Combat, 2, 8, "모란 패거리 대장간", 3.2f),
+            new LandmarkSeed(2, RunFieldContentType.Combat, 3, 9, "싸리 패거리 창고", 3.2f),
+            new LandmarkSeed(2, RunFieldContentType.Combat, 4, 10, "억새 패거리 수문", 3.2f),
+            new LandmarkSeed(2, RunFieldContentType.MidBoss, 1, 11, "독수로 중간보스 관아", 3.55f),
             new LandmarkSeed(2, RunFieldContentType.Event, 1, 6, "독물길 밸브", 1.65f),
             new LandmarkSeed(2, RunFieldContentType.Event, 2, 7, "젖은 장부 책상", 1.55f),
             new LandmarkSeed(2, RunFieldContentType.Event, 3, 8, "대장간 화로", 1.65f),
@@ -81,6 +91,11 @@ namespace FFSS.Editor
 
             new LandmarkSeed(3, RunFieldContentType.Road, 1, 13, "구사 붉은 궁문", 3.8f),
             new LandmarkSeed(3, RunFieldContentType.Road, 2, 14, "암행어사 검은 관아", 3.45f),
+            new LandmarkSeed(3, RunFieldContentType.Combat, 1, 13, "국화 패거리 궁문", 3.2f),
+            new LandmarkSeed(3, RunFieldContentType.Combat, 2, 14, "단풍 패거리 관아", 3.2f),
+            new LandmarkSeed(3, RunFieldContentType.Combat, 3, 15, "폐궁 동쪽 회랑", 3.2f),
+            new LandmarkSeed(3, RunFieldContentType.Combat, 4, 16, "폐궁 서쪽 회랑", 3.2f),
+            new LandmarkSeed(3, RunFieldContentType.MidBoss, 1, 17, "폐궁 중간보스 정전", 3.6f),
             new LandmarkSeed(3, RunFieldContentType.Event, 1, 11, "사당 등불", 1.65f),
             new LandmarkSeed(3, RunFieldContentType.Event, 2, 12, "관아 검문 장벽", 1.75f),
             new LandmarkSeed(3, RunFieldContentType.Event, 3, 14, "광패 균열 장치", 1.75f),
@@ -97,45 +112,34 @@ namespace FFSS.Editor
         {
             EnsureFolder(MarkerRoot);
             PrepareFieldArt();
+            AssignFieldEncounterSprites();
             GameObject normal = BuildMarkerPrefab(
                 "FieldEncounter_Normal",
-                NormalIconPath,
-                new Color(0.72f, 0.12f, 0.15f, 1f),
                 0.92f,
                 false,
                 "적 조우");
             GameObject midBoss = BuildMarkerPrefab(
                 "FieldEncounter_MidBoss",
-                MidBossIconPath,
-                new Color(0.55f, 0.22f, 0.74f, 1f),
                 0.98f,
                 false,
                 "강적 조우");
             GameObject eventNode = BuildMarkerPrefab(
                 "FieldContent_Event",
-                EventIconPath,
-                new Color(0.67f, 0.28f, 0.78f, 1f),
                 0.92f,
                 true,
                 "갈림길");
             GameObject shopNode = BuildMarkerPrefab(
                 "FieldContent_Shop",
-                ShopIconPath,
-                new Color(0.2f, 0.72f, 0.48f, 1f),
                 0.92f,
                 true,
                 "유돌이의 행상");
             GameObject restNode = BuildMarkerPrefab(
                 "FieldContent_Rest",
-                RestIconPath,
-                new Color(0.2f, 0.58f, 0.92f, 1f),
                 0.92f,
                 true,
                 "쉼터");
             GameObject bossDoor = BuildMarkerPrefab(
                 "FieldContent_BossDoor",
-                BossIconPath,
-                new Color(0.92f, 0.2f, 0.16f, 1f),
                 1.06f,
                 true,
                 "보스문");
@@ -150,46 +154,26 @@ namespace FFSS.Editor
 
         private static GameObject BuildMarkerPrefab(
             string prefabName,
-            string iconPath,
-            Color auraColor,
             float visualScale,
             bool runContent,
             string defaultLabel)
         {
-            Sprite icon = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath);
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
-            if (icon == null || font == null)
-                throw new InvalidOperationException($"Field marker asset is missing: {iconPath}");
+            if (font == null)
+                throw new InvalidOperationException($"Field marker font is missing: {FontPath}");
 
             Type nodeType = runContent ? typeof(FieldRunContentNode) : typeof(FieldEncounterNode);
-            GameObject root = runContent
-                ? new GameObject(prefabName, typeof(FieldEncounterMarkerView), nodeType, typeof(BoxCollider))
-                : new GameObject(prefabName, typeof(FieldEncounterMarkerView), nodeType, typeof(CapsuleCollider));
-            if (runContent)
-            {
-                BoxCollider blocker = root.GetComponent<BoxCollider>();
-                blocker.center = new Vector3(0f, 1f, 0f);
-                blocker.size = new Vector3(1.4f, 2f, 0.7f);
-            }
-            else
-            {
-                CapsuleCollider blocker = root.GetComponent<CapsuleCollider>();
-                blocker.center = new Vector3(0f, 1.25f, 0f);
-                blocker.height = 2.5f;
-                blocker.radius = 0.36f;
-            }
+            GameObject root = new(prefabName, typeof(FieldEncounterMarkerView), nodeType, typeof(BoxCollider));
+            BoxCollider blocker = root.GetComponent<BoxCollider>();
+            blocker.center = new Vector3(0f, 1f, 0f);
+            blocker.size = new Vector3(1.4f, 2f, 0.7f);
             var visual = new GameObject("Billboard");
             visual.transform.SetParent(root.transform, false);
             visual.transform.localScale = Vector3.one * visualScale;
 
-            SpriteRenderer aura = CreateSprite("Aura", visual.transform, icon, 29);
-            aura.transform.localPosition = new Vector3(0f, runContent ? 1.25f : 0f, 0.03f);
-            aura.transform.localScale = Vector3.one * 1.16f;
-            aura.color = new Color(auraColor.r, auraColor.g, auraColor.b, 0.34f);
-            aura.gameObject.SetActive(runContent);
-
-            SpriteRenderer main = CreateSprite("Encounter Emblem", visual.transform, icon, 30);
-            main.transform.localPosition = new Vector3(0f, runContent ? 1.25f : 0f, 0f);
+            SpriteRenderer landmark = CreateSprite("Location Artwork", visual.transform, null, 26);
+            SpriteRenderer actor = CreateSprite("Encounter Character", visual.transform, null, 30);
+            actor.gameObject.SetActive(false);
 
             Canvas canvas = CreateLabelCanvas(visual.transform);
             Text label = CreateLabel(canvas.transform, font, defaultLabel);
@@ -197,16 +181,22 @@ namespace FFSS.Editor
             FieldEncounterMarkerView markerView = root.GetComponent<FieldEncounterMarkerView>();
             SerializedObject view = new SerializedObject(markerView);
             view.FindProperty("visualRoot").objectReferenceValue = visual.transform;
-            view.FindProperty("iconRenderer").objectReferenceValue = main;
-            view.FindProperty("auraRenderer").objectReferenceValue = aura;
+            view.FindProperty("iconRenderer").objectReferenceValue = actor;
+            view.FindProperty("landmarkRenderer").objectReferenceValue = landmark;
+            view.FindProperty("actorRenderer").objectReferenceValue = actor;
             view.FindProperty("nameText").objectReferenceValue = label;
             view.FindProperty("hideLabelUntilFocused").boolValue = true;
-            view.FindProperty("tintCharacterWhenFocused").boolValue = runContent;
+            view.FindProperty("tintCharacterWhenFocused").boolValue = false;
+            view.FindProperty("bobHeight").floatValue = 0f;
+            view.FindProperty("focusedScale").floatValue = 1.025f;
             view.ApplyModifiedPropertiesWithoutUndo();
 
             Component node = root.GetComponent(nodeType);
             SerializedObject nodeSerialized = new SerializedObject(node);
             nodeSerialized.FindProperty("markerView").objectReferenceValue = markerView;
+            SerializedProperty patrol = nodeSerialized.FindProperty("patrol");
+            if (patrol != null)
+                patrol.boolValue = false;
             nodeSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             string path = $"{MarkerRoot}/{prefabName}.prefab";
@@ -343,9 +333,24 @@ namespace FFSS.Editor
             generator.Generate();
 
             EnsureKernelInstance();
+            EnsureEventSystem();
             EnsureFieldEntryPoint();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, FieldScenePath);
+        }
+
+        private static void EnsureEventSystem()
+        {
+            EventSystem existing = UnityEngine.Object.FindFirstObjectByType<EventSystem>(
+                FindObjectsInactive.Include);
+            if (existing != null)
+                return;
+
+            var eventSystemObject = new GameObject(
+                "EventSystem",
+                typeof(EventSystem),
+                typeof(InputSystemUIInputModule));
+            eventSystemObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
         }
 
         private static void ConfigureLandmarkVisuals(SerializedProperty landmarks)
@@ -369,6 +374,62 @@ namespace FFSS.Editor
                 if (sprite == null)
                     throw new InvalidOperationException($"Field landmark sprite is missing: {path}");
                 target.FindPropertyRelative("sprite").objectReferenceValue = sprite;
+            }
+        }
+
+        private static void AssignFieldEncounterSprites()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:EnemyEncounterDefinition", new[] { EncounterRoot });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string encounterPath = AssetDatabase.GUIDToAssetPath(guids[i]);
+                EnemyEncounterDefinition encounter =
+                    AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(encounterPath);
+                if (encounter == null || string.IsNullOrWhiteSpace(encounter.enemyId))
+                    continue;
+
+                string artPath = $"{EnemyArtRoot}/{encounter.enemyId}/{encounter.enemyId}.png";
+                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+                if (sprite == null)
+                {
+                    Sprite[] sprites = AssetDatabase.LoadAllAssetsAtPath(artPath)
+                        .OfType<Sprite>()
+                        .ToArray();
+                    sprite = sprites.Length > 0 ? sprites[0] : null;
+                }
+                if (sprite == null)
+                {
+                    Debug.LogWarning($"Field encounter artwork is missing: {artPath}");
+                    continue;
+                }
+
+                float targetHeight = encounter.rank switch
+                {
+                    EnemyEncounterRank.Boss => 1.95f,
+                    EnemyEncounterRank.MidBoss => 1.75f,
+                    _ => 1.55f
+                };
+                var serialized = new SerializedObject(encounter);
+                serialized.FindProperty("fieldSprite").objectReferenceValue = sprite;
+                Vector2 designerOffset = new(0.62f, 0.03f);
+                if (ProductionSpriteGeometry.TryCalculateFieldPlacement(
+                        sprite,
+                        targetHeight,
+                        designerOffset,
+                        out float scale,
+                        out Vector2 offset))
+                {
+                    serialized.FindProperty("fieldVisualScale").floatValue = scale;
+                    serialized.FindProperty("fieldVisualOffset").vector2Value = offset;
+                }
+                else
+                {
+                    serialized.FindProperty("fieldVisualScale").floatValue =
+                        targetHeight / Mathf.Max(0.01f, sprite.bounds.size.y);
+                    serialized.FindProperty("fieldVisualOffset").vector2Value = designerOffset;
+                }
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(encounter);
             }
         }
 

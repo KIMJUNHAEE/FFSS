@@ -210,7 +210,14 @@ namespace CardBattle.UI
             SetText(heading, $"제{run.act}막");
             SetText(subtitle, FieldRegionName(run));
             SetText(currency, $"{run.gold}냥");
-            SetText(status, $"HP {run.player.currentHp}/{run.player.maxHp}  ·  압박 {run.player.currentPressure}/{run.player.maxPressure}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
+            string risk = run.act switch
+            {
+                1 => "경계",
+                2 => "위험",
+                _ => "극위험"
+            };
+            SetText(status,
+                $"주변 위험 {risk}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
             SetGauge(hpGauge, run.player.currentHp, run.player.maxHp);
             SetGauge(pressureGauge, run.player.currentPressure, run.player.maxPressure);
             SetGauge(hpGaugeFill, run.player.currentHp, run.player.maxHp);
@@ -252,7 +259,12 @@ namespace CardBattle.UI
             }
 
             RunActProgressState act = run.CurrentActProgress;
-            SetText(subtitle, $"탐색 {run.visitedNodeIds.Count}/{act.generatedTileCount}  ·  발견 {run.discoveredNodeIds.Count}");
+            act.visitedTileIds ??= new List<string>();
+            string position = act.hasCurrentCell
+                ? $"현재 [{act.currentAxialX}, {act.currentAxialY}]"
+                : "현재 위치 확인 중";
+            SetText(subtitle,
+                $"{position}  ·  걸어 본 타일 {act.visitedTileIds.Count}/{act.generatedTileCount}  ·  발견 건물 {run.discoveredNodeIds.Count}");
             SetText(body, act.bossDoorUnlocked
                 ? "보스문이 열렸다. 지도 끝의 붉은 문양으로 향하자."
                 : $"보스문 조건: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")}");
@@ -556,6 +568,9 @@ namespace CardBattle.UI
                 case UIScreenId.FieldHud:
                     OpenFieldCommand(index);
                     return;
+                case UIScreenId.FieldMap:
+                    SelectMapCategory(index);
+                    return;
                 case UIScreenId.Equipment:
                     CycleEquipment(index);
                     return;
@@ -749,6 +764,49 @@ namespace CardBattle.UI
                     Show(UIScreenId.RunStatus);
                     break;
             }
+        }
+
+        private void SelectMapCategory(int index)
+        {
+            RunState run = CurrentRun();
+            if (run == null)
+            {
+                return;
+            }
+
+            RunFieldContentType type = MapContentType(index);
+            string label = MapCategoryName(type);
+            List<RunFieldNodeState> nodes = run.CurrentActProgress.fieldNodes
+                .FindAll(node => node != null && node.contentType == type && node.discovered);
+            nodes.Sort((left, right) =>
+            {
+                int resolvedOrder = left.resolved.CompareTo(right.resolved);
+                if (resolvedOrder != 0)
+                {
+                    return resolvedOrder;
+                }
+
+                int yOrder = right.axialY.CompareTo(left.axialY);
+                return yOrder != 0 ? yOrder : left.axialX.CompareTo(right.axialX);
+            });
+
+            if (nodes.Count == 0)
+            {
+                SetText(body, $"아직 발견한 {label} 건물이 없다. 직접 걸어가 시야에 넣어야 지도에 기록된다.");
+                SetText(status, $"{label} · 발견 0");
+                return;
+            }
+
+            var lines = new List<string>(Mathf.Min(5, nodes.Count));
+            for (int i = 0; i < nodes.Count && i < 5; i++)
+            {
+                RunFieldNodeState node = nodes[i];
+                string state = node.resolved ? "완료" : node.visited ? "방문" : "미확인";
+                lines.Add($"{i + 1}. {label}  [{node.axialX}, {node.axialY}]  ·  {state}");
+            }
+
+            SetText(body, string.Join("\n", lines));
+            SetText(status, $"{label} · 발견 {nodes.Count} · 지도는 위치 확인용이며 순간이동하지 않는다");
         }
 
         private void ChangeOption(int index)
@@ -1067,15 +1125,32 @@ namespace CardBattle.UI
 
         private static string MapCountDetail(RunState run, int index)
         {
-            RunFieldContentType type = index switch
+            RunFieldContentType type = MapContentType(index);
+            int count = run.CurrentActProgress.fieldNodes.FindAll(node => node != null && node.contentType == type && node.discovered).Count;
+            return $"발견 {count}";
+        }
+
+        private static RunFieldContentType MapContentType(int index)
+        {
+            return index switch
             {
                 0 => RunFieldContentType.Combat,
                 1 => RunFieldContentType.Event,
                 2 => RunFieldContentType.Shop,
                 _ => RunFieldContentType.BossDoor
             };
-            int count = run.CurrentActProgress.fieldNodes.FindAll(node => node != null && node.contentType == type && node.discovered).Count;
-            return $"발견 {count}";
+        }
+
+        private static string MapCategoryName(RunFieldContentType type)
+        {
+            return type switch
+            {
+                RunFieldContentType.Combat => "적 건물",
+                RunFieldContentType.Event => "사건 건물",
+                RunFieldContentType.Shop => "상점",
+                RunFieldContentType.BossDoor => "보스문",
+                _ => "목적지"
+            };
         }
     }
 }

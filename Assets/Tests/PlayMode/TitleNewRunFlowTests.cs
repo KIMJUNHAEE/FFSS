@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
@@ -124,7 +126,7 @@ namespace FFSS.Framework.Tests
             EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
 
             AssertOpeningLandmarks();
-            AssertPlayerHudGeometry("Player Run HUD");
+            AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_field_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("field 1920x1080");
             yield return SetResolutionAndCapture("flow_field_1280x720", 1280, 720);
@@ -199,9 +201,41 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(3);
             Assert.That(flow.Current, Is.EqualTo(GameFlowState.Field));
             Assert.That(ui.HasVisibleModal, Is.False);
-            AssertPlayerHudGeometry("Player Run HUD");
+            AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_return_field_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("returned field 1280x720");
+        }
+
+        [UnityTest]
+        public IEnumerator FieldCommandOverlaysStayReadableAtSmallDesktopResolution()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become ready for overlay QA.");
+            yield return WaitFrames(3);
+
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+            (UIScreenId id, string fileName)[] overlays =
+            {
+                (UIScreenId.FieldMap, "flow_map_1280x720"),
+                (UIScreenId.Equipment, "flow_equipment_1280x720"),
+                (UIScreenId.RunStatus, "flow_status_1280x720")
+            };
+
+            foreach ((UIScreenId id, string fileName) in overlays)
+            {
+                UIScreen overlay = ui.Show(id, false);
+                yield return WaitFrames(2);
+                Assert.That(overlay, Is.Not.Null);
+                Assert.That(ui.HasVisibleModal, Is.True, $"{id} did not block field input.");
+                AssertVisibleUiInsideViewport($"{id} 1280x720");
+                yield return CaptureScreenshot(fileName, 1280, 720);
+                ui.Hide(id, false);
+                yield return WaitFrames(2);
+                Assert.That(ui.HasVisibleModal, Is.False, $"{id} stayed open after closing.");
+            }
         }
 
         private static Button FindButton(string objectName)
@@ -349,6 +383,35 @@ namespace FFSS.Framework.Tests
             Assert.That(hud.sizeDelta.y, Is.EqualTo(286f).Within(0.1f));
         }
 
+        private static void AssertFieldHudGeometry()
+        {
+            RectTransform hud = Object.FindObjectsByType<RectTransform>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(rect => rect.name == "Field Player HUD");
+            Assert.That(hud, Is.Not.Null, "The compact field player HUD is missing.");
+            Assert.That(hud.anchorMin, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(hud.anchorMax, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(hud.pivot, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(hud.anchoredPosition.x, Is.EqualTo(230f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.y, Is.EqualTo(-89f).Within(0.1f));
+            Assert.That(hud.sizeDelta.x, Is.EqualTo(420f).Within(0.1f));
+            Assert.That(hud.sizeDelta.y, Is.EqualTo(138f).Within(0.1f));
+
+            string[] commands = { "지도 Button", "장비 Button", "현황 Button" };
+            for (int i = 0; i < commands.Length; i++)
+            {
+                Button button = Object.FindObjectsByType<Button>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .FirstOrDefault(candidate => candidate.name == commands[i]);
+                Assert.That(button, Is.Not.Null, $"Field command is missing: {commands[i]}");
+                Assert.That(button.targetGraphic, Is.Not.Null);
+                Assert.That(button.targetGraphic.raycastTarget, Is.True,
+                    $"Field command has no pointer hit area: {commands[i]}");
+            }
+        }
+
         private static bool IsFieldMovementBlocked()
         {
             Type controllerType = Type.GetType(
@@ -468,6 +531,12 @@ namespace FFSS.Framework.Tests
                 "playerHp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
             int playerPressureBefore = (int)controllerType.GetField(
                 "playerBreakCharge", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+            AudioManager audio = GameKernel.Services.Get<AudioManager>();
+            VfxManager vfx = GameKernel.Services.Get<VfxManager>();
+            int audioPlayCountBefore = audio.TotalPlayCount;
+            int vfxPlayCountBefore = vfx.TotalPlayCount;
+            Assert.That(audio.CurrentMusicCueId, Does.StartWith("bgm."),
+                "Combat entered without selecting a battle music cue.");
 
             attack.onClick.Invoke();
             yield return WaitFrames(2);
@@ -480,14 +549,35 @@ namespace FFSS.Framework.Tests
 
             Type seotdaType = seotda.GetType();
             Image faceSlot = seotdaType.GetField("cardSlotA")?.GetValue(seotda) as Image;
+            Image hiddenSlot = seotdaType.GetField("cardSlotB")?.GetValue(seotda) as Image;
             Sprite back = seotdaType.GetField("backSprite")?.GetValue(seotda) as Sprite;
             Assert.That(faceSlot, Is.Not.Null);
+            Assert.That(hiddenSlot, Is.Not.Null);
             yield return WaitUntil(
                 () => faceSlot.gameObject.activeInHierarchy && faceSlot.enabled &&
-                      faceSlot.sprite != null && faceSlot.sprite != back,
+                      faceSlot.sprite != null && faceSlot.sprite != back &&
+                      hiddenSlot.gameObject.activeInHierarchy && hiddenSlot.enabled &&
+                      hiddenSlot.sprite != null &&
+                      Mathf.Abs(faceSlot.rectTransform.anchoredPosition.x) < 0.5f &&
+                      Mathf.Abs(faceSlot.rectTransform.anchoredPosition.y) < 0.5f &&
+                      Mathf.Abs(hiddenSlot.rectTransform.anchoredPosition.x) < 0.5f &&
+                      Mathf.Abs(hiddenSlot.rectTransform.anchoredPosition.y) < 0.5f &&
+                      faceSlot.rectTransform.localScale.x > 0.95f &&
+                      hiddenSlot.rectTransform.localScale.x > 0.95f,
                 600,
-                "The enemy Seotda draw never showed its visible front card.");
+                "The enemy Seotda cards never became readable in their final table slots.");
+            AssertVisibleCard(faceSlot, "revealed Seotda front card");
+            AssertVisibleCard(hiddenSlot, "hidden Seotda card");
+            Assert.That(audio.TotalPlayCount, Is.GreaterThan(audioPlayCountBefore),
+                "The enemy turn did not play any configured audio cue at runtime.");
+            Assert.That(vfx.TotalPlayCount, Is.GreaterThan(vfxPlayCountBefore),
+                "The enemy turn did not spawn any configured VFX prefab at runtime.");
+            Assert.That(vfx.LastPlayedCueId, Is.Not.Empty,
+                "The runtime VFX manager did not record the spawned cue.");
+            float previousTimeScale = Time.timeScale;
+            Time.timeScale = 0f;
             yield return CaptureScreenshot("flow_combat_1ddaeng_seotda_face", 1280, 720);
+            Time.timeScale = previousTimeScale;
 
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
@@ -637,6 +727,24 @@ namespace FFSS.Framework.Tests
                     canvases[i].planeDistance = planeDistances[i];
                 }
             }
+        }
+
+        private static void AssertVisibleCard(Image card, string context)
+        {
+            Assert.That(card.color.a, Is.GreaterThan(0.95f), $"{context} image is transparent.");
+            Assert.That(card.GetComponentsInParent<CanvasGroup>(true).All(group => group.alpha > 0.95f),
+                Is.True,
+                $"{context} is hidden by a canvas group.");
+            Vector3[] corners = new Vector3[4];
+            card.rectTransform.GetWorldCorners(corners);
+            Vector2 minimum = RectTransformUtility.WorldToScreenPoint(null, corners[0]);
+            Vector2 maximum = RectTransformUtility.WorldToScreenPoint(null, corners[2]);
+            Assert.That(maximum.x - minimum.x, Is.GreaterThan(40f), $"{context} is too narrow on screen.");
+            Assert.That(maximum.y - minimum.y, Is.GreaterThan(54f), $"{context} is too short on screen.");
+            Assert.That(minimum.x, Is.GreaterThanOrEqualTo(0f), $"{context} is left of the viewport.");
+            Assert.That(minimum.y, Is.GreaterThanOrEqualTo(0f), $"{context} is below the viewport.");
+            Assert.That(maximum.x, Is.LessThanOrEqualTo(Screen.width), $"{context} is right of the viewport.");
+            Assert.That(maximum.y, Is.LessThanOrEqualTo(Screen.height), $"{context} is above the viewport.");
         }
 
         private static float VisiblePixelRatio(Texture2D texture)

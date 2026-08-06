@@ -20,7 +20,6 @@ namespace FFSS.Editor
         private const string TitlePrefabPath = ScreenRoot + "/TitleScreen.prefab";
         private const string ResultScenePath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
-        private const string PlayerHudPrefabPath = "Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab";
         private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
 
@@ -106,6 +105,26 @@ namespace FFSS.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS all 17 run UI screens are ready as inspectable prefabs.");
+        }
+
+        [MenuItem("FFSS/Production/Build Field Command Screens")]
+        public static void BuildFieldCommandScreens()
+        {
+            EnsureFolder("Assets/Prefabs/UI");
+            EnsureFolder(ScreenRoot);
+            UIScreenId[] targets = { UIScreenId.FieldMap, UIScreenId.Equipment, UIScreenId.RunStatus };
+            ScreenSpec[] specs = CreateSpecs();
+            for (int i = 0; i < specs.Length; i++)
+            {
+                if (targets.Contains(specs[i].Id))
+                {
+                    BuildStandardScreen(specs[i]);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
         }
 
         [MenuItem("FFSS/Production/Ensure Run Status Options Path")]
@@ -213,6 +232,12 @@ namespace FFSS.Editor
             {
                 build.Body.fontSize = 18;
             }
+            else if (spec.Id == UIScreenId.RunStatus)
+            {
+                build.Body.rectTransform.sizeDelta = new Vector2(980f, 96f);
+                build.Body.rectTransform.anchoredPosition = new Vector2(0f, 130f);
+                build.Body.lineSpacing = 1.08f;
+            }
 
             CreateActionSlots(frame, build, spec.Id, spec.Actions);
             build.Status = CreateText("Status", frame, string.Empty, 18, TextAnchor.MiddleLeft,
@@ -259,55 +284,155 @@ namespace FFSS.Editor
         private static GameObject BuildFieldHud(ScreenSpec spec)
         {
             ScreenBuild build = CreateRoot(spec);
-            GameObject playerHudPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerHudPrefabPath);
-            if (playerHudPrefab == null)
-                throw new InvalidOperationException("Production player HUD prefab is missing.");
+            RectTransform playerHud = CreateRect(
+                "Field Player HUD",
+                build.Root.transform,
+                new Vector2(420f, 138f),
+                new Vector2(230f, -89f));
+            SetAnchor(playerHud, new Vector2(0f, 1f), new Vector2(0f, 1f));
+            Image hudArt = playerHud.gameObject.AddComponent<Image>();
+            hudArt.sprite = SpriteAt(
+                "Assets/Art/Production/UI/Atlas/06_hud_pieces/player_hud_compact.png");
+            hudArt.preserveAspect = true;
+            hudArt.raycastTarget = false;
 
-            GameObject hudObject = PrefabUtility.InstantiatePrefab(playerHudPrefab, build.Root.transform) as GameObject;
-            hudObject.name = "Player Run HUD";
-            RectTransform hud = hudObject.GetComponent<RectTransform>();
-            hud.anchorMin = new Vector2(0f, 1f);
-            hud.anchorMax = new Vector2(0f, 1f);
-            hud.pivot = new Vector2(0f, 1f);
-            hud.anchoredPosition = new Vector2(24f, -52f);
-            hud.localScale = Vector3.one;
+            build.HpGaugeFill = CreateFieldGauge(
+                "HP",
+                playerHud,
+                "gauge_hp_red_small.png",
+                new Vector2(252f, 24f),
+                new Vector2(56f, 16f));
+            build.PressureGaugeFill = CreateFieldGauge(
+                "Balance",
+                playerHud,
+                "gauge_pressure_gold_small.png",
+                new Vector2(205f, 21f),
+                new Vector2(33f, -25f));
+            build.HpGaugeText = CreateText(
+                "HP Text",
+                playerHud,
+                "HP 104 / 104",
+                13,
+                TextAnchor.MiddleCenter,
+                Color.white,
+                new Vector2(226f, 22f),
+                new Vector2(56f, 16f));
 
-            build.HpGaugeFill = FindRequired<Image>(hudObject.transform, "HpBarBg/HpBarFill");
-            build.PressureGaugeFill = FindRequired<Image>(hudObject.transform, "PressureBarBg/PressureBarFill");
-            build.HpGaugeText = FindRequired<Text>(hudObject.transform, "HpText");
-            build.AttackValueText = FindRequired<Text>(hudObject.transform, "AttackValueText");
-            build.DefenseValueText = FindRequired<Text>(hudObject.transform, "DefenseValueText");
+            RectTransform goldPanel = CreateRect(
+                "Gold Counter",
+                build.Root.transform,
+                new Vector2(190f, 52f),
+                new Vector2(115f, -174f));
+            SetAnchor(goldPanel, new Vector2(0f, 1f), new Vector2(0f, 1f));
+            Image goldArt = goldPanel.gameObject.AddComponent<Image>();
+            goldArt.sprite = SpriteAt(
+                "Assets/Art/Production/UI/Atlas/10_resources_relics/resource_counter_gold.png");
+            goldArt.preserveAspect = false;
+            goldArt.raycastTarget = false;
+            build.Currency = CreateText(
+                "Gold",
+                goldPanel,
+                "30냥",
+                17,
+                TextAnchor.MiddleCenter,
+                new Color(1f, 0.84f, 0.3f),
+                new Vector2(112f, 28f),
+                new Vector2(24f, 0f));
 
-            build.Heading = CreateText("Act", hud, spec.Heading, 23, TextAnchor.MiddleCenter,
-                new Color(1f, 0.78f, 0.2f), new Vector2(132f, 30f), new Vector2(-230f, 38f));
-            build.Subtitle = CreateText("Region", hud, spec.Subtitle, 14, TextAnchor.MiddleCenter,
-                Color.white, new Vector2(144f, 38f), new Vector2(-230f, 0f));
-            build.Subtitle.horizontalOverflow = HorizontalWrapMode.Wrap;
-            build.Subtitle.verticalOverflow = VerticalWrapMode.Truncate;
-            build.Currency = CreateText("Gold", hud, "30냥", 17, TextAnchor.MiddleCenter,
-                new Color(1f, 0.78f, 0.2f), new Vector2(128f, 26f), new Vector2(-230f, -40f));
+            RectTransform regionPanel = CreateRect(
+                "Field Region",
+                build.Root.transform,
+                new Vector2(360f, 118f),
+                new Vector2(-204f, -78f));
+            SetAnchor(regionPanel, Vector2.one, Vector2.one);
+            Image regionArt = regionPanel.gameObject.AddComponent<Image>();
+            regionArt.sprite = SpriteAt(
+                "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_wide.png");
+            regionArt.preserveAspect = false;
+            regionArt.raycastTarget = false;
+            build.Heading = CreateText(
+                "Act",
+                regionPanel,
+                spec.Heading,
+                19,
+                TextAnchor.MiddleLeft,
+                new Color(1f, 0.78f, 0.2f),
+                new Vector2(296f, 26f),
+                new Vector2(10f, 28f));
+            build.Subtitle = CreateText(
+                "Region",
+                regionPanel,
+                spec.Subtitle,
+                17,
+                TextAnchor.MiddleLeft,
+                Color.white,
+                new Vector2(296f, 26f),
+                new Vector2(10f, 0f));
+            build.Status = CreateText(
+                "Risk",
+                regionPanel,
+                string.Empty,
+                13,
+                TextAnchor.MiddleLeft,
+                new Color(0.78f, 0.84f, 0.92f),
+                new Vector2(296f, 32f),
+                new Vector2(10f, -31f));
 
             string[] icons = { "icon_button_13_map", "icon_button_08_sword", "icon_button_17_deck" };
             string[] labels = { "지도", "장비", "현황" };
             for (int i = 0; i < icons.Length; i++)
             {
                 RectTransform host = CreateRect($"{labels[i]} Button", build.Root.transform,
-                    new Vector2(82f, 92f), new Vector2(-52f - i * 90f, -56f));
-                SetAnchor(host, Vector2.one, Vector2.one);
+                    new Vector2(76f, 82f), new Vector2(-50f - i * 82f, 50f));
+                SetAnchor(host, new Vector2(1f, 0f), new Vector2(1f, 0f));
+                Image hitArea = host.gameObject.AddComponent<Image>();
+                hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+                hitArea.raycastTarget = true;
                 Image image = CreateImage("Icon", host,
                     SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/" + icons[i] + ".png"), Color.white);
-                image.rectTransform.sizeDelta = new Vector2(64f, 64f);
-                image.rectTransform.anchoredPosition = new Vector2(0f, 10f);
+                image.rectTransform.sizeDelta = new Vector2(58f, 58f);
+                image.rectTransform.anchoredPosition = new Vector2(0f, 9f);
                 image.preserveAspect = true;
                 Button button = host.gameObject.AddComponent<Button>();
-                button.targetGraphic = image;
-                Text label = CreateText("Label", host, labels[i], 15, TextAnchor.MiddleCenter, Color.white,
-                    new Vector2(78f, 22f), new Vector2(0f, -34f));
+                button.targetGraphic = hitArea;
+                Text label = CreateText("Label", host, labels[i], 14, TextAnchor.MiddleCenter, Color.white,
+                    new Vector2(72f, 22f), new Vector2(0f, -31f));
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });
             }
 
             ConfigureController(build);
             return Save(build.Root, spec.Path);
+        }
+
+        private static Image CreateFieldGauge(
+            string name,
+            Transform parent,
+            string fillFileName,
+            Vector2 size,
+            Vector2 position)
+        {
+            Image background = CreateImage(
+                name + " Track",
+                parent,
+                SpriteAt("Assets/Art/Production/UI/Atlas/05_gauges/gauge_empty_small.png"),
+                Color.white);
+            background.rectTransform.sizeDelta = size;
+            background.rectTransform.anchoredPosition = position;
+            background.preserveAspect = false;
+
+            Image fill = CreateImage(
+                name + " Fill",
+                parent,
+                SpriteAt("Assets/Art/Production/UI/Atlas/05_gauges/" + fillFileName),
+                Color.white);
+            fill.rectTransform.sizeDelta = size;
+            fill.rectTransform.anchoredPosition = position;
+            fill.preserveAspect = false;
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+            fill.fillAmount = 1f;
+            return fill;
         }
 
         private static GameObject BuildTransparentCombat(ScreenSpec spec)
@@ -379,7 +504,7 @@ namespace FFSS.Editor
                     new Color(0.75f, 0.82f, 0.92f), new Vector2(textWidth, 26f), new Vector2(55f, -15f));
                 detail.horizontalOverflow = HorizontalWrapMode.Wrap;
                 detail.verticalOverflow = VerticalWrapMode.Truncate;
-                Image icon = CreateImage("Icon", host, ScreenIcon(screenId), Color.white);
+                Image icon = CreateImage("Icon", host, ScreenActionIcon(screenId, i), Color.white);
                 icon.rectTransform.sizeDelta = new Vector2(44f, 44f);
                 icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : -214f, 0f);
                 icon.preserveAspect = true;
@@ -681,15 +806,6 @@ namespace FFSS.Editor
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
         }
 
-        private static T FindRequired<T>(Transform root, string path) where T : Component
-        {
-            Transform target = root.Find(path);
-            T component = target != null ? target.GetComponent<T>() : null;
-            if (component == null)
-                throw new InvalidOperationException($"Missing UI component: {root.name}/{path} ({typeof(T).Name})");
-            return component;
-        }
-
         private static string DefaultBody(UIScreenId id)
         {
             return id switch
@@ -783,6 +899,30 @@ namespace FFSS.Editor
                 _ => BulkRoot + "101_relic_card.png"
             };
             return SpriteAt(path);
+        }
+
+        private static Sprite ScreenActionIcon(UIScreenId id, int index)
+        {
+            string path = id switch
+            {
+                UIScreenId.FieldMap => index switch
+                {
+                    0 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_fight.png",
+                    1 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_event.png",
+                    2 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_shop.png",
+                    3 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_boss.png",
+                    _ => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_mystery.png"
+                },
+                UIScreenId.Equipment => index switch
+                {
+                    0 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_08_sword.png",
+                    1 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_07_shield.png",
+                    2 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_05_flower.png",
+                    _ => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_06_coin.png"
+                },
+                _ => null
+            };
+            return string.IsNullOrWhiteSpace(path) ? ScreenIcon(id) : SpriteAt(path);
         }
 
         private static void SetReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)
