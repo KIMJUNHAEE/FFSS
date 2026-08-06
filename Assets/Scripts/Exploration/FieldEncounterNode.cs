@@ -17,7 +17,7 @@ namespace CardBattle.Exploration
         [SerializeField, Min(0f)] private float activationDelay = 0.12f;
 
         [Header("Field patrol")]
-        [SerializeField] private bool patrol = true;
+        [SerializeField] private bool patrol = false;
         [SerializeField, Min(0.1f)] private float patrolRadius = 0.62f;
         [SerializeField, Min(0.05f)] private float patrolSpeed = 0.34f;
         [SerializeField, Min(0f)] private float patrolPause = 0.7f;
