@@ -45,7 +45,7 @@ namespace FFSS.Framework.Persistence
             {
                 savedAtUtc = DateTime.UtcNow.ToString("O"),
                 run = runs.Current,
-                settings = settings ?? new PlayerSettingsData()
+                settings = settings ?? PlayerSettingsData.FromPreferences()
             };
 
             repository.Write(slot, JsonUtility.ToJson(data, true));
@@ -64,6 +64,7 @@ namespace FFSS.Framework.Persistence
                 JsonUtility.FromJson<SaveGameData>(repository.Read(slot)));
             ValidateData(data);
             services.Get<RunManager>().Restore(data.run);
+            data.settings?.Apply(true);
             return data;
         }
 

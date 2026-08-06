@@ -70,6 +70,25 @@ namespace CardBattle
             return true;
         }
 
+        public void Configure(IEnumerable<string> equipmentIds, bool persist)
+        {
+            saveToPlayerPrefs = persist;
+            if (equipmentIds != null)
+            {
+                foreach (string equipmentId in equipmentIds)
+                {
+                    EquipmentDefinition item = EquipmentCatalog.Get(equipmentId);
+                    if (item != null)
+                        SetId(item.Slot, item.Id);
+                }
+            }
+
+            EnsureDefaults();
+            if (saveToPlayerPrefs)
+                Save();
+            Changed?.Invoke();
+        }
+
         public void ResetToDefaults()
         {
             weaponId = DefaultWeapon;

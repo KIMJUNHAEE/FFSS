@@ -242,8 +242,11 @@ namespace CardBattle.UI
             SetText(body, $"장착 {run.equippedItemIds.Count}/4  ·  보유 {run.inventoryItemIds.Count}");
             for (int i = 0; i < actions.Count; i++)
             {
-                string id = i < run.equippedItemIds.Count ? run.equippedItemIds[i] : "빈 슬롯";
-                SetAction(i, EquipmentSlotName(i), id, i < 4);
+                string id = i < run.equippedItemIds.Count ? run.equippedItemIds[i] : string.Empty;
+                EquipmentDefinition item = EquipmentCatalog.Get(id);
+                string name = item != null ? item.DisplayName : "빈 슬롯";
+                string detail = item != null ? item.EffectText : "이 슬롯에 맞는 장비가 없다.";
+                SetAction(i, $"{EquipmentSlotName(i)} · {name}", detail, i < 4);
             }
         }
 
@@ -416,11 +419,29 @@ namespace CardBattle.UI
 
         private void RefreshOptions()
         {
-            SetText(body, "화면 · 오디오 · 전투 · 접근성 · 조작 · 데이터");
-            string[] tabs = { "화면", "오디오", "전투", "접근성", "조작", "데이터" };
+            PlayerSettingsData settings = PlayerSettingsData.FromPreferences();
+            SetText(body, "화면과 전투 연출, 읽기 편의 설정은 즉시 적용되고 저장된다.");
+            string[] labels =
+            {
+                "전체화면",
+                "전체 음량",
+                "모션 감소",
+                "화면 흔들림",
+                "의도 고대비",
+                "글자 배율"
+            };
+            string[] values =
+            {
+                settings.fullscreen ? "켜짐" : "꺼짐",
+                $"{Mathf.RoundToInt(settings.masterVolume * 100f)}%",
+                settings.reduceMotion ? "켜짐" : "꺼짐",
+                settings.screenShake ? "켜짐" : "꺼짐",
+                settings.highContrastIntents ? "켜짐" : "꺼짐",
+                $"{Mathf.RoundToInt(settings.textScale * 100f)}%"
+            };
             for (int i = 0; i < actions.Count; i++)
             {
-                SetAction(i, i < tabs.Length ? tabs[i] : string.Empty, i < tabs.Length ? "설정을 조정한다" : string.Empty, i < tabs.Length);
+                SetAction(i, i < labels.Length ? labels[i] : string.Empty, i < values.Length ? values[i] : string.Empty, i < labels.Length);
             }
         }
 
@@ -458,10 +479,15 @@ namespace CardBattle.UI
                 case UIScreenId.RunStatus:
                     SaveSlot(index);
                     return;
+                case UIScreenId.Options:
+                    ChangeOption(index);
+                    return;
                 case UIScreenId.FieldHud:
                     OpenFieldCommand(index);
                     return;
                 case UIScreenId.Equipment:
+                    CycleEquipment(index);
+                    return;
                 case UIScreenId.CardWorkshop:
                     selectedAction = page * Mathf.Max(1, actions.Count) + index;
                     Refresh();
@@ -624,6 +650,133 @@ namespace CardBattle.UI
                     Show(UIScreenId.RunStatus);
                     break;
             }
+        }
+
+        private void ChangeOption(int index)
+        {
+            PlayerSettingsData settings = PlayerSettingsData.FromPreferences();
+            switch (index)
+            {
+                case 0:
+                    settings.fullscreen = !settings.fullscreen;
+                    break;
+                case 1:
+                    settings.masterVolume = settings.masterVolume <= 0.26f
+                        ? 1f
+                        : Mathf.Max(0.25f, settings.masterVolume - 0.25f);
+                    break;
+                case 2:
+                    settings.reduceMotion = !settings.reduceMotion;
+                    break;
+                case 3:
+                    settings.screenShake = !settings.screenShake;
+                    break;
+                case 4:
+                    settings.highContrastIntents = !settings.highContrastIntents;
+                    break;
+                case 5:
+                    settings.textScale = settings.textScale >= 1.49f ? 1f : settings.textScale + 0.25f;
+                    break;
+                default:
+                    return;
+            }
+
+            settings.Apply(true);
+            RefreshOptions();
+        }
+
+        private void CycleEquipment(int slotIndex)
+        {
+            RunState run = CurrentRun();
+            if (run == null || slotIndex < 0 || slotIndex > 3)
+                return;
+
+            EnsureEquipmentSlots(run);
+            EquipmentSlotType slot = (EquipmentSlotType)slotIndex;
+            var candidates = new List<string>();
+            for (int i = 0; i < run.inventoryItemIds.Count; i++)
+            {
+                string id = run.inventoryItemIds[i];
+                if (EquipmentCatalog.Get(id)?.Slot == slot)
+                    candidates.Add(id);
+            }
+
+            candidates.Sort(StringComparer.Ordinal);
+            if (candidates.Count == 0)
+            {
+                SetText(status, $"교체할 {EquipmentSlotName(slotIndex)} 장비가 없다.");
+                return;
+            }
+
+            string next = candidates[0];
+            string previous = run.equippedItemIds[slotIndex];
+            run.inventoryItemIds.Remove(next);
+            if (!string.IsNullOrWhiteSpace(previous))
+                run.inventoryItemIds.Add(previous);
+            run.equippedItemIds[slotIndex] = next;
+            RecalculateRunEquipment(run);
+            SetText(status, $"{EquipmentCatalog.Get(next).DisplayName} 장착");
+            Refresh();
+        }
+
+        private static void EnsureEquipmentSlots(RunState run)
+        {
+            string[] defaults =
+            {
+                EquipmentLoadout.DefaultWeapon,
+                EquipmentLoadout.DefaultGarment,
+                EquipmentLoadout.DefaultTalisman,
+                EquipmentLoadout.DefaultKeepsake
+            };
+            while (run.equippedItemIds.Count < defaults.Length)
+                run.equippedItemIds.Add(defaults[run.equippedItemIds.Count]);
+        }
+
+        private static void RecalculateRunEquipment(RunState run)
+        {
+            int oldHpMaximum = run.player.maxHp;
+            int oldPressureMaximum = run.player.maxPressure;
+            int hpBonus = 0;
+            int pressureBonus = 0;
+            int attackAfterFirstTurn = 0;
+            int defenseAfterFirstTurn = 0;
+            int attackFirstTurn = 0;
+            int defenseFirstTurn = 0;
+            var later = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 2, 0f);
+            var first = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 1, 0f);
+
+            for (int i = 0; i < run.equippedItemIds.Count; i++)
+            {
+                EquipmentDefinition item = EquipmentCatalog.Get(run.equippedItemIds[i]);
+                if (item == null)
+                    continue;
+
+                hpBonus += item.Modifier(EquipmentStat.MaxHp, later);
+                pressureBonus += item.Modifier(EquipmentStat.MaxBreak, later);
+                attackAfterFirstTurn += item.Modifier(EquipmentStat.Attack, later);
+                defenseAfterFirstTurn += item.Modifier(EquipmentStat.Defense, later);
+                attackFirstTurn += item.Modifier(EquipmentStat.Attack, first);
+                defenseFirstTurn += item.Modifier(EquipmentStat.Defense, first);
+            }
+
+            int baseHp = oldHpMaximum - run.player.equipmentMaxHpBonus;
+            int basePressure = oldPressureMaximum - run.player.equipmentMaxPressureBonus;
+            run.player.equipmentMaxHpBonus = hpBonus;
+            run.player.equipmentMaxPressureBonus = pressureBonus;
+            run.player.maxHp = Mathf.Max(1, baseHp + hpBonus);
+            run.player.maxPressure = Mathf.Max(1, basePressure + pressureBonus);
+            run.player.currentHp = Mathf.Clamp(
+                run.player.currentHp + run.player.maxHp - oldHpMaximum,
+                0,
+                run.player.maxHp);
+            run.player.currentPressure = Mathf.Clamp(
+                run.player.currentPressure + run.player.maxPressure - oldPressureMaximum,
+                0,
+                run.player.maxPressure);
+            run.player.equipmentAttackBonus = attackAfterFirstTurn;
+            run.player.equipmentDefenseBonus = defenseAfterFirstTurn;
+            run.player.firstTurnAttackBonus = attackFirstTurn - attackAfterFirstTurn;
+            run.player.firstTurnDefenseBonus = defenseFirstTurn - defenseAfterFirstTurn;
         }
 
         private void EnterBoss()

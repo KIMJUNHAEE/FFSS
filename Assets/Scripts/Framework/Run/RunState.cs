@@ -38,6 +38,7 @@ namespace FFSS.Framework.Run
         public int baseDefense;
         public int baseBreakPower;
         public int equipmentMaxHpBonus;
+        public int equipmentMaxPressureBonus;
         public int equipmentAttackBonus;
         public int equipmentDefenseBonus;
         public int firstTurnAttackBonus;

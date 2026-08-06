@@ -1,5 +1,6 @@
 using System;
 using FFSS.Framework.Run;
+using UnityEngine;
 
 namespace FFSS.Framework.Persistence
 {
@@ -88,6 +89,15 @@ namespace FFSS.Framework.Persistence
                 }
 
                 data.schemaVersion = 4;
+            }
+
+            if (data.schemaVersion < 5)
+            {
+                data.settings ??= new PlayerSettingsData();
+                data.settings.fullscreen = PlayerPrefs.GetInt(
+                    PlayerSettingsData.FullscreenKey,
+                    Screen.fullScreen ? 1 : 0) != 0;
+                data.schemaVersion = 5;
             }
 
             return data;

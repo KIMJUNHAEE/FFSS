@@ -41,6 +41,8 @@ namespace CardBattle
             if (!scene.IsValid() || !scene.isLoaded)
                 return;
 
+            PrepareRunEquipment(scene);
+
             if (connectRoutine != null)
                 StopCoroutine(connectRoutine);
             connectRoutine = StartCoroutine(ConnectAfterSceneStart(scene));
@@ -54,6 +56,9 @@ namespace CardBattle
             RpsCombatController source = FindCombat(scene);
             if (source == null || !GameKernel.IsReady)
                 yield break;
+
+            if (GameKernel.Services.TryGet(out RunManager activeRuns) && activeRuns.HasActiveRun)
+                source.ApplyRunPlayerState(activeRuns.Current.player);
 
             LegacyCombatFlowBridge flow = source.GetComponent<LegacyCombatFlowBridge>();
             if (flow == null)
@@ -71,6 +76,25 @@ namespace CardBattle
             {
                 audio.PlayMusic(battleMusicCue, musicFadeSeconds);
             }
+        }
+
+        private static void PrepareRunEquipment(Scene scene)
+        {
+            if (!GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+                return;
+
+            RpsCombatController source = FindCombat(scene);
+            if (source == null)
+                return;
+
+            EquipmentLoadout loadout = source.equipmentLoadout;
+            if (loadout == null)
+                loadout = source.GetComponent<EquipmentLoadout>();
+            if (loadout == null)
+                loadout = source.gameObject.AddComponent<EquipmentLoadout>();
+
+            loadout.Configure(runs.Current.equippedItemIds, false);
+            source.equipmentLoadout = loadout;
         }
 
         private static RpsCombatController FindCombat(Scene scene)

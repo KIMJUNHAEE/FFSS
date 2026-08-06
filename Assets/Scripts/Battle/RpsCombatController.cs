@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using FFSS.Framework.Combat;
+using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -351,6 +352,20 @@ namespace CardBattle
                 enemyAction,
                 enemyPower);
             return true;
+        }
+
+        public void ApplyRunPlayerState(PlayerRunState state)
+        {
+            if (state == null)
+                return;
+
+            playerHp = Mathf.Clamp(state.currentHp, 0, playerMaxHp);
+            playerBreakCharge = Mathf.Clamp(state.currentPressure, 0, playerMaxBreak);
+            UpdateHpUI();
+            UpdateBreakUI(true);
+            RefreshHandPreview();
+            RefreshButtons();
+            PublishPresentation();
         }
 
         private void PublishPresentation()
