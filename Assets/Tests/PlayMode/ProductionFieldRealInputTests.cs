@@ -21,6 +21,8 @@ namespace FFSS.Framework.Tests
         private const string FieldScene = "Production_Field";
         private Keyboard keyboard;
         private Mouse mouse;
+        private bool ownsKeyboard;
+        private bool ownsMouse;
         private InputSettings.BackgroundBehavior previousBackgroundBehavior;
 #if UNITY_EDITOR
         private InputSettings.EditorInputBehaviorInPlayMode previousEditorInputBehavior;
@@ -36,16 +38,27 @@ namespace FFSS.Framework.Tests
             InputSystem.settings.editorInputBehaviorInPlayMode =
                 InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
 #endif
-            keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
-            mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
+            keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
+                ownsKeyboard = true;
+            }
+
+            mouse = Mouse.current;
+            if (mouse == null)
+            {
+                mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
+                ownsMouse = true;
+            }
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (keyboard != null && keyboard.added)
+            if (ownsKeyboard && keyboard != null && keyboard.added)
                 InputSystem.RemoveDevice(keyboard);
-            if (mouse != null && mouse.added)
+            if (ownsMouse && mouse != null && mouse.added)
                 InputSystem.RemoveDevice(mouse);
             InputSystem.settings.backgroundBehavior = previousBackgroundBehavior;
 #if UNITY_EDITOR
@@ -66,6 +79,11 @@ namespace FFSS.Framework.Tests
             Assert.That(EventSystem.current, Is.Not.Null,
                 "Production field has no EventSystem for pointer input.");
 
+            keyboard = Keyboard.current ?? keyboard;
+            mouse = Mouse.current ?? mouse;
+            Assert.That(keyboard, Is.Not.Null, "Production field has no active keyboard device.");
+            Assert.That(mouse, Is.Not.Null, "Production field has no active pointer device.");
+
             Component player = FindPlayerController();
             Assert.That(player, Is.Not.Null, "Production field has no player controller.");
             Vector3 start = player.transform.position;
@@ -80,6 +98,12 @@ namespace FFSS.Framework.Tests
                     InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
                     InputSystem.Update();
                     yield return null;
+                    if (GameKernel.Services.Get<UIManager>().HasVisibleModal && farthestDistance < 1.1f)
+                    {
+                        Assert.Fail(
+                            $"A modal opened before the player cleared the starting area. " +
+                            $"Direction={directions[i]}, distance={farthestDistance:F3}.");
+                    }
                     farthestDistance = Mathf.Max(
                         farthestDistance,
                         Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
