@@ -359,13 +359,16 @@ namespace FFSS.Editor
                 RectTransform host = CreateRect($"{labels[i]} Button", build.Root.transform,
                     new Vector2(76f, 82f), new Vector2(-50f - i * 82f, 50f));
                 SetAnchor(host, new Vector2(1f, 0f), new Vector2(1f, 0f));
+                Image hitArea = host.gameObject.AddComponent<Image>();
+                hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+                hitArea.raycastTarget = true;
                 Image image = CreateImage("Icon", host,
                     SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/" + icons[i] + ".png"), Color.white);
                 image.rectTransform.sizeDelta = new Vector2(58f, 58f);
                 image.rectTransform.anchoredPosition = new Vector2(0f, 9f);
                 image.preserveAspect = true;
                 Button button = host.gameObject.AddComponent<Button>();
-                button.targetGraphic = image;
+                button.targetGraphic = hitArea;
                 Text label = CreateText("Label", host, labels[i], 14, TextAnchor.MiddleCenter, Color.white,
                     new Vector2(72f, 22f), new Vector2(0f, -31f));
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });

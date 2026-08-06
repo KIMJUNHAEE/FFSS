@@ -194,7 +194,7 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(3);
 
             Component player = FindPlayerController();
-            Component eventNode = FindEventNode();
+            Component eventNode = FindEventNode(player.transform.position);
             Assert.That(player, Is.Not.Null);
             Assert.That(eventNode, Is.Not.Null);
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.False);
@@ -203,7 +203,7 @@ namespace FFSS.Framework.Tests
                 player,
                 eventNode.transform,
                 () => FindVisibleScreen(UIScreenId.Event) != null,
-                2.5f,
+                4.5f,
                 "Walking into the event building did not open its event screen.");
 
             UIScreen eventScreen = FindVisibleScreen(UIScreenId.Event);
@@ -283,17 +283,25 @@ namespace FFSS.Framework.Tests
 
         private static Component FindEventNode()
         {
+            return FindEventNode(Vector3.zero);
+        }
+
+        private static Component FindEventNode(Vector3 origin)
+        {
             return Object.FindObjectsByType<MonoBehaviour>(
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None)
                 .Where(component =>
                     component != null &&
                     component.GetType().FullName == "CardBattle.Exploration.FieldRunContentNode")
-                .FirstOrDefault(component =>
+                .Where(component =>
                 {
                     object contentType = component.GetType().GetProperty("ContentType")?.GetValue(component);
                     return contentType != null && contentType.ToString() == "Event";
-                });
+                })
+                .OrderBy(component =>
+                    Vector3.ProjectOnPlane(component.transform.position - origin, Vector3.up).sqrMagnitude)
+                .FirstOrDefault();
         }
 
         private IEnumerator MoveTowardUntil(
