@@ -152,6 +152,14 @@ namespace FFSS.Editor
             Debug.Log("FFSS production field encounters are configured as direct world interactions.");
         }
 
+        [MenuItem("FFSS/Production/Normalize Field Enemy Artwork")]
+        public static void NormalizeFieldEnemyArtwork()
+        {
+            AssignFieldEncounterSprites();
+            AssetDatabase.SaveAssets();
+            Debug.Log("FFSS production field enemy artwork normalized for the active import platform.");
+        }
+
         private static GameObject BuildMarkerPrefab(
             string prefabName,
             float visualScale,

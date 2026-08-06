@@ -1421,7 +1421,9 @@ namespace FFSS.Framework.Tests
                     _ => 1.55f
                 };
                 Assert.That(actualVisibleHeight, Is.EqualTo(expectedVisibleHeight).Within(0.025f),
-                    $"{encounter.enemyId} uses canvas size instead of visible character height.");
+                    $"{encounter.enemyId} uses canvas size instead of visible character height. " +
+                    $"texture={sprite.texture.width}x{sprite.texture.height}, rect={sprite.rect}, " +
+                    $"opaque={opaqueBounds}, ppu={pixelsPerUnit}.");
 
                 Rect spriteRect = sprite.rect;
                 float opaqueCenterInSprite = opaqueBounds.center.x - spriteRect.xMin;
@@ -2026,10 +2028,12 @@ namespace FFSS.Framework.Tests
                     return false;
 
                 Rect rect = sprite.rect;
-                int startX = Mathf.Clamp(Mathf.FloorToInt(rect.xMin), 0, texture.width - 1);
-                int startY = Mathf.Clamp(Mathf.FloorToInt(rect.yMin), 0, texture.height - 1);
-                int endX = Mathf.Clamp(Mathf.CeilToInt(rect.xMax), startX + 1, texture.width);
-                int endY = Mathf.Clamp(Mathf.CeilToInt(rect.yMax), startY + 1, texture.height);
+                float sourceScaleX = texture.width / (float)Mathf.Max(1, sprite.texture.width);
+                float sourceScaleY = texture.height / (float)Mathf.Max(1, sprite.texture.height);
+                int startX = Mathf.Clamp(Mathf.FloorToInt(rect.xMin * sourceScaleX), 0, texture.width - 1);
+                int startY = Mathf.Clamp(Mathf.FloorToInt(rect.yMin * sourceScaleY), 0, texture.height - 1);
+                int endX = Mathf.Clamp(Mathf.CeilToInt(rect.xMax * sourceScaleX), startX + 1, texture.width);
+                int endY = Mathf.Clamp(Mathf.CeilToInt(rect.yMax * sourceScaleY), startY + 1, texture.height);
                 Color32[] pixels = texture.GetPixels32();
                 int minX = endX;
                 int minY = endY;
@@ -2051,7 +2055,15 @@ namespace FFSS.Framework.Tests
 
                 if (maxX < minX || maxY < minY)
                     return false;
-                bounds = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+                int importedMinX = Mathf.FloorToInt(minX / sourceScaleX);
+                int importedMinY = Mathf.FloorToInt(minY / sourceScaleY);
+                int importedMaxX = Mathf.CeilToInt((maxX + 1) / sourceScaleX);
+                int importedMaxY = Mathf.CeilToInt((maxY + 1) / sourceScaleY);
+                bounds = new RectInt(
+                    importedMinX,
+                    importedMinY,
+                    Mathf.Max(1, importedMaxX - importedMinX),
+                    Mathf.Max(1, importedMaxY - importedMinY));
                 return true;
             }
             finally

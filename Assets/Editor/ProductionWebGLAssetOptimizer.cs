@@ -67,6 +67,8 @@ namespace FFSS.Editor
                         slashCount++;
                 }
 
+                if (IsFieldEnemyPortrait(path))
+                    return 2048;
                 return isSkill || slashCount <= 3 ? 1024 : 512;
             }
 
@@ -101,6 +103,22 @@ namespace FFSS.Editor
                    path.IndexOf("battle_bg", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    path.IndexOf("hero-bg", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    path.IndexOf("/bg/", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsFieldEnemyPortrait(string path)
+        {
+            int lastSlash = path.LastIndexOf('/');
+            int extension = path.LastIndexOf('.');
+            if (lastSlash <= 0 || extension <= lastSlash)
+                return false;
+
+            int parentSlash = path.LastIndexOf('/', lastSlash - 1);
+            if (parentSlash < 0)
+                return false;
+
+            string folderName = path.Substring(parentSlash + 1, lastSlash - parentSlash - 1);
+            string fileName = path.Substring(lastSlash + 1, extension - lastSlash - 1);
+            return string.Equals(folderName, fileName, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
