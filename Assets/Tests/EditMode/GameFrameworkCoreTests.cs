@@ -257,9 +257,10 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(9));
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(10));
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
+            Assert.That(prefab.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
             SerializedObject combatSerialized = new SerializedObject(combat);
             Assert.That(
                 combatSerialized.FindProperty("rules").objectReferenceValue,
@@ -632,6 +633,65 @@ namespace FFSS.Framework.Tests
             Assert.That(normalCount, Is.EqualTo(10));
             Assert.That(midBossCount, Is.EqualTo(4));
             Assert.That(bossCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void ProductionEnemyRuleMetersAreDataDrivenAndInspectable()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            var stateKeys = new HashSet<string>();
+
+            Assert.That(guids, Has.Length.EqualTo(17));
+            for (int i = 0; i < guids.Length; i++)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guids[i]));
+                Assert.That(encounter.ruleMeter, Is.Not.Null, encounter.enemyId);
+                Assert.That(encounter.ruleMeter.stateKey, Is.Not.Empty, encounter.enemyId);
+                Assert.That(stateKeys.Add(encounter.ruleMeter.stateKey), Is.True, encounter.enemyId);
+                Assert.That(encounter.ruleMeter.displayName, Is.Not.Empty, encounter.enemyId);
+                Assert.That(encounter.ruleMeter.maximumValue, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.ruleMeter.warningThreshold,
+                    Is.InRange(encounter.ruleMeter.minimumValue, encounter.ruleMeter.maximumValue),
+                    encounter.enemyId);
+
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"Assets/Prefabs/Production/Combat/RuleMeters/EnemyRuleMeter_{encounter.enemyId}.prefab");
+                Assert.That(prefab, Is.Not.Null, encounter.enemyId);
+                EnemyRuleMeterView view = prefab.GetComponent<EnemyRuleMeterView>();
+                Assert.That(view, Is.Not.Null, encounter.enemyId);
+                Assert.That(view.PreviewEncounter, Is.SameAs(encounter), encounter.enemyId);
+            }
+
+            GameObject kernel = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Framework/GameKernel.prefab");
+            Assert.That(kernel.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
+        }
+
+        [Test]
+        public void EnemyRuleManagerClampsValuesIntoConfiguredRange()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "test.enemy";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "test.rule",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 1
+            };
+            var state = new EnemyRuleState();
+            var host = new GameObject("Enemy Rule Manager Test");
+            EnemyRuleManager manager = host.AddComponent<EnemyRuleManager>();
+
+            Assert.That(manager.Initialize(encounter, state), Is.EqualTo(1));
+            Assert.That(manager.Add(encounter, state, 8), Is.EqualTo(3));
+            Assert.That(manager.Add(encounter, state, -9), Is.Zero);
+
+            UnityEngine.Object.DestroyImmediate(host);
+            UnityEngine.Object.DestroyImmediate(encounter);
         }
 
         [Test]

@@ -41,6 +41,33 @@ namespace FFSS.Framework.Combat
         Guard
     }
 
+    public enum EnemyRuleMeterStyle
+    {
+        Pips,
+        ActionSlots,
+        CardCounter,
+        Countdown,
+        Cycle,
+        History
+    }
+
+    [Serializable]
+    public sealed class EnemyRuleMeterDefinition
+    {
+        public string stateKey;
+        public string displayName;
+        [TextArea(1, 3)] public string description;
+        public EnemyRuleMeterStyle style = EnemyRuleMeterStyle.Pips;
+        public int minimumValue;
+        [Min(1)] public int maximumValue = 3;
+        public int initialValue;
+        public int warningThreshold = 2;
+        public bool countsDown;
+        public Color normalColor = new Color(0.96f, 0.78f, 0.2f, 1f);
+        public Color warningColor = new Color(1f, 0.52f, 0.12f, 1f);
+        public Color criticalColor = new Color(1f, 0.2f, 0.18f, 1f);
+    }
+
     [Serializable]
     public sealed class EnemyMoveDefinition
     {
@@ -116,5 +143,8 @@ namespace FFSS.Framework.Combat
 
         [Header("Move set")]
         public List<EnemyMoveDefinition> moves = new List<EnemyMoveDefinition>();
+
+        [Header("Enemy rule meter")]
+        public EnemyRuleMeterDefinition ruleMeter = new EnemyRuleMeterDefinition();
     }
 }

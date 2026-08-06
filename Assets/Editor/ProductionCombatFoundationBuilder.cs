@@ -43,6 +43,16 @@ namespace FFSS.Editor
                     changed = true;
                 }
 
+                EnemyRuleManager ruleManager = root.GetComponentInChildren<EnemyRuleManager>(true);
+                if (ruleManager == null)
+                {
+                    var ruleObject = new GameObject("Enemy Rule Manager");
+                    ruleObject.transform.SetParent(root.transform, false);
+                    ruleManager = ruleObject.AddComponent<EnemyRuleManager>();
+                    SetInteger(ruleManager, "initializationOrder", -150);
+                    changed = true;
+                }
+
                 SerializedObject serialized = new SerializedObject(manager);
                 SerializedProperty rulesProperty = serialized.FindProperty("rules");
                 if (rulesProperty.objectReferenceValue == null)
