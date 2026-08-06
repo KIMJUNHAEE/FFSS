@@ -375,7 +375,10 @@ namespace CardBattle.Exploration
                 FieldEncounterNode encounter = marker.GetComponent<FieldEncounterNode>();
                 if (encounter != null)
                 {
-                    encounter.Configure(planned.contentId, player, activationRadius, planned.nodeId);
+                    float radius = view != null
+                        ? Mathf.Max(activationRadius, view.SuggestedActivationRadius)
+                        : activationRadius;
+                    encounter.Configure(planned.contentId, player, radius, planned.nodeId);
                     encounter.enabled = Application.isPlaying;
                 }
             }
