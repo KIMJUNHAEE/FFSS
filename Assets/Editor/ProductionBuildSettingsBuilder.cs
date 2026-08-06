@@ -61,6 +61,7 @@ namespace FFSS.Editor
         public static void BuildWebGL()
         {
             Configure();
+            ProductionWebGLAssetOptimizer.ConfigureTextures();
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL))
                 throw new InvalidOperationException("Unity WebGL Build Support is not installed.");
 
