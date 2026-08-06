@@ -21,6 +21,7 @@ namespace FFSS.Framework.Tests
     public sealed class ProductionFieldRealInputTests
     {
         private const string FieldScene = "Production_Field";
+        private const string TitleScene = "Production_Title";
         private Keyboard keyboard;
         private Mouse mouse;
         private readonly List<InputDevice> disabledPhysicalDevices = new();
@@ -73,6 +74,31 @@ namespace FFSS.Framework.Tests
 #if UNITY_EDITOR
             InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInputBehavior;
 #endif
+        }
+
+        [UnityTest]
+        public IEnumerator TitleNewRunUsesRealPointerInput()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.Title) != null,
+                300,
+                "Production title did not become pointer-ready.");
+            yield return WaitFrames(3);
+
+            Button newRun = FindVisibleButton(FindVisibleScreen(UIScreenId.Title), "New Run");
+            Assert.That(newRun, Is.Not.Null, "Title has no visible New Run button.");
+            yield return Click(newRun);
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == FieldScene &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                600,
+                "A real pointer click on New Run did not create a run and enter the field.");
+
+            Assert.That(GameKernel.Services.Get<GameFlowManager>().Current, Is.EqualTo(GameFlowState.Field));
+            Assert.That(FindVisibleScreen(UIScreenId.Title), Is.Null,
+                "The title stayed visible after a real New Run click.");
         }
 
         [UnityTest]
