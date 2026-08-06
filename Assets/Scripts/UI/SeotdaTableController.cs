@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -32,9 +33,58 @@ namespace CardBattle
         [SerializeField] private float retractDuration = 0.28f;
 
         private Coroutine drawRoutine;
+        private BossCombatProfile profile;
+        private OpponentSeotdaCardDefinition signatureDefinition;
+        private Sprite signatureSprite;
+        private EnemyRuleState ruleState;
+        private Sprite preparedFaceSprite;
+        private Sprite preparedHiddenSprite;
+        private int preparedBasePower;
+        private int preparedMinimumBonus = -2;
+        private int preparedMaximumBonus = 6;
         public SeotdaHandResult LastResult { get; private set; }
+        public SeotdaHandResult PreparedResult { get; private set; }
+        public EnemySeotdaHandBand PreparedHandBand => ruleState?.Seotda.preview.handBand ?? EnemySeotdaHandBand.Low;
+        public string PreviewSummary { get; private set; } = string.Empty;
+        public bool HasPreparedHand => preparedFaceSprite != null && preparedHiddenSprite != null;
         public event Action<RectTransform> CardRevealed;
         public event Action HandRetracted;
+
+        public void BindRuleState(EnemyRuleState state)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            if (ruleState != null && ruleState != state && ruleState.Seotda.faceCard != null && state.Seotda.faceCard == null)
+            {
+                state.seotda = ruleState.seotda;
+            }
+
+            ruleState = state;
+            RestorePreparedSprites();
+        }
+
+        public string PrepareEnemyHandPreview(int basePower = 0, int minimumBonus = -2, int maximumBonus = 6)
+        {
+            EnsureRuleState();
+            ResetSignatureWindowForPhase();
+            RestorePreparedSprites();
+            if (!HasPreparedHand)
+            {
+                SelectPreparedHand();
+            }
+
+            PreparedResult = EvaluatePreparedHand();
+            UpdatePreview(basePower, minimumBonus, maximumBonus);
+            return PreviewSummary;
+        }
+
+        public void UpdatePreparedPreview(int basePower, int minimumBonus, int maximumBonus)
+        {
+            PrepareEnemyHandPreview(basePower, minimumBonus, maximumBonus);
+        }
 
         public void ShowEnemyHandAnimated(Action<SeotdaHandResult> onComplete)
         {
@@ -50,8 +100,8 @@ namespace CardBattle
 
         private IEnumerator ShowEnemyHandRoutine(Action<SeotdaHandResult> onComplete)
         {
-            var picks = PickRandomUnique(2);
-            if (picks.Count < 2)
+            PrepareEnemyHandPreview();
+            if (!HasPreparedHand)
             {
                 LastResult = default;
                 drawRoutine = null;
@@ -59,12 +109,16 @@ namespace CardBattle
                 yield break;
             }
 
-            LastResult = SeotdaHandEvaluator.EvaluateDetails(picks[0], picks[1]);
+            LastResult = EvaluatePreparedHand();
             if (rankText) rankText.gameObject.SetActive(false);
 
-            yield return DealCard(cardSlotA, picks[0], -1f);
+            yield return DealCard(cardSlotA, preparedFaceSprite, -1f);
             yield return new WaitForSeconds(drawStagger);
-            yield return DealCard(cardSlotB, picks[1], 1f);
+            yield return DealCard(
+                cardSlotB,
+                preparedHiddenSprite,
+                1f,
+                ruleState.Seotda.preview.hiddenCardRevealed);
 
             if (rankText)
             {
@@ -89,6 +143,7 @@ namespace CardBattle
             {
                 ResetAndHide(cardSlotA);
                 ResetAndHide(cardSlotB);
+                CommitPreparedHand();
                 LastResult = default;
                 drawRoutine = null;
                 HandRetracted?.Invoke();
@@ -116,6 +171,7 @@ namespace CardBattle
 
             yield return new WaitUntil(() => remaining <= 0);
             foreach (var slot in visibleSlots) ResetAndHide(slot);
+            CommitPreparedHand();
             LastResult = default;
             drawRoutine = null;
             HandRetracted?.Invoke();
@@ -144,7 +200,7 @@ namespace CardBattle
             onComplete?.Invoke();
         }
 
-        private IEnumerator DealCard(Image slot, Sprite face, float side)
+        private IEnumerator DealCard(Image slot, Sprite face, float side, bool revealFace = true)
         {
             if (!slot) yield break;
 
@@ -168,13 +224,16 @@ namespace CardBattle
                 rt.localScale = new Vector3(Mathf.Max(0.06f, flip), Mathf.Lerp(0.78f, 1f, eased), 1f);
                 if (!flipped && t >= 0.5f)
                 {
-                    slot.sprite = face;
+                    slot.sprite = revealFace ? face : backSprite != null ? backSprite : face;
                     flipped = true;
-                    CardRevealed?.Invoke(rt);
+                    if (revealFace)
+                    {
+                        CardRevealed?.Invoke(rt);
+                    }
                 }
             });
 
-            slot.sprite = face;
+            slot.sprite = revealFace ? face : backSprite != null ? backSprite : face;
             rt.anchoredPosition = final;
             rt.localRotation = Quaternion.identity;
             rt.localScale = Vector3.one;
@@ -212,50 +271,458 @@ namespace CardBattle
             slot.gameObject.SetActive(false);
         }
 
-        private List<Sprite> PickRandomUnique(int count)
+        public void ConfigureBossProfile(BossCombatProfile combatProfile)
         {
-            var pool = deckSprites.Where(sprite => sprite != null).Distinct().ToList();
-            var signatures = signatureSprites
-                .Where(sprite => sprite != null && pool.Contains(sprite))
+            if (combatProfile == null)
+            {
+                return;
+            }
+
+            profile = combatProfile;
+            signatureDefinition = OpponentSeotdaCardCatalog.Find(combatProfile.bossId);
+            signatureSprite = OpponentSeotdaCardCatalog.LoadSprite(signatureDefinition);
+            signatureSprites.Clear();
+            if (combatProfile.signatureCardA != null) signatureSprites.Add(combatProfile.signatureCardA);
+            if (combatProfile.signatureCardB != null && combatProfile.signatureCardB != combatProfile.signatureCardA)
+                signatureSprites.Add(combatProfile.signatureCardB);
+            signatureCardChance = combatProfile.signatureCardChance;
+            signaturePairChance = combatProfile.signaturePairChance;
+            EnsureRuleState();
+            RestorePreparedSprites();
+        }
+
+        public void RevealPreparedHiddenCard()
+        {
+            EnsureRuleState();
+            ruleState.Seotda.preview.hiddenCardRevealed = true;
+            UpdatePreview(preparedBasePower, preparedMinimumBonus, preparedMaximumBonus);
+            if (cardSlotB != null && cardSlotB.gameObject.activeSelf && preparedHiddenSprite != null)
+            {
+                cardSlotB.sprite = preparedHiddenSprite;
+                CardRevealed?.Invoke(cardSlotB.rectTransform);
+            }
+        }
+
+        public void StripPreparedModifier(string modifierId)
+        {
+            EnsureRuleState();
+            ruleState.Seotda.StripModifier(modifierId);
+        }
+
+        public bool ReplacePreparedHiddenWithSafeCard()
+        {
+            EnsureRuleState();
+            if (!HasPreparedHand)
+            {
+                return false;
+            }
+
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                Sprite candidate = DrawBaseCard(preparedFaceSprite);
+                if (candidate == null)
+                {
+                    break;
+                }
+
+                SeotdaHandResult result = Evaluate(preparedFaceSprite, candidate);
+                if (!result.IsValid || result.Tier > 3 || result.IsPair || result.IsGwangPair)
+                {
+                    ruleState.Seotda.discardOrder.Add(candidate.name);
+                    continue;
+                }
+
+                if (preparedHiddenSprite != null && preparedHiddenSprite != signatureSprite)
+                {
+                    ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
+                }
+
+                preparedHiddenSprite = candidate;
+                ruleState.Seotda.hiddenCard = CreateCardState(candidate);
+                PreparedResult = result;
+                ruleState.Seotda.preview.handBand = Classify(result);
+                ruleState.Seotda.preview.riskBand = Risk(result);
+                return true;
+            }
+
+            return false;
+        }
+
+        private void EnsureRuleState()
+        {
+            if (ruleState == null)
+            {
+                ruleState = new EnemyRuleState { enemyId = profile != null ? profile.bossId : name };
+            }
+
+            if (string.IsNullOrWhiteSpace(ruleState.enemyId) && profile != null)
+            {
+                ruleState.enemyId = profile.bossId;
+            }
+
+            ruleState.Seotda.EnsureCollections();
+        }
+
+        private void ResetSignatureWindowForPhase()
+        {
+            if (profile == null || profile.encounterRank != EnemyEncounterRank.Boss)
+            {
+                return;
+            }
+
+            int phase = Mathf.Max(1, ruleState.phase);
+            if (ruleState.Seotda.signaturePhase == phase)
+            {
+                return;
+            }
+
+            ruleState.Seotda.signaturePhase = phase;
+            ruleState.Seotda.signatureClock = 0;
+            ruleState.Seotda.signatureUseCount = 0;
+        }
+
+        private void SelectPreparedHand()
+        {
+            ruleState.Seotda.signatureClock++;
+            bool useSignature = ShouldUseSignature();
+            if (useSignature)
+            {
+                preparedFaceSprite = signatureSprite;
+                preparedHiddenSprite = ResolveSignaturePartner() ?? DrawBaseCard(signatureSprite);
+                ruleState.Seotda.TryUseSignature(SignatureUseCap());
+            }
+            else
+            {
+                preparedFaceSprite = DrawBaseCard(null);
+                preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
+            }
+
+            if (!useSignature)
+            {
+                AvoidRecentHandRepeat();
+            }
+
+            ruleState.Seotda.faceCard = CreateCardState(preparedFaceSprite);
+            ruleState.Seotda.hiddenCard = CreateCardState(preparedHiddenSprite);
+            ruleState.Seotda.preview.hiddenCardRevealed = false;
+            PreparedResult = EvaluatePreparedHand();
+        }
+
+        private bool ShouldUseSignature()
+        {
+            if (signatureDefinition == null || signatureSprite == null || profile == null ||
+                ruleState.Seotda.signatureUseCount >= SignatureUseCap())
+            {
+                return false;
+            }
+
+            int requiredClock = profile.encounterRank == EnemyEncounterRank.MidBoss &&
+                                ruleState.Seotda.signatureUseCount > 0
+                ? 3
+                : 2;
+            return ruleState.Seotda.signatureClock >= requiredClock;
+        }
+
+        private int SignatureUseCap()
+        {
+            if (profile == null)
+            {
+                return 1;
+            }
+
+            return profile.encounterRank switch
+            {
+                EnemyEncounterRank.Normal => 1,
+                EnemyEncounterRank.MidBoss => 2,
+                _ => 1
+            };
+        }
+
+        private Sprite ResolveSignaturePartner()
+        {
+            if (profile != null && profile.signatureCardB != null)
+            {
+                RemoveFromShoe(profile.signatureCardB.name);
+                return profile.signatureCardB;
+            }
+
+            if (signatureDefinition == null || signatureDefinition.TriggerMonth <= 0)
+            {
+                return null;
+            }
+
+            Sprite candidate = deckSprites.FirstOrDefault(sprite =>
+                sprite != null && SeotdaHandEvaluator.TryParse(sprite, out int month, out _) &&
+                month == signatureDefinition.TriggerMonth);
+            if (candidate != null)
+            {
+                RemoveFromShoe(candidate.name);
+            }
+            return candidate;
+        }
+
+        private void AvoidRecentHandRepeat()
+        {
+            for (int attempt = 0; attempt < 8 && HasPreparedHand; attempt++)
+            {
+                string handId = HandId(preparedFaceSprite, preparedHiddenSprite);
+                if (!ruleState.Seotda.WasHandPlayedRecently(handId))
+                {
+                    return;
+                }
+
+                ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
+                preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
+            }
+        }
+
+        private Sprite DrawBaseCard(Sprite exclude)
+        {
+            EnsureShoe();
+            for (int i = 0; i < ruleState.Seotda.shoeOrder.Count; i++)
+            {
+                string cardId = ruleState.Seotda.shoeOrder[i];
+                Sprite sprite = ResolveSprite(cardId);
+                if (sprite == null || sprite == signatureSprite || sprite == exclude)
+                {
+                    continue;
+                }
+
+                ruleState.Seotda.shoeOrder.RemoveAt(i);
+                return sprite;
+            }
+
+            RebuildShoe(ruleState.turnNumber + ruleState.Seotda.discardOrder.Count + 1);
+            return ruleState.Seotda.shoeOrder.Count > 0 ? DrawBaseCard(exclude) : null;
+        }
+
+        private void EnsureShoe()
+        {
+            ruleState.Seotda.shoeOrder.RemoveAll(cardId => ResolveSprite(cardId) == null);
+            if (ruleState.Seotda.shoeOrder.Count == 0)
+            {
+                RebuildShoe(ruleState.turnNumber + ruleState.Seotda.discardOrder.Count);
+            }
+        }
+
+        private void RebuildShoe(int salt)
+        {
+            var ids = deckSprites
+                .Where(sprite => sprite != null && sprite != signatureSprite)
+                .Select(sprite => sprite.name)
                 .Distinct()
                 .ToList();
-            var result = new List<Sprite>(count);
-
-            if (count >= 2 && signatures.Count >= 2 && UnityEngine.Random.value < signaturePairChance)
+            var random = new System.Random(StableHash(ruleState.enemyId) ^ salt * 397);
+            for (int i = ids.Count - 1; i > 0; i--)
             {
-                Shuffle(signatures);
-                result.AddRange(signatures.Take(2));
-            }
-            else if (signatures.Count > 0 && UnityEngine.Random.value < signatureCardChance)
-            {
-                result.Add(signatures[UnityEngine.Random.Range(0, signatures.Count)]);
+                int j = random.Next(i + 1);
+                (ids[i], ids[j]) = (ids[j], ids[i]);
             }
 
-            pool.RemoveAll(result.Contains);
-            Shuffle(pool);
-            result.AddRange(pool.Take(Mathf.Max(0, count - result.Count)));
-            return result;
+            ruleState.Seotda.shoeOrder = ids;
+            ruleState.Seotda.discardOrder.Clear();
         }
 
-        public void ConfigureBossProfile(BossCombatProfile profile)
+        private void RemoveFromShoe(string cardId)
         {
-            if (profile == null) return;
-
-            signatureSprites.Clear();
-            if (profile.signatureCardA != null) signatureSprites.Add(profile.signatureCardA);
-            if (profile.signatureCardB != null && profile.signatureCardB != profile.signatureCardA)
-                signatureSprites.Add(profile.signatureCardB);
-            signatureCardChance = profile.signatureCardChance;
-            signaturePairChance = profile.signaturePairChance;
-
+            EnsureShoe();
+            ruleState.Seotda.shoeOrder.Remove(cardId);
         }
 
-        private static void Shuffle<T>(IList<T> items)
+        private void RestorePreparedSprites()
         {
-            for (int i = items.Count - 1; i > 0; i--)
+            if (ruleState == null)
             {
-                int j = UnityEngine.Random.Range(0, i + 1);
-                (items[i], items[j]) = (items[j], items[i]);
+                return;
+            }
+
+            preparedFaceSprite = ResolveSprite(ruleState.Seotda.faceCard?.cardId);
+            preparedHiddenSprite = ResolveSprite(ruleState.Seotda.hiddenCard?.cardId);
+            if (HasPreparedHand)
+            {
+                PreparedResult = EvaluatePreparedHand();
+            }
+        }
+
+        private Sprite ResolveSprite(string cardId)
+        {
+            if (string.IsNullOrWhiteSpace(cardId))
+            {
+                return null;
+            }
+
+            if (signatureSprite != null && signatureSprite.name == cardId)
+            {
+                return signatureSprite;
+            }
+
+            return deckSprites.Concat(signatureSprites)
+                .FirstOrDefault(sprite => sprite != null && sprite.name == cardId);
+        }
+
+        private SeotdaCardRuntimeState CreateCardState(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return null;
+            }
+
+            bool isSignature = sprite == signatureSprite && signatureDefinition != null;
+            if (isSignature)
+            {
+                return new SeotdaCardRuntimeState
+                {
+                    cardId = sprite.name,
+                    month = signatureDefinition.Month,
+                    isGwang = signatureDefinition.IsGwang,
+                    isSignature = true
+                };
+            }
+
+            SeotdaHandEvaluator.TryParse(sprite, out int month, out bool isGwang);
+            return new SeotdaCardRuntimeState
+            {
+                cardId = sprite.name,
+                month = month,
+                isGwang = isGwang,
+                isSignature = false
+            };
+        }
+
+        private SeotdaHandResult EvaluatePreparedHand()
+        {
+            return Evaluate(preparedFaceSprite, preparedHiddenSprite);
+        }
+
+        private SeotdaHandResult Evaluate(Sprite face, Sprite hidden)
+        {
+            return signatureDefinition != null && signatureSprite != null &&
+                   (face == signatureSprite || hidden == signatureSprite)
+                ? SeotdaHandEvaluator.EvaluateDetails(face, hidden, signatureDefinition, signatureSprite)
+                : SeotdaHandEvaluator.EvaluateDetails(face, hidden);
+        }
+
+        private void UpdatePreview(int basePower, int minimumBonus, int maximumBonus)
+        {
+            preparedBasePower = basePower;
+            preparedMinimumBonus = minimumBonus;
+            preparedMaximumBonus = maximumBonus;
+            EnemySeotdaRuntimeState seotda = ruleState.Seotda;
+            EnemySeotdaHandBand handBand = Classify(PreparedResult);
+            EnemySeotdaRiskBand riskBand = Risk(PreparedResult);
+            int minimum = Mathf.Max(0, basePower + Mathf.Min(minimumBonus, maximumBonus));
+            int maximum = Mathf.Max(minimum, basePower + Mathf.Max(minimumBonus, maximumBonus));
+            if (PreparedResult.SignatureTriggered && signatureDefinition != null)
+            {
+                maximum += signatureDefinition.PowerBonus + signatureDefinition.HpDamage;
+            }
+
+            SeotdaCardRuntimeState face = seotda.faceCard;
+            string faceLabel = face == null
+                ? "첫 패 미정"
+                : $"{face.month}월{(face.isGwang ? " 광" : string.Empty)}";
+            seotda.preview.handBand = handBand;
+            seotda.preview.riskBand = riskBand;
+            seotda.preview.damageMinimum = minimum;
+            seotda.preview.damageMaximum = maximum;
+            seotda.preview.faceCardLabel = faceLabel;
+            seotda.preview.signaturePossible = preparedFaceSprite == signatureSprite || preparedHiddenSprite == signatureSprite;
+            seotda.preview.statusIconId = handBand switch
+            {
+                EnemySeotdaHandBand.Signature => "signature",
+                EnemySeotdaHandBand.Ddaeng => "ddang",
+                EnemySeotdaHandBand.Named => "named",
+                _ => "low"
+            };
+
+            string hidden = seotda.preview.hiddenCardRevealed && seotda.hiddenCard != null
+                ? $"{seotda.hiddenCard.month}월{(seotda.hiddenCard.isGwang ? " 광" : string.Empty)}"
+                : BandLabel(handBand);
+            string signature = seotda.preview.signaturePossible ? " · 전용패 가능" : string.Empty;
+            PreviewSummary = $"첫 패 {faceLabel} · 둘째 {hidden} · 예상 {minimum}~{maximum}{signature}";
+        }
+
+        private void CommitPreparedHand()
+        {
+            if (ruleState == null || !HasPreparedHand)
+            {
+                preparedFaceSprite = null;
+                preparedHiddenSprite = null;
+                return;
+            }
+
+            ruleState.Seotda.RecordHand(HandId(preparedFaceSprite, preparedHiddenSprite));
+            if (preparedFaceSprite != signatureSprite)
+            {
+                ruleState.Seotda.discardOrder.Add(preparedFaceSprite.name);
+            }
+            if (preparedHiddenSprite != signatureSprite)
+            {
+                ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
+            }
+
+            ruleState.Seotda.faceCard = null;
+            ruleState.Seotda.hiddenCard = null;
+            ruleState.Seotda.preview.hiddenCardRevealed = false;
+            preparedFaceSprite = null;
+            preparedHiddenSprite = null;
+            PreparedResult = default;
+            PreviewSummary = string.Empty;
+        }
+
+        private static EnemySeotdaHandBand Classify(SeotdaHandResult result)
+        {
+            if (result.HasSignatureCard)
+            {
+                return EnemySeotdaHandBand.Signature;
+            }
+            if (result.IsPair || result.IsGwangPair || result.DisplayName?.Contains("땡") == true)
+            {
+                return EnemySeotdaHandBand.Ddaeng;
+            }
+            return result.IsSpecial ? EnemySeotdaHandBand.Named : EnemySeotdaHandBand.Low;
+        }
+
+        private static EnemySeotdaRiskBand Risk(SeotdaHandResult result)
+        {
+            return Classify(result) switch
+            {
+                EnemySeotdaHandBand.Signature => EnemySeotdaRiskBand.Signature,
+                EnemySeotdaHandBand.Ddaeng => EnemySeotdaRiskBand.High,
+                EnemySeotdaHandBand.Named => EnemySeotdaRiskBand.Medium,
+                _ => EnemySeotdaRiskBand.Low
+            };
+        }
+
+        private static string BandLabel(EnemySeotdaHandBand band)
+        {
+            return band switch
+            {
+                EnemySeotdaHandBand.Signature => "전용패 위험",
+                EnemySeotdaHandBand.Ddaeng => "땡·광땡 위험",
+                EnemySeotdaHandBand.Named => "이름패·교란",
+                _ => "낮은 끗·기본기"
+            };
+        }
+
+        private static string HandId(Sprite a, Sprite b)
+        {
+            string first = a != null ? a.name : string.Empty;
+            string second = b != null ? b.name : string.Empty;
+            return string.CompareOrdinal(first, second) <= 0 ? $"{first}|{second}" : $"{second}|{first}";
+        }
+
+        private static int StableHash(string value)
+        {
+            unchecked
+            {
+                int hash = (int)2166136261;
+                string source = value ?? string.Empty;
+                for (int i = 0; i < source.Length; i++)
+                {
+                    hash = (hash ^ source[i]) * 16777619;
+                }
+                return hash;
             }
         }
     }

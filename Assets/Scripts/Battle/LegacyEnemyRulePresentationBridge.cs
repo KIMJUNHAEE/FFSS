@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using FFSS.Framework.Core;
@@ -72,6 +74,7 @@ namespace CardBattle
             }
 
             state ??= new EnemyRuleState { enemyId = encounter.enemyId };
+            source?.seotdaTable?.BindRuleState(state);
             if (GameKernel.IsReady && GameKernel.Services.TryGet(out EnemyRuleManager rules))
             {
                 rules.Initialize(encounter, state);
@@ -110,7 +113,13 @@ namespace CardBattle
             {
                 pokerHand.RedrawCommitted -= HandleRedrawCommitted;
                 pokerHand.RedrawCommitted += HandleRedrawCommitted;
+                pokerHand.RedrawCardsCommitted -= HandleRedrawCardsCommitted;
+                pokerHand.RedrawCardsCommitted += HandleRedrawCardsCommitted;
+                pokerHand.HandChanged -= HandleHandChanged;
+                pokerHand.HandChanged += HandleHandChanged;
             }
+
+            source?.seotdaTable?.BindRuleState(state);
 
             meterSubscription?.Dispose();
             meterSubscription = GameKernel.IsReady
@@ -129,6 +138,8 @@ namespace CardBattle
             if (pokerHand != null)
             {
                 pokerHand.RedrawCommitted -= HandleRedrawCommitted;
+                pokerHand.RedrawCardsCommitted -= HandleRedrawCardsCommitted;
+                pokerHand.HandChanged -= HandleHandChanged;
             }
 
             meterSubscription?.Dispose();
@@ -168,6 +179,7 @@ namespace CardBattle
 
             state.turnNumber++;
             state.lastMoveId = result.EnemyMoveId;
+            UpdateEncounterPhase();
             switch (encounter.ruleRuntime.kind)
             {
                 case EnemyRuleBehaviorKind.PineRedraw:
@@ -193,6 +205,7 @@ namespace CardBattle
                     {
                         AddMeter(encounter.ruleRuntime.meterGain);
                         state.SetCounter("rule.poison.held", 1);
+                        state.AddCounter("rule.poison.pending", 1, 0, 4);
                     }
                     if (result.EnemyStunned)
                     {
@@ -247,6 +260,8 @@ namespace CardBattle
                     TrackHeat(result);
                     break;
             }
+
+            TickCardRuleDurations();
         }
 
         private void TrackReadAction(RpsAction action)
@@ -350,6 +365,8 @@ namespace CardBattle
                 return;
             }
 
+            PopulateCardRuleCounts(context);
+
             if (GameKernel.IsReady && GameKernel.Services.TryGet(out EnemyRuleManager rules))
             {
                 rules.ApplyExchangeModifiers(encounter, state, context);
@@ -364,6 +381,226 @@ namespace CardBattle
             {
                 state.SetFlag("rule.cycle.reward.ready", false);
             }
+        }
+
+        private void HandleHandChanged(PokerHandResult handResult)
+        {
+            if (!Ready() || pokerHand == null)
+            {
+                return;
+            }
+
+            state.ClearTransientCardMarks();
+            IReadOnlyList<PokerCardView> cards = pokerHand.Cards;
+            ApplyPendingPersistentMarks(cards);
+
+            switch (encounter.ruleRuntime.kind)
+            {
+                case EnemyRuleBehaviorKind.PairTracking:
+                    foreach (IGrouping<int, PokerCardView> group in cards
+                                 .Where(card => TryCardRank(card, out _))
+                                 .GroupBy(card => CardRank(card))
+                                 .Where(group => group.Count() > 1))
+                    {
+                        foreach (PokerCardView card in group)
+                        {
+                            state.GetCardRule(CardId(card), true).tracked = true;
+                        }
+                    }
+                    break;
+                case EnemyRuleBehaviorKind.TargetAim:
+                    for (int i = 0; i < cards.Count; i++)
+                    {
+                        if (i == 0 || i == 2)
+                        {
+                            state.GetCardRule(CardId(cards[i]), true).targeted = true;
+                        }
+                    }
+                    break;
+                case EnemyRuleBehaviorKind.SuitWheel:
+                    char sealedSuit = GetMeter() switch
+                    {
+                        0 => 'S',
+                        1 => 'H',
+                        2 => 'C',
+                        _ => 'D'
+                    };
+                    foreach (PokerCardView card in cards.Where(card => CardSuitCode(card) == sealedSuit))
+                    {
+                        state.GetCardRule(CardId(card), true).sealTurns =
+                            Mathf.Max(1, state.GetCardRule(CardId(card), true).sealTurns);
+                    }
+                    break;
+            }
+
+            RenderCardRuleMarks(cards);
+        }
+
+        private void HandleRedrawCardsCommitted(
+            IReadOnlyList<Sprite> replaced,
+            IReadOnlyList<Sprite> kept)
+        {
+            if (!Ready())
+            {
+                return;
+            }
+
+            int discardedPoison = 0;
+            int discardedTargets = 0;
+            foreach (Sprite sprite in replaced ?? Array.Empty<Sprite>())
+            {
+                if (sprite == null)
+                {
+                    continue;
+                }
+
+                EnemyCardRuleState rule = state.GetCardRule(sprite.name);
+                if (rule == null)
+                {
+                    continue;
+                }
+
+                discardedPoison += rule.poisonStacks;
+                if (rule.targeted)
+                {
+                    discardedTargets++;
+                }
+                rule.poisonStacks = 0;
+                rule.sealTurns = 0;
+                rule.targeted = false;
+                rule.tracked = false;
+            }
+
+            if (discardedPoison > 0)
+            {
+                state.AddCounter("rule.poison.discardReward", discardedPoison, 0, 8);
+            }
+            if (discardedTargets > 0)
+            {
+                state.AddCounter("rule.aim.breakReward", discardedTargets * 3, 0, 12);
+                AddMeter(-discardedTargets);
+            }
+
+            int keptTargets = (kept ?? Array.Empty<Sprite>())
+                .Count(sprite => sprite != null && state.GetCardRule(sprite.name)?.targeted == true);
+            if (keptTargets > 0 && encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.TargetAim)
+            {
+                AddMeter(keptTargets);
+            }
+            state.RemoveEmptyCardRules();
+        }
+
+        private void PopulateCardRuleCounts(EnemyRuleExchangeContext context)
+        {
+            context.poisonedCardCount = 0;
+            context.sealedCardCount = 0;
+            context.targetedCardCount = 0;
+            context.trackedCardCount = 0;
+            foreach (string cardId in context.playerCardIds ?? new List<string>())
+            {
+                EnemyCardRuleState rule = state.GetCardRule(cardId);
+                if (rule == null)
+                {
+                    continue;
+                }
+
+                if (rule.poisonStacks > 0) context.poisonedCardCount += rule.poisonStacks;
+                if (rule.sealTurns > 0) context.sealedCardCount++;
+                if (rule.targeted) context.targetedCardCount++;
+                if (rule.tracked) context.trackedCardCount++;
+            }
+        }
+
+        private void TickCardRuleDurations()
+        {
+            if (state.cardRules == null)
+            {
+                return;
+            }
+
+            foreach (EnemyCardRuleState rule in state.cardRules)
+            {
+                if (rule != null && rule.sealTurns > 0)
+                {
+                    rule.sealTurns--;
+                }
+            }
+            state.RemoveEmptyCardRules();
+        }
+
+        private void ApplyPendingPersistentMarks(IReadOnlyList<PokerCardView> cards)
+        {
+            int pendingPoison = state.GetCounter("rule.poison.pending");
+            if (pendingPoison > 0)
+            {
+                PokerCardView lowest = cards
+                    .Where(card => TryCardRank(card, out _))
+                    .OrderBy(CardRank)
+                    .FirstOrDefault();
+                if (lowest != null)
+                {
+                    EnemyCardRuleState rule = state.GetCardRule(CardId(lowest), true);
+                    rule.poisonStacks = Mathf.Clamp(rule.poisonStacks + pendingPoison, 0, 4);
+                    state.SetCounter("rule.poison.pending", 0);
+                }
+            }
+
+            if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.CardSeal && GetMeter() > 0)
+            {
+                PokerCardView highest = cards
+                    .Where(card => TryCardRank(card, out _))
+                    .OrderByDescending(CardRank)
+                    .FirstOrDefault();
+                if (highest != null)
+                {
+                    state.GetCardRule(CardId(highest), true).sealTurns = 1;
+                }
+            }
+        }
+
+        private void RenderCardRuleMarks(IReadOnlyList<PokerCardView> cards)
+        {
+            foreach (PokerCardView card in cards)
+            {
+                EnemyCardRuleState rule = state.GetCardRule(CardId(card));
+                card.SetRuleMark(
+                    rule?.PrimaryMark ?? EnemyCardRuleMark.None,
+                    rule?.PrimaryValue ?? 0);
+            }
+        }
+
+        private void UpdateEncounterPhase()
+        {
+            if (source == null || source.EnemyMaxHp <= 0)
+            {
+                return;
+            }
+
+            float ratio = source.EnemyHp / (float)source.EnemyMaxHp;
+            state.phase = ratio <= 0.33f ? 3 : ratio <= 0.66f ? 2 : 1;
+        }
+
+        private static string CardId(PokerCardView card)
+        {
+            return card != null && card.CardSprite != null ? card.CardSprite.name : string.Empty;
+        }
+
+        private static bool TryCardRank(PokerCardView card, out int rank)
+        {
+            rank = 0;
+            return card != null && PokerHandEvaluator.TryParse(card.CardSprite, out rank, out _);
+        }
+
+        private static int CardRank(PokerCardView card)
+        {
+            return TryCardRank(card, out int rank) ? rank : 0;
+        }
+
+        private static char CardSuitCode(PokerCardView card)
+        {
+            return card != null && PokerHandEvaluator.TryParse(card.CardSprite, out _, out char suit)
+                ? suit
+                : default;
         }
 
         private void TrackPairHunt(RpsCombatExchangeResult result)

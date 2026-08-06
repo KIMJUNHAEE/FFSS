@@ -38,9 +38,12 @@ namespace CardBattle
         public event Action CardDealt;
         public event Action CardRedrawn;
         public event Action<int, int> RedrawCommitted;
+        public event Action<IReadOnlyList<Sprite>, IReadOnlyList<Sprite>> RedrawCardsCommitted;
         public event Action HandRetracted;
         public PokerHandResult CurrentResult { get; private set; }
         public bool HasResolvedHand => spawnedCards.Count == handSize && dealRoutine == null && CurrentResult.IsValid;
+        public IReadOnlyList<PokerCardView> Cards => spawnedCards;
+        public IReadOnlyList<Sprite> CurrentCardSprites => spawnedCards.Select(card => card.CardSprite).ToList();
 
         private void Start()
         {
@@ -84,6 +87,9 @@ namespace CardBattle
             var newSprites = PickRandomUnique(toReplace.Count, new HashSet<Sprite>(kept));
 
             RedrawCommitted?.Invoke(toReplace.Count, spawnedCards.Count - toReplace.Count);
+            RedrawCardsCommitted?.Invoke(
+                toReplace.Select(card => card.CardSprite).ToList(),
+                spawnedCards.Where(card => card.IsSelected).Select(card => card.CardSprite).ToList());
             dealRoutine = StartCoroutine(RedrawRoutine(toReplace, newSprites));
         }
 

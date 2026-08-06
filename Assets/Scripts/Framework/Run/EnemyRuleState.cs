@@ -11,6 +11,23 @@ namespace FFSS.Framework.Run
         Signature
     }
 
+    public enum EnemySeotdaHandBand
+    {
+        Low,
+        Named,
+        Ddaeng,
+        Signature
+    }
+
+    public enum EnemyCardRuleMark
+    {
+        None,
+        Poison,
+        Seal,
+        Target,
+        Tracking
+    }
+
     [Serializable]
     public sealed class SeotdaCardRuntimeState
     {
@@ -24,11 +41,42 @@ namespace FFSS.Framework.Run
     public sealed class EnemyIntentPreviewState
     {
         public EnemySeotdaRiskBand riskBand;
+        public EnemySeotdaHandBand handBand;
         public int damageMinimum;
         public int damageMaximum;
         public string statusIconId;
+        public string faceCardLabel;
         public bool signaturePossible;
         public bool hiddenCardRevealed;
+    }
+
+    [Serializable]
+    public sealed class EnemyCardRuleState
+    {
+        public string cardId;
+        public int poisonStacks;
+        public int sealTurns;
+        public bool targeted;
+        public bool tracked;
+
+        public EnemyCardRuleMark PrimaryMark => sealTurns > 0
+            ? EnemyCardRuleMark.Seal
+            : poisonStacks > 0
+                ? EnemyCardRuleMark.Poison
+                : targeted
+                    ? EnemyCardRuleMark.Target
+                    : tracked
+                        ? EnemyCardRuleMark.Tracking
+                        : EnemyCardRuleMark.None;
+
+        public int PrimaryValue => PrimaryMark switch
+        {
+            EnemyCardRuleMark.Poison => poisonStacks,
+            EnemyCardRuleMark.Seal => sealTurns,
+            _ => 0
+        };
+
+        public bool IsEmpty => poisonStacks <= 0 && sealTurns <= 0 && !targeted && !tracked;
     }
 
     [Serializable]
@@ -41,6 +89,7 @@ namespace FFSS.Framework.Run
         public List<string> recentHandIds = new List<string>();
         public int signatureClock;
         public int signatureUseCount;
+        public int signaturePhase = 1;
         public List<string> strippedModifierIds = new List<string>();
         public EnemyIntentPreviewState preview = new EnemyIntentPreviewState();
 
@@ -131,6 +180,7 @@ namespace FFSS.Framework.Run
         public string lastMoveId;
         public List<RuleCounterState> counters = new List<RuleCounterState>();
         public List<RuleFlagState> flags = new List<RuleFlagState>();
+        public List<EnemyCardRuleState> cardRules = new List<EnemyCardRuleState>();
         public EnemySeotdaRuntimeState seotda = new EnemySeotdaRuntimeState();
 
         public EnemySeotdaRuntimeState Seotda
@@ -189,6 +239,48 @@ namespace FFSS.Framework.Run
             }
 
             flag.value = value;
+        }
+
+        public EnemyCardRuleState GetCardRule(string cardId, bool create = false)
+        {
+            if (string.IsNullOrWhiteSpace(cardId))
+            {
+                return null;
+            }
+
+            cardRules ??= new List<EnemyCardRuleState>();
+            EnemyCardRuleState rule = cardRules.Find(item => item != null && item.cardId == cardId);
+            if (rule == null && create)
+            {
+                rule = new EnemyCardRuleState { cardId = cardId };
+                cardRules.Add(rule);
+            }
+
+            return rule;
+        }
+
+        public void RemoveEmptyCardRules()
+        {
+            cardRules ??= new List<EnemyCardRuleState>();
+            cardRules.RemoveAll(item => item == null || item.IsEmpty);
+        }
+
+        public void ClearTransientCardMarks()
+        {
+            cardRules ??= new List<EnemyCardRuleState>();
+            for (int i = 0; i < cardRules.Count; i++)
+            {
+                EnemyCardRuleState rule = cardRules[i];
+                if (rule == null)
+                {
+                    continue;
+                }
+
+                rule.targeted = false;
+                rule.tracked = false;
+            }
+
+            RemoveEmptyCardRules();
         }
     }
 }

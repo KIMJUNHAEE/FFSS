@@ -135,12 +135,22 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.CardPoison:
-                    int heldPoison = state.GetCounter("rule.poison.held");
+                    int heldPoison = context.poisonedCardCount > 0
+                        ? context.poisonedCardCount
+                        : state.GetCounter("rule.poison.held");
                     if (heldPoison > 0)
                     {
-                        int penalty = Math.Min(rule.poisonedCardPowerPenalty, heldPoison * rule.poisonedCardPowerPenalty);
+                        int penalty = Math.Min(4, heldPoison * rule.poisonedCardPowerPenalty);
                         context.playerPowerDelta -= penalty;
                         context.AddNote($"카드 독 -{penalty}");
+                    }
+
+                    int poisonDiscardReward = state.GetCounter("rule.poison.discardReward");
+                    if (poisonDiscardReward > 0)
+                    {
+                        context.playerBreakDelta += poisonDiscardReward;
+                        context.AddNote($"독 정리 격파 +{poisonDiscardReward}");
+                        state.SetCounter("rule.poison.discardReward", 0);
                     }
                     break;
 
@@ -153,9 +163,15 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.CardSeal:
-                    if (meter > 0)
+                    if (context.sealedCardCount > 0)
                     {
-                        context.AddNote($"봉인 {meter}장 적용");
+                        int penalty = Math.Min(4, context.sealedCardCount * 2);
+                        context.playerPowerDelta -= penalty;
+                        context.AddNote($"봉인 카드 {context.sealedCardCount}장 -{penalty}");
+                    }
+                    else if (meter > 0)
+                    {
+                        context.AddNote($"봉인 {meter}턴 예고");
                     }
                     break;
 
@@ -180,7 +196,8 @@ namespace FFSS.Framework.Combat
                 case EnemyRuleBehaviorKind.PairTracking:
                     if (meter > 0 && context.IsPairFamily && context.EnemyUsesOffense)
                     {
-                        int bonus = meter * rule.trackedPowerPerStack;
+                        int stacks = Math.Max(1, context.trackedCardCount > 0 ? context.trackedCardCount : meter);
+                        int bonus = Math.Min(12, stacks * rule.trackedPowerPerStack);
                         context.enemyPowerDelta += bonus;
                         context.AddNote($"짝 추적 +{bonus}");
                     }
@@ -217,9 +234,18 @@ namespace FFSS.Framework.Combat
                 case EnemyRuleBehaviorKind.TargetAim:
                     if (meter > 0 && context.EnemyUsesOffense)
                     {
-                        int bonus = meter * rule.triggerPowerBonus;
+                        int targets = Math.Max(meter, context.targetedCardCount);
+                        int bonus = Math.Min(8, targets * rule.triggerPowerBonus);
                         context.enemyPowerDelta += bonus;
                         context.AddNote($"표적 보유 +{bonus}");
+                    }
+
+                    int targetBreakReward = state.GetCounter("rule.aim.breakReward");
+                    if (targetBreakReward > 0)
+                    {
+                        context.directPressureToEnemy += targetBreakReward;
+                        context.AddNote($"표적 교체 격파 +{targetBreakReward}");
+                        state.SetCounter("rule.aim.breakReward", 0);
                     }
                     break;
 
@@ -250,6 +276,13 @@ namespace FFSS.Framework.Combat
                     {
                         context.directDamageToPlayer += rule.heatFlareDamage;
                         context.AddNote($"광열 폭발 HP -{rule.heatFlareDamage}");
+                    }
+
+                    if (state.phase >= 2 && context.PlayerUsesDefense &&
+                        context.playerHand == EnemyRuleHandKind.HighCard && meter <= 2)
+                    {
+                        context.directPressureToEnemy += 2;
+                        context.AddNote("냉각 창 격파 +2");
                     }
                     break;
             }

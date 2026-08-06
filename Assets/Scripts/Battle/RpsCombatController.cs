@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Run;
 using UnityEngine;
@@ -266,9 +267,15 @@ namespace CardBattle
         private string lastEnemyMoveId;
         private int enemyIntentTurn;
         private readonly Dictionary<string, int> enemyMoveReadyTurns = new();
+        private readonly List<string> committedPlayerCardIds = new();
         private Coroutine playerBreakRoutine;
         private Coroutine enemyBreakRoutine;
         private bool presentationReady;
+
+        public int EnemyHp => enemyHp;
+        public int EnemyMaxHp => enemyMaxHp;
+        public int EnemyBreakCharge => enemyBreakCharge;
+        public int EnemyMaxBreak => enemyMaxBreak;
 
         private void Start()
         {
@@ -466,6 +473,13 @@ namespace CardBattle
         {
             var playerIntent = BuildPlayerIntent(playerAction);
             PokerHandResult resolvedHand = pokerHand != null ? pokerHand.CurrentResult : default;
+            committedPlayerCardIds.Clear();
+            if (pokerHand != null)
+            {
+                committedPlayerCardIds.AddRange(pokerHand.CurrentCardSprites
+                    .Where(sprite => sprite != null)
+                    .Select(sprite => sprite.name));
+            }
 
             if (pokerHand != null)
             {
@@ -570,7 +584,8 @@ namespace CardBattle
             yield return new WaitForSeconds(revealDelay);
 
             var outcome = ResolveIntents(playerIntent, enemyIntent);
-            ApplyEnemySeotdaEffect(ref outcome, enemyIntent);
+            bool seotdaModifierStripped = ApplyEnemySeotdaBreakInterference(ref outcome, playerIntent);
+            ApplyEnemySeotdaEffect(ref outcome, enemyIntent, !seotdaModifierStripped);
             ApplyEnemyRuleOutcome(ref outcome, ruleContext);
             outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent, ruleContext.enemyPowerVisibilityRange)}\n{outcome.Message}";
             if (!string.IsNullOrWhiteSpace(ruleContext.ruleNote))
@@ -907,7 +922,8 @@ namespace CardBattle
                 heartCount = SuitCount(hand, CardSuit.Heart),
                 clubCount = SuitCount(hand, CardSuit.Clover),
                 diamondCount = SuitCount(hand, CardSuit.Diamond),
-                enemyMoveId = MoveId(pendingEnemyMove)
+                enemyMoveId = MoveId(pendingEnemyMove),
+                playerCardIds = new List<string>(committedPlayerCardIds)
             };
         }
 
@@ -921,6 +937,10 @@ namespace CardBattle
                     outcome.BreakToPlayer * context.pressureToPlayerMultiplier));
             if (context.directDamageToPlayer > 0)
                 outcome.DamageToPlayer += context.directDamageToPlayer;
+            if (context.directDamageToEnemy > 0)
+                outcome.DamageToEnemy += context.directDamageToEnemy;
+            if (context.directPressureToEnemy > 0)
+                outcome.BreakToEnemy += context.directPressureToEnemy;
         }
 
         private static int SuitCount(PokerHandResult hand, CardSuit suit)
@@ -1048,7 +1068,7 @@ namespace CardBattle
             if (seotdaTable != null) seotdaTable.ConfigureBossProfile(bossProfile);
         }
 
-        private BossMoveDefinition SelectEnemyMove()
+        private BossMoveDefinition SelectEnemyMove(EnemySeotdaHandBand handBand)
         {
             if (bossProfile == null || bossProfile.moves == null || bossProfile.moves.Count == 0)
                 return null;
@@ -1075,6 +1095,19 @@ namespace CardBattle
 
             if (cadenceMoves.Count > 0)
                 candidates = cadenceMoves;
+
+            BossMoveType desiredType = handBand switch
+            {
+                EnemySeotdaHandBand.Named => BossMoveType.Defend,
+                EnemySeotdaHandBand.Ddaeng => BossMoveType.Skill,
+                EnemySeotdaHandBand.Signature => BossMoveType.Skill,
+                _ => BossMoveType.Attack
+            };
+            List<BossMoveDefinition> matchingBand = candidates
+                .Where(move => move.moveType == desiredType)
+                .ToList();
+            if (matchingBand.Count > 0)
+                candidates = matchingBand;
 
             if (candidates.Count > 1 && !string.IsNullOrEmpty(lastEnemyMoveId))
                 candidates.RemoveAll(move => MoveId(move) == lastEnemyMoveId);
@@ -1151,10 +1184,28 @@ namespace CardBattle
             }
             else
             {
-                pendingEnemyMove = SelectEnemyMove();
+                EnemySeotdaHandBand handBand = EnemySeotdaHandBand.Low;
+                if (seotdaTable != null)
+                {
+                    seotdaTable.PrepareEnemyHandPreview();
+                    handBand = seotdaTable.PreparedHandBand;
+                }
+                pendingEnemyMove = SelectEnemyMove(handBand);
                 pendingEnemyIntent = pendingEnemyMove != null
                     ? ToIntentKind(pendingEnemyMove.moveType)
                     : Random.value < Mathf.Clamp01(enemyAttackChance) ? IntentKind.Attack : IntentKind.Defend;
+
+                var values = CalculateEnemyNumbers();
+                int basePower = pendingEnemyMove != null
+                    ? pendingEnemyMove.power
+                    : pendingEnemyIntent == IntentKind.Defend ? values.Defense : values.Attack;
+                int minimumBonus = pendingEnemyMove != null
+                    ? Mathf.Min(0, pendingEnemyMove.seotdaFailurePowerDelta)
+                    : -2;
+                int maximumBonus = pendingEnemyMove != null
+                    ? Mathf.Max(0, pendingEnemyMove.seotdaPowerBonus)
+                    : 4;
+                seotdaTable?.UpdatePreparedPreview(basePower, minimumBonus, maximumBonus);
             }
             hasPendingEnemyIntent = true;
             UpdateEnemyIntentPreview();
@@ -1184,11 +1235,17 @@ namespace CardBattle
             string seotdaRule = move != null && !string.IsNullOrWhiteSpace(move.seotdaRule)
                 ? move.seotdaRule
                 : "섯다 공개 후 추가 효과 결정";
+            string preview = seotdaTable != null && !string.IsNullOrWhiteSpace(seotdaTable.PreviewSummary)
+                ? $"\n<size=12><color=#F4C967>{seotdaTable.PreviewSummary}</color></size>"
+                : string.Empty;
 
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
-            if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>";
+            if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>{preview}";
             if (enemyIntentTooltip)
-                enemyIntentTooltip.SetContent(moveName, $"{label} {power}", BuildEnemyIntentTooltipBody(pendingEnemyIntent, move));
+                enemyIntentTooltip.SetContent(
+                    moveName,
+                    $"{label} {power}",
+                    $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}");
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
 
             // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
@@ -1278,9 +1335,46 @@ namespace CardBattle
             return new SeotdaEffect(powerDelta, hpDamage, breakDamage, label);
         }
 
-        private void ApplyEnemySeotdaEffect(ref CombatOutcome outcome, CombatIntent enemyIntent)
+        private bool ApplyEnemySeotdaBreakInterference(ref CombatOutcome outcome, CombatIntent playerIntent)
+        {
+            if (seotdaTable == null || outcome.BreakToEnemy <= 0)
+                return false;
+
+            bool stripped = false;
+            if (playerIntent.IsDefense)
+            {
+                seotdaTable.RevealPreparedHiddenCard();
+                outcome.Message += "\n방어 격파: 숨은 섯다패를 공개했어.";
+            }
+
+            if (playerIntent.HasWeakness)
+            {
+                seotdaTable.StripPreparedModifier(MoveId(pendingEnemyMove));
+                stripped = true;
+                outcome.Message += "\n약점 격파: 이번 패의 추가 효과를 제거했어.";
+            }
+
+            bool perfectBreak = enemyBreakCharge + outcome.BreakToEnemy >= enemyMaxBreak;
+            if (perfectBreak && seotdaTable.ReplacePreparedHiddenWithSafeCard())
+            {
+                outcome.DamageToPlayer = Mathf.Max(0, outcome.DamageToPlayer - 5);
+                outcome.BreakToPlayer = Mathf.Max(0, outcome.BreakToPlayer - 3);
+                stripped = true;
+                outcome.Message += "\n완전 격파: 둘째 패를 안전패로 바꿔 위력을 꺾었어.";
+            }
+
+            return stripped;
+        }
+
+        private void ApplyEnemySeotdaEffect(ref CombatOutcome outcome, CombatIntent enemyIntent, bool allowExtras)
         {
             if (!enemyIntent.HasEffect) return;
+
+            if (!allowExtras)
+            {
+                outcome.Message += "\n패 변주 추가 피해는 격파 간섭으로 무효가 됐어.";
+                return;
+            }
 
             bool enemySucceeded = enemyIntent.IsOffense
                 ? outcome.DamageToPlayer > 0

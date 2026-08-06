@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -16,6 +17,10 @@ namespace CardBattle
         [SerializeField] private GameObject holdBadge;
         [SerializeField] private GameObject replaceBadge;
 
+        [Header("적 규칙 표식 (프리팹에서 직접 연결)")]
+        [SerializeField] private Image ruleTint;
+        [SerializeField] private Text ruleBadgeText;
+
         [Header("선택 시 카드가 위로 이동하는 픽셀 값")]
         [SerializeField] private float selectedOffsetY = 30f;
 
@@ -30,6 +35,8 @@ namespace CardBattle
 
         public Sprite CardSprite { get; private set; }
         public bool IsSelected { get; private set; }
+        public EnemyCardRuleMark RuleMark { get; private set; }
+        public int RuleMarkValue { get; private set; }
 
         /// <summary>대표 애니메이션(딜/다시뽑기/후퇴/모으기/전투)을 새로 시작하기 전에 이전 대표
         /// 애니메이션과 피드백 펄스를 둘 다 확실히 멈추고 핸들을 비운다. StopAllCoroutines()를
@@ -54,6 +61,40 @@ namespace CardBattle
             ResetVisualTransform();
             SetSelected(false);
             SetSelectionContext(false);
+            SetRuleMark(EnemyCardRuleMark.None);
+        }
+
+        public void SetRuleMark(EnemyCardRuleMark mark, int value = 0)
+        {
+            RuleMark = mark;
+            RuleMarkValue = Mathf.Max(0, value);
+            bool visible = mark != EnemyCardRuleMark.None;
+            if (ruleTint != null)
+            {
+                ruleTint.gameObject.SetActive(visible);
+                ruleTint.color = mark switch
+                {
+                    EnemyCardRuleMark.Poison => new Color(0.52f, 0.08f, 0.66f, 0.42f),
+                    EnemyCardRuleMark.Seal => new Color(0.92f, 0.18f, 0.08f, 0.46f),
+                    EnemyCardRuleMark.Target => new Color(0.95f, 0.1f, 0.12f, 0.34f),
+                    EnemyCardRuleMark.Tracking => new Color(0.64f, 0.08f, 0.08f, 0.32f),
+                    _ => Color.clear
+                };
+            }
+
+            if (ruleBadgeText != null)
+            {
+                ruleBadgeText.gameObject.SetActive(visible);
+                string suffix = RuleMarkValue > 0 ? $" {RuleMarkValue}" : string.Empty;
+                ruleBadgeText.text = mark switch
+                {
+                    EnemyCardRuleMark.Poison => $"독{suffix}",
+                    EnemyCardRuleMark.Seal => $"봉인{suffix}",
+                    EnemyCardRuleMark.Target => "표적",
+                    EnemyCardRuleMark.Tracking => "추적",
+                    _ => string.Empty
+                };
+            }
         }
 
         public void SetSelected(bool selected)

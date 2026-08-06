@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FFSS.Framework.Combat
 {
@@ -31,6 +32,11 @@ namespace FFSS.Framework.Combat
         public int diamondCount;
         public int clubCount;
         public string enemyMoveId;
+        public List<string> playerCardIds = new List<string>();
+        public int poisonedCardCount;
+        public int sealedCardCount;
+        public int targetedCardCount;
+        public int trackedCardCount;
 
         public int playerPowerDelta;
         public int playerBreakDelta;
@@ -38,6 +44,8 @@ namespace FFSS.Framework.Combat
         public int enemyBreakDelta;
         public int enemyPowerFloor;
         public int directDamageToPlayer;
+        public int directDamageToEnemy;
+        public int directPressureToEnemy;
         public float pressureToPlayerMultiplier = 1f;
         public int enemyPowerVisibilityRange;
         public string ruleNote;
