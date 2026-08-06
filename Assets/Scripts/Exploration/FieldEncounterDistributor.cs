@@ -522,9 +522,10 @@ namespace CardBattle.Exploration
                 RunFieldContentType.Shop => 2.25f,
                 RunFieldContentType.Rest => 2.25f,
                 RunFieldContentType.BossDoor => 2.5f,
-                RunFieldContentType.MidBoss => 1.15f,
-                RunFieldContentType.Event => 1.1f,
-                _ => 0.85f
+                RunFieldContentType.MidBoss => 2.1f,
+                RunFieldContentType.Event => 1.75f,
+                RunFieldContentType.Combat => 1.75f,
+                _ => 1.5f
             };
         }
 

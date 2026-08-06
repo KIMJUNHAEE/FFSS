@@ -11,12 +11,14 @@ namespace CardBattle.Exploration
         [SerializeField] private Transform visualRoot;
         [SerializeField] private SpriteRenderer iconRenderer;
         [SerializeField] private SpriteRenderer auraRenderer;
+        [SerializeField] private SpriteRenderer landmarkRenderer;
+        [SerializeField] private SpriteRenderer actorRenderer;
         [SerializeField] private Text nameText;
         [SerializeField] private Color idleColor = Color.white;
         [SerializeField] private Color focusedColor = new(1f, 0.82f, 0.28f, 1f);
         [SerializeField] private bool hideLabelUntilFocused = true;
         [SerializeField] private bool tintCharacterWhenFocused = false;
-        [SerializeField, Min(0f)] private float bobHeight = 0.1f;
+        [SerializeField, Min(0f)] private float bobHeight = 0f;
         [SerializeField, Min(0f)] private float bobSpeed = 1.8f;
         [SerializeField, Min(1f)] private float focusedScale = 1.12f;
 
@@ -68,22 +70,25 @@ namespace CardBattle.Exploration
             if (nameText != null)
                 nameText.text = encounter.displayName;
 
-            if (iconRenderer != null && encounter.fieldSprite != null)
+            SpriteRenderer target = actorRenderer != null ? actorRenderer : iconRenderer;
+            if (target != null)
             {
-                iconRenderer.sprite = encounter.fieldSprite;
-                iconRenderer.transform.localScale = Vector3.one * encounter.fieldVisualScale;
-                iconRenderer.transform.localPosition = new Vector3(
-                    encounter.fieldVisualOffset.x,
-                    encounter.fieldVisualOffset.y,
-                    0f);
+                target.gameObject.SetActive(encounter.fieldSprite != null);
+                if (encounter.fieldSprite != null)
+                {
+                    float scale = Mathf.Max(0.01f, encounter.fieldVisualScale);
+                    float visibleHeight = encounter.fieldSprite.bounds.size.y * scale;
+                    target.sprite = encounter.fieldSprite;
+                    target.transform.localScale = Vector3.one * scale;
+                    target.transform.localPosition = new Vector3(
+                        encounter.fieldVisualOffset.x,
+                        visibleHeight * 0.5f + encounter.fieldVisualOffset.y,
+                        -0.08f);
+                }
             }
 
             if (auraRenderer != null)
-            {
-                Color accent = encounter.primaryColor;
-                accent.a = 0.42f;
-                auraRenderer.color = accent;
-            }
+                auraRenderer.gameObject.SetActive(false);
         }
 
         public void Configure(string displayName, Color accent)
@@ -92,10 +97,7 @@ namespace CardBattle.Exploration
                 nameText.text = displayName ?? string.Empty;
 
             if (auraRenderer != null)
-            {
-                accent.a = 0.42f;
-                auraRenderer.color = accent;
-            }
+                auraRenderer.gameObject.SetActive(false);
         }
 
         public void ConfigureLandmark(
@@ -104,7 +106,8 @@ namespace CardBattle.Exploration
             float targetHeight,
             Vector2 localOffset)
         {
-            if (sprite == null || iconRenderer == null)
+            SpriteRenderer target = landmarkRenderer != null ? landmarkRenderer : iconRenderer;
+            if (sprite == null || target == null)
                 return;
 
             float sourceHeight = Mathf.Max(0.01f, sprite.bounds.size.y);
@@ -112,9 +115,10 @@ namespace CardBattle.Exploration
             float visibleWidth = sprite.bounds.size.x * scale;
             float visibleHeight = sourceHeight * scale;
 
-            iconRenderer.sprite = sprite;
-            iconRenderer.transform.localScale = Vector3.one * scale;
-            iconRenderer.transform.localPosition = new Vector3(
+            target.gameObject.SetActive(true);
+            target.sprite = sprite;
+            target.transform.localScale = Vector3.one * scale;
+            target.transform.localPosition = new Vector3(
                 localOffset.x,
                 visibleHeight * 0.5f + localOffset.y,
                 0f);
@@ -172,7 +176,11 @@ namespace CardBattle.Exploration
         private void ApplyFocusAppearance()
         {
             if (iconRenderer != null)
-                iconRenderer.color = focused && tintCharacterWhenFocused ? focusedColor : idleColor;
+                iconRenderer.color = idleColor;
+            if (landmarkRenderer != null)
+                landmarkRenderer.color = idleColor;
+            if (actorRenderer != null)
+                actorRenderer.color = focused && tintCharacterWhenFocused ? focusedColor : idleColor;
 
             if (nameText != null)
             {
