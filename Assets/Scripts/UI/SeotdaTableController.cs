@@ -34,6 +34,7 @@ namespace CardBattle
 
         private Coroutine drawRoutine;
         private BossCombatProfile profile;
+        private FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition signatureCardAsset;
         private OpponentSeotdaCardDefinition signatureDefinition;
         private Sprite signatureSprite;
         private EnemyRuleState ruleState;
@@ -45,6 +46,10 @@ namespace CardBattle
         public SeotdaHandResult LastResult { get; private set; }
         public SeotdaHandResult PreparedResult { get; private set; }
         public EnemySeotdaHandBand PreparedHandBand => ruleState?.Seotda.preview.handBand ?? EnemySeotdaHandBand.Low;
+        public FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition ExclusiveCardAsset => signatureCardAsset;
+        public Sprite ExclusiveCardSprite => signatureSprite;
+        public Sprite PreparedFaceSprite => preparedFaceSprite;
+        public Sprite PreparedHiddenSprite => preparedHiddenSprite;
         public string PreviewSummary { get; private set; } = string.Empty;
         public bool HasPreparedHand => preparedFaceSprite != null && preparedHiddenSprite != null;
         public event Action<RectTransform> CardRevealed;
@@ -112,7 +117,7 @@ namespace CardBattle
             LastResult = EvaluatePreparedHand();
             if (rankText) rankText.gameObject.SetActive(false);
 
-            yield return DealCard(cardSlotA, preparedFaceSprite, -1f);
+            yield return DealCard(cardSlotA, preparedFaceSprite, -1f, true);
             yield return new WaitForSeconds(drawStagger);
             yield return DealCard(
                 cardSlotB,
@@ -169,7 +174,7 @@ namespace CardBattle
             for (int i = visibleSlots.Count - 1; i >= 0; i--)
             {
                 var slot = visibleSlots[i];
-                if (backSprite != null) slot.sprite = backSprite;
+                if (backSprite != null) SetCardSprite(slot, backSprite);
                 StartCoroutine(MoveSlotStraight(slot, drawOrigin.position, retractDuration, 0.82f, () => remaining--));
             }
 
@@ -211,7 +216,7 @@ namespace CardBattle
             var rt = slot.rectTransform;
             Vector2 final = Vector2.zero;
             Vector2 start = drawOrigin != null ? WorldOffset(drawOrigin, rt) : Vector2.down * 170f;
-            slot.sprite = backSprite != null ? backSprite : face;
+            SetCardSprite(slot, backSprite != null ? backSprite : face);
             slot.gameObject.SetActive(true);
             rt.anchoredPosition = start;
             rt.localRotation = Quaternion.Euler(0f, 0f, side * 13f);
@@ -228,7 +233,7 @@ namespace CardBattle
                 rt.localScale = new Vector3(Mathf.Max(0.06f, flip), Mathf.Lerp(0.78f, 1f, eased), 1f);
                 if (!flipped && t >= 0.5f)
                 {
-                    slot.sprite = revealFace ? face : backSprite != null ? backSprite : face;
+                    SetCardSprite(slot, revealFace ? face : backSprite != null ? backSprite : face);
                     flipped = true;
                     if (revealFace)
                     {
@@ -237,7 +242,7 @@ namespace CardBattle
                 }
             });
 
-            slot.sprite = revealFace ? face : backSprite != null ? backSprite : face;
+            SetCardSprite(slot, revealFace ? face : backSprite != null ? backSprite : face);
             rt.anchoredPosition = final;
             rt.localRotation = Quaternion.identity;
             rt.localScale = Vector3.one;
@@ -275,6 +280,22 @@ namespace CardBattle
             slot.gameObject.SetActive(false);
         }
 
+        private static void SetCardSprite(Image slot, Sprite sprite)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            slot.sprite = sprite;
+            slot.overrideSprite = sprite;
+            slot.enabled = true;
+            slot.type = Image.Type.Simple;
+            slot.preserveAspect = true;
+            slot.fillAmount = 1f;
+            slot.color = Color.white;
+        }
+
         public void ConfigureBossProfile(BossCombatProfile combatProfile)
         {
             if (combatProfile == null)
@@ -283,9 +304,15 @@ namespace CardBattle
             }
 
             profile = combatProfile;
-            signatureDefinition = OpponentSeotdaCardCatalog.Find(combatProfile.bossId);
-            signatureSprite = OpponentSeotdaCardCatalog.LoadSprite(signatureDefinition);
+            signatureCardAsset = combatProfile.exclusiveSeotdaCard;
+            signatureDefinition = signatureCardAsset != null && signatureCardAsset.IsConfigured
+                ? CreateRuntimeDefinition(signatureCardAsset)
+                : OpponentSeotdaCardCatalog.Find(combatProfile.bossId);
+            signatureSprite = signatureCardAsset != null && signatureCardAsset.faceSprite != null
+                ? signatureCardAsset.faceSprite
+                : OpponentSeotdaCardCatalog.LoadSprite(signatureDefinition);
             signatureSprites.Clear();
+            if (signatureSprite != null) signatureSprites.Add(signatureSprite);
             if (combatProfile.signatureCardA != null) signatureSprites.Add(combatProfile.signatureCardA);
             if (combatProfile.signatureCardB != null && combatProfile.signatureCardB != combatProfile.signatureCardA)
                 signatureSprites.Add(combatProfile.signatureCardB);
@@ -295,6 +322,26 @@ namespace CardBattle
             RestorePreparedSprites();
         }
 
+        private static OpponentSeotdaCardDefinition CreateRuntimeDefinition(
+            FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition asset)
+        {
+            return new OpponentSeotdaCardDefinition(
+                asset.enemyId,
+                asset.cardId,
+                asset.displayName,
+                string.Empty,
+                asset.month,
+                asset.isGwang,
+                (SignatureSeotdaTrigger)(int)asset.trigger,
+                asset.triggerMonth,
+                asset.tierBonus,
+                asset.powerBonus,
+                asset.hpDamage,
+                asset.breakDamage,
+                asset.drawChance,
+                asset.effectText);
+        }
+
         public void RevealPreparedHiddenCard()
         {
             EnsureRuleState();
@@ -302,7 +349,7 @@ namespace CardBattle
             UpdatePreview(preparedBasePower, preparedMinimumBonus, preparedMaximumBonus);
             if (cardSlotB != null && cardSlotB.gameObject.activeSelf && preparedHiddenSprite != null)
             {
-                cardSlotB.sprite = preparedHiddenSprite;
+                SetCardSprite(cardSlotB, preparedHiddenSprite);
                 CardRevealed?.Invoke(cardSlotB.rectTransform);
             }
         }
@@ -417,11 +464,27 @@ namespace CardBattle
                 return false;
             }
 
-            int requiredClock = profile.encounterRank == EnemyEncounterRank.MidBoss &&
-                                ruleState.Seotda.signatureUseCount > 0
-                ? 3
-                : 2;
-            return ruleState.Seotda.signatureClock >= requiredClock;
+            int clock = ruleState.Seotda.signatureClock;
+            if (profile.encounterRank == EnemyEncounterRank.MidBoss)
+            {
+                return ruleState.Seotda.signatureUseCount == 0 ? clock >= 2 : clock >= 5;
+            }
+
+            int firstWindowTurn = SignatureWindowTurn();
+            return clock >= firstWindowTurn;
+        }
+
+        private int SignatureWindowTurn()
+        {
+            int phase = profile != null && profile.encounterRank == EnemyEncounterRank.Boss
+                ? Mathf.Max(1, ruleState.phase)
+                : 1;
+            int hash = StableHash($"{ruleState.enemyId}:{phase}:signature");
+            float normalized = (hash & 0x7fffffff) / (float)int.MaxValue;
+            float earlyWindowChance = signatureDefinition != null
+                ? signatureDefinition.DrawChance
+                : signatureCardChance;
+            return normalized <= Mathf.Clamp01(earlyWindowChance) ? 2 : 3;
         }
 
         private int SignatureUseCap()
@@ -441,25 +504,55 @@ namespace CardBattle
 
         private Sprite ResolveSignaturePartner()
         {
-            if (profile != null && profile.signatureCardB != null)
+            int requiredMonth = signatureDefinition == null
+                ? 0
+                : signatureDefinition.Trigger == SignatureSeotdaTrigger.SameMonth
+                    ? signatureDefinition.Month
+                    : signatureDefinition.TriggerMonth;
+
+            Sprite profilePartner = FindProfilePartner(requiredMonth);
+            if (profilePartner != null)
             {
-                RemoveFromShoe(profile.signatureCardB.name);
-                return profile.signatureCardB;
+                RemoveFromShoe(profilePartner.name);
+                return profilePartner;
             }
 
-            if (signatureDefinition == null || signatureDefinition.TriggerMonth <= 0)
+            if (requiredMonth <= 0)
             {
                 return null;
             }
 
             Sprite candidate = deckSprites.FirstOrDefault(sprite =>
                 sprite != null && SeotdaHandEvaluator.TryParse(sprite, out int month, out _) &&
-                month == signatureDefinition.TriggerMonth);
+                month == requiredMonth);
             if (candidate != null)
             {
                 RemoveFromShoe(candidate.name);
             }
             return candidate;
+        }
+
+        private Sprite FindProfilePartner(int requiredMonth)
+        {
+            if (profile == null)
+            {
+                return null;
+            }
+
+            Sprite[] candidates = { profile.signatureCardA, profile.signatureCardB };
+            if (requiredMonth > 0)
+            {
+                Sprite matching = candidates.FirstOrDefault(sprite =>
+                    sprite != null &&
+                    SeotdaHandEvaluator.TryParse(sprite, out int month, out _) &&
+                    month == requiredMonth);
+                if (matching != null)
+                {
+                    return matching;
+                }
+            }
+
+            return candidates.FirstOrDefault(sprite => sprite != null);
         }
 
         private void AvoidRecentHandRepeat()

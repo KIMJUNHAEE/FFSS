@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using FFSS.Framework.Core;
@@ -1039,6 +1040,9 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
                 Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaCard, Is.Not.Null, encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaCard.IsConfigured, Is.True, encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaCard.enemyId, Is.EqualTo(encounter.enemyId));
                 Assert.That(encounter.signatureCardA, Is.Not.Null, encounter.enemyId);
                 Assert.That(encounter.signatureCardB, Is.Not.Null, encounter.enemyId);
 
@@ -1078,6 +1082,67 @@ namespace FFSS.Framework.Tests
             Assert.That(normalCount, Is.EqualTo(10));
             Assert.That(midBossCount, Is.EqualTo(4));
             Assert.That(bossCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void EveryEnemyExclusiveSeotdaCardLoadsItsVisibleFace()
+        {
+            Assert.That(CardBattle.OpponentSeotdaCardCatalog.All, Has.Count.EqualTo(17));
+            foreach (CardBattle.OpponentSeotdaCardDefinition definition in
+                     CardBattle.OpponentSeotdaCardCatalog.All)
+            {
+                Sprite sprite = CardBattle.OpponentSeotdaCardCatalog.LoadSprite(definition);
+                Assert.That(sprite, Is.Not.Null, definition.BossId);
+            }
+
+            string[] profileGuids = AssetDatabase.FindAssets(
+                "t:BossCombatProfile",
+                new[] { "Assets/Data/BossProfiles" });
+            Assert.That(profileGuids, Has.Length.EqualTo(17));
+            for (int i = 0; i < profileGuids.Length; i++)
+            {
+                CardBattle.BossCombatProfile profile =
+                    AssetDatabase.LoadAssetAtPath<CardBattle.BossCombatProfile>(
+                        AssetDatabase.GUIDToAssetPath(profileGuids[i]));
+                Assert.That(profile.exclusiveSeotdaCard, Is.Not.Null, profile.bossId);
+                Assert.That(profile.exclusiveSeotdaCard.enemyId, Is.EqualTo(profile.bossId));
+                Assert.That(profile.exclusiveSeotdaCard.faceSprite, Is.Not.Null, profile.bossId);
+                Assert.That(profile.exclusiveSeotdaCard.RequiredPartnerMonth, Is.InRange(1, 10), profile.bossId);
+            }
+        }
+
+        [Test]
+        public void SeotdaFacePresentationRestoresVisibleImageState()
+        {
+            var root = new GameObject("SeotdaFaceTest", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+            try
+            {
+                UnityEngine.UI.Image image = root.GetComponent<UnityEngine.UI.Image>();
+                image.enabled = false;
+                image.color = new Color(0.4f, 0.5f, 0.6f, 0f);
+                image.type = UnityEngine.UI.Image.Type.Filled;
+                image.fillAmount = 0f;
+                Sprite expected = CardBattle.OpponentSeotdaCardCatalog.LoadSprite(
+                    CardBattle.OpponentSeotdaCardCatalog.All[0]);
+
+                MethodInfo method = typeof(CardBattle.SeotdaTableController).GetMethod(
+                    "SetCardSprite",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.That(method, Is.Not.Null);
+                method.Invoke(null, new object[] { image, expected });
+
+                Assert.That(image.enabled, Is.True);
+                Assert.That(image.sprite, Is.SameAs(expected));
+                Assert.That(image.overrideSprite, Is.SameAs(expected));
+                Assert.That(image.color, Is.EqualTo(Color.white));
+                Assert.That(image.type, Is.EqualTo(UnityEngine.UI.Image.Type.Simple));
+                Assert.That(image.fillAmount, Is.EqualTo(1f));
+                Assert.That(image.preserveAspect, Is.True);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
         }
 
         [Test]

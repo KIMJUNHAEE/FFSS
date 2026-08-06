@@ -107,6 +107,8 @@ namespace CardBattle
         [Header("보스 패와 UI")]
         public string combatTitle;
         public Color secondaryAccentColor = new(1f, 0.78f, 0.22f, 1f);
+        [Tooltip("Inspector-visible enemy-exclusive Seotda card used during signature windows.")]
+        public FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition exclusiveSeotdaCard;
         public Sprite signatureCardA;
         public Sprite signatureCardB;
         [Range(0f, 1f)] public float signatureCardChance = 0.72f;

@@ -121,7 +121,21 @@ namespace CardBattle
         }
 
         public static Sprite LoadSprite(OpponentSeotdaCardDefinition definition) =>
-            definition == null ? null : Resources.Load<Sprite>(definition.ResourcePath);
+            definition == null ? null : LoadSprite(definition.ResourcePath);
+
+        private static Sprite LoadSprite(string resourcePath)
+        {
+            Sprite direct = Resources.Load<Sprite>(resourcePath);
+            if (direct != null)
+            {
+                return direct;
+            }
+
+            // Signature art is imported as a one-slice sprite sheet. Resources.Load<Sprite>
+            // returns null for that importer mode, so resolve the visible slice explicitly.
+            Sprite[] slices = Resources.LoadAll<Sprite>(resourcePath);
+            return slices != null && slices.Length > 0 ? slices[0] : null;
+        }
 
         private static OpponentSeotdaCardDefinition Card(string bossId, string cardId, string displayName,
             int month, bool isGwang, SignatureSeotdaTrigger trigger, int triggerMonth, int tierBonus,

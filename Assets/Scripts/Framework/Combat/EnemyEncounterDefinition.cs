@@ -200,6 +200,8 @@ namespace FFSS.Framework.Combat
         public string combatTitle;
         public Color primaryColor = new Color(0.95f, 0.2f, 0.2f, 1f);
         public Color secondaryColor = new Color(1f, 0.78f, 0.22f, 1f);
+        [Tooltip("Enemy-exclusive Seotda card data. Kept as an asset reference so it is visible in the Inspector.")]
+        public EnemySeotdaSignatureCardDefinition exclusiveSeotdaCard;
         public Sprite signatureCardA;
         public Sprite signatureCardB;
         [Range(0f, 1f)] public float signatureCardChance = 0.72f;
