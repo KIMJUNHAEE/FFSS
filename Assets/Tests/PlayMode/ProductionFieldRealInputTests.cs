@@ -91,23 +91,31 @@ namespace FFSS.Framework.Tests
             Key[] directions = { Key.W, Key.D, Key.S, Key.A };
             for (int i = 0; i < directions.Length; i++)
             {
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
-                InputSystem.Update();
-                for (int frame = 0; frame < 40; frame++)
+                Key heldKey = directions[i];
+                Action queueHeldState = () =>
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKey));
+                InputSystem.onBeforeUpdate += queueHeldState;
+                try
                 {
-                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
-                    InputSystem.Update();
-                    yield return null;
-                    if (GameKernel.Services.Get<UIManager>().HasVisibleModal && farthestDistance < 1.1f)
+                    for (int frame = 0; frame < 40; frame++)
                     {
-                        Assert.Fail(
-                            $"A modal opened before the player cleared the starting area. " +
-                            $"Direction={directions[i]}, distance={farthestDistance:F3}.");
+                        yield return null;
+                        farthestDistance = Mathf.Max(
+                            farthestDistance,
+                            Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
+                        if (GameKernel.Services.Get<UIManager>().HasVisibleModal && farthestDistance < 1.1f)
+                        {
+                            Assert.Fail(
+                                $"A modal opened before the player cleared the starting area. " +
+                                $"Direction={directions[i]}, distance={farthestDistance:F3}.");
+                        }
                     }
-                    farthestDistance = Mathf.Max(
-                        farthestDistance,
-                        Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
                 }
+                finally
+                {
+                    InputSystem.onBeforeUpdate -= queueHeldState;
+                }
+
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 InputSystem.Update();
                 yield return null;
@@ -182,17 +190,23 @@ namespace FFSS.Framework.Tests
                 camera,
                 rect.TransformPoint(rect.rect.center));
 
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-            InputSystem.Update();
-            yield return null;
-            InputSystem.QueueStateEvent(
-                mouse,
+            yield return QueueMouseStateForNextFrame(new MouseState { position = position });
+            yield return QueueMouseStateForNextFrame(
                 new MouseState { position = position }.WithButton(MouseButton.Left));
-            InputSystem.Update();
+            yield return QueueMouseStateForNextFrame(new MouseState { position = position });
+        }
+
+        private IEnumerator QueueMouseStateForNextFrame(MouseState state)
+        {
+            Action queueState = null;
+            queueState = () =>
+            {
+                InputSystem.QueueStateEvent(mouse, state);
+                InputSystem.onBeforeUpdate -= queueState;
+            };
+            InputSystem.onBeforeUpdate += queueState;
             yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-            InputSystem.Update();
-            yield return null;
+            InputSystem.onBeforeUpdate -= queueState;
         }
 
         private static Component FindPlayerController()
