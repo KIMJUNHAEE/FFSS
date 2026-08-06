@@ -59,6 +59,43 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void PokerDeckPersistsReservationStorageAndTopOrder()
+        {
+            var deck = new RunPokerDeckState();
+            deck.ReserveDraw("card.ace.spade");
+            deck.StoreCard("card.joker.red");
+            deck.SetRevealedTopOrder(new[] { "card.10.heart", "card.king.club" });
+            Assert.That(deck.MarkEquipmentResolved("equipment.hourglass"), Is.True);
+            Assert.That(deck.MarkEquipmentResolved("equipment.hourglass"), Is.False);
+
+            string json = JsonUtility.ToJson(deck);
+            RunPokerDeckState restored = JsonUtility.FromJson<RunPokerDeckState>(json);
+
+            Assert.That(restored.TryConsumeReservedDraw(out string reserved), Is.True);
+            Assert.That(reserved, Is.EqualTo("card.ace.spade"));
+            Assert.That(restored.storedCards, Is.EqualTo(new[] { "card.joker.red" }));
+            Assert.That(restored.revealedTopOrder, Is.EqualTo(new[] { "card.10.heart", "card.king.club" }));
+            Assert.That(restored.resolvedEquipmentIds, Is.EqualTo(new[] { "equipment.hourglass" }));
+        }
+
+        [Test]
+        public void PokerDeckBeginTurnKeepsLongLivedCardZones()
+        {
+            var deck = new RunPokerDeckState();
+            deck.ReserveDraw("card.ace.spade");
+            deck.StoreCard("card.joker.red");
+            deck.SetRevealedTopOrder(new[] { "card.10.heart" });
+            deck.MarkEquipmentResolved("equipment.hourglass");
+
+            deck.BeginTurn();
+
+            Assert.That(deck.reservedDraws, Has.Count.EqualTo(1));
+            Assert.That(deck.storedCards, Has.Count.EqualTo(1));
+            Assert.That(deck.revealedTopOrder, Is.Empty);
+            Assert.That(deck.resolvedEquipmentIds, Is.Empty);
+        }
+
+        [Test]
         public void EnemyRuleCountersAreClampedAndSerializable()
         {
             var state = new EnemyRuleState { enemyId = "38_gwang" };
