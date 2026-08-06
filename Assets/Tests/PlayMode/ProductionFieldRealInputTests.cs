@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
@@ -21,8 +22,7 @@ namespace FFSS.Framework.Tests
         private const string FieldScene = "Production_Field";
         private Keyboard keyboard;
         private Mouse mouse;
-        private bool ownsKeyboard;
-        private bool ownsMouse;
+        private readonly List<InputDevice> disabledPhysicalDevices = new();
         private InputSettings.BackgroundBehavior previousBackgroundBehavior;
 #if UNITY_EDITOR
         private InputSettings.EditorInputBehaviorInPlayMode previousEditorInputBehavior;
@@ -38,28 +38,32 @@ namespace FFSS.Framework.Tests
             InputSystem.settings.editorInputBehaviorInPlayMode =
                 InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
 #endif
-            keyboard = Keyboard.current;
-            if (keyboard == null)
+            foreach (InputDevice device in InputSystem.devices)
             {
-                keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
-                ownsKeyboard = true;
+                if ((device is Keyboard || device is Mouse) && device.enabled)
+                {
+                    disabledPhysicalDevices.Add(device);
+                    InputSystem.DisableDevice(device);
+                }
             }
 
-            mouse = Mouse.current;
-            if (mouse == null)
-            {
-                mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
-                ownsMouse = true;
-            }
+            keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
+            mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (ownsKeyboard && keyboard != null && keyboard.added)
+            if (keyboard != null && keyboard.added)
                 InputSystem.RemoveDevice(keyboard);
-            if (ownsMouse && mouse != null && mouse.added)
+            if (mouse != null && mouse.added)
                 InputSystem.RemoveDevice(mouse);
+            foreach (InputDevice device in disabledPhysicalDevices)
+            {
+                if (device != null && device.added)
+                    InputSystem.EnableDevice(device);
+            }
+            disabledPhysicalDevices.Clear();
             InputSystem.settings.backgroundBehavior = previousBackgroundBehavior;
 #if UNITY_EDITOR
             InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInputBehavior;
@@ -79,10 +83,10 @@ namespace FFSS.Framework.Tests
             Assert.That(EventSystem.current, Is.Not.Null,
                 "Production field has no EventSystem for pointer input.");
 
-            keyboard = Keyboard.current ?? keyboard;
-            mouse = Mouse.current ?? mouse;
             Assert.That(keyboard, Is.Not.Null, "Production field has no active keyboard device.");
             Assert.That(mouse, Is.Not.Null, "Production field has no active pointer device.");
+            Assert.That(Keyboard.current, Is.SameAs(keyboard));
+            Assert.That(Mouse.current, Is.SameAs(mouse));
 
             Component player = FindPlayerController();
             Assert.That(player, Is.Not.Null, "Production field has no player controller.");
@@ -91,29 +95,20 @@ namespace FFSS.Framework.Tests
             Key[] directions = { Key.W, Key.D, Key.S, Key.A };
             for (int i = 0; i < directions.Length; i++)
             {
-                Key heldKey = directions[i];
-                Action queueHeldState = () =>
-                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKey));
-                InputSystem.onBeforeUpdate += queueHeldState;
-                try
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
+                InputSystem.Update();
+                for (int frame = 0; frame < 40; frame++)
                 {
-                    for (int frame = 0; frame < 40; frame++)
+                    yield return null;
+                    farthestDistance = Mathf.Max(
+                        farthestDistance,
+                        Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
+                    if (GameKernel.Services.Get<UIManager>().HasVisibleModal && farthestDistance < 1.1f)
                     {
-                        yield return null;
-                        farthestDistance = Mathf.Max(
-                            farthestDistance,
-                            Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
-                        if (GameKernel.Services.Get<UIManager>().HasVisibleModal && farthestDistance < 1.1f)
-                        {
-                            Assert.Fail(
-                                $"A modal opened before the player cleared the starting area. " +
-                                $"Direction={directions[i]}, distance={farthestDistance:F3}.");
-                        }
+                        Assert.Fail(
+                            $"A modal opened before the player cleared the starting area. " +
+                            $"Direction={directions[i]}, distance={farthestDistance:F3}.");
                     }
-                }
-                finally
-                {
-                    InputSystem.onBeforeUpdate -= queueHeldState;
                 }
 
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
@@ -190,23 +185,17 @@ namespace FFSS.Framework.Tests
                 camera,
                 rect.TransformPoint(rect.rect.center));
 
-            yield return QueueMouseStateForNextFrame(new MouseState { position = position });
-            yield return QueueMouseStateForNextFrame(
-                new MouseState { position = position }.WithButton(MouseButton.Left));
-            yield return QueueMouseStateForNextFrame(new MouseState { position = position });
-        }
-
-        private IEnumerator QueueMouseStateForNextFrame(MouseState state)
-        {
-            Action queueState = null;
-            queueState = () =>
-            {
-                InputSystem.QueueStateEvent(mouse, state);
-                InputSystem.onBeforeUpdate -= queueState;
-            };
-            InputSystem.onBeforeUpdate += queueState;
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            InputSystem.Update();
             yield return null;
-            InputSystem.onBeforeUpdate -= queueState;
+            InputSystem.QueueStateEvent(
+                mouse,
+                new MouseState { position = position }.WithButton(MouseButton.Left));
+            InputSystem.Update();
+            yield return null;
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            InputSystem.Update();
+            yield return null;
         }
 
         private static Component FindPlayerController()
