@@ -223,6 +223,46 @@ namespace FFSS.Framework.Tests
                 "The approached event landmark did not advance run progress.");
         }
 
+        [UnityTest]
+        public IEnumerator WalkingToAnEnemyLandmarkLoadsItsCombatScene()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become input-ready.");
+
+            GameKernel.Services.Get<RunManager>().StartNewRun(138381);
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => FindVisibleScreen(UIScreenId.FieldHud) != null && FindEnemyNode() != null,
+                500,
+                "Fresh field did not build an enemy landmark.");
+            yield return WaitFrames(3);
+
+            Component player = FindPlayerController();
+            Component enemyNode = FindEnemyNode(player.transform.position);
+            Assert.That(player, Is.Not.Null);
+            Assert.That(enemyNode, Is.Not.Null);
+
+            string enemyId = enemyNode.GetType().GetProperty("EnemyId")?.GetValue(enemyNode) as string;
+            Assert.That(enemyId, Is.Not.Empty);
+            yield return MoveTowardUntil(
+                player,
+                enemyNode.transform,
+                () => SceneManager.GetActiveScene().name != FieldScene,
+                5.5f,
+                "Walking into the enemy building did not start combat.");
+
+            yield return WaitUntil(
+                () => GameKernel.Services.Get<GameFlowManager>().Current == GameFlowState.Combat,
+                500,
+                "Enemy contact loaded a scene without entering combat state.");
+            Assert.That(SceneManager.GetActiveScene().name, Does.StartWith("Combat_"));
+            Assert.That(GameKernel.Services.Get<RunManager>().Current.activeEnemyRule?.enemyId,
+                Is.EqualTo(enemyId));
+        }
+
         private IEnumerator ClickFieldCommandAndClose(string buttonName, UIScreenId expectedScreen)
         {
             Button command = FindVisibleButton(null, buttonName);
@@ -304,6 +344,24 @@ namespace FFSS.Framework.Tests
                 .FirstOrDefault();
         }
 
+        private static Component FindEnemyNode()
+        {
+            return FindEnemyNode(Vector3.zero);
+        }
+
+        private static Component FindEnemyNode(Vector3 origin)
+        {
+            return Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(component =>
+                    component != null &&
+                    component.GetType().FullName == "CardBattle.Exploration.FieldEncounterNode")
+                .OrderBy(component =>
+                    Vector3.ProjectOnPlane(component.transform.position - origin, Vector3.up).sqrMagnitude)
+                .FirstOrDefault();
+        }
+
         private IEnumerator MoveTowardUntil(
             Component player,
             Transform target,
@@ -313,9 +371,12 @@ namespace FFSS.Framework.Tests
         {
             float elapsed = 0f;
             int frames = 0;
+            Vector3 targetPosition = target.position;
+            Vector3 playerPosition = player.transform.position;
             while (!completed() && elapsed < timeLimit && frames < 30000)
             {
-                Key[] heldKeys = DirectionKeys(player.transform.position, target.position);
+                playerPosition = player.transform.position;
+                Key[] heldKeys = DirectionKeys(playerPosition, targetPosition);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKeys));
                 InputSystem.Update();
                 yield return null;
@@ -327,8 +388,8 @@ namespace FFSS.Framework.Tests
             InputSystem.Update();
             yield return null;
             Assert.That(completed(), Is.True,
-                $"{failureMessage} Player={player.transform.position}, Target={target.position}, " +
-                $"Distance={Vector3.ProjectOnPlane(target.position - player.transform.position, Vector3.up).magnitude:F2}");
+                $"{failureMessage} Player={playerPosition}, Target={targetPosition}, " +
+                $"Distance={Vector3.ProjectOnPlane(targetPosition - playerPosition, Vector3.up).magnitude:F2}");
         }
 
         private static Key[] DirectionKeys(Vector3 from, Vector3 to)
