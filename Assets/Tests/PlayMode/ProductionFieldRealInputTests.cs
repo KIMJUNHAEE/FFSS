@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using CardBattle.Exploration;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
@@ -109,14 +108,16 @@ namespace FFSS.Framework.Tests
                     yield return null;
                     if (frame == 0 || frame == 1 || frame == 5)
                     {
-                        var controller = player as QuarterViewPlayerController;
+                        bool moving = (bool)(player.GetType()
+                            .GetProperty("IsMoving")?
+                            .GetValue(player) ?? false);
                         Debug.Log(
                             $"[FieldRealInput] direction={directions[i]} frame={frame} " +
                             $"currentDevice={Keyboard.current?.deviceId} testDevice={keyboard.deviceId} " +
                             $"pressed={keyboard[directions[i]].isPressed} " +
                             $"currentPressed={Keyboard.current != null && Keyboard.current[directions[i]].isPressed} " +
                             $"deltaTime={Time.deltaTime:F4} timeScale={Time.timeScale:F2} " +
-                            $"moving={controller?.IsMoving} position={player.transform.position} " +
+                            $"moving={moving} position={player.transform.position} " +
                             $"modal={GameKernel.Services.Get<UIManager>().HasVisibleModal}");
                     }
                     farthestDistance = Mathf.Max(
