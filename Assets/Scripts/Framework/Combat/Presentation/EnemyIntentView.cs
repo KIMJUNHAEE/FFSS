@@ -80,7 +80,7 @@ namespace FFSS.Framework.Combat.Presentation
                 detailSeotdaText,
                 move == null || string.IsNullOrWhiteSpace(move.seotdaRule)
                     ? string.Empty
-                    : move.seotdaRule);
+                    : $"섯다 추가 효과\n{move.seotdaRule}");
         }
 
         private Sprite IconFor(CombatActionType action)

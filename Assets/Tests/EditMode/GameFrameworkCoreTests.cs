@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FFSS.Framework.Combat;
+using FFSS.Framework.Combat.Presentation;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
@@ -413,6 +414,53 @@ namespace FFSS.Framework.Tests
             Assert.That(normalCount, Is.EqualTo(10));
             Assert.That(midBossCount, Is.EqualTo(4));
             Assert.That(bossCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void ProductionCombatOverlaysExposeInspectableViewsForEveryEnemy()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            GameObject playerHud = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab");
+
+            Assert.That(playerHud, Is.Not.Null);
+            Assert.That(playerHud.GetComponent<CombatantHudView>(), Is.Not.Null);
+            for (int i = 0; i < guids.Length; i++)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guids[i]));
+                GameObject overlay = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"Assets/Prefabs/Production/Combat/Overlays/CombatOverlay_{encounter.enemyId}.prefab");
+
+                Assert.That(overlay, Is.Not.Null, encounter.enemyId);
+                CombatPresentationController controller =
+                    overlay.GetComponent<CombatPresentationController>();
+                Assert.That(controller, Is.Not.Null, encounter.enemyId);
+                Assert.That(controller.Encounter, Is.SameAs(encounter), encounter.enemyId);
+                Assert.That(
+                    overlay.GetComponentsInChildren<CombatantHudView>(true),
+                    Has.Length.EqualTo(2),
+                    encounter.enemyId);
+                Assert.That(
+                    overlay.GetComponentsInChildren<CombatGaugeView>(true),
+                    Has.Length.EqualTo(4),
+                    encounter.enemyId);
+
+                EnemyIntentView intent = overlay.GetComponentInChildren<EnemyIntentView>(true);
+                Assert.That(intent, Is.Not.Null, encounter.enemyId);
+                SerializedObject serializedIntent = new SerializedObject(intent);
+                Assert.That(
+                    serializedIntent.FindProperty("detailGroup").objectReferenceValue,
+                    Is.Not.Null,
+                    encounter.enemyId);
+                Assert.That(
+                    serializedIntent.FindProperty("actionIcon").objectReferenceValue,
+                    Is.Null,
+                    encounter.enemyId);
+                Assert.That(intent.transform.Find("ActionIcon").gameObject.activeSelf, Is.False);
+            }
         }
 
         private static CombatIntent Intent(
