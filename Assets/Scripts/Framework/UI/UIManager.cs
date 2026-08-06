@@ -77,6 +77,9 @@ namespace FFSS.Framework.UI
         protected override void OnInitialize(GameServiceContext context)
         {
             events = context.Events;
+            RegisterPreloadedScreens(screenRoot);
+            RegisterPreloadedScreens(overlayRoot);
+            RegisterPreloadedScreens(modalRoot);
         }
 
         protected override void OnShutdown()
@@ -135,6 +138,27 @@ namespace FFSS.Framework.UI
                     return modalRoot;
                 default:
                     return transform;
+            }
+        }
+
+        private void RegisterPreloadedScreens(Transform root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            UIScreen[] preloaded = root.GetComponentsInChildren<UIScreen>(true);
+            for (int i = 0; i < preloaded.Length; i++)
+            {
+                UIScreen screen = preloaded[i];
+                if (instances.TryGetValue(screen.Id, out UIScreen existing) && existing != screen)
+                {
+                    Debug.LogWarning($"Duplicate preloaded UI screen ignored: {screen.Id}", screen);
+                    continue;
+                }
+
+                instances[screen.Id] = screen;
             }
         }
     }
