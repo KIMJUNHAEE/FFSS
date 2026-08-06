@@ -591,7 +591,7 @@ namespace CardBattle
                     dealt = true;
                 });
                 yield return new WaitUntil(() => dealt);
-                yield return new WaitForSeconds(0.22f);
+                yield return new WaitForSeconds(Mathf.Max(0.6f, revealDelay));
             }
 
             var enemyIntent = BuildEnemyIntent(enemyHand);

@@ -509,14 +509,29 @@ namespace FFSS.Framework.Tests
 
             Type seotdaType = seotda.GetType();
             Image faceSlot = seotdaType.GetField("cardSlotA")?.GetValue(seotda) as Image;
+            Image hiddenSlot = seotdaType.GetField("cardSlotB")?.GetValue(seotda) as Image;
             Sprite back = seotdaType.GetField("backSprite")?.GetValue(seotda) as Sprite;
             Assert.That(faceSlot, Is.Not.Null);
+            Assert.That(hiddenSlot, Is.Not.Null);
             yield return WaitUntil(
                 () => faceSlot.gameObject.activeInHierarchy && faceSlot.enabled &&
-                      faceSlot.sprite != null && faceSlot.sprite != back,
+                      faceSlot.sprite != null && faceSlot.sprite != back &&
+                      hiddenSlot.gameObject.activeInHierarchy && hiddenSlot.enabled &&
+                      hiddenSlot.sprite != null &&
+                      Mathf.Abs(faceSlot.rectTransform.anchoredPosition.x) < 0.5f &&
+                      Mathf.Abs(faceSlot.rectTransform.anchoredPosition.y) < 0.5f &&
+                      Mathf.Abs(hiddenSlot.rectTransform.anchoredPosition.x) < 0.5f &&
+                      Mathf.Abs(hiddenSlot.rectTransform.anchoredPosition.y) < 0.5f &&
+                      faceSlot.rectTransform.localScale.x > 0.95f &&
+                      hiddenSlot.rectTransform.localScale.x > 0.95f,
                 600,
-                "The enemy Seotda draw never showed its visible front card.");
+                "The enemy Seotda cards never became readable in their final table slots.");
+            AssertVisibleCard(faceSlot, "revealed Seotda front card");
+            AssertVisibleCard(hiddenSlot, "hidden Seotda card");
+            float previousTimeScale = Time.timeScale;
+            Time.timeScale = 0f;
             yield return CaptureScreenshot("flow_combat_1ddaeng_seotda_face", 1280, 720);
+            Time.timeScale = previousTimeScale;
 
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
@@ -666,6 +681,24 @@ namespace FFSS.Framework.Tests
                     canvases[i].planeDistance = planeDistances[i];
                 }
             }
+        }
+
+        private static void AssertVisibleCard(Image card, string context)
+        {
+            Assert.That(card.color.a, Is.GreaterThan(0.95f), $"{context} image is transparent.");
+            Assert.That(card.GetComponentsInParent<CanvasGroup>(true).All(group => group.alpha > 0.95f),
+                Is.True,
+                $"{context} is hidden by a canvas group.");
+            Vector3[] corners = new Vector3[4];
+            card.rectTransform.GetWorldCorners(corners);
+            Vector2 minimum = RectTransformUtility.WorldToScreenPoint(null, corners[0]);
+            Vector2 maximum = RectTransformUtility.WorldToScreenPoint(null, corners[2]);
+            Assert.That(maximum.x - minimum.x, Is.GreaterThan(40f), $"{context} is too narrow on screen.");
+            Assert.That(maximum.y - minimum.y, Is.GreaterThan(54f), $"{context} is too short on screen.");
+            Assert.That(minimum.x, Is.GreaterThanOrEqualTo(0f), $"{context} is left of the viewport.");
+            Assert.That(minimum.y, Is.GreaterThanOrEqualTo(0f), $"{context} is below the viewport.");
+            Assert.That(maximum.x, Is.LessThanOrEqualTo(Screen.width), $"{context} is right of the viewport.");
+            Assert.That(maximum.y, Is.LessThanOrEqualTo(Screen.height), $"{context} is above the viewport.");
         }
 
         private static float VisiblePixelRatio(Texture2D texture)
