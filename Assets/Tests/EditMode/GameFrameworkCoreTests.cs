@@ -5,6 +5,7 @@ using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
 using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
+using FFSS.Framework.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -166,6 +167,41 @@ namespace FFSS.Framework.Tests
             Assert.That(catalog, Is.Not.Null);
             AudioCueDefinition cue = catalog.Get("sfx.card.deal");
             Assert.That(cue.PickClip(), Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionTitlePrefabIsCataloguedAndInspectable()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/TitleScreen.prefab");
+            UIScreenCatalog catalog = AssetDatabase.LoadAssetAtPath<UIScreenCatalog>(
+                "Assets/Data/Framework/UIScreenCatalog.asset");
+
+            Assert.That(prefab, Is.Not.Null);
+            UIScreen screen = prefab.GetComponent<UIScreen>();
+            Assert.That(screen, Is.Not.Null);
+            Assert.That(screen.Id, Is.EqualTo(UIScreenId.Title));
+            Assert.That(catalog.Get(UIScreenId.Title).prefab, Is.SameAs(screen));
+            Assert.That(prefab.transform.Find("Background"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Main Menu/New Run"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Options Modal/Options Frame/Master Volume"), Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionEntryScenesExistWithoutReplacingOriginals()
+        {
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(
+                    "Assets/Scenes/Production/Frontend/Production_Title.unity"),
+                Is.Not.Null);
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(
+                    "Assets/Scenes/Production/Field/Production_Field.unity"),
+                Is.Not.Null);
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(
+                    "Assets/Scenes/ClockworkTimekeeper_MapRoaming.unity"),
+                Is.Not.Null);
         }
 
         private sealed class TestService : IGameService
