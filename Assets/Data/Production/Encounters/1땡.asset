@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: -5751636345314099321, guid: f276ace6aa2377748b559e1bd0e3b1e1, type: 3}
   signatureCardChance: 0.7
   signaturePairChance: 0.3
+  musicCueId: bgm.battle.act1
+  ruleGainAudioCue: sfx.enemy.1ddaeng.prepare
+  ruleCriticalAudioCue: sfx.enemy.1ddaeng.tail
+  ruleGainVfxCue: vfx.enemy.1ddaeng
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1.45
@@ -65,12 +70,12 @@ MonoBehaviour:
     actionMotion: 11
     actionMotionIntensity: 0.92
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.1ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.1ddaeng
+    impactAudioCue: sfx.enemy.1ddaeng.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.1ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: one_ddeng_heavy
     displayName: "\uAC15\uACF5"
@@ -105,12 +110,12 @@ MonoBehaviour:
     actionMotion: 1
     actionMotionIntensity: 1.08
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.1ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.1ddaeng
+    impactAudioCue: sfx.enemy.1ddaeng.impact
+    impactVfxCue: vfx.enemy.1ddaeng
+    tailAudioCue: sfx.enemy.1ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: one_ddeng_vertical
     displayName: "\uC0C1\uD558\uBCA0\uAE30"
@@ -147,12 +152,12 @@ MonoBehaviour:
     actionMotion: 4
     actionMotionIntensity: 1.18
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.1ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.1ddaeng.impact
+    impactVfxCue: vfx.enemy.1ddaeng
+    tailAudioCue: sfx.enemy.1ddaeng.tail
+    tailVfxCue: vfx.enemy.1ddaeng
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.pine

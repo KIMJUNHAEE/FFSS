@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: -3908408049924532514, guid: f356f10c3984b734db6ac4372caf9f8a, type: 3}
   signatureCardChance: 0.72
   signaturePairChance: 0.32
+  musicCueId: bgm.battle.act1
+  ruleGainAudioCue: sfx.enemy.4ddaeng.prepare
+  ruleCriticalAudioCue: sfx.enemy.4ddaeng.tail
+  ruleGainVfxCue: vfx.enemy.4ddaeng
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 8
     actionMotionIntensity: 1.12
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.4ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.4ddaeng
+    impactAudioCue: sfx.enemy.4ddaeng.impact
+    impactVfxCue: vfx.enemy.4ddaeng
+    tailAudioCue: sfx.enemy.4ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: four_ddeng_counter
     displayName: "\uB4A4\uB3CC\uB9BC \uBC18\uACA9\uCC38"
@@ -105,12 +110,12 @@ MonoBehaviour:
     actionMotion: 6
     actionMotionIntensity: 1.18
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.4ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.4ddaeng
+    impactAudioCue: sfx.enemy.4ddaeng.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.4ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: four_ddeng_dance
     displayName: "\uC0AC\uC6D4 \uB0AB\uCDA4"
@@ -147,12 +152,12 @@ MonoBehaviour:
     actionMotion: 5
     actionMotionIntensity: 1.28
     actionMotionRepetitions: 2
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.4ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.4ddaeng.impact
+    impactVfxCue: vfx.enemy.4ddaeng
+    tailAudioCue: sfx.enemy.4ddaeng.tail
+    tailVfxCue: vfx.enemy.4ddaeng
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.redraw

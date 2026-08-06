@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: 4711713486963517740, guid: a94418c4f3286fb40a7841e093c11927, type: 3}
   signatureCardChance: 0.77
   signaturePairChance: 0.37
+  musicCueId: bgm.battle.act3
+  ruleGainAudioCue: sfx.enemy.9ddaeng.prepare
+  ruleCriticalAudioCue: sfx.enemy.9ddaeng.tail
+  ruleGainVfxCue: vfx.enemy.9ddaeng
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1.02
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.poison
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.9ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.9ddaeng
+    impactAudioCue: sfx.enemy.9ddaeng.impact
+    impactVfxCue: vfx.enemy.9ddaeng
+    tailAudioCue: sfx.enemy.9ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: nine_ddeng_mist
     displayName: "\uC220\uC548\uAC1C \uC7A5\uB9C9"
@@ -105,12 +110,12 @@ MonoBehaviour:
     actionMotion: 11
     actionMotionIntensity: 1.08
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.9ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.9ddaeng
+    impactAudioCue: sfx.enemy.9ddaeng.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.9ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: nine_ddeng_poison
     displayName: "\uAD6D\uD654 \uB3C5\uBB34"
@@ -146,12 +151,12 @@ MonoBehaviour:
     actionMotion: 7
     actionMotionIntensity: 1.14
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.poison
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.9ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.9ddaeng
+    impactAudioCue: sfx.enemy.9ddaeng.impact
+    impactVfxCue: vfx.enemy.9ddaeng
+    tailAudioCue: sfx.enemy.9ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: nine_ddeng_rampage
     displayName: "\uAD6C\uD654 \uD3ED\uC8FC"
@@ -186,12 +191,12 @@ MonoBehaviour:
     actionMotion: 9
     actionMotionIntensity: 1.2
     actionMotionRepetitions: 4
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.poison
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.9ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.9ddaeng
+    impactAudioCue: sfx.enemy.9ddaeng.impact
+    impactVfxCue: vfx.enemy.9ddaeng
+    tailAudioCue: sfx.enemy.9ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: nine_ddeng_seal
     displayName: "\uAD6C\uB561 \uB9CC\uCDE8\uBD09\uC778"
@@ -228,12 +233,12 @@ MonoBehaviour:
     actionMotion: 10
     actionMotionIntensity: 1.46
     actionMotionRepetitions: 3
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.9ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.enemy.poison
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.9ddaeng.impact
+    impactVfxCue: vfx.enemy.9ddaeng
+    tailAudioCue: sfx.enemy.9ddaeng.tail
+    tailVfxCue: vfx.enemy.9ddaeng
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.intoxication

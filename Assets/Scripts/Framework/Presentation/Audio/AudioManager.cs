@@ -209,7 +209,7 @@ namespace FFSS.Framework.Presentation.Audio
             incoming.clip = clip;
             incoming.outputAudioMixerGroup = cue.Output;
             incoming.loop = true;
-            incoming.pitch = 1f;
+            incoming.pitch = cue.PickPitch();
             incoming.volume = 0f;
             incoming.Play();
 

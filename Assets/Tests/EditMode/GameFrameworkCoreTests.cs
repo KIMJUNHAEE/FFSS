@@ -171,6 +171,25 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EnemyCardRuleMarksPersistPerPokerCard()
+        {
+            var state = new EnemyRuleState { enemyId = "6땡" };
+            EnemyCardRuleState poisoned = state.GetCardRule("H-13", true);
+            poisoned.poisonStacks = 3;
+            poisoned.targeted = true;
+            EnemyCardRuleState sealedCard = state.GetCardRule("S-01", true);
+            sealedCard.sealTurns = 2;
+
+            string json = JsonUtility.ToJson(state);
+            EnemyRuleState restored = JsonUtility.FromJson<EnemyRuleState>(json);
+
+            Assert.That(restored.GetCardRule("H-13").poisonStacks, Is.EqualTo(3));
+            Assert.That(restored.GetCardRule("H-13").targeted, Is.True);
+            Assert.That(restored.GetCardRule("S-01").sealTurns, Is.EqualTo(2));
+            Assert.That(restored.GetCardRule("S-01").PrimaryMark, Is.EqualTo(EnemyCardRuleMark.Seal));
+        }
+
+        [Test]
         public void DeterministicRngContinuesFromStoredState()
         {
             var first = new DeterministicRng(12345);
@@ -545,24 +564,64 @@ namespace FFSS.Framework.Tests
                 new[] { "Assets/Data/Production/Encounters" });
 
             Assert.That(guids, Has.Length.EqualTo(17));
+            var enemyPreparationCues = new HashSet<string>();
+            var enemyThemeVfx = new HashSet<string>();
             for (int i = 0; i < guids.Length; i++)
             {
                 EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
                     AssetDatabase.GUIDToAssetPath(guids[i]));
                 Assert.That(encounter.moves, Is.Not.Empty, encounter.enemyId);
+                Assert.That(audio.TryGet(encounter.musicCueId, out _), Is.True,
+                    $"{encounter.enemyId}/{encounter.musicCueId}");
+                Assert.That(audio.TryGet(encounter.ruleGainAudioCue, out _), Is.True,
+                    $"{encounter.enemyId}/{encounter.ruleGainAudioCue}");
+                Assert.That(audio.TryGet(encounter.ruleCriticalAudioCue, out _), Is.True,
+                    $"{encounter.enemyId}/{encounter.ruleCriticalAudioCue}");
+                Assert.That(vfx.TryGet(encounter.ruleGainVfxCue, out _), Is.True,
+                    $"{encounter.enemyId}/{encounter.ruleGainVfxCue}");
+                Assert.That(vfx.TryGet(encounter.ruleCriticalVfxCue, out _), Is.True,
+                    $"{encounter.enemyId}/{encounter.ruleCriticalVfxCue}");
+                Assert.That(enemyPreparationCues.Add(encounter.ruleGainAudioCue), Is.True, encounter.enemyId);
+                Assert.That(enemyThemeVfx.Add(encounter.ruleGainVfxCue), Is.True, encounter.enemyId);
                 foreach (EnemyMoveDefinition move in encounter.moves)
                 {
                     Assert.That(move.anticipationAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(move.anticipationVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(move.impactAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(move.impactVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(move.tailAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(move.tailVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(audio.TryGet(move.anticipationAudioCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.anticipationAudioCue}");
                     Assert.That(audio.TryGet(move.impactAudioCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.impactAudioCue}");
+                    Assert.That(audio.TryGet(move.tailAudioCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.tailAudioCue}");
+                    Assert.That(vfx.TryGet(move.anticipationVfxCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.anticipationVfxCue}");
                     Assert.That(vfx.TryGet(move.impactVfxCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.impactVfxCue}");
+                    Assert.That(vfx.TryGet(move.tailVfxCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.tailVfxCue}");
                 }
             }
+
+            Assert.That(enemyPreparationCues, Has.Count.EqualTo(17));
+            Assert.That(enemyThemeVfx, Has.Count.EqualTo(17));
+        }
+
+        [Test]
+        public void PokerCardPrefabExposesInspectableEnemyRuleMarkers()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PokerCard.prefab");
+            Assert.That(prefab, Is.Not.Null);
+            Component view = prefab.GetComponent("PokerCardView");
+            Assert.That(view, Is.Not.Null);
+
+            var serialized = new SerializedObject(view);
+            Assert.That(serialized.FindProperty("ruleTint").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("ruleBadgeText").objectReferenceValue, Is.Not.Null);
+            Assert.That(prefab.transform.Find("Visual/RuleTint/RuleBadgeFrame/Label"), Is.Not.Null);
         }
 
         [Test]
@@ -1060,6 +1119,45 @@ namespace FFSS.Framework.Tests
             GameObject kernel = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/Prefabs/Framework/GameKernel.prefab");
             Assert.That(kernel.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionEnemyStatsAndMechanicsMatchPlanningMatrix()
+        {
+            var expected = new Dictionary<string, (int hp, int pressure, EnemyRuleBehaviorKind rule)>
+            {
+                ["1땡"] = (52, 24, EnemyRuleBehaviorKind.PineRedraw),
+                ["2땡"] = (55, 25, EnemyRuleBehaviorKind.ReadRepeatedAction),
+                ["3땡"] = (68, 28, EnemyRuleBehaviorKind.RepeatActionTrace),
+                ["4땡"] = (58, 26, EnemyRuleBehaviorKind.RedrawRisk),
+                ["5땡"] = (61, 27, EnemyRuleBehaviorKind.UniqueActionCycle),
+                ["6땡"] = (64, 28, EnemyRuleBehaviorKind.CardPoison),
+                ["7땡"] = (68, 30, EnemyRuleBehaviorKind.BalanceTremor),
+                ["8땡"] = (72, 32, EnemyRuleBehaviorKind.CardSeal),
+                ["9땡"] = (76, 34, EnemyRuleBehaviorKind.Intoxication),
+                ["10땡"] = (80, 36, EnemyRuleBehaviorKind.FinalCountdown),
+                ["땡잡이"] = (101, 39, EnemyRuleBehaviorKind.PairTracking),
+                ["멍구사"] = (94, 36, EnemyRuleBehaviorKind.Suspicion),
+                ["구사"] = (126, 48, EnemyRuleBehaviorKind.LowHandReversal),
+                ["암행어사"] = (116, 44, EnemyRuleBehaviorKind.ActionHistoryCharge),
+                ["13"] = (92, 35, EnemyRuleBehaviorKind.TargetAim),
+                ["18"] = (98, 38, EnemyRuleBehaviorKind.SuitWheel),
+                ["38"] = (105, 42, EnemyRuleBehaviorKind.GwangHeat)
+            };
+
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            Assert.That(guids, Has.Length.EqualTo(expected.Count));
+            foreach (string guid in guids)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                Assert.That(expected.TryGetValue(encounter.enemyId, out var planned), Is.True, encounter.enemyId);
+                Assert.That(encounter.maximumHp, Is.EqualTo(planned.hp), encounter.enemyId);
+                Assert.That(encounter.maximumPressure, Is.EqualTo(planned.pressure), encounter.enemyId);
+                Assert.That(encounter.ruleRuntime.kind, Is.EqualTo(planned.rule), encounter.enemyId);
+            }
         }
 
         [Test]

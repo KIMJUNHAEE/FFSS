@@ -42,18 +42,13 @@ namespace FFSS.Editor
         {
             bool defense = move.stance == CombatStance.Defense || move.action == CombatActionType.Defend;
             bool skill = move.action == CombatActionType.Skill;
-            move.anticipationAudioCue = defense || skill
-                ? "sfx.card.reveal"
-                : "sfx.combat.slash.light";
-            move.anticipationVfxCue = skill ? "vfx.card.reveal" : string.Empty;
-            move.impactAudioCue = defense
-                ? "sfx.combat.guard"
-                : move.basePower >= 15 || skill
-                    ? "sfx.combat.slash.heavy"
-                    : "sfx.combat.slash.light";
+            string slug = EnemySlug(enemyId);
+            move.anticipationAudioCue = $"sfx.enemy.{slug}.prepare";
+            move.anticipationVfxCue = skill ? "vfx.card.reveal" : ThemeVfx(enemyId);
+            move.impactAudioCue = $"sfx.enemy.{slug}.impact";
             move.impactVfxCue = defense ? "vfx.combat.guard" : ThemeVfx(enemyId);
-            move.tailAudioCue = string.Empty;
-            move.tailVfxCue = string.Empty;
+            move.tailAudioCue = $"sfx.enemy.{slug}.tail";
+            move.tailVfxCue = skill ? ThemeVfx(enemyId) : "vfx.card.reveal";
             move.tailDelaySeconds = skill ? 0.18f : 0.12f;
         }
 
@@ -61,16 +56,49 @@ namespace FFSS.Editor
         {
             return enemyId switch
             {
-                "5땡" => "vfx.enemy.wave",
-                "6땡" => "vfx.enemy.poison",
-                "8땡" => "vfx.enemy.talisman",
-                "9땡" => "vfx.enemy.poison",
-                "10땡" => "vfx.enemy.wind",
-                "18" => "vfx.enemy.talisman",
-                "38" => "vfx.enemy.gwang",
-                "구사" => "vfx.enemy.talisman",
-                "멍구사" => "vfx.enemy.poison",
+                "1땡" => "vfx.enemy.1ddaeng",
+                "2땡" => "vfx.enemy.2ddaeng",
+                "3땡" => "vfx.enemy.3ddaeng",
+                "4땡" => "vfx.enemy.4ddaeng",
+                "5땡" => "vfx.enemy.5ddaeng",
+                "6땡" => "vfx.enemy.6ddaeng",
+                "7땡" => "vfx.enemy.7ddaeng",
+                "8땡" => "vfx.enemy.8ddaeng",
+                "9땡" => "vfx.enemy.9ddaeng",
+                "10땡" => "vfx.enemy.10ddaeng",
+                "땡잡이" => "vfx.enemy.ddaengjabi",
+                "멍구사" => "vfx.enemy.meonggusa",
+                "구사" => "vfx.enemy.gusa",
+                "암행어사" => "vfx.enemy.amhaengeosa",
+                "13" => "vfx.enemy.13gwang",
+                "18" => "vfx.enemy.18gwang",
+                "38" => "vfx.enemy.38gwang",
                 _ => "vfx.combat.slash"
+            };
+        }
+
+        internal static string EnemySlug(string enemyId)
+        {
+            return enemyId switch
+            {
+                "1땡" => "1ddaeng",
+                "2땡" => "2ddaeng",
+                "3땡" => "3ddaeng",
+                "4땡" => "4ddaeng",
+                "5땡" => "5ddaeng",
+                "6땡" => "6ddaeng",
+                "7땡" => "7ddaeng",
+                "8땡" => "8ddaeng",
+                "9땡" => "9ddaeng",
+                "10땡" => "10ddaeng",
+                "땡잡이" => "ddaengjabi",
+                "멍구사" => "meonggusa",
+                "구사" => "gusa",
+                "암행어사" => "amhaengeosa",
+                "13" => "13gwang",
+                "18" => "18gwang",
+                "38" => "38gwang",
+                _ => "unknown"
             };
         }
     }

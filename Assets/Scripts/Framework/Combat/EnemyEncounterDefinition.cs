@@ -205,6 +205,13 @@ namespace FFSS.Framework.Combat
         [Range(0f, 1f)] public float signatureCardChance = 0.72f;
         [Range(0f, 1f)] public float signaturePairChance = 0.18f;
 
+        [Header("Encounter audio and rule feedback")]
+        public string musicCueId = "bgm.battle";
+        public string ruleGainAudioCue;
+        public string ruleCriticalAudioCue;
+        public string ruleGainVfxCue;
+        public string ruleCriticalVfxCue;
+
         [Header("Character alignment")]
         [Min(0.5f)] public float idleVisualScale = 1f;
         public Vector2 idleVisualOffset;

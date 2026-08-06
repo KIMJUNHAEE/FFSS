@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: -7760254853913181831, guid: 7f158a042ca72fc4795ca00a1a0fe6bc, type: 3}
   signatureCardChance: 0.78
   signaturePairChance: 0.24
+  musicCueId: bgm.battle.act2
+  ruleGainAudioCue: sfx.enemy.18gwang.prepare
+  ruleCriticalAudioCue: sfx.enemy.18gwang.tail
+  ruleGainVfxCue: vfx.enemy.18gwang
+  ruleCriticalVfxCue: vfx.enemy.18gwang
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.talisman
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.18gwang.prepare
+    anticipationVfxCue: vfx.enemy.18gwang
+    impactAudioCue: sfx.enemy.18gwang.impact
+    impactVfxCue: vfx.enemy.18gwang
+    tailAudioCue: sfx.enemy.18gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 18_eight_gate
     displayName: "\uD314\uBB38 \uC218\uD638"
@@ -104,12 +109,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.18gwang.prepare
+    anticipationVfxCue: vfx.enemy.18gwang
+    impactAudioCue: sfx.enemy.18gwang.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.18gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 18_low_orbit
     displayName: "\uC800\uD328\uC724\uD68C"
@@ -145,12 +150,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.18gwang.prepare
+    anticipationVfxCue: vfx.enemy.18gwang
+    impactAudioCue: sfx.enemy.18gwang.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.18gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 18_seal
     displayName: "\uC77C\uD314\uBD09\uC778"
@@ -187,12 +192,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.18gwang.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.enemy.talisman
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.18gwang.impact
+    impactVfxCue: vfx.enemy.18gwang
+    tailAudioCue: sfx.enemy.18gwang.tail
+    tailVfxCue: vfx.enemy.18gwang
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.wheel

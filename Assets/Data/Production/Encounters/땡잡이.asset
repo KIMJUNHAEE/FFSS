@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: 3248066798809565289, guid: cd057554a1fc572489589d942d9a956c, type: 3}
   signatureCardChance: 0.76
   signaturePairChance: 0.25
+  musicCueId: bgm.battle.act1
+  ruleGainAudioCue: sfx.enemy.ddaengjabi.prepare
+  ruleCriticalAudioCue: sfx.enemy.ddaengjabi.tail
+  ruleGainVfxCue: vfx.enemy.ddaengjabi
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.ddaengjabi.prepare
+    anticipationVfxCue: vfx.enemy.ddaengjabi
+    impactAudioCue: sfx.enemy.ddaengjabi.impact
+    impactVfxCue: vfx.enemy.ddaengjabi
+    tailAudioCue: sfx.enemy.ddaengjabi.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: ddengjabi_break
     displayName: "\uB561\uB04A\uAE30"
@@ -105,12 +110,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.ddaengjabi.prepare
+    anticipationVfxCue: vfx.enemy.ddaengjabi
+    impactAudioCue: sfx.enemy.ddaengjabi.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.ddaengjabi.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: ddengjabi_bait
     displayName: "\uD5C8\uD328\uC720\uC778"
@@ -145,12 +150,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.ddaengjabi.prepare
+    anticipationVfxCue: vfx.enemy.ddaengjabi
+    impactAudioCue: sfx.enemy.ddaengjabi.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.ddaengjabi.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: ddengjabi_hunt
     displayName: "\uC0BC\uCE60\uD3EC\uD68D"
@@ -186,12 +191,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.ddaengjabi.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.ddaengjabi.impact
+    impactVfxCue: vfx.enemy.ddaengjabi
+    tailAudioCue: sfx.enemy.ddaengjabi.tail
+    tailVfxCue: vfx.enemy.ddaengjabi
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.tracking

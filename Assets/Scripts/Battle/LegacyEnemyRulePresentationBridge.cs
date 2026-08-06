@@ -4,6 +4,8 @@ using System.Linq;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using FFSS.Framework.Core;
+using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using UnityEngine;
 
@@ -689,6 +691,7 @@ namespace CardBattle
 
         private void SetMeter(int value)
         {
+            int before = GetMeter();
             int clamped;
             if (GameKernel.IsReady && GameKernel.Services.TryGet(out EnemyRuleManager rules))
             {
@@ -700,6 +703,8 @@ namespace CardBattle
                 state.SetCounter(encounter.ruleMeter.stateKey, clamped);
                 meterView.Render(encounter.ruleMeter, clamped);
             }
+
+            PlayRuleFeedback(before, clamped);
         }
 
         private void AddMeter(int delta)
@@ -712,6 +717,37 @@ namespace CardBattle
             if (encounter != null && message.EnemyId == encounter.enemyId && meterView != null)
             {
                 meterView.Render(message.Definition, message.Value);
+            }
+        }
+
+        private void PlayRuleFeedback(int before, int current)
+        {
+            if (current <= before || encounter == null || !GameKernel.IsReady)
+            {
+                return;
+            }
+
+            bool critical = before < encounter.ruleMeter.warningThreshold &&
+                            current >= encounter.ruleMeter.warningThreshold;
+            string audioCue = critical ? encounter.ruleCriticalAudioCue : encounter.ruleGainAudioCue;
+            string vfxCue = critical ? encounter.ruleCriticalVfxCue : encounter.ruleGainVfxCue;
+            if (!string.IsNullOrWhiteSpace(audioCue) &&
+                GameKernel.Services.TryGet(out AudioManager audio))
+            {
+                audio.Play(audioCue);
+            }
+
+            if (!string.IsNullOrWhiteSpace(vfxCue) && meterView != null &&
+                GameKernel.Services.TryGet(out VfxManager vfx) &&
+                vfx.TryPlay(
+                    vfxCue,
+                    meterView.transform.position,
+                    Quaternion.identity,
+                    out GameObject instance,
+                    meterView.transform.parent) &&
+                instance != null)
+            {
+                instance.transform.SetAsLastSibling();
             }
         }
 

@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: -216548992430189932, guid: 658d35140ee22e24f8f9a48e193bf706, type: 3}
   signatureCardChance: 0.76
   signaturePairChance: 0.34
+  musicCueId: bgm.battle.act1
+  ruleGainAudioCue: sfx.enemy.3ddaeng.prepare
+  ruleCriticalAudioCue: sfx.enemy.3ddaeng.tail
+  ruleGainVfxCue: vfx.enemy.3ddaeng
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -65,12 +70,12 @@ MonoBehaviour:
     actionMotion: 1
     actionMotionIntensity: 0.95
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.3ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.3ddaeng
+    impactAudioCue: sfx.enemy.3ddaeng.impact
+    impactVfxCue: vfx.enemy.3ddaeng
+    tailAudioCue: sfx.enemy.3ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: three_ddeng_triple
     displayName: "\uC0BC\uC5F0\uD654 \uBCA0\uAE30"
@@ -106,12 +111,12 @@ MonoBehaviour:
     actionMotion: 9
     actionMotionIntensity: 1
     actionMotionRepetitions: 3
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.3ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.3ddaeng
+    impactAudioCue: sfx.enemy.3ddaeng.impact
+    impactVfxCue: vfx.enemy.3ddaeng
+    tailAudioCue: sfx.enemy.3ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: three_ddeng_curtain
     displayName: "\uBC9A\uAF43 \uC7A5\uB9C9 \uAC77\uC5B4\uBCA0\uAE30"
@@ -146,12 +151,12 @@ MonoBehaviour:
     actionMotion: 6
     actionMotionIntensity: 0.92
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.3ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.3ddaeng
+    impactAudioCue: sfx.enemy.3ddaeng.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.3ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: three_ddeng_fall
     displayName: "\uD68C\uC804\uB099\uD558\uCC38"
@@ -188,12 +193,12 @@ MonoBehaviour:
     actionMotion: 4
     actionMotionIntensity: 1.35
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.3ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.3ddaeng.impact
+    impactVfxCue: vfx.enemy.3ddaeng
+    tailAudioCue: sfx.enemy.3ddaeng.tail
+    tailVfxCue: vfx.enemy.3ddaeng
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.repeat

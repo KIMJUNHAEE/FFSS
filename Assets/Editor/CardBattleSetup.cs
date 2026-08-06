@@ -230,6 +230,7 @@ namespace CardBattle.EditorTools
             SetField(pokerCardView, "visualGroup", visualGroup);
             SetField(pokerCardView, "holdBadge", holdBadge.gameObject);
             SetField(pokerCardView, "replaceBadge", replaceBadge.gameObject);
+            FFSS.Editor.ProductionCardRuleMarkerBuilder.AddOrUpdateMarkers(root);
 
             var prefabPath = $"{PrefabDir}/PokerCard.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);

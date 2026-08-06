@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: -6894402780853681277, guid: 9a610c34a0a524748abf12a1b6f75634, type: 3}
   signatureCardChance: 0.76
   signaturePairChance: 0.22
+  musicCueId: bgm.battle.act1
+  ruleGainAudioCue: sfx.enemy.13gwang.prepare
+  ruleCriticalAudioCue: sfx.enemy.13gwang.tail
+  ruleGainVfxCue: vfx.enemy.13gwang
+  ruleCriticalVfxCue: vfx.enemy.13gwang
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.13gwang.prepare
+    anticipationVfxCue: vfx.enemy.13gwang
+    impactAudioCue: sfx.enemy.13gwang.impact
+    impactVfxCue: vfx.enemy.13gwang
+    tailAudioCue: sfx.enemy.13gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 13_three_arrow
     displayName: "\uC0BC\uC5F0\uD30C\uB9C8"
@@ -104,12 +109,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.13gwang.prepare
+    anticipationVfxCue: vfx.enemy.13gwang
+    impactAudioCue: sfx.enemy.13gwang.impact
+    impactVfxCue: vfx.enemy.13gwang
+    tailAudioCue: sfx.enemy.13gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 13_bow_step
     displayName: "\uAD81\uC2E0\uD758\uB9AC\uAE30"
@@ -144,12 +149,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.13gwang.prepare
+    anticipationVfxCue: vfx.enemy.13gwang
+    impactAudioCue: sfx.enemy.13gwang.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.13gwang.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 13_exorcism
     displayName: "\uC77C\uC0BC\uBA78\uAD11"
@@ -186,12 +191,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.13gwang.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.combat.slash
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.13gwang.impact
+    impactVfxCue: vfx.enemy.13gwang
+    tailAudioCue: sfx.enemy.13gwang.tail
+    tailVfxCue: vfx.enemy.13gwang
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.aim

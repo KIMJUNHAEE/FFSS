@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: 4711713486963517740, guid: a94418c4f3286fb40a7841e093c11927, type: 3}
   signatureCardChance: 0.72
   signaturePairChance: 0.2
+  musicCueId: bgm.battle.act3
+  ruleGainAudioCue: sfx.enemy.gusa.prepare
+  ruleCriticalAudioCue: sfx.enemy.gusa.tail
+  ruleGainVfxCue: vfx.enemy.gusa
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.enemy.talisman
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.gusa.prepare
+    anticipationVfxCue: vfx.enemy.gusa
+    impactAudioCue: sfx.enemy.gusa.impact
+    impactVfxCue: vfx.enemy.gusa
+    tailAudioCue: sfx.enemy.gusa.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: gusa_great_guard
     displayName: "\uCCA0\uBCBD\uAC70\uAC80"
@@ -104,12 +109,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.gusa.prepare
+    anticipationVfxCue: vfx.enemy.gusa
+    impactAudioCue: sfx.enemy.gusa.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.gusa.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: gusa_declaration
     displayName: "\uAD6C\uC0AC\uC120\uC5B8"
@@ -146,12 +151,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.gusa.prepare
+    anticipationVfxCue: vfx.enemy.gusa
+    impactAudioCue: sfx.enemy.gusa.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.gusa.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: gusa_overturn
     displayName: "\uD310\uB4A4\uC9D1\uAE30"
@@ -188,12 +193,12 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.gusa.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.enemy.talisman
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.gusa.impact
+    impactVfxCue: vfx.enemy.gusa
+    tailAudioCue: sfx.enemy.gusa.tail
+    tailVfxCue: vfx.enemy.gusa
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.reversal

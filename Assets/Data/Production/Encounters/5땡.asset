@@ -24,6 +24,11 @@ MonoBehaviour:
   signatureCardB: {fileID: 7572069263020404282, guid: 32c2e9d02f914c445bc116e19b79209a, type: 3}
   signatureCardChance: 0.73
   signaturePairChance: 0.33
+  musicCueId: bgm.battle.act2
+  ruleGainAudioCue: sfx.enemy.5ddaeng.prepare
+  ruleCriticalAudioCue: sfx.enemy.5ddaeng.tail
+  ruleGainVfxCue: vfx.enemy.5ddaeng
+  ruleCriticalVfxCue: vfx.combat.break
   idleVisualScale: 1
   idleVisualOffset: {x: 0, y: 0}
   hurtVisualScale: 1
@@ -64,12 +69,12 @@ MonoBehaviour:
     actionMotion: 7
     actionMotionIntensity: 0.88
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.wave
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.5ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.5ddaeng
+    impactAudioCue: sfx.enemy.5ddaeng.impact
+    impactVfxCue: vfx.enemy.5ddaeng
+    tailAudioCue: sfx.enemy.5ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: five_ddeng_counter
     displayName: "\uC218\uBA74 \uBC18\uACA9"
@@ -104,12 +109,12 @@ MonoBehaviour:
     actionMotion: 6
     actionMotionIntensity: 0.92
     actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.card.reveal
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.guard
+    anticipationAudioCue: sfx.enemy.5ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.5ddaeng
+    impactAudioCue: sfx.enemy.5ddaeng.impact
     impactVfxCue: vfx.combat.guard
-    tailAudioCue: 
-    tailVfxCue: 
+    tailAudioCue: sfx.enemy.5ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: five_ddeng_fivefold
     displayName: "\uCC3D\uD3EC \uC624\uC5F0\uCC38"
@@ -144,12 +149,12 @@ MonoBehaviour:
     actionMotion: 9
     actionMotionIntensity: 0.9
     actionMotionRepetitions: 5
-    anticipationAudioCue: sfx.combat.slash.light
-    anticipationVfxCue: 
-    impactAudioCue: sfx.combat.slash.light
-    impactVfxCue: vfx.enemy.wave
-    tailAudioCue: 
-    tailVfxCue: 
+    anticipationAudioCue: sfx.enemy.5ddaeng.prepare
+    anticipationVfxCue: vfx.enemy.5ddaeng
+    impactAudioCue: sfx.enemy.5ddaeng.impact
+    impactVfxCue: vfx.enemy.5ddaeng
+    tailAudioCue: sfx.enemy.5ddaeng.tail
+    tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: five_ddeng_flood
     displayName: "\uCC3D\uD3EC\uD64D\uC218"
@@ -186,12 +191,12 @@ MonoBehaviour:
     actionMotion: 10
     actionMotionIntensity: 1.28
     actionMotionRepetitions: 2
-    anticipationAudioCue: sfx.card.reveal
+    anticipationAudioCue: sfx.enemy.5ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
-    impactAudioCue: sfx.combat.slash.heavy
-    impactVfxCue: vfx.enemy.wave
-    tailAudioCue: 
-    tailVfxCue: 
+    impactAudioCue: sfx.enemy.5ddaeng.impact
+    impactVfxCue: vfx.enemy.5ddaeng
+    tailAudioCue: sfx.enemy.5ddaeng.tail
+    tailVfxCue: vfx.enemy.5ddaeng
     tailDelaySeconds: 0.18
   ruleMeter:
     stateKey: rule.waterway

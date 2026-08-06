@@ -74,7 +74,11 @@ namespace CardBattle
                 runs.Current.activeEnemyRule != null &&
                 GameKernel.Services.TryGet(out AudioManager audio))
             {
-                audio.PlayMusic(battleMusicCue, musicFadeSeconds);
+                string cueId = feedback.Encounter != null &&
+                               !string.IsNullOrWhiteSpace(feedback.Encounter.musicCueId)
+                    ? feedback.Encounter.musicCueId
+                    : battleMusicCue;
+                audio.PlayMusic(cueId, musicFadeSeconds);
             }
         }
 
