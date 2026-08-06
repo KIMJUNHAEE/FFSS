@@ -75,12 +75,43 @@ namespace FFSS.Framework.Combat
     [Serializable]
     public sealed class EnemyRuleRuntimeDefinition
     {
+        [Header("Rule selector")]
         public EnemyRuleBehaviorKind kind;
+
+        [Header("Meter changes")]
         [Min(0)] public int redrawThreshold = 3;
         [Min(1)] public int meterGain = 1;
         [Min(1)] public int skillGain = 2;
         [Min(1)] public int defenseDecay = 1;
         [Min(1)] public int breakDecay = 2;
+
+        [Header("Combat modifiers")]
+        [Tooltip("Power added when this rule reaches its trigger state.")]
+        public int triggerPowerBonus = 3;
+        [Tooltip("Power added to the player when a beneficial rule is completed.")]
+        public int playerPowerBonus = 2;
+        [Tooltip("Break power added to the player when a beneficial rule is completed.")]
+        public int playerBreakBonus = 2;
+        [Tooltip("Enemy defense added by a defensive response or repeated action shield.")]
+        public int responseDefenseBonus = 3;
+        [Tooltip("Player power removed while a poisoned card remains in the hand.")]
+        [Min(0)] public int poisonedCardPowerPenalty = 2;
+        [Tooltip("Multiplier for the charged balance-damage hit.")]
+        [Min(1f)] public float chargedPressureMultiplier = 1.5f;
+        [Tooltip("Extra enemy power per tracked pair or recorded crime.")]
+        [Min(0)] public int trackedPowerPerStack = 3;
+        [Tooltip("Exact enemy power is shown as a plus/minus range while information is obscured.")]
+        [Min(0)] public int hiddenPowerRange = 2;
+        [Tooltip("Minimum power of a countdown finisher.")]
+        [Min(0)] public int finisherPowerFloor = 19;
+        [Tooltip("Enemy defense gained for each heat stack.")]
+        [Min(0)] public int heatDefensePerStack = 1;
+        [Tooltip("Heat threshold that adds the offensive bonus.")]
+        [Min(0)] public int heatAttackThreshold = 3;
+        [Tooltip("Heat threshold that causes the post-skill flare.")]
+        [Min(0)] public int heatFlareThreshold = 4;
+        [Tooltip("Direct HP damage from the post-skill heat flare.")]
+        [Min(0)] public int heatFlareDamage = 4;
     }
 
     [Serializable]

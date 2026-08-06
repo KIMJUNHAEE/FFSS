@@ -142,6 +142,24 @@ namespace FFSS.Editor
             encounter.ruleRuntime.skillGain = 2;
             encounter.ruleRuntime.defenseDecay = 1;
             encounter.ruleRuntime.breakDecay = 2;
+            encounter.ruleRuntime.triggerPowerBonus = spec.EnemyId switch
+            {
+                "3땡" => 4,
+                "38" => 2,
+                _ => 3
+            };
+            encounter.ruleRuntime.playerPowerBonus = 2;
+            encounter.ruleRuntime.playerBreakBonus = 2;
+            encounter.ruleRuntime.responseDefenseBonus = 3;
+            encounter.ruleRuntime.poisonedCardPowerPenalty = 2;
+            encounter.ruleRuntime.chargedPressureMultiplier = 1.5f;
+            encounter.ruleRuntime.trackedPowerPerStack = spec.EnemyId == "암행어사" ? 2 : 3;
+            encounter.ruleRuntime.hiddenPowerRange = 2;
+            encounter.ruleRuntime.finisherPowerFloor = 19;
+            encounter.ruleRuntime.heatDefensePerStack = 1;
+            encounter.ruleRuntime.heatAttackThreshold = 3;
+            encounter.ruleRuntime.heatFlareThreshold = 4;
+            encounter.ruleRuntime.heatFlareDamage = 4;
             EditorUtility.SetDirty(encounter);
         }
 

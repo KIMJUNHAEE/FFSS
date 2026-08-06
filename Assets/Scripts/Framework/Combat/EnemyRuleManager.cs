@@ -52,6 +52,209 @@ namespace FFSS.Framework.Combat
             return Set(encounter, state, Get(encounter, state) + amount);
         }
 
+        public void ApplyExchangeModifiers(
+            EnemyEncounterDefinition encounter,
+            EnemyRuleState state,
+            EnemyRuleExchangeContext context)
+        {
+            ApplyExchangeModifiersCore(encounter, state, context);
+        }
+
+        public static void ApplyExchangeModifiersCore(
+            EnemyEncounterDefinition encounter,
+            EnemyRuleState state,
+            EnemyRuleExchangeContext context)
+        {
+            Validate(encounter, state);
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
+            EnemyRuleRuntimeDefinition rule = encounter.ruleRuntime;
+            if (rule == null)
+            {
+                return;
+            }
+
+            int meter = Clamp(
+                encounter.ruleMeter,
+                state.GetCounter(encounter.ruleMeter.stateKey, encounter.ruleMeter.initialValue));
+            switch (rule.kind)
+            {
+                case EnemyRuleBehaviorKind.PineRedraw:
+                    if (meter >= encounter.ruleMeter.maximumValue && context.EnemyUsesOffense)
+                    {
+                        context.enemyPowerDelta += rule.triggerPowerBonus;
+                        context.AddNote($"솔잎 강화 +{rule.triggerPowerBonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.ReadRepeatedAction:
+                    int readAction = state.GetCounter("rule.read.action", -1);
+                    if (readAction == (int)context.playerAction && context.enemyAction != CombatActionType.Stunned)
+                    {
+                        context.enemyPowerDelta += rule.triggerPowerBonus;
+                        context.AddNote($"읽힌 행동 대응 +{rule.triggerPowerBonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.RepeatActionTrace:
+                    if (meter >= encounter.ruleMeter.maximumValue && context.enemyAction != CombatActionType.Stunned)
+                    {
+                        context.enemyPowerDelta += rule.triggerPowerBonus;
+                        context.AddNote($"행동 자국 +{rule.triggerPowerBonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.RedrawRisk:
+                    if (meter == 0 && context.EnemyUsesDefense)
+                    {
+                        context.enemyPowerDelta += rule.playerPowerBonus;
+                        context.AddNote($"무교체 방어 +{rule.playerPowerBonus}");
+                    }
+                    else if (meter >= 4 && context.EnemyUsesOffense)
+                    {
+                        context.enemyPowerDelta += rule.triggerPowerBonus;
+                        context.AddNote($"과교체 공격 +{rule.triggerPowerBonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.UniqueActionCycle:
+                    if (state.GetFlag("rule.cycle.reward.ready"))
+                    {
+                        context.playerPowerDelta += rule.playerPowerBonus;
+                        context.playerBreakDelta += rule.playerBreakBonus;
+                        context.AddNote($"물길 완성 +{rule.playerPowerBonus}/격파 +{rule.playerBreakBonus}");
+                    }
+                    if (state.GetFlag("rule.cycle.repeat") && context.EnemyUsesDefense)
+                    {
+                        context.enemyPowerDelta += rule.responseDefenseBonus;
+                        context.AddNote($"반복 방어막 +{rule.responseDefenseBonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.CardPoison:
+                    int heldPoison = state.GetCounter("rule.poison.held");
+                    if (heldPoison > 0)
+                    {
+                        int penalty = Math.Min(rule.poisonedCardPowerPenalty, heldPoison * rule.poisonedCardPowerPenalty);
+                        context.playerPowerDelta -= penalty;
+                        context.AddNote($"카드 독 -{penalty}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.BalanceTremor:
+                    if (meter >= encounter.ruleMeter.maximumValue)
+                    {
+                        context.pressureToPlayerMultiplier *= Math.Max(1f, rule.chargedPressureMultiplier);
+                        context.AddNote($"진동 x{context.pressureToPlayerMultiplier:0.#}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.CardSeal:
+                    if (meter > 0)
+                    {
+                        context.AddNote($"봉인 {meter}장 적용");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.Intoxication:
+                    if (meter > 0)
+                    {
+                        context.enemyPowerVisibilityRange = meter >= encounter.ruleMeter.maximumValue
+                            ? rule.hiddenPowerRange + 1
+                            : rule.hiddenPowerRange;
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.FinalCountdown:
+                    if ((meter <= encounter.ruleMeter.minimumValue || state.GetFlag("rule.clock.ready")) &&
+                        context.EnemyUsesOffense)
+                    {
+                        context.enemyPowerFloor = rule.finisherPowerFloor;
+                        context.AddNote($"열 번째 한 방 최소 {rule.finisherPowerFloor}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.PairTracking:
+                    if (meter > 0 && context.IsPairFamily && context.EnemyUsesOffense)
+                    {
+                        int bonus = meter * rule.trackedPowerPerStack;
+                        context.enemyPowerDelta += bonus;
+                        context.AddNote($"짝 추적 +{bonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.Suspicion:
+                    if (meter > 0)
+                    {
+                        context.enemyPowerVisibilityRange = Math.Min(4, meter + 1);
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.LowHandReversal:
+                    if (meter >= encounter.ruleMeter.maximumValue)
+                    {
+                        int bonus = ReversalBonus(context.playerHand);
+                        context.playerPowerDelta += bonus;
+                        if (bonus > 0)
+                        {
+                            context.AddNote($"족보 반전 +{bonus}");
+                        }
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.ActionHistoryCharge:
+                    if (meter > 0 && context.EnemyUsesOffense)
+                    {
+                        int bonus = meter * rule.trackedPowerPerStack;
+                        context.enemyPowerDelta += bonus;
+                        context.AddNote($"죄목 +{bonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.TargetAim:
+                    if (meter > 0 && context.EnemyUsesOffense)
+                    {
+                        int bonus = meter * rule.triggerPowerBonus;
+                        context.enemyPowerDelta += bonus;
+                        context.AddNote($"표적 보유 +{bonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.SuitWheel:
+                    int sealedSuitCards = context.CardsInSuitIndex(meter % 4);
+                    if (sealedSuitCards > 0)
+                    {
+                        int bonus = Math.Min(3, sealedSuitCards);
+                        context.enemyPowerDelta += bonus;
+                        context.AddNote($"봉인 무늬 {sealedSuitCards}장 +{bonus}");
+                    }
+                    break;
+
+                case EnemyRuleBehaviorKind.GwangHeat:
+                    if (context.EnemyUsesDefense && meter > 0)
+                    {
+                        int defenseBonus = meter * rule.heatDefensePerStack;
+                        context.enemyPowerDelta += defenseBonus;
+                        context.AddNote($"광열 방어 +{defenseBonus}");
+                    }
+                    else if (context.EnemyUsesOffense && meter >= rule.heatAttackThreshold)
+                    {
+                        context.enemyPowerDelta += rule.triggerPowerBonus;
+                        context.AddNote($"광열 공격 +{rule.triggerPowerBonus}");
+                    }
+
+                    if (context.enemyAction == CombatActionType.Skill && meter >= rule.heatFlareThreshold)
+                    {
+                        context.directDamageToPlayer += rule.heatFlareDamage;
+                        context.AddNote($"광열 폭발 HP -{rule.heatFlareDamage}");
+                    }
+                    break;
+            }
+        }
+
         protected override void OnInitialize(GameServiceContext context)
         {
             events = context.Events;
@@ -67,6 +270,18 @@ namespace FFSS.Framework.Combat
             int minimum = Math.Min(meter.minimumValue, meter.maximumValue);
             int maximum = Math.Max(meter.minimumValue, meter.maximumValue);
             return Math.Max(minimum, Math.Min(maximum, value));
+        }
+
+        private static int ReversalBonus(EnemyRuleHandKind hand)
+        {
+            return hand switch
+            {
+                EnemyRuleHandKind.HighCard => 6,
+                EnemyRuleHandKind.OnePair => 5,
+                EnemyRuleHandKind.TwoPair => 4,
+                EnemyRuleHandKind.ThreeKind => 3,
+                _ => 0
+            };
         }
 
         private static void Validate(EnemyEncounterDefinition encounter, EnemyRuleState state)

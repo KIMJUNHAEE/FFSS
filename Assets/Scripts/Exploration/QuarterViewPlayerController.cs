@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using FFSS.Framework.Core;
+using FFSS.Framework.Presentation.Audio;
 
 namespace CardBattle.Exploration
 {
@@ -29,6 +31,15 @@ namespace CardBattle.Exploration
         [SerializeField] private float animatorDampTime = 0f;
         [SerializeField] private float walkStopGraceTime = 0.08f;
 
+        [Header("Footstep audio")]
+        [SerializeField] private bool playFootsteps = true;
+        [SerializeField] private string[] footstepCueIds =
+        {
+            "sfx.footstep.stone.01",
+            "sfx.footstep.stone.02"
+        };
+        [SerializeField, Min(0.1f)] private float footstepInterval = 0.42f;
+
         public const string HeadingRootName = "VisualRoot";
         public const string AxisCorrectionRootName = "AxisCorrectionRoot";
         private static readonly int IdleStateHash = Animator.StringToHash("Idle");
@@ -39,6 +50,10 @@ namespace CardBattle.Exploration
         private Vector3 facingDirection = Vector3.forward;
         private Transform axisCorrectionRoot;
         private float lastMovementInputTime = -999f;
+        private float nextFootstepAt;
+        private int footstepCueIndex;
+
+        public bool IsMoving { get; private set; }
 
         private void Awake()
         {
@@ -88,11 +103,13 @@ namespace CardBattle.Exploration
             Vector3 planarDirection = ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
             float animationAmount = GetAnimationAmount(inputAmount);
+            IsMoving = inputAmount > 0.05f;
 
             Move(planarDirection);
             TurnToward(planarDirection);
             UpdateAnimator(animationAmount);
             KeepNonLoopingWalkAlive(animationAmount);
+            UpdateFootsteps();
         }
 
         private Vector3 ReadCameraRelativeDirection()
@@ -302,6 +319,28 @@ namespace CardBattle.Exploration
                 return;
 
             animator.Play(WalkStateHash, 0, stateInfo.normalizedTime % 1f);
+        }
+
+        private void UpdateFootsteps()
+        {
+            if (!playFootsteps || !IsMoving || footstepCueIds == null || footstepCueIds.Length == 0)
+            {
+                if (!IsMoving)
+                    nextFootstepAt = Time.unscaledTime;
+                return;
+            }
+
+            if (Time.unscaledTime < nextFootstepAt || !GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out AudioManager audio))
+            {
+                return;
+            }
+
+            string cueId = footstepCueIds[footstepCueIndex % footstepCueIds.Length];
+            footstepCueIndex = (footstepCueIndex + 1) % footstepCueIds.Length;
+            nextFootstepAt = Time.unscaledTime + footstepInterval;
+            if (!string.IsNullOrWhiteSpace(cueId))
+                audio.Play(cueId, transform.position);
         }
     }
 }

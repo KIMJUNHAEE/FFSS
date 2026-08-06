@@ -18,6 +18,8 @@ namespace FFSS.Framework.Presentation.Audio
         private readonly Dictionary<int, AudioSource> activeSources = new Dictionary<int, AudioSource>();
         private readonly Dictionary<int, string> activeCueIds = new Dictionary<int, string>();
         private readonly Dictionary<string, float> lastPlayedAt = new Dictionary<string, float>();
+        private readonly Dictionary<string, AudioClip> lastPlayedClips = new Dictionary<string, AudioClip>();
+        private readonly Dictionary<string, int> sequencePlayCounts = new Dictionary<string, int>();
         private int nextPlaybackId = 1;
         private bool useFirstMusicSource = true;
         private Coroutine musicFade;
@@ -37,19 +39,28 @@ namespace FFSS.Framework.Presentation.Audio
             }
 
             AudioSource source = FindAvailableSource();
-            AudioClip clip = cue.PickClip();
+            lastPlayedClips.TryGetValue(cue.CueId, out AudioClip previousClip);
+            AudioClip clip = cue.PickClip(previousClip);
             if (source == null || clip == null)
             {
                 return 0;
             }
 
             int playbackId = nextPlaybackId++;
-            ConfigureSource(source, cue, clip, worldPosition);
+            sequencePlayCounts.TryGetValue(cue.CueId, out int sequencePlayIndex);
+            ConfigureSource(source, cue, clip, cue.VolumeForSequencePlay(sequencePlayIndex), worldPosition);
             activeSources[playbackId] = source;
             activeCueIds[playbackId] = cue.CueId;
             lastPlayedAt[cue.CueId] = Time.unscaledTime;
+            lastPlayedClips[cue.CueId] = clip;
+            sequencePlayCounts[cue.CueId] = sequencePlayIndex + 1;
             source.Play();
             return playbackId;
+        }
+
+        public void BeginSequence()
+        {
+            sequencePlayCounts.Clear();
         }
 
         public void Stop(int playbackId)
@@ -89,6 +100,8 @@ namespace FFSS.Framework.Presentation.Audio
             activeSources.Clear();
             activeCueIds.Clear();
             lastPlayedAt.Clear();
+            lastPlayedClips.Clear();
+            sequencePlayCounts.Clear();
         }
 
         protected override void OnShutdown()
@@ -107,6 +120,8 @@ namespace FFSS.Framework.Presentation.Audio
             activeSources.Clear();
             activeCueIds.Clear();
             lastPlayedAt.Clear();
+            lastPlayedClips.Clear();
+            sequencePlayCounts.Clear();
         }
 
         private void Update()
@@ -169,12 +184,13 @@ namespace FFSS.Framework.Presentation.Audio
             AudioSource source,
             AudioCueDefinition cue,
             AudioClip clip,
+            float volume,
             Vector3? worldPosition)
         {
             source.clip = clip;
             source.outputAudioMixerGroup = cue.Output;
             source.loop = cue.Loop;
-            source.volume = cue.Volume;
+            source.volume = volume;
             source.pitch = cue.PickPitch();
             source.spatialBlend = worldPosition.HasValue ? cue.SpatialBlend : 0f;
             if (worldPosition.HasValue)

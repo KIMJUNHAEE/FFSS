@@ -100,6 +100,8 @@ namespace CardBattle
 
             if (source != null)
             {
+                source.ExchangePreparing -= HandleExchangePreparing;
+                source.ExchangePreparing += HandleExchangePreparing;
                 source.ExchangeResolved -= HandleExchangeResolved;
                 source.ExchangeResolved += HandleExchangeResolved;
             }
@@ -120,6 +122,7 @@ namespace CardBattle
         {
             if (source != null)
             {
+                source.ExchangePreparing -= HandleExchangePreparing;
                 source.ExchangeResolved -= HandleExchangeResolved;
             }
 
@@ -189,16 +192,20 @@ namespace CardBattle
                     if (ContainsMoveId(result, "poison") || ContainsMoveId(result, "bloom"))
                     {
                         AddMeter(encounter.ruleRuntime.meterGain);
+                        state.SetCounter("rule.poison.held", 1);
                     }
                     if (result.EnemyStunned)
                     {
                         SetMeter(0);
+                        state.SetCounter("rule.poison.held", 0);
                     }
                     break;
                 case EnemyRuleBehaviorKind.BalanceTremor:
                     if (result.PressureToPlayer > 0)
                     {
-                        AddMeter(encounter.ruleRuntime.meterGain);
+                        SetMeter(GetMeter() >= encounter.ruleMeter.maximumValue
+                            ? 0
+                            : GetMeter() + encounter.ruleRuntime.meterGain);
                     }
                     if (result.EnemyStunned)
                     {
@@ -246,7 +253,9 @@ namespace CardBattle
         {
             int encoded = EncodeAction(action);
             int previous = state.GetCounter("history.lastAction", -1);
-            SetMeter(previous == encoded ? encoded + 1 : 0);
+            int readAction = previous == encoded ? encoded : -1;
+            state.SetCounter("rule.read.action", readAction);
+            SetMeter(readAction >= 0 ? readAction + 1 : 0);
             state.SetCounter("history.lastAction", encoded);
         }
 
@@ -273,15 +282,24 @@ namespace CardBattle
             if (previous == encoded)
             {
                 mask = 0;
+                state.SetFlag("rule.cycle.repeat", true);
             }
             else
             {
                 mask |= 1 << encoded;
+                state.SetFlag("rule.cycle.repeat", false);
             }
 
             state.SetCounter("history.lastAction", encoded);
             state.SetCounter("history.actionMask", mask);
-            SetMeter(BitCount(mask & 0b111));
+            int completed = BitCount(mask & 0b111);
+            SetMeter(completed);
+            if (completed >= encounter.ruleMeter.maximumValue)
+            {
+                state.SetFlag("rule.cycle.reward.ready", true);
+                state.SetCounter("history.actionMask", 0);
+                SetMeter(0);
+            }
         }
 
         private void TrackIntoxication(RpsCombatExchangeResult result)
@@ -301,6 +319,13 @@ namespace CardBattle
 
         private void TrackClock(RpsCombatExchangeResult result)
         {
+            if (state.GetFlag("rule.clock.ready") && IsOffense(result.EnemyAction))
+            {
+                state.SetFlag("rule.clock.ready", false);
+                SetMeter(encounter.ruleMeter.maximumValue);
+                return;
+            }
+
             int value = GetMeter();
             if (result.EnemyStunned)
             {
@@ -316,6 +341,29 @@ namespace CardBattle
                 state.SetFlag("rule.clock.ready", true);
             }
             SetMeter(value);
+        }
+
+        private void HandleExchangePreparing(EnemyRuleExchangeContext context)
+        {
+            if (!Ready() || context == null)
+            {
+                return;
+            }
+
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out EnemyRuleManager rules))
+            {
+                rules.ApplyExchangeModifiers(encounter, state, context);
+            }
+            else
+            {
+                EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, context);
+            }
+
+            if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.UniqueActionCycle &&
+                state.GetFlag("rule.cycle.reward.ready"))
+            {
+                state.SetFlag("rule.cycle.reward.ready", false);
+            }
         }
 
         private void TrackPairHunt(RpsCombatExchangeResult result)

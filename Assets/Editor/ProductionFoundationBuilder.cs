@@ -140,16 +140,16 @@ namespace FFSS.Editor
                 CreateAudioCue("bgm.roam", AudioBus.Music, roam, true, 0.72f, Vector2.one, 0f, 1),
                 CreateAudioCue("bgm.event", AudioBus.Music, eventMusic, true, 0.68f, Vector2.one, 0f, 1),
                 CreateAudioCue("bgm.battle", AudioBus.Music, battleMusic, true, 0.78f, Vector2.one, 0f, 1),
-                CreateAudioCue("sfx.card.deal", AudioBus.Interface, deal, false, 0.82f, new Vector2(0.98f, 1.02f), 0.025f, 5),
+                CreateAudioCue("sfx.card.deal", AudioBus.Interface, deal, false, 0.82f, new Vector2(0.98f, 1.02f), 0.025f, 5, 6, -3f),
                 CreateAudioCue("sfx.card.reveal", AudioBus.Interface, One("card-reveal-01"), false, 0.9f, new Vector2(0.99f, 1.01f), 0.06f, 2),
                 CreateAudioCue("sfx.combat.slash.light", AudioBus.Effects, One("slash-light-01"), false, 0.9f, new Vector2(0.97f, 1.03f), 0.04f, 3),
                 CreateAudioCue("sfx.combat.slash.heavy", AudioBus.Effects, One("slash-heavy-01"), false, 1f, new Vector2(0.98f, 1.01f), 0.08f, 2),
-                CreateAudioCue("sfx.combat.guard", AudioBus.Effects, One("guard-lock-01"), false, 0.92f, new Vector2(0.98f, 1.02f), 0.08f, 2),
+                CreateAudioCue("sfx.combat.guard", AudioBus.Effects, One("guard-lock-01"), false, 0.92f, new Vector2(0.98f, 1.02f), 0.08f, 2, 1, -5f),
                 CreateAudioCue("sfx.combat.break", AudioBus.Effects, One("break-hit-01"), false, 1f, new Vector2(0.97f, 1.01f), 0.1f, 2),
                 CreateAudioCue("sfx.reward.coin", AudioBus.Interface, One("reward-coin-01"), false, 0.82f, new Vector2(0.98f, 1.03f), 0.05f, 3),
                 CreateAudioCue("sfx.node.enter", AudioBus.Interface, One("node-enter-01"), false, 0.76f, new Vector2(0.99f, 1.01f), 0.08f, 2),
-                CreateAudioCue("sfx.footstep.stone.01", AudioBus.Effects, One("footstep-stone-01"), false, 0.58f, new Vector2(0.96f, 1.04f), 0.08f, 2),
-                CreateAudioCue("sfx.footstep.stone.02", AudioBus.Effects, One("footstep-stone-02"), false, 0.58f, new Vector2(0.96f, 1.04f), 0.08f, 2)
+                CreateAudioCue("sfx.footstep.stone.01", AudioBus.Effects, One("footstep-stone-01"), false, 0.22f, new Vector2(0.96f, 1.04f), 0.08f, 2),
+                CreateAudioCue("sfx.footstep.stone.02", AudioBus.Effects, One("footstep-stone-02"), false, 0.22f, new Vector2(0.96f, 1.04f), 0.08f, 2)
             };
 
             return CreateAssetIfMissing<AudioCueCatalog>(DataRoot + "/AudioCueCatalog.asset", serialized =>
@@ -171,7 +171,9 @@ namespace FFSS.Editor
             float volume,
             Vector2 pitch,
             float cooldown,
-            int maximumInstances)
+            int maximumInstances,
+            int fullVolumePlayCount = 0,
+            float repeatedVolumeDb = 0f)
         {
             string fileName = cueId.Replace('.', '_') + ".asset";
             return CreateAssetIfMissing<AudioCueDefinition>(AudioCueRoot + "/" + fileName, serialized =>
@@ -183,6 +185,8 @@ namespace FFSS.Editor
                 serialized.FindProperty("pitchRange").vector2Value = pitch;
                 serialized.FindProperty("cooldownSeconds").floatValue = cooldown;
                 serialized.FindProperty("maximumInstances").intValue = maximumInstances;
+                serialized.FindProperty("fullVolumePlayCount").intValue = fullVolumePlayCount;
+                serialized.FindProperty("repeatedVolumeDb").floatValue = repeatedVolumeDb;
 
                 SerializedProperty clips = serialized.FindProperty("clips");
                 clips.arraySize = clipPaths.Count;

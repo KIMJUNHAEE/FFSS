@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using FFSS.Framework.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -17,6 +18,8 @@ namespace CardBattle
     public class RpsCombatController : MonoBehaviour
     {
         public event System.Action<RpsCombatPresentationSnapshot> PresentationChanged;
+        public event System.Action PlayerTurnStarted;
+        public event System.Action<EnemyRuleExchangeContext> ExchangePreparing;
         public event System.Action<RpsCombatExchangeResult> ExchangeResolved;
         public event System.Action<string, RpsAction> EnemyActionStarted;
         public event System.Action<RpsCombatResult> CombatEnded;
@@ -97,6 +100,25 @@ namespace CardBattle
             public bool HasWeakness => WeaknessRatio > 0f;
             public float PenetrationThreshold { get; }
             public float WeaknessBreakBonus { get; }
+
+            public CombatIntent WithRuleModifiers(int powerDelta, int breakDelta, int powerFloor = 0)
+            {
+                int power = IsStunned ? 0 : Mathf.Max(powerFloor, Mathf.Max(1, Power + powerDelta));
+                int breakPower = IsStunned ? 0 : Mathf.Max(0, BreakPower + breakDelta);
+                return new CombatIntent(
+                    Owner,
+                    Kind,
+                    SourceName,
+                    power,
+                    breakPower,
+                    Formula,
+                    EffectHpDamage,
+                    EffectBreakDamage,
+                    EffectLabel,
+                    WeaknessRatio,
+                    PenetrationThreshold,
+                    WeaknessBreakBonus);
+            }
         }
 
         private readonly struct SeotdaEffect
@@ -341,6 +363,7 @@ namespace CardBattle
 
         private IEnumerator BeginInitialPlayerTurn()
         {
+            PlayerTurnStarted?.Invoke();
             if (battleIntro != null)
             {
                 bool introFinished = false;
@@ -515,15 +538,28 @@ namespace CardBattle
             CombatIntent enemyIntent,
             PokerHandResult resolvedHand)
         {
+            EnemyRuleExchangeContext ruleContext = BuildEnemyRuleContext(playerIntent, enemyIntent, resolvedHand);
+            ExchangePreparing?.Invoke(ruleContext);
+            playerIntent = playerIntent.WithRuleModifiers(
+                ruleContext.playerPowerDelta,
+                ruleContext.playerBreakDelta);
+            enemyIntent = enemyIntent.WithRuleModifiers(
+                ruleContext.enemyPowerDelta,
+                ruleContext.enemyBreakDelta,
+                ruleContext.enemyPowerFloor);
+
             bool enemyWasStunned = enemyIntent.IsStunned;
-            if (enemyActionText) enemyActionText.text = DescribeIntent(enemyIntent);
-            if (enemyStatText) enemyStatText.text = DescribeEnemyStats(enemyIntent);
+            if (enemyActionText) enemyActionText.text = DescribeIntent(enemyIntent, ruleContext.enemyPowerVisibilityRange);
+            if (enemyStatText) enemyStatText.text = DescribeEnemyStats(enemyIntent, ruleContext.enemyPowerVisibilityRange);
 
             yield return new WaitForSeconds(revealDelay);
 
             var outcome = ResolveIntents(playerIntent, enemyIntent);
             ApplyEnemySeotdaEffect(ref outcome, enemyIntent);
-            outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent)}\n{outcome.Message}";
+            ApplyEnemyRuleOutcome(ref outcome, ruleContext);
+            outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent, ruleContext.enemyPowerVisibilityRange)}\n{outcome.Message}";
+            if (!string.IsNullOrWhiteSpace(ruleContext.ruleNote))
+                outcome.Message += $"\n<color=#FFD34E>적 규칙: {ruleContext.ruleNote}</color>";
 
             bool enemyAttackHitPlayer = enemyIntent.IsOffense && outcome.DamageToPlayer > 0;
             bool hasMovePose = enemyIntent.IsOffense && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null;
@@ -837,6 +873,73 @@ namespace CardBattle
 
             return new CombatIntent(enemyDisplayName, kind, sourceName, power, breakPower, formula,
                 effect.HpDamage, effect.BreakDamage, effect.Label);
+        }
+
+        private EnemyRuleExchangeContext BuildEnemyRuleContext(
+            CombatIntent playerIntent,
+            CombatIntent enemyIntent,
+            PokerHandResult hand)
+        {
+            return new EnemyRuleExchangeContext
+            {
+                playerAction = ToFrameworkAction(playerIntent.Kind),
+                enemyAction = ToFrameworkAction(enemyIntent.Kind),
+                playerHand = ToRuleHand(hand.Rank),
+                playerHandTier = hand.Tier,
+                redCardCount = hand.RedCount,
+                blackCardCount = hand.BlackCount,
+                spadeCount = SuitCount(hand, CardSuit.Spade),
+                heartCount = SuitCount(hand, CardSuit.Heart),
+                clubCount = SuitCount(hand, CardSuit.Clover),
+                diamondCount = SuitCount(hand, CardSuit.Diamond),
+                enemyMoveId = MoveId(pendingEnemyMove)
+            };
+        }
+
+        private static void ApplyEnemyRuleOutcome(ref CombatOutcome outcome, EnemyRuleExchangeContext context)
+        {
+            if (context == null)
+                return;
+
+            if (outcome.BreakToPlayer > 0 && context.pressureToPlayerMultiplier > 1f)
+                outcome.BreakToPlayer = Mathf.Max(1, Mathf.RoundToInt(
+                    outcome.BreakToPlayer * context.pressureToPlayerMultiplier));
+            if (context.directDamageToPlayer > 0)
+                outcome.DamageToPlayer += context.directDamageToPlayer;
+        }
+
+        private static int SuitCount(PokerHandResult hand, CardSuit suit)
+        {
+            return hand.SuitCounts != null && hand.SuitCounts.TryGetValue(suit, out int count) ? count : 0;
+        }
+
+        private static CombatActionType ToFrameworkAction(IntentKind kind)
+        {
+            return kind switch
+            {
+                IntentKind.Defend => CombatActionType.Defend,
+                IntentKind.Skill => CombatActionType.Skill,
+                IntentKind.Stunned => CombatActionType.Stunned,
+                _ => CombatActionType.Attack
+            };
+        }
+
+        private static EnemyRuleHandKind ToRuleHand(PokerHandRank rank)
+        {
+            return rank switch
+            {
+                PokerHandRank.HighCard => EnemyRuleHandKind.HighCard,
+                PokerHandRank.OnePair => EnemyRuleHandKind.OnePair,
+                PokerHandRank.TwoPair => EnemyRuleHandKind.TwoPair,
+                PokerHandRank.ThreeKind => EnemyRuleHandKind.ThreeKind,
+                PokerHandRank.Straight => EnemyRuleHandKind.Straight,
+                PokerHandRank.Flush => EnemyRuleHandKind.Flush,
+                PokerHandRank.FullHouse => EnemyRuleHandKind.FullHouse,
+                PokerHandRank.FourKind => EnemyRuleHandKind.FourKind,
+                PokerHandRank.StraightFlush => EnemyRuleHandKind.StraightFlush,
+                PokerHandRank.RoyalFlush => EnemyRuleHandKind.RoyalFlush,
+                _ => EnemyRuleHandKind.None
+            };
         }
 
         private CombatNumbers CalculatePlayerNumbers(PokerHandResult result)
@@ -1198,6 +1301,7 @@ namespace CardBattle
 
         private IEnumerator StartNextPlayerHandRoutine()
         {
+            PlayerTurnStarted?.Invoke();
             PrepareNextEnemyIntent();
             if (combatReadout) combatReadout.SetActive(false);
             yield return ShowTurnBanner("플레이어 턴 시작", true);
@@ -1299,23 +1403,32 @@ namespace CardBattle
             _ => "",
         };
 
-        private static string DescribeIntent(CombatIntent intent)
+        private static string DescribeIntent(CombatIntent intent, int visibilityRange = 0)
         {
             if (intent.IsStunned) return "적: 스턴";
-            return $"<b>{intent.SourceName}</b>\n<size=18>{ActionLabel(intent.Kind)} {intent.Power}</size>";
+            return $"<b>{intent.SourceName}</b>\n<size=18>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</size>";
         }
 
-        private static string DescribeEnemyStats(CombatIntent intent)
+        private static string DescribeEnemyStats(CombatIntent intent, int visibilityRange = 0)
         {
             if (intent.IsStunned) return "적 스턴";
 
             string effect = string.IsNullOrEmpty(intent.EffectLabel) ? "섯다 효과 없음" : intent.EffectLabel;
-            return $"<b>{ActionLabel(intent.Kind)} {intent.Power}</b>\n{intent.Formula}\n{effect}";
+            return $"<b>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</b>\n{intent.Formula}\n{effect}";
         }
 
-        private static string BuildValueLine(CombatIntent player, CombatIntent enemy)
+        private static string BuildValueLine(CombatIntent player, CombatIntent enemy, int visibilityRange = 0)
         {
-            return $"<color=#FFE08A><b>이번 교전</b></color>\n플레이어 {ActionLabel(player.Kind)} <b>{player.Power}</b>  vs  {enemy.SourceName} {ActionLabel(enemy.Kind)} <b>{enemy.Power}</b>";
+            return $"<color=#FFE08A><b>이번 교전</b></color>\n플레이어 {ActionLabel(player.Kind)} <b>{player.Power}</b>  vs  {enemy.SourceName} {ActionLabel(enemy.Kind)} <b>{VisiblePower(enemy.Power, visibilityRange)}</b>";
+        }
+
+        private static string VisiblePower(int power, int visibilityRange)
+        {
+            if (visibilityRange <= 0)
+                return power.ToString();
+
+            int minimum = Mathf.Max(0, power - visibilityRange);
+            return $"{minimum}~{power + visibilityRange}";
         }
 
         private void RefreshHandPreview()

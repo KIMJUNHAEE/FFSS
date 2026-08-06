@@ -289,7 +289,40 @@ namespace FFSS.Framework.Tests
 
             Assert.That(catalog, Is.Not.Null);
             AudioCueDefinition cue = catalog.Get("sfx.card.deal");
-            Assert.That(cue.PickClip(), Is.Not.Null);
+            AudioClip first = cue.PickClip();
+            AudioClip second = cue.PickClip(first);
+            Assert.That(first, Is.Not.Null);
+            Assert.That(second, Is.Not.Null);
+            Assert.That(second, Is.Not.SameAs(first));
+            Assert.That(cue.FullVolumePlayCount, Is.EqualTo(6));
+            Assert.That(cue.RepeatedVolumeDb, Is.EqualTo(-3f));
+            Assert.That(cue.VolumeForSequencePlay(5), Is.EqualTo(cue.Volume).Within(0.0001f));
+            Assert.That(cue.VolumeForSequencePlay(6), Is.LessThan(cue.Volume));
+
+            AudioCueDefinition guard = catalog.Get("sfx.combat.guard");
+            Assert.That(guard.FullVolumePlayCount, Is.EqualTo(1));
+            Assert.That(guard.RepeatedVolumeDb, Is.EqualTo(-5f));
+            Assert.That(guard.VolumeForSequencePlay(0), Is.EqualTo(guard.Volume).Within(0.0001f));
+            Assert.That(guard.VolumeForSequencePlay(1), Is.LessThan(guard.Volume));
+        }
+
+        [Test]
+        public void PlayerPrefabExposesInspectableFootstepConfiguration()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/ClockworkTimekeeperPlayer.prefab");
+            Assert.That(prefab, Is.Not.Null);
+
+            Component controller = prefab.GetComponent("QuarterViewPlayerController");
+            Assert.That(controller, Is.Not.Null);
+            var serialized = new SerializedObject(controller);
+            Assert.That(serialized.FindProperty("playFootsteps").boolValue, Is.True);
+            Assert.That(serialized.FindProperty("footstepInterval").floatValue, Is.EqualTo(0.42f).Within(0.001f));
+
+            SerializedProperty cues = serialized.FindProperty("footstepCueIds");
+            Assert.That(cues.arraySize, Is.EqualTo(2));
+            Assert.That(cues.GetArrayElementAtIndex(0).stringValue, Is.EqualTo("sfx.footstep.stone.01"));
+            Assert.That(cues.GetArrayElementAtIndex(1).stringValue, Is.EqualTo("sfx.footstep.stone.02"));
         }
 
         [Test]
@@ -692,6 +725,8 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.ruleRuntime, Is.Not.Null, encounter.enemyId);
                 Assert.That(behaviorKinds.Add(encounter.ruleRuntime.kind), Is.True, encounter.enemyId);
                 Assert.That(encounter.ruleRuntime.meterGain, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.ruleRuntime.chargedPressureMultiplier, Is.GreaterThanOrEqualTo(1f), encounter.enemyId);
+                Assert.That(encounter.ruleRuntime.finisherPowerFloor, Is.GreaterThan(0), encounter.enemyId);
 
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                     $"Assets/Prefabs/Production/Combat/RuleMeters/EnemyRuleMeter_{encounter.enemyId}.prefab");
@@ -727,6 +762,73 @@ namespace FFSS.Framework.Tests
             Assert.That(manager.Add(encounter, state, -9), Is.Zero);
 
             UnityEngine.Object.DestroyImmediate(host);
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyRuleManagerAppliesInspectableCombatModifiers()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "test.enemy";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "test.rule",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition
+            {
+                kind = EnemyRuleBehaviorKind.PineRedraw,
+                triggerPowerBonus = 4
+            };
+            var state = new EnemyRuleState();
+            state.SetCounter("test.rule", 3);
+            var context = new EnemyRuleExchangeContext
+            {
+                playerAction = CombatActionType.Defend,
+                enemyAction = CombatActionType.Attack
+            };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, context);
+
+            Assert.That(context.enemyPowerDelta, Is.EqualTo(4));
+            Assert.That(context.ruleNote, Does.Contain("솔잎"));
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyRuleManagerAppliesGwangHeatDefenseAndFlare()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "38";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "rule.heat",
+                minimumValue = 0,
+                maximumValue = 6,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition
+            {
+                kind = EnemyRuleBehaviorKind.GwangHeat,
+                triggerPowerBonus = 2,
+                heatDefensePerStack = 1,
+                heatAttackThreshold = 3,
+                heatFlareThreshold = 4,
+                heatFlareDamage = 4
+            };
+            var state = new EnemyRuleState();
+            state.SetCounter("rule.heat", 5);
+            var defense = new EnemyRuleExchangeContext { enemyAction = CombatActionType.Defend };
+            var skill = new EnemyRuleExchangeContext { enemyAction = CombatActionType.Skill };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, defense);
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, skill);
+
+            Assert.That(defense.enemyPowerDelta, Is.EqualTo(5));
+            Assert.That(skill.enemyPowerDelta, Is.EqualTo(2));
+            Assert.That(skill.directDamageToPlayer, Is.EqualTo(4));
             UnityEngine.Object.DestroyImmediate(encounter);
         }
 

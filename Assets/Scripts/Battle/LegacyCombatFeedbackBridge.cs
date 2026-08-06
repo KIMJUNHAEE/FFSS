@@ -61,6 +61,8 @@ namespace CardBattle
 
             source.ExchangeResolved -= HandleExchangeResolved;
             source.ExchangeResolved += HandleExchangeResolved;
+            source.PlayerTurnStarted -= HandlePlayerTurnStarted;
+            source.PlayerTurnStarted += HandlePlayerTurnStarted;
             source.EnemyActionStarted -= HandleEnemyActionStarted;
             source.EnemyActionStarted += HandleEnemyActionStarted;
             if (source.pokerHand != null)
@@ -82,6 +84,7 @@ namespace CardBattle
             if (source != null)
             {
                 source.ExchangeResolved -= HandleExchangeResolved;
+                source.PlayerTurnStarted -= HandlePlayerTurnStarted;
                 source.EnemyActionStarted -= HandleEnemyActionStarted;
                 if (source.pokerHand != null)
                 {
@@ -120,7 +123,7 @@ namespace CardBattle
                     EnemyMoveDefinition move = FindMove(result.EnemyMoveId);
                     PlayAudio(CueOrFallback(move?.impactAudioCue,
                         result.DamageToPlayer >= heavyDamageThreshold ? HeavyHitCue : LightHitCue));
-                    PlayVfx(CueOrFallback(move?.impactVfxCue, EnemyAttackVfxCue()), PlayerTarget());
+                    PlayVfx(CueOrFallback(move?.impactVfxCue, SlashVfxCue), PlayerTarget());
                     PlayTail(move, PlayerTarget());
                 }
                 return;
@@ -144,6 +147,12 @@ namespace CardBattle
 
             PlayAudio(move.anticipationAudioCue);
             PlayVfx(move.anticipationVfxCue, EnemyTarget());
+        }
+
+        private static void HandlePlayerTurnStarted()
+        {
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out AudioManager audio))
+                audio.BeginSequence();
         }
 
         private static void HandleCardMoved()
@@ -174,24 +183,6 @@ namespace CardBattle
             if (source != null && source.pokerHand != null && source.pokerHand.handContainer != null)
                 return source.pokerHand.handContainer;
             return source != null && source.playerHpFill != null ? source.playerHpFill.rectTransform : null;
-        }
-
-        private string EnemyAttackVfxCue()
-        {
-            string enemyId = source != null && source.bossProfile != null ? source.bossProfile.bossId : string.Empty;
-            return enemyId switch
-            {
-                "5땡" => "vfx.enemy.wave",
-                "6땡" => "vfx.enemy.poison",
-                "8땡" => "vfx.enemy.talisman",
-                "9땡" => "vfx.enemy.poison",
-                "10땡" => "vfx.enemy.wind",
-                "18" => "vfx.enemy.talisman",
-                "38" => "vfx.enemy.gwang",
-                "구사" => "vfx.enemy.talisman",
-                "멍구사" => "vfx.enemy.poison",
-                _ => SlashVfxCue
-            };
         }
 
         private EnemyMoveDefinition FindMove(string moveId)
