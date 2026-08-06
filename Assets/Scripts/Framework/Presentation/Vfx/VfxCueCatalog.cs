@@ -9,10 +9,15 @@ namespace FFSS.Framework.Presentation.Vfx
     {
         [SerializeField] private List<VfxCueDefinition> cues = new List<VfxCueDefinition>();
 
+        public bool TryGet(string cueId, out VfxCueDefinition cue)
+        {
+            cue = cues.Find(item => item != null && item.CueId == cueId);
+            return cue != null;
+        }
+
         public VfxCueDefinition Get(string cueId)
         {
-            VfxCueDefinition cue = cues.Find(item => item != null && item.CueId == cueId);
-            if (cue == null)
+            if (!TryGet(cueId, out VfxCueDefinition cue))
             {
                 throw new InvalidOperationException($"VFX cue is not configured: {cueId}");
             }

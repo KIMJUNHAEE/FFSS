@@ -7,6 +7,7 @@ using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
 using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
@@ -189,6 +190,46 @@ namespace FFSS.Framework.Tests
             Assert.That(catalog, Is.Not.Null);
             AudioCueDefinition cue = catalog.Get("sfx.card.deal");
             Assert.That(cue.PickClip(), Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionMediaCatalogsResolveRequiredCombatCues()
+        {
+            AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
+                "Assets/Data/Framework/AudioCueCatalog.asset");
+            Assert.That(audio, Is.Not.Null);
+            string[] audioCueIds =
+            {
+                "bgm.roam", "bgm.event", "bgm.battle",
+                "sfx.card.deal", "sfx.card.reveal",
+                "sfx.combat.slash.light", "sfx.combat.slash.heavy",
+                "sfx.combat.guard", "sfx.combat.break",
+                "sfx.reward.coin", "sfx.node.enter",
+                "sfx.footstep.stone.01", "sfx.footstep.stone.02"
+            };
+            foreach (string cueId in audioCueIds)
+            {
+                AudioCueDefinition cue = audio.Get(cueId);
+                Assert.That(cue, Is.Not.Null, cueId);
+                Assert.That(cue.PickClip(), Is.Not.Null, cueId);
+            }
+
+            VfxCueCatalog vfx = AssetDatabase.LoadAssetAtPath<VfxCueCatalog>(
+                "Assets/Data/Framework/VfxCueCatalog.asset");
+            Assert.That(vfx, Is.Not.Null);
+            string[] vfxCueIds =
+            {
+                "vfx.combat.slash", "vfx.combat.guard", "vfx.combat.break", "vfx.card.reveal",
+                "vfx.enemy.wave", "vfx.enemy.poison", "vfx.enemy.talisman",
+                "vfx.enemy.wind", "vfx.enemy.gwang"
+            };
+            foreach (string cueId in vfxCueIds)
+            {
+                Assert.That(vfx.TryGet(cueId, out VfxCueDefinition cue), Is.True, cueId);
+                GameObject prefab = cue.PickPrefab();
+                Assert.That(prefab, Is.Not.Null, cueId);
+                Assert.That(AssetDatabase.GetAssetPath(prefab), Does.StartWith("Assets/Prefabs/Production/Vfx/"));
+            }
         }
 
         [Test]

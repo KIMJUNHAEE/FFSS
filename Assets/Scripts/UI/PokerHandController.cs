@@ -35,6 +35,9 @@ namespace CardBattle
         private Coroutine combatAnimationRoutine;
 
         public event Action<PokerHandResult> HandChanged;
+        public event Action CardDealt;
+        public event Action CardRedrawn;
+        public event Action HandRetracted;
         public PokerHandResult CurrentResult { get; private set; }
         public bool HasResolvedHand => spawnedCards.Count == handSize && dealRoutine == null && CurrentResult.IsValid;
 
@@ -108,6 +111,7 @@ namespace CardBattle
             {
                 ClearHand();
                 dealRoutine = null;
+                HandRetracted?.Invoke();
                 onComplete?.Invoke();
                 yield break;
             }
@@ -131,6 +135,7 @@ namespace CardBattle
 
             ClearHand();
             dealRoutine = null;
+            HandRetracted?.Invoke();
             onComplete?.Invoke();
         }
 
@@ -192,6 +197,7 @@ namespace CardBattle
             {
                 if (deckPileTransform != null)
                     views[i].PlayDealAnimation(deckPileTransform, dealAnimationDuration);
+                CardDealt?.Invoke();
                 yield return new WaitForSeconds(dealStagger);
             }
 
@@ -224,6 +230,7 @@ namespace CardBattle
                     view.PlayRedrawAnimation(deckPileTransform, sprite, dealAnimationDuration, dealAnimationDuration);
                 else
                     view.Bind(sprite);
+                CardRedrawn?.Invoke();
                 yield return new WaitForSeconds(dealStagger);
             }
 

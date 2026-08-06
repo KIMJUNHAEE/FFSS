@@ -14,6 +14,21 @@ namespace FFSS.Framework.Presentation.Vfx
         private readonly Dictionary<GameObject, GameObject> origins = new Dictionary<GameObject, GameObject>();
         private readonly HashSet<GameObject> activeInstances = new HashSet<GameObject>();
 
+        public bool TryPlay(
+            string cueId,
+            Vector3 position,
+            Quaternion rotation,
+            out GameObject instance,
+            Transform parent = null)
+        {
+            instance = null;
+            if (catalog == null || !catalog.TryGet(cueId, out _))
+                return false;
+
+            instance = Play(cueId, position, rotation, parent);
+            return instance != null;
+        }
+
         public GameObject Play(string cueId, Vector3 position, Quaternion rotation, Transform parent = null)
         {
             VfxCueDefinition cue = catalog.Get(cueId);

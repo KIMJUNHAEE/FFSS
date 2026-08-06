@@ -33,6 +33,8 @@ namespace CardBattle
 
         private Coroutine drawRoutine;
         public SeotdaHandResult LastResult { get; private set; }
+        public event Action<RectTransform> CardRevealed;
+        public event Action HandRetracted;
 
         public void ShowEnemyHandAnimated(Action<SeotdaHandResult> onComplete)
         {
@@ -89,6 +91,7 @@ namespace CardBattle
                 ResetAndHide(cardSlotB);
                 LastResult = default;
                 drawRoutine = null;
+                HandRetracted?.Invoke();
                 onComplete?.Invoke();
                 yield break;
             }
@@ -115,6 +118,7 @@ namespace CardBattle
             foreach (var slot in visibleSlots) ResetAndHide(slot);
             LastResult = default;
             drawRoutine = null;
+            HandRetracted?.Invoke();
             onComplete?.Invoke();
         }
 
@@ -166,6 +170,7 @@ namespace CardBattle
                 {
                     slot.sprite = face;
                     flipped = true;
+                    CardRevealed?.Invoke(rt);
                 }
             });
 
