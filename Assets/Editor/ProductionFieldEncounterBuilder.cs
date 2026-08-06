@@ -2,6 +2,8 @@ using System;
 using CardBattle.Exploration;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Run;
+using FFSS.Framework.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -14,6 +16,7 @@ namespace FFSS.Editor
     {
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
         private const string CatalogPath = "Assets/Data/Framework/EncounterSceneCatalog.asset";
+        private const string CampaignPath = "Assets/Data/Framework/MainCampaign.asset";
         private const string FlowDefinitionPath = "Assets/Data/Framework/GameFlowDefinition.asset";
         private const string KernelPrefabPath = "Assets/Prefabs/Framework/GameKernel.prefab";
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
@@ -21,6 +24,9 @@ namespace FFSS.Editor
         private const string NormalIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/090_map_node_fight.png";
         private const string MidBossIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/091_map_node_elite.png";
         private const string BossIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/095_map_node_boss.png";
+        private const string EventIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/092_map_node_event.png";
+        private const string ShopIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/093_map_node_shop.png";
+        private const string RestIconPath = "Assets/Art/Production/UI/Atlas/00_existing_project_bulk_107/094_map_node_rest.png";
 
         [MenuItem("FFSS/Production/Build Field Encounters")]
         public static void BuildFieldEncounters()
@@ -30,20 +36,47 @@ namespace FFSS.Editor
                 "FieldEncounter_Normal",
                 NormalIconPath,
                 new Color(0.72f, 0.12f, 0.15f, 1f),
-                0.92f);
+                0.92f,
+                false,
+                "적 조우");
             GameObject midBoss = BuildMarkerPrefab(
                 "FieldEncounter_MidBoss",
                 MidBossIconPath,
                 new Color(0.55f, 0.22f, 0.74f, 1f),
-                0.98f);
-            GameObject boss = BuildMarkerPrefab(
-                "FieldEncounter_Boss",
+                0.98f,
+                false,
+                "강적 조우");
+            GameObject eventNode = BuildMarkerPrefab(
+                "FieldContent_Event",
+                EventIconPath,
+                new Color(0.67f, 0.28f, 0.78f, 1f),
+                0.92f,
+                true,
+                "갈림길");
+            GameObject shopNode = BuildMarkerPrefab(
+                "FieldContent_Shop",
+                ShopIconPath,
+                new Color(0.2f, 0.72f, 0.48f, 1f),
+                0.92f,
+                true,
+                "유돌이의 행상");
+            GameObject restNode = BuildMarkerPrefab(
+                "FieldContent_Rest",
+                RestIconPath,
+                new Color(0.2f, 0.58f, 0.92f, 1f),
+                0.92f,
+                true,
+                "쉼터");
+            GameObject bossDoor = BuildMarkerPrefab(
+                "FieldContent_BossDoor",
                 BossIconPath,
                 new Color(0.92f, 0.2f, 0.16f, 1f),
-                1.06f);
+                1.06f,
+                true,
+                "보스문");
 
             ConfigureFlowDefinition();
-            ConfigureFieldScene(normal, midBoss, boss);
+            ConfigureFieldScene(normal, midBoss, eventNode, shopNode, restNode, bossDoor);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS production field encounters are configured as direct world interactions.");
@@ -53,14 +86,17 @@ namespace FFSS.Editor
             string prefabName,
             string iconPath,
             Color auraColor,
-            float visualScale)
+            float visualScale,
+            bool runContent,
+            string defaultLabel)
         {
             Sprite icon = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath);
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             if (icon == null || font == null)
                 throw new InvalidOperationException($"Field marker asset is missing: {iconPath}");
 
-            var root = new GameObject(prefabName, typeof(FieldEncounterMarkerView), typeof(FieldEncounterNode));
+            Type nodeType = runContent ? typeof(FieldRunContentNode) : typeof(FieldEncounterNode);
+            var root = new GameObject(prefabName, typeof(FieldEncounterMarkerView), nodeType);
             var visual = new GameObject("Billboard");
             visual.transform.SetParent(root.transform, false);
             visual.transform.localScale = Vector3.one * visualScale;
@@ -74,7 +110,7 @@ namespace FFSS.Editor
             main.transform.localPosition = new Vector3(0f, 1.7f, 0f);
 
             Canvas canvas = CreateLabelCanvas(visual.transform);
-            Text label = CreateLabel(canvas.transform, font);
+            Text label = CreateLabel(canvas.transform, font, defaultLabel);
 
             FieldEncounterMarkerView markerView = root.GetComponent<FieldEncounterMarkerView>();
             SerializedObject view = new SerializedObject(markerView);
@@ -84,7 +120,7 @@ namespace FFSS.Editor
             view.FindProperty("nameText").objectReferenceValue = label;
             view.ApplyModifiedPropertiesWithoutUndo();
 
-            FieldEncounterNode node = root.GetComponent<FieldEncounterNode>();
+            Component node = root.GetComponent(nodeType);
             SerializedObject nodeSerialized = new SerializedObject(node);
             nodeSerialized.FindProperty("markerView").objectReferenceValue = markerView;
             nodeSerialized.ApplyModifiedPropertiesWithoutUndo();
@@ -121,7 +157,7 @@ namespace FFSS.Editor
             return canvas;
         }
 
-        private static Text CreateLabel(Transform parent, Font font)
+        private static Text CreateLabel(Transform parent, Font font, string defaultLabel)
         {
             var labelObject = new GameObject("Name Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(Outline));
             RectTransform rect = labelObject.GetComponent<RectTransform>();
@@ -133,7 +169,7 @@ namespace FFSS.Editor
 
             Text text = labelObject.GetComponent<Text>();
             text.font = font;
-            text.text = "적 조우";
+            text.text = defaultLabel;
             text.fontSize = 40;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
@@ -148,7 +184,13 @@ namespace FFSS.Editor
             return text;
         }
 
-        private static void ConfigureFieldScene(GameObject normal, GameObject midBoss, GameObject boss)
+        private static void ConfigureFieldScene(
+            GameObject normal,
+            GameObject midBoss,
+            GameObject eventNode,
+            GameObject shopNode,
+            GameObject restNode,
+            GameObject bossDoor)
         {
             Scene scene = EditorSceneManager.OpenScene(FieldScenePath, OpenSceneMode.Single);
             HexTileMapGenerator generator = UnityEngine.Object.FindFirstObjectByType<HexTileMapGenerator>();
@@ -160,14 +202,19 @@ namespace FFSS.Editor
                 distributor = generator.gameObject.AddComponent<FieldEncounterDistributor>();
 
             EncounterSceneCatalog catalog = AssetDatabase.LoadAssetAtPath<EncounterSceneCatalog>(CatalogPath);
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(CampaignPath);
             QuarterViewPlayerController player = UnityEngine.Object.FindFirstObjectByType<QuarterViewPlayerController>();
             SerializedObject field = new SerializedObject(distributor);
             field.FindProperty("catalog").objectReferenceValue = catalog;
+            field.FindProperty("campaign").objectReferenceValue = campaign;
             field.FindProperty("mapGenerator").objectReferenceValue = generator;
             field.FindProperty("player").objectReferenceValue = player != null ? player.transform : null;
             field.FindProperty("normalMarkerPrefab").objectReferenceValue = normal;
             field.FindProperty("midBossMarkerPrefab").objectReferenceValue = midBoss;
-            field.FindProperty("bossMarkerPrefab").objectReferenceValue = boss;
+            field.FindProperty("eventMarkerPrefab").objectReferenceValue = eventNode;
+            field.FindProperty("shopMarkerPrefab").objectReferenceValue = shopNode;
+            field.FindProperty("restMarkerPrefab").objectReferenceValue = restNode;
+            field.FindProperty("bossDoorMarkerPrefab").objectReferenceValue = bossDoor;
             field.ApplyModifiedPropertiesWithoutUndo();
 
             SerializedObject map = new SerializedObject(generator);
@@ -209,7 +256,8 @@ namespace FFSS.Editor
 
             SerializedObject serialized = new SerializedObject(entry);
             serialized.FindProperty("state").enumValueIndex = (int)GameFlowState.Field;
-            serialized.FindProperty("showInitialScreen").boolValue = false;
+            serialized.FindProperty("showInitialScreen").boolValue = true;
+            serialized.FindProperty("initialScreen").enumValueIndex = (int)UIScreenId.FieldHud;
             serialized.FindProperty("musicCueId").stringValue = "bgm.roam";
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -217,18 +265,31 @@ namespace FFSS.Editor
         private static void ConfigureFlowDefinition()
         {
             GameFlowDefinition definition = AssetDatabase.LoadAssetAtPath<GameFlowDefinition>(FlowDefinitionPath);
-            if (definition == null || definition.Allows(GameFlowState.Boot, GameFlowState.Field))
+            if (definition == null)
                 return;
 
             SerializedObject serialized = new SerializedObject(definition);
             SerializedProperty transitions = serialized.FindProperty("transitions");
+            AddTransition(definition, transitions, GameFlowState.Boot, GameFlowState.Field);
+            AddTransition(definition, transitions, GameFlowState.Reward, GameFlowState.ActTransition);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(definition);
+        }
+
+        private static void AddTransition(
+            GameFlowDefinition definition,
+            SerializedProperty transitions,
+            GameFlowState from,
+            GameFlowState to)
+        {
+            if (definition.Allows(from, to))
+                return;
+
             int index = transitions.arraySize;
             transitions.InsertArrayElementAtIndex(index);
             SerializedProperty transition = transitions.GetArrayElementAtIndex(index);
-            transition.FindPropertyRelative("from").enumValueIndex = (int)GameFlowState.Boot;
-            transition.FindPropertyRelative("to").enumValueIndex = (int)GameFlowState.Field;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(definition);
+            transition.FindPropertyRelative("from").enumValueIndex = (int)from;
+            transition.FindPropertyRelative("to").enumValueIndex = (int)to;
         }
 
         private static void EnsureFolder(string path)

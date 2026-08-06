@@ -46,6 +46,7 @@ namespace CardBattle.UI
 
         private readonly List<UnityAction> actionCallbacks = new List<UnityAction>();
         private string sourceId;
+        private string progressNodeId;
         private int selectedAction;
         private int page;
         private Coroutine refreshRoutine;
@@ -55,7 +56,7 @@ namespace CardBattle.UI
 
         public void Configure(string contextId)
         {
-            sourceId = contextId ?? string.Empty;
+            DecodeContext(contextId, out progressNodeId, out sourceId);
             selectedAction = 0;
             if (isActiveAndEnabled && GameKernel.IsReady)
             {
@@ -593,6 +594,7 @@ namespace CardBattle.UI
             if (index < definition.choices.Count &&
                 GameKernel.Services.Get<RunEconomyManager>().ResolveEvent(sourceId, definition.choices[index].choiceId))
             {
+                ResolveProgressNode();
                 CloseToField();
             }
         }
@@ -603,6 +605,7 @@ namespace CardBattle.UI
             if (index < options.Count &&
                 GameKernel.Services.Get<RunEconomyManager>().UseRest(sourceId, options[index].type))
             {
+                ResolveProgressNode();
                 CloseToField();
             }
         }
@@ -627,7 +630,7 @@ namespace CardBattle.UI
         {
             RunState run = CurrentRun();
             string bossId = GameKernel.Services.Get<RunProgressionManager>().Campaign.GetAct(run.act).bossId;
-            GameKernel.Services.Get<EncounterFlowManager>().TryEnterEncounter(bossId);
+            GameKernel.Services.Get<EncounterFlowManager>().TryEnterEncounter(bossId, progressNodeId);
         }
 
         private void ClaimReward()
@@ -636,9 +639,7 @@ namespace CardBattle.UI
             string selectedCard = selectedAction < run.pokerDeck.cards.Count
                 ? run.pokerDeck.cards[selectedAction].instanceId
                 : null;
-            GameKernel.Services.Get<RunManager>().ClaimReward(null, selectedCard);
-            GameKernel.Services.Get<GameFlowManager>().TryChangeState(GameFlowState.Field);
-            EnterField();
+            GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(null, selectedCard);
         }
 
         private static void EnterFieldOrResult()
@@ -677,8 +678,23 @@ namespace CardBattle.UI
         {
             if (GameKernel.IsReady)
             {
+                if (ScreenId == UIScreenId.Shop || ScreenId == UIScreenId.Event || ScreenId == UIScreenId.Rest)
+                {
+                    GameKernel.Services.Get<GameFlowManager>().TryChangeState(GameFlowState.Field);
+                }
                 GameKernel.Services.Get<UIManager>().Hide(ScreenId);
             }
+        }
+
+        public static RunUIScreenController ShowScreen(
+            UIScreenId id,
+            string nodeId = "",
+            string contentId = "")
+        {
+            string context = string.IsNullOrWhiteSpace(nodeId)
+                ? contentId ?? string.Empty
+                : $"{nodeId}::{contentId}";
+            return Show(id, context);
         }
 
         private static RunUIScreenController Show(UIScreenId id, string contextId = "")
@@ -687,6 +703,29 @@ namespace CardBattle.UI
             RunUIScreenController controller = shown.GetComponent<RunUIScreenController>();
             controller?.Configure(contextId);
             return controller;
+        }
+
+        private void ResolveProgressNode()
+        {
+            if (!string.IsNullOrWhiteSpace(progressNodeId))
+            {
+                GameKernel.Services.Get<RunProgressionManager>().ResolveNode(progressNodeId);
+            }
+        }
+
+        private static void DecodeContext(string context, out string nodeId, out string contentId)
+        {
+            string value = context ?? string.Empty;
+            int separator = value.IndexOf("::", StringComparison.Ordinal);
+            if (separator < 0)
+            {
+                nodeId = string.Empty;
+                contentId = value;
+                return;
+            }
+
+            nodeId = value.Substring(0, separator);
+            contentId = value.Substring(separator + 2);
         }
 
         private static RunState CurrentRun()

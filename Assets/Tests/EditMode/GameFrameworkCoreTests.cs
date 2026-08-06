@@ -592,19 +592,35 @@ namespace FFSS.Framework.Tests
         [Test]
         public void ProductionFieldUsesInspectableEncounterPrefabs()
         {
-            string[] prefabPaths =
+            string[] encounterPrefabPaths =
             {
                 "Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab",
-                "Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab",
-                "Assets/Prefabs/Production/Field/FieldEncounter_Boss.prefab"
+                "Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab"
             };
 
-            foreach (string path in prefabPaths)
+            foreach (string path in encounterPrefabPaths)
             {
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 Assert.That(prefab, Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldEncounterNode"), Is.Not.Null, path);
+                Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+            }
+
+            string[] contentPrefabPaths =
+            {
+                "Assets/Prefabs/Production/Field/FieldContent_Event.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_Shop.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_Rest.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_BossDoor.prefab"
+            };
+
+            foreach (string path in contentPrefabPaths)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.That(prefab, Is.Not.Null, path);
+                Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
+                Assert.That(prefab.GetComponent("FieldRunContentNode"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
             }
         }
@@ -617,7 +633,16 @@ namespace FFSS.Framework.Tests
             try
             {
                 Assert.That(FindInScene(scene, "HexTileMapGenerator"), Is.Not.Null);
-                Assert.That(FindInScene(scene, "FieldEncounterDistributor"), Is.Not.Null);
+                Component distributor = FindInScene(scene, "FieldEncounterDistributor");
+                Assert.That(distributor, Is.Not.Null);
+                var serialized = new SerializedObject(distributor);
+                Assert.That(serialized.FindProperty("campaign").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("normalMarkerPrefab").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("midBossMarkerPrefab").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("eventMarkerPrefab").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("shopMarkerPrefab").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("restMarkerPrefab").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("bossDoorMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(FindInScene<GameKernel>(scene), Is.Not.Null);
                 Assert.That(FindInScene<SceneEntryPoint>(scene), Is.Not.Null);
             }
@@ -629,6 +654,7 @@ namespace FFSS.Framework.Tests
             GameFlowDefinition flow = AssetDatabase.LoadAssetAtPath<GameFlowDefinition>(
                 "Assets/Data/Framework/GameFlowDefinition.asset");
             Assert.That(flow.Allows(GameFlowState.Boot, GameFlowState.Field), Is.True);
+            Assert.That(flow.Allows(GameFlowState.Reward, GameFlowState.ActTransition), Is.True);
         }
 
         [Test]

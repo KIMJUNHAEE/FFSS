@@ -140,6 +140,7 @@ namespace FFSS.Framework.Run
         public PlayerRunState player = new PlayerRunState();
         public RunPokerDeckState pokerDeck = new RunPokerDeckState();
         public EnemyRuleState activeEnemyRule;
+        public string activeEncounterNodeId;
         public CombatEncounterState activeCombat;
         public RunRewardState pendingReward;
         public List<string> equippedItemIds = new List<string>();

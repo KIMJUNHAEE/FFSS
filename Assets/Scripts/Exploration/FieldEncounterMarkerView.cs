@@ -72,6 +72,18 @@ namespace CardBattle.Exploration
             }
         }
 
+        public void Configure(string displayName, Color accent)
+        {
+            if (nameText != null)
+                nameText.text = displayName ?? string.Empty;
+
+            if (auraRenderer != null)
+            {
+                accent.a = 0.42f;
+                auraRenderer.color = accent;
+            }
+        }
+
         public void SetFocused(bool value)
         {
             if (focused == value)

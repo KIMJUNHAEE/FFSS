@@ -57,7 +57,7 @@ namespace CardBattle
 
         private void HandleCombatEnded(RpsCombatResult result)
         {
-            if (handled || !result.Victory || !GameKernel.IsReady)
+            if (handled || !GameKernel.IsReady)
                 return;
 
             RunManager runs = GameKernel.Services.Get<RunManager>();
@@ -66,16 +66,33 @@ namespace CardBattle
 
             handled = true;
             EncounterFlowManager flow = GameKernel.Services.Get<EncounterFlowManager>();
+            if (!result.Victory)
+            {
+                string enemyId = runs.Current.activeEnemyRule.enemyId;
+                GameKernel.Services.Get<RunProgressionManager>()
+                    .CompleteDefeat("전투에서 쓰러짐", enemyId);
+                resultView?.ShowWithAction(
+                    false,
+                    $"{result.EnemyName}에게 패배했다. 이번 판의 기록을 확인하자.",
+                    "런 결과",
+                    () =>
+                    {
+                        GameKernel.Services.Get<GameFlowManager>().TryChangeState(GameFlowState.Result);
+                        GameKernel.Services.Get<SceneFlowManager>().TryLoad(GameSceneId.Result);
+                    });
+                return;
+            }
+
             RunRewardState reward = flow.CompleteVictory(result.PlayerHp, result.PlayerPressure);
             resultView?.ShowWithAction(
                 true,
                 $"{result.EnemyName} 격파  ·  엽전 +{reward.gold}\n전리품을 챙기고 필드로 돌아가자",
-                "획득하고 복귀",
+                "전리품 확인",
                 () =>
                 {
                     if (GameKernel.Services.TryGet(out AudioManager audio))
                         audio.Play("sfx.reward.coin");
-                    flow.ClaimRewardAndReturnToField();
+                    flow.OpenRewardScreen();
                 });
         }
     }

@@ -7,6 +7,7 @@ namespace CardBattle.Exploration
     public sealed class FieldEncounterNode : MonoBehaviour
     {
         [SerializeField] private string enemyId;
+        [SerializeField] private string nodeId;
         [SerializeField] private Transform player;
         [SerializeField] private FieldEncounterMarkerView markerView;
         [SerializeField, Min(0.25f)] private float focusRadius = 1.6f;
@@ -17,10 +18,12 @@ namespace CardBattle.Exploration
         private bool loading;
 
         public string EnemyId => enemyId;
+        public string NodeId => nodeId;
 
-        public void Configure(string id, Transform playerTarget, float radius)
+        public void Configure(string id, Transform playerTarget, float radius, string encounterNodeId = "")
         {
             enemyId = id;
+            nodeId = encounterNodeId ?? string.Empty;
             player = playerTarget;
             activationRadius = Mathf.Max(0.2f, radius);
             focusRadius = Mathf.Max(activationRadius + 0.35f, activationRadius * 1.75f);
@@ -54,7 +57,7 @@ namespace CardBattle.Exploration
 
             loading = FFSS.Framework.Core.GameKernel.Services
                 .Get<EncounterFlowManager>()
-                .TryEnterEncounter(enemyId);
+                .TryEnterEncounter(enemyId, nodeId);
         }
 
         private static bool GameKernelReady()

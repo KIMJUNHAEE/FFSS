@@ -51,10 +51,11 @@ namespace FFSS.Framework.Run
             events.Publish(new RunRestoredEvent(Current));
         }
 
-        public EnemyRuleState BeginEncounter(string enemyId)
+        public EnemyRuleState BeginEncounter(string enemyId, string nodeId = null)
         {
             RequireRun();
             Current.activeEnemyRule = new EnemyRuleState { enemyId = enemyId };
+            Current.activeEncounterNodeId = nodeId ?? string.Empty;
             return Current.activeEnemyRule;
         }
 
@@ -69,7 +70,14 @@ namespace FFSS.Framework.Run
         {
             RequireRun();
             Current.activeEnemyRule = null;
+            Current.activeEncounterNodeId = string.Empty;
             Current.activeCombat = null;
+        }
+
+        public void ClearEncounterNode()
+        {
+            RequireRun();
+            Current.activeEncounterNodeId = string.Empty;
         }
 
         public void UpdatePlayerVitals(int currentHp, int currentPressure)

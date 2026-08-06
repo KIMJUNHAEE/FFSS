@@ -1,7 +1,9 @@
 using System;
 using FFSS.Framework.Core;
+using FFSS.Framework.Combat;
 using FFSS.Framework.Persistence;
 using FFSS.Framework.Run;
+using FFSS.Framework.UI;
 using UnityEngine;
 
 namespace FFSS.Framework.Flow
@@ -51,7 +53,7 @@ namespace FFSS.Framework.Flow
             return $"encounter.{enemyId}";
         }
 
-        public bool TryEnterEncounter(string enemyId)
+        public bool TryEnterEncounter(string enemyId, string nodeId = null)
         {
             if (string.IsNullOrWhiteSpace(enemyId))
             {
@@ -66,7 +68,9 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
-            if (runs.Current.completedEventIds.Contains(GetCompletionId(enemyId)))
+            string completionId = string.IsNullOrWhiteSpace(nodeId) ? GetCompletionId(enemyId) : nodeId;
+            if (runs.Current.completedEncounterIds.Contains(completionId) ||
+                runs.Current.completedEventIds.Contains(completionId))
             {
                 return false;
             }
@@ -77,7 +81,7 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
-            runs.BeginEncounter(entry.enemyId);
+            runs.BeginEncounter(entry.enemyId, nodeId);
             if (!scenes.TryLoadSceneName(entry.sceneName))
             {
                 runs.CancelEncounter();
@@ -98,13 +102,20 @@ namespace FFSS.Framework.Flow
             }
 
             EncounterSceneEntry entry = catalog.Get(runs.Current.activeEnemyRule.enemyId);
+            string nodeId = runs.Current.activeEncounterNodeId;
             runs.UpdatePlayerVitals(playerHp, playerPressure);
-            string completionId = GetCompletionId(entry.enemyId);
-            if (!runs.Current.completedEventIds.Contains(completionId))
+            string completionId = string.IsNullOrWhiteSpace(nodeId) ? GetCompletionId(entry.enemyId) : nodeId;
+            if (!runs.Current.completedEncounterIds.Contains(completionId))
             {
-                runs.Current.completedEventIds.Add(completionId);
+                runs.Current.completedEncounterIds.Add(completionId);
             }
 
+            if (!string.IsNullOrWhiteSpace(nodeId))
+            {
+                services.Get<RunProgressionManager>().ResolveNode(nodeId);
+            }
+
+            runs.Current.result.defeatedEnemies++;
             runs.CompleteEncounter();
             RunRewardState reward = runs.PrepareReward(entry.enemyId, entry.rewardGold);
             services.Get<GameFlowManager>().TryChangeState(GameFlowState.Reward);
@@ -112,7 +123,7 @@ namespace FFSS.Framework.Flow
             return reward;
         }
 
-        public bool ClaimRewardAndReturnToField()
+        public bool OpenRewardScreen()
         {
             RunManager runs = services.Get<RunManager>();
             if (runs.Current?.pendingReward == null)
@@ -120,20 +131,51 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
-            GameFlowManager flow = services.Get<GameFlowManager>();
-            SceneFlowManager scenes = services.Get<SceneFlowManager>();
-            if (scenes.IsLoading || !scenes.CanLoad(GameSceneId.Field) ||
-                !flow.TryChangeState(GameFlowState.Field))
+            services.Get<UIManager>().Show(UIScreenId.Reward);
+            return true;
+        }
+
+        public bool ClaimRewardAndContinue(string selectedItemId = null, string selectedCardInstanceId = null)
+        {
+            RunManager runs = services.Get<RunManager>();
+            RunRewardState pending = runs.Current?.pendingReward;
+            if (pending == null)
             {
                 return false;
             }
 
-            if (!scenes.TryLoad(GameSceneId.Field))
-            {
-                throw new InvalidOperationException("Field scene became unavailable after validation.");
-            }
+            EncounterSceneEntry entry = catalog.Get(pending.enemyId);
+            bool completedBoss = entry.encounter.rank == EnemyEncounterRank.Boss;
+            RunRewardState claimed = runs.ClaimReward(selectedItemId, selectedCardInstanceId);
+            runs.Current.result.earnedGold += claimed.gold;
+            runs.ClearEncounterNode();
 
-            RunRewardState claimed = runs.ClaimReward();
+            UIManager ui = services.Get<UIManager>();
+            ui.Hide(UIScreenId.Reward, false);
+            GameFlowManager flow = services.Get<GameFlowManager>();
+            SceneFlowManager scenes = services.Get<SceneFlowManager>();
+            if (completedBoss)
+            {
+                if (!flow.TryChangeState(GameFlowState.ActTransition))
+                {
+                    return false;
+                }
+
+                ui.Show(UIScreenId.ActTransition);
+            }
+            else
+            {
+                if (scenes.IsLoading || !scenes.CanLoad(GameSceneId.Field) ||
+                    !flow.TryChangeState(GameFlowState.Field))
+                {
+                    return false;
+                }
+
+                if (!scenes.TryLoad(GameSceneId.Field))
+                {
+                    throw new InvalidOperationException("Field scene became unavailable after validation.");
+                }
+            }
 
             if (services.TryGet(out SaveManager saves))
             {
@@ -142,6 +184,11 @@ namespace FFSS.Framework.Flow
 
             events.Publish(new EncounterRewardClaimedEvent(claimed));
             return true;
+        }
+
+        public bool ClaimRewardAndReturnToField()
+        {
+            return ClaimRewardAndContinue();
         }
 
         protected override void OnInitialize(GameServiceContext context)

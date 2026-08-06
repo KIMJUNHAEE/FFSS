@@ -142,6 +142,23 @@ namespace CardBattle.Exploration
             hasRuntimeSeed = true;
         }
 
+        public void ConfigureRunLayout(int targetTileCount, int contentNodeCount)
+        {
+            int target = Mathf.Max(12, targetTileCount);
+            int branches = Mathf.Max(1, contentNodeCount - 1);
+            int trunk = Mathf.Clamp(Mathf.RoundToInt(target * 0.36f), 10, Mathf.Max(10, target - branches));
+            int branchBudget = Mathf.Max(branches, target - trunk);
+            int averageBranchLength = Mathf.Max(1, Mathf.RoundToInt(branchBudget / (float)branches));
+
+            mainPathLength = trunk;
+            branchCount = branches;
+            minBranchLength = Mathf.Max(1, averageBranchLength - 1);
+            maxBranchLength = Mathf.Max(minBranchLength, averageBranchLength + 1);
+            softRadiusLimit = Mathf.Max(6, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.35f));
+            minInteractionHexDistance = 2;
+            interactionTileChance = 0f;
+        }
+
         public void ClearRuntimeSeed()
         {
             runtimeSeed = 0;
