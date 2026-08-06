@@ -34,6 +34,7 @@ namespace CardBattle
 
         private Coroutine drawRoutine;
         private BossCombatProfile profile;
+        private FFSS.Framework.Combat.EnemySeotdaDeckDefinition exclusiveDeckAsset;
         private FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition signatureCardAsset;
         private OpponentSeotdaCardDefinition signatureDefinition;
         private Sprite signatureSprite;
@@ -46,6 +47,7 @@ namespace CardBattle
         public SeotdaHandResult LastResult { get; private set; }
         public SeotdaHandResult PreparedResult { get; private set; }
         public EnemySeotdaHandBand PreparedHandBand => ruleState?.Seotda.preview.handBand ?? EnemySeotdaHandBand.Low;
+        public FFSS.Framework.Combat.EnemySeotdaDeckDefinition ExclusiveDeckAsset => exclusiveDeckAsset;
         public FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition ExclusiveCardAsset => signatureCardAsset;
         public Sprite ExclusiveCardSprite => signatureSprite;
         public Sprite PreparedFaceSprite => preparedFaceSprite;
@@ -304,6 +306,15 @@ namespace CardBattle
             }
 
             profile = combatProfile;
+            exclusiveDeckAsset = combatProfile.exclusiveSeotdaDeck;
+            if (exclusiveDeckAsset != null && exclusiveDeckAsset.IsConfigured)
+            {
+                deckSprites = exclusiveDeckAsset.cards
+                    .Where(card => card != null && card.faceSprite != null)
+                    .Select(card => card.faceSprite)
+                    .ToList();
+                backSprite = exclusiveDeckAsset.backSprite;
+            }
             signatureCardAsset = combatProfile.exclusiveSeotdaCard;
             signatureDefinition = signatureCardAsset != null && signatureCardAsset.IsConfigured
                 ? CreateRuntimeDefinition(signatureCardAsset)
@@ -510,11 +521,14 @@ namespace CardBattle
                     ? signatureDefinition.Month
                     : signatureDefinition.TriggerMonth;
 
-            Sprite profilePartner = FindProfilePartner(requiredMonth);
-            if (profilePartner != null)
+            Sprite deckPartner = deckSprites.FirstOrDefault(sprite =>
+                sprite != null &&
+                SeotdaHandEvaluator.TryParse(sprite, out int month, out _) &&
+                month == requiredMonth);
+            if (deckPartner != null)
             {
-                RemoveFromShoe(profilePartner.name);
-                return profilePartner;
+                RemoveFromShoe(deckPartner.name);
+                return deckPartner;
             }
 
             if (requiredMonth <= 0)
@@ -522,14 +536,12 @@ namespace CardBattle
                 return null;
             }
 
-            Sprite candidate = deckSprites.FirstOrDefault(sprite =>
-                sprite != null && SeotdaHandEvaluator.TryParse(sprite, out int month, out _) &&
-                month == requiredMonth);
-            if (candidate != null)
+            Sprite profilePartner = FindProfilePartner(requiredMonth);
+            if (profilePartner != null)
             {
-                RemoveFromShoe(candidate.name);
+                RemoveFromShoe(profilePartner.name);
             }
-            return candidate;
+            return profilePartner;
         }
 
         private Sprite FindProfilePartner(int requiredMonth)

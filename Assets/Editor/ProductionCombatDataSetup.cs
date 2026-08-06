@@ -10,6 +10,7 @@ namespace FFSS.Editor
         {
             ProductionCombatFoundationBuilder.BuildMissingCombatFoundation();
             ProductionEncounterMigrationBuilder.BuildMissingEncounterDefinitions();
+            ProductionEnemySeotdaDeckBuilder.BuildEnemySeotdaDecks();
             ProductionSeotdaCardBuilder.BuildEnemyExclusiveSeotdaCards();
             ProductionEnemyRuleBuilder.BuildEnemyRuleMeters();
             ProductionVfxCueBuilder.BuildCombatVfxPrefabsAndCues();

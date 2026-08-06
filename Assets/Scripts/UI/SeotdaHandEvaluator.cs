@@ -62,11 +62,24 @@ namespace CardBattle
             isGwang = false;
             if (sprite == null) return false;
 
-            var parts = sprite.name.Split('_');
-            if (parts.Length < 3) return false;
-            if (!int.TryParse(parts[0], out month)) return false;
+            string[] parts = sprite.name.Split('_');
+            if (parts.Length < 2) return false;
 
-            isGwang = parts[2] == "1" && (month == 1 || month == 3 || month == 8);
+            string monthToken = parts[0];
+            int digitCount = 0;
+            while (digitCount < monthToken.Length && char.IsDigit(monthToken[digitCount]))
+            {
+                digitCount++;
+            }
+            if (digitCount == 0 || !int.TryParse(monthToken.Substring(0, digitCount), out month))
+            {
+                return false;
+            }
+
+            bool gwangMonth = month == 1 || month == 3 || month == 8;
+            bool dedicatedDeckPrimary = parts[1] == "A";
+            bool legacyGwang = parts.Length >= 3 && parts[2] == "1";
+            isGwang = gwangMonth && (dedicatedDeckPrimary || legacyGwang);
             return true;
         }
 

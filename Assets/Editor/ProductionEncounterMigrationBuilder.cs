@@ -60,6 +60,7 @@ namespace FFSS.Editor
             encounter.combatTitle = source.combatTitle;
             encounter.primaryColor = source.accentColor;
             encounter.secondaryColor = source.secondaryAccentColor;
+            encounter.exclusiveSeotdaDeck = source.exclusiveSeotdaDeck;
             encounter.exclusiveSeotdaCard = source.exclusiveSeotdaCard;
             encounter.signatureCardA = source.signatureCardA;
             encounter.signatureCardB = source.signatureCardB;

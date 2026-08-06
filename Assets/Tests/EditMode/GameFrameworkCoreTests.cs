@@ -1040,6 +1040,10 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
                 Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaDeck, Is.Not.Null, encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaDeck.IsConfigured, Is.True, encounter.enemyId);
+                Assert.That(encounter.exclusiveSeotdaDeck.enemyId, Is.EqualTo(encounter.enemyId));
+                Assert.That(encounter.exclusiveSeotdaDeck.cards, Has.Count.EqualTo(20), encounter.enemyId);
                 Assert.That(encounter.exclusiveSeotdaCard, Is.Not.Null, encounter.enemyId);
                 Assert.That(encounter.exclusiveSeotdaCard.IsConfigured, Is.True, encounter.enemyId);
                 Assert.That(encounter.exclusiveSeotdaCard.enemyId, Is.EqualTo(encounter.enemyId));
@@ -1108,7 +1112,52 @@ namespace FFSS.Framework.Tests
                 Assert.That(profile.exclusiveSeotdaCard.enemyId, Is.EqualTo(profile.bossId));
                 Assert.That(profile.exclusiveSeotdaCard.faceSprite, Is.Not.Null, profile.bossId);
                 Assert.That(profile.exclusiveSeotdaCard.RequiredPartnerMonth, Is.InRange(1, 10), profile.bossId);
+                Assert.That(profile.exclusiveSeotdaDeck, Is.Not.Null, profile.bossId);
+                Assert.That(profile.exclusiveSeotdaDeck.IsConfigured, Is.True, profile.bossId);
+                Assert.That(profile.exclusiveSeotdaDeck.cards.Select(card => card.month).Distinct(),
+                    Is.EquivalentTo(Enumerable.Range(1, 10)), profile.bossId);
+                Assert.That(profile.exclusiveSeotdaDeck.cards.Count(card => card.variant == "A"),
+                    Is.EqualTo(10), profile.bossId);
+                Assert.That(profile.exclusiveSeotdaDeck.cards.Count(card => card.variant == "B"),
+                    Is.EqualTo(10), profile.bossId);
             }
+        }
+
+        [Test]
+        public void DedicatedSeotdaDeckNamesPreserveMonthAndGwangMeaning()
+        {
+            var texture = new Texture2D(2, 2);
+            Sprite primary = Sprite.Create(texture, new Rect(0f, 0f, 2f, 2f), Vector2.zero);
+            Sprite secondary = Sprite.Create(texture, new Rect(0f, 0f, 2f, 2f), Vector2.zero);
+            try
+            {
+                primary.name = "03월_A_38광땡_광열 군림";
+                secondary.name = "03월_B_38광땡_광열 군림";
+
+                Assert.That(CardBattle.SeotdaHandEvaluator.TryParse(primary, out int primaryMonth,
+                    out bool primaryGwang), Is.True);
+                Assert.That(CardBattle.SeotdaHandEvaluator.TryParse(secondary, out int secondaryMonth,
+                    out bool secondaryGwang), Is.True);
+                Assert.That(primaryMonth, Is.EqualTo(3));
+                Assert.That(secondaryMonth, Is.EqualTo(3));
+                Assert.That(primaryGwang, Is.True);
+                Assert.That(secondaryGwang, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(primary);
+                UnityEngine.Object.DestroyImmediate(secondary);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
+        public void ProductionBuildAlwaysStartsAtTitle()
+        {
+            Assert.That(EditorBuildSettings.scenes, Is.Not.Empty);
+            Assert.That(EditorBuildSettings.scenes[0].enabled, Is.True);
+            Assert.That(EditorBuildSettings.scenes[0].path,
+                Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));
         }
 
         [Test]

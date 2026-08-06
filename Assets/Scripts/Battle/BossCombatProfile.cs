@@ -107,6 +107,8 @@ namespace CardBattle
         [Header("보스 패와 UI")]
         public string combatTitle;
         public Color secondaryAccentColor = new(1f, 0.78f, 0.22f, 1f);
+        [Tooltip("The complete 20-card Seotda deck and back owned by this enemy.")]
+        public FFSS.Framework.Combat.EnemySeotdaDeckDefinition exclusiveSeotdaDeck;
         [Tooltip("Inspector-visible enemy-exclusive Seotda card used during signature windows.")]
         public FFSS.Framework.Combat.EnemySeotdaSignatureCardDefinition exclusiveSeotdaCard;
         public Sprite signatureCardA;
