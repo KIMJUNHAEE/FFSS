@@ -210,7 +210,14 @@ namespace CardBattle.UI
             SetText(heading, $"제{run.act}막");
             SetText(subtitle, FieldRegionName(run));
             SetText(currency, $"{run.gold}냥");
-            SetText(status, $"HP {run.player.currentHp}/{run.player.maxHp}  ·  압박 {run.player.currentPressure}/{run.player.maxPressure}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
+            string risk = run.act switch
+            {
+                1 => "경계",
+                2 => "위험",
+                _ => "극위험"
+            };
+            SetText(status,
+                $"주변 위험 {risk}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
             SetGauge(hpGauge, run.player.currentHp, run.player.maxHp);
             SetGauge(pressureGauge, run.player.currentPressure, run.player.maxPressure);
             SetGauge(hpGaugeFill, run.player.currentHp, run.player.maxHp);
