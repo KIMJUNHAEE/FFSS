@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02f5fe925a534f04a1dfba5bd96c9b88, type: 3}
+  m_Name: GameFlowDefinition
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Flow.GameFlowDefinition
+  initialState: 0
+  transitions:
+  - from: 0
+    to: 1
+  - from: 1
+    to: 2
+  - from: 1
+    to: 3
+  - from: 2
+    to: 1
+  - from: 2
+    to: 3
+  - from: 3
+    to: 4
+  - from: 3
+    to: 5
+  - from: 3
+    to: 8
+  - from: 3
+    to: 9
+  - from: 3
+    to: 10
+  - from: 4
+    to: 3
+  - from: 4
+    to: 5
+  - from: 4
+    to: 7
+  - from: 5
+    to: 6
+  - from: 5
+    to: 7
+  - from: 5
+    to: 10
+  - from: 6
+    to: 5
+  - from: 7
+    to: 3
+  - from: 8
+    to: 3
+  - from: 9
+    to: 3
+  - from: 9
+    to: 10
+  - from: 10
+    to: 1
