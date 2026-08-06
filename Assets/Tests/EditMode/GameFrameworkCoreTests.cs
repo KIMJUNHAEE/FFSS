@@ -1,8 +1,10 @@
 using System;
 using FFSS.Framework.Core;
+using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
 using FFSS.Framework.Run;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace FFSS.Framework.Tests
@@ -92,6 +94,24 @@ namespace FFSS.Framework.Tests
             Assert.That(restored.schemaVersion, Is.EqualTo(SaveGameData.CurrentSchemaVersion));
             Assert.That(restored.run.runId, Is.EqualTo("test-run"));
             Assert.That(restored.run.gold, Is.EqualTo(21));
+        }
+
+        [Test]
+        public void GameFlowDefinitionOnlyAllowsConfiguredTransitions()
+        {
+            GameFlowDefinition definition = ScriptableObject.CreateInstance<GameFlowDefinition>();
+            var serialized = new SerializedObject(definition);
+            SerializedProperty transitions = serialized.FindProperty("transitions");
+            transitions.arraySize = 1;
+            SerializedProperty transition = transitions.GetArrayElementAtIndex(0);
+            transition.FindPropertyRelative("from").enumValueIndex = (int)GameFlowState.Title;
+            transition.FindPropertyRelative("to").enumValueIndex = (int)GameFlowState.Field;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.That(definition.Allows(GameFlowState.Title, GameFlowState.Field), Is.True);
+            Assert.That(definition.Allows(GameFlowState.Title, GameFlowState.Combat), Is.False);
+
+            Object.DestroyImmediate(definition);
         }
 
         private sealed class TestService : IGameService
