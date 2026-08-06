@@ -308,7 +308,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 39842c0cc900c614bb0197c00dc90cc6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.QuarterViewCameraFollow
   target: {fileID: 503973407}
   offset: {x: 0, y: 5.8, z: -9.5}
@@ -327,7 +327,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -519,7 +519,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 87a18851e3b04ba45ab6a458d5884023, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Flow.SceneEntryPoint
   state: 3
   showInitialScreen: 1
@@ -584,7 +584,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f4e13f752a64df3a72ee54bb1222042, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.HexTileMapGenerator
   tileResourceFolder: ClockworkTimekeeper/HexTiles
   plainRoadTextureName: hex_plain_road
@@ -600,6 +600,7 @@ MonoBehaviour:
   plainRoadUvPadding: 0.04
   interactionUvPadding: 0.04
   randomSeed: 1701
+  targetTileCount: 40
   mainPathLength: 18
   branchCount: 6
   minBranchLength: 3
@@ -607,6 +608,7 @@ MonoBehaviour:
   softRadiusLimit: 5
   minInteractionHexDistance: 4
   interactionTileChance: 0
+  plannedContentNodeCount: 8
   generateOnStart: 1
   generatePreviewInEditMode: 1
   playerTarget: {fileID: 503973407}
@@ -621,7 +623,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a32626e9593c25c4ab773cc486cb3238, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldEncounterDistributor
   catalog: {fileID: 11400000, guid: 51892f281553c6146afaed12688193d7, type: 2}
   campaign: {fileID: 11400000, guid: 0ada0c07eb965bb4fbee0249a2c6b310, type: 2}
@@ -636,7 +638,212 @@ MonoBehaviour:
   shopMarkerPrefab: {fileID: 965083705713623650, guid: f4bb822883da46746934e33d6776e001, type: 3}
   restMarkerPrefab: {fileID: 1612615166755239316, guid: 1c6048ada28af064e977414ab70c63b6, type: 3}
   bossDoorMarkerPrefab: {fileID: 8867689967054464166, guid: 485dcacba9145b7429641984b0459c1e, type: 3}
+  ambientLandmarkPrefab: {fileID: 1970966151959688245, guid: 1348397330dade0458c7fb7aaeacbcb8, type: 3}
   activationRadius: 0.85
+  landmarkVisuals:
+  - act: 1
+    contentType: 0
+    variant: 1
+    displayName: "\uBD81\uBB38 \uC9C4\uC785\uBB38"
+    sprite: {fileID: 21300000, guid: d7e4e5c4a5d24cd4aac4c44bbf1f714c, type: 3}
+    targetHeight: 3.8
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 0
+    variant: 2
+    displayName: "\uC7A5\uD130 \uC57D\uBC29"
+    sprite: {fileID: 21300000, guid: 3e8042dabad4cca4f8389ddb9ddd9a92, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 2
+    variant: 1
+    displayName: "\uBB34\uB108\uC9C4 \uC7A5\uD130 \uC218\uB808"
+    sprite: {fileID: 21300000, guid: d92ef0ed4ab23ea42835d8ce858b9274, type: 3}
+    targetHeight: 1.8
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 2
+    variant: 2
+    displayName: "\uC7A0\uAE34 \uC57D\uBC29 \uC57D\uADA4"
+    sprite: {fileID: 21300000, guid: fc81b50ffdce4314494a640514df4faf, type: 3}
+    targetHeight: 1.9
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 2
+    variant: 3
+    displayName: "\uBD80\uC11C\uC9C4 \uC2DC\uACC4\uD0D1 \uC885"
+    sprite: {fileID: 21300000, guid: f693093a347e49740ad74abf68532857, type: 3}
+    targetHeight: 2
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 3
+    variant: 1
+    displayName: "\uC7A5\uD130 \uC0C1\uC778 \uCC9C\uB9C9"
+    sprite: {fileID: 21300000, guid: 5478f6e319aa9724db6a245abf372283, type: 3}
+    targetHeight: 3.15
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 4
+    variant: 1
+    displayName: "\uC6B0\uBB3C \uC27C\uD130"
+    sprite: {fileID: 21300000, guid: 78f3481b2936d6049a7e83cfa74c0b2b, type: 3}
+    targetHeight: 3.25
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 6
+    variant: 1
+    displayName: "13\uAD11\uB561 \uB3D9\uCABD \uB9DD\uB8E8"
+    sprite: {fileID: 21300000, guid: 0ac0201c86f6a714ab97d48c3f8f07fc, type: 3}
+    targetHeight: 4.15
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 1
+    displayName: "\uC218\uB85C \uC9C4\uB8CC\uC18C"
+    sprite: {fileID: 21300000, guid: 86502d519d2047141a4594b43e425f36, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 2
+    displayName: "\uAD00\uC544 \uCC3D\uACE0"
+    sprite: {fileID: 21300000, guid: 8752e20a236973c4585b83eb04642fca, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 2
+    variant: 1
+    displayName: "\uB3C5\uBB3C\uAE38 \uBC38\uBE0C"
+    sprite: {fileID: 21300000, guid: 21fc234b86c899c4fa78d864549ea796, type: 3}
+    targetHeight: 1.65
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 2
+    variant: 2
+    displayName: "\uC816\uC740 \uC7A5\uBD80 \uCC45\uC0C1"
+    sprite: {fileID: 21300000, guid: 3749f2990d0c6e54fb12ce89a92b886f, type: 3}
+    targetHeight: 1.55
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 2
+    variant: 3
+    displayName: "\uB300\uC7A5\uAC04 \uD654\uB85C"
+    sprite: {fileID: 21300000, guid: 37860617618a2ef47bc69b1c0dee2417, type: 3}
+    targetHeight: 1.65
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 2
+    variant: 4
+    displayName: "\uC811\uD78C \uB2E4\uB9AC"
+    sprite: {fileID: 21300000, guid: f9abd04925b519f4188fad266ba7625e, type: 3}
+    targetHeight: 1.55
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 3
+    variant: 1
+    displayName: "\uC218\uB85C \uC9C4\uB8CC\uC18C"
+    sprite: {fileID: 21300000, guid: 86502d519d2047141a4594b43e425f36, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 3
+    variant: 2
+    displayName: "\uD64D\uC2F8\uB9AC \uB300\uC7A5\uAC04"
+    sprite: {fileID: 21300000, guid: e96696f5a12cff24d86b7e9c276d230f, type: 3}
+    targetHeight: 3.4
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 4
+    variant: 1
+    displayName: "\uBC30\uC218\uAD6C \uC27C\uD130"
+    sprite: {fileID: 21300000, guid: 5ea77e544e96e834eba5aecbf2aaf481, type: 3}
+    targetHeight: 3.25
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 6
+    variant: 1
+    displayName: "18\uAD11\uB561 \uC911\uC559 \uC885\uD0D1"
+    sprite: {fileID: 21300000, guid: bc6476536fa5d6946b6dd48fc461a5af, type: 3}
+    targetHeight: 4.15
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 1
+    displayName: "\uAD6C\uC0AC \uBD89\uC740 \uAD81\uBB38"
+    sprite: {fileID: 21300000, guid: 1f362f6745606504890f3302bb1b585a, type: 3}
+    targetHeight: 3.8
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 2
+    displayName: "\uC554\uD589\uC5B4\uC0AC \uAC80\uC740 \uAD00\uC544"
+    sprite: {fileID: 21300000, guid: fb5715c8fca940f4cba2a1f977c3aabd, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 2
+    variant: 1
+    displayName: "\uC0AC\uB2F9 \uB4F1\uBD88"
+    sprite: {fileID: 21300000, guid: 3e90473cd69d2124db3117995e4e0125, type: 3}
+    targetHeight: 1.65
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 2
+    variant: 2
+    displayName: "\uAD00\uC544 \uAC80\uBB38 \uC7A5\uBCBD"
+    sprite: {fileID: 21300000, guid: ce00d51ec3929db448129ea1624ca477, type: 3}
+    targetHeight: 1.75
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 2
+    variant: 3
+    displayName: "\uAD11\uD328 \uADE0\uC5F4 \uC7A5\uCE58"
+    sprite: {fileID: 21300000, guid: cd326aca508cb0b41b65148defe27d2c, type: 3}
+    targetHeight: 1.75
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 2
+    variant: 4
+    displayName: "\uB9C8\uC9C0\uB9C9 \uBCF4\uAE09 \uB9C8\uCC28"
+    sprite: {fileID: 21300000, guid: 7d978b11d8fcd2d4cb29217c0a038e8f, type: 3}
+    targetHeight: 1.85
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 2
+    variant: 5
+    displayName: "\uBB34\uB108\uC9C4 \uC2DC\uAC04 \uB2E4\uB9AC"
+    sprite: {fileID: 21300000, guid: 1600a8765376b8743847d1fccf179f59, type: 3}
+    targetHeight: 1.75
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 3
+    variant: 1
+    displayName: "\uB9C8\uC9C0\uB9C9 \uC8FC\uB9C9"
+    sprite: {fileID: 21300000, guid: 4bfb7dcbb33421841a1aa8f4ac7a783f, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 3
+    variant: 2
+    displayName: "\uCD5C\uC885 \uC0C1\uC810 \uD68C\uB791"
+    sprite: {fileID: 21300000, guid: 7149b41ee4ba4c54cbf0a38705af5ba4, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 4
+    variant: 1
+    displayName: "\uD3D0\uAD81 \uC0AC\uB2F9 \uC27C\uD130"
+    sprite: {fileID: 21300000, guid: 5fa63dcafed003645914db965e822237, type: 3}
+    targetHeight: 3.25
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 6
+    variant: 1
+    displayName: "38\uAD11\uB561 \uCD5C\uC885 \uC815\uC804"
+    sprite: {fileID: 21300000, guid: a6876aacc2dce124a9d9097501f0ac43, type: 3}
+    targetHeight: 4.3
+    localOffset: {x: 0, y: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

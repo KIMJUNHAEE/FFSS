@@ -33,14 +33,16 @@ namespace FFSS.Editor
 
                 string fileName = Path.GetFileNameWithoutExtension(sourcePath);
                 string destinationPath = $"{EncounterRoot}/{fileName}.asset";
-                if (AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(destinationPath) != null)
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(destinationPath);
+                if (encounter == null)
                 {
-                    continue;
+                    encounter = CreateEncounter(source);
+                    AssetDatabase.CreateAsset(encounter, destinationPath);
+                    createdCount++;
                 }
 
-                EnemyEncounterDefinition encounter = CreateEncounter(source);
-                AssetDatabase.CreateAsset(encounter, destinationPath);
-                createdCount++;
+                ConfigureFieldVisual(encounter, source.bossId);
+                EditorUtility.SetDirty(encounter);
             }
 
             AssetDatabase.SaveAssets();
@@ -88,6 +90,96 @@ namespace FFSS.Editor
             }
 
             return encounter;
+        }
+
+        private static void ConfigureFieldVisual(EnemyEncounterDefinition encounter, string enemyId)
+        {
+            Sprite sprite = FindFieldSprite(enemyId);
+            if (sprite == null)
+                return;
+
+            encounter.fieldSprite = sprite;
+            if (!TryReadOpaqueBounds(sprite, out RectInt bounds))
+            {
+                float height = Mathf.Max(0.01f, sprite.bounds.size.y);
+                encounter.fieldVisualScale = 2.8f / height;
+                encounter.fieldVisualOffset = Vector2.zero;
+                return;
+            }
+
+            float pixelsPerUnit = Mathf.Max(1f, sprite.pixelsPerUnit);
+            float visibleHeight = Mathf.Max(1f, bounds.height) / pixelsPerUnit;
+            float scale = 2.8f / visibleHeight;
+            float centerOffset = bounds.center.x - sprite.pivot.x;
+            float bottomOffset = bounds.yMin - sprite.pivot.y;
+            encounter.fieldVisualScale = scale;
+            encounter.fieldVisualOffset = new Vector2(
+                -centerOffset / pixelsPerUnit * scale,
+                -bottomOffset / pixelsPerUnit * scale);
+        }
+
+        private static Sprite FindFieldSprite(string enemyId)
+        {
+            string idleRoot = $"Assets/Enemy/{enemyId}/{enemyId}_Idle";
+            if (AssetDatabase.IsValidFolder(idleRoot))
+            {
+                string[] idleGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { idleRoot });
+                Array.Sort(idleGuids, CompareAssetPaths);
+                for (int i = 0; i < idleGuids.Length; i++)
+                {
+                    Sprite idle = AssetDatabase.LoadAssetAtPath<Sprite>(AssetDatabase.GUIDToAssetPath(idleGuids[i]));
+                    if (idle != null)
+                        return idle;
+                }
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Enemy/{enemyId}/{enemyId}.png");
+        }
+
+        private static bool TryReadOpaqueBounds(Sprite sprite, out RectInt bounds)
+        {
+            bounds = default;
+            string path = AssetDatabase.GetAssetPath(sprite);
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return false;
+
+            byte[] bytes = File.ReadAllBytes(path);
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            try
+            {
+                if (!ImageConversion.LoadImage(texture, bytes, false))
+                    return false;
+
+                Color32[] pixels = texture.GetPixels32();
+                int minX = texture.width;
+                int minY = texture.height;
+                int maxX = -1;
+                int maxY = -1;
+                for (int y = 0; y < texture.height; y++)
+                {
+                    int row = y * texture.width;
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        if (pixels[row + x].a <= 16)
+                            continue;
+
+                        minX = Mathf.Min(minX, x);
+                        minY = Mathf.Min(minY, y);
+                        maxX = Mathf.Max(maxX, x);
+                        maxY = Mathf.Max(maxY, y);
+                    }
+                }
+
+                if (maxX < minX || maxY < minY)
+                    return false;
+
+                bounds = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+                return true;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
         }
 
         private static EnemyMoveDefinition CreateMove(BossMoveDefinition source)

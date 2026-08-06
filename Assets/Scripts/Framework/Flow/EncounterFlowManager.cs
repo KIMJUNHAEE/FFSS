@@ -40,6 +40,10 @@ namespace FFSS.Framework.Flow
 
     public sealed class EncounterFlowManager : GameServiceBehaviour
     {
+        private const int RewardCardChoiceCount = 3;
+        private const float NormalAct1ItemDropChance = 0.38f;
+        private const float NormalItemDropChancePerAct = 0.07f;
+
         [SerializeField] private EncounterSceneCatalog catalog;
         [SerializeField, Range(0, 7)] private int autoSaveSlot;
 
@@ -81,6 +85,7 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
+            services.Get<UIManager>().HideAll(false);
             runs.BeginEncounter(entry.enemyId, nodeId);
             if (!scenes.TryLoadSceneName(entry.sceneName))
             {
@@ -93,7 +98,7 @@ namespace FFSS.Framework.Flow
             return true;
         }
 
-        public RunRewardState CompleteVictory(int playerHp, int playerPressure)
+        public RunRewardState CompleteVictory(int playerHp, int playerPressure, int enemyBreaksTriggered = 0)
         {
             RunManager runs = services.Get<RunManager>();
             if (runs.Current?.activeEnemyRule == null)
@@ -115,9 +120,14 @@ namespace FFSS.Framework.Flow
                 services.Get<RunProgressionManager>().ResolveNode(nodeId);
             }
 
-            runs.Current.result.defeatedEnemies++;
+            RunState run = runs.Current;
+            run.result.defeatedEnemies++;
             runs.CompleteEncounter();
-            RunRewardState reward = runs.PrepareReward(entry.enemyId, entry.rewardGold);
+            RunRewardState reward = runs.PrepareReward(
+                entry.enemyId,
+                entry.rewardGold,
+                BuildRewardItemChoices(run, entry, enemyBreaksTriggered),
+                BuildRewardCardChoices(run, RewardCardChoiceCount));
             services.Get<GameFlowManager>().TryChangeState(GameFlowState.Reward);
             events.Publish(new EncounterRewardPreparedEvent(reward));
             return reward;
@@ -131,7 +141,7 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
-            services.Get<UIManager>().Show(UIScreenId.Reward);
+            services.Get<UIManager>().ShowExclusive(UIScreenId.Reward);
             return true;
         }
 
@@ -206,6 +216,152 @@ namespace FFSS.Framework.Flow
         {
             services = null;
             events = null;
+        }
+
+        private static string[] BuildRewardItemChoices(
+            RunState run,
+            EncounterSceneEntry entry,
+            int enemyBreaksTriggered)
+        {
+            if (run == null || entry?.rewardItemIds == null || entry.rewardItemIds.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var rng = run.CreateRng();
+            int targetCount = RewardItemChoiceCount(run, entry, rng, enemyBreaksTriggered);
+            if (targetCount <= 0)
+            {
+                run.StoreRng(rng);
+                return Array.Empty<string>();
+            }
+
+            var candidates = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < entry.rewardItemIds.Count; i++)
+            {
+                string itemId = entry.rewardItemIds[i];
+                if (string.IsNullOrWhiteSpace(itemId) ||
+                    run.inventoryItemIds.Contains(itemId) ||
+                    run.equippedItemIds.Contains(itemId) ||
+                    candidates.Contains(itemId))
+                {
+                    continue;
+                }
+
+                candidates.Add(itemId);
+            }
+
+            var choices = new System.Collections.Generic.List<string>();
+            while (candidates.Count > 0 && choices.Count < targetCount)
+            {
+                int index = PickWeightedRewardItemIndex(rng, entry, candidates);
+                choices.Add(candidates[index]);
+                candidates.RemoveAt(index);
+            }
+
+            run.StoreRng(rng);
+            return choices.ToArray();
+        }
+
+        private static int PickWeightedRewardItemIndex(
+            DeterministicRng rng,
+            EncounterSceneEntry entry,
+            System.Collections.Generic.IReadOnlyList<string> candidates)
+        {
+            if (candidates == null || candidates.Count == 0)
+            {
+                return 0;
+            }
+
+            int totalWeight = 0;
+            var weights = new int[candidates.Count];
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                int sourceIndex = entry.rewardItemIds.IndexOf(candidates[i]);
+                int weight = sourceIndex >= 0 &&
+                             entry.rewardItemWeights != null &&
+                             sourceIndex < entry.rewardItemWeights.Count
+                    ? entry.rewardItemWeights[sourceIndex]
+                    : 1;
+                weights[i] = Mathf.Max(0, weight);
+                totalWeight += weights[i];
+            }
+
+            if (totalWeight <= 0)
+            {
+                return rng.Range(0, candidates.Count);
+            }
+
+            int roll = rng.Range(0, totalWeight);
+            for (int i = 0; i < weights.Length; i++)
+            {
+                roll -= weights[i];
+                if (roll < 0)
+                {
+                    return i;
+                }
+            }
+
+            return candidates.Count - 1;
+        }
+
+        private static int RewardItemChoiceCount(
+            RunState run,
+            EncounterSceneEntry entry,
+            DeterministicRng rng,
+            int enemyBreaksTriggered)
+        {
+            EnemyEncounterRank rank = entry?.encounter != null
+                ? entry.encounter.rank
+                : EnemyEncounterRank.Normal;
+            switch (rank)
+            {
+                case EnemyEncounterRank.Boss:
+                    return 3;
+                case EnemyEncounterRank.MidBoss:
+                    return 2;
+                default:
+                    float chance = NormalAct1ItemDropChance +
+                                   Mathf.Max(0, run.act - 1) * NormalItemDropChancePerAct +
+                                   RunRewardRules.ItemChanceBonusForEnemyBreaks(enemyBreaksTriggered);
+                    return rng.Value() <= Mathf.Clamp01(chance) ? 1 : 0;
+            }
+        }
+
+        private static string[] BuildRewardCardChoices(RunState run, int count)
+        {
+            if (run?.pokerDeck?.cards == null || count <= 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            run.pokerDeck.EnsureCollections();
+            var candidates = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < run.pokerDeck.cards.Count; i++)
+            {
+                RunCardState card = run.pokerDeck.cards[i];
+                if (card == null ||
+                    string.IsNullOrWhiteSpace(card.instanceId) ||
+                    card.enhancementLevel >= 3 ||
+                    candidates.Contains(card.instanceId))
+                {
+                    continue;
+                }
+
+                candidates.Add(card.instanceId);
+            }
+
+            var choices = new System.Collections.Generic.List<string>();
+            var rng = run.CreateRng();
+            while (candidates.Count > 0 && choices.Count < count)
+            {
+                int index = rng.Range(0, candidates.Count);
+                choices.Add(candidates[index]);
+                candidates.RemoveAt(index);
+            }
+
+            run.StoreRng(rng);
+            return choices.ToArray();
         }
     }
 }

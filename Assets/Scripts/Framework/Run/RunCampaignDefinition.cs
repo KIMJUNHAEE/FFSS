@@ -15,7 +15,7 @@ namespace FFSS.Framework.Run
         [Min(0)] public int requiredNormalVictories = 5;
         [Min(0)] public int requiredEvents = 3;
         [Min(0)] public int shopCount = 1;
-        [Min(0)] public int restCount = 1;
+        [Min(0)] public int restCount = 0;
         public List<string> normalEnemyIds = new List<string>();
         public List<string> eventIds = new List<string>();
         public List<string> midBossIds = new List<string>();

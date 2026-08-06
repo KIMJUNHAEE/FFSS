@@ -31,10 +31,25 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
+            SetState(next);
+            return true;
+        }
+
+        public void SynchronizeSceneState(GameFlowState sceneState)
+        {
+            if (Current == sceneState)
+            {
+                return;
+            }
+
+            SetState(sceneState);
+        }
+
+        private void SetState(GameFlowState next)
+        {
             GameFlowState previous = Current;
             Current = next;
             events.Publish(new GameFlowChangedEvent(previous, Current));
-            return true;
         }
 
         protected override void OnInitialize(GameServiceContext context)

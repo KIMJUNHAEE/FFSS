@@ -29,6 +29,8 @@ namespace FFSS.Framework.Run
     [Serializable]
     public sealed class RunPokerDeckState
     {
+        public const int MaximumManipulationCandidates = 7;
+
         public List<RunCardState> cards = new List<RunCardState>();
         public List<string> heldCardInstanceIds = new List<string>();
         public List<string> reservedDraws = new List<string>();
@@ -36,9 +38,14 @@ namespace FFSS.Framework.Run
         public List<string> revealedTopOrder = new List<string>();
         public List<string> resolvedEquipmentIds = new List<string>();
         public bool redrawUsedThisTurn;
+        public bool reservedDrawUsedThisTurn;
+        public bool orderedDrawUsedThisTurn;
         [UnityEngine.Range(0, 2)] public int bonusRedraws;
         public int redrawsUsedThisTurn;
         public string activeHonedCardInstanceId;
+
+        public int RedrawLimit => 1 + Math.Min(2, Math.Max(0, bonusRedraws));
+        public int RedrawsRemaining => Math.Max(0, RedrawLimit - redrawsUsedThisTurn);
 
         public void BeginTurn()
         {
@@ -46,13 +53,15 @@ namespace FFSS.Framework.Run
             revealedTopOrder.Clear();
             resolvedEquipmentIds.Clear();
             redrawUsedThisTurn = false;
+            reservedDrawUsedThisTurn = false;
+            orderedDrawUsedThisTurn = false;
             redrawsUsedThisTurn = 0;
             activeHonedCardInstanceId = string.Empty;
         }
 
         public bool TryUseRedraw()
         {
-            if (redrawsUsedThisTurn >= 1 + Math.Min(2, Math.Max(0, bonusRedraws)))
+            if (RedrawsRemaining <= 0)
             {
                 return false;
             }
@@ -95,7 +104,7 @@ namespace FFSS.Framework.Run
         public bool TryConsumeReservedDraw(out string instanceId)
         {
             EnsureCollections();
-            if (reservedDraws.Count == 0)
+            if (reservedDrawUsedThisTurn || reservedDraws.Count == 0)
             {
                 instanceId = string.Empty;
                 return false;
@@ -103,6 +112,22 @@ namespace FFSS.Framework.Run
 
             instanceId = reservedDraws[0];
             reservedDraws.RemoveAt(0);
+            reservedDrawUsedThisTurn = true;
+            return true;
+        }
+
+        public bool TryConsumeOrderedDraw(out string instanceId)
+        {
+            EnsureCollections();
+            if (reservedDrawUsedThisTurn || orderedDrawUsedThisTurn || revealedTopOrder.Count == 0)
+            {
+                instanceId = string.Empty;
+                return false;
+            }
+
+            instanceId = revealedTopOrder[0];
+            revealedTopOrder.RemoveAt(0);
+            orderedDrawUsedThisTurn = true;
             return true;
         }
 
@@ -129,6 +154,10 @@ namespace FFSS.Framework.Run
             foreach (string instanceId in instanceIds)
             {
                 AddUnique(revealedTopOrder, instanceId);
+                if (revealedTopOrder.Count >= MaximumManipulationCandidates)
+                {
+                    break;
+                }
             }
         }
 

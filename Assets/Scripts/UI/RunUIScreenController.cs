@@ -33,6 +33,11 @@ namespace CardBattle.UI
         [SerializeField] private Text status;
         [SerializeField] private Slider hpGauge;
         [SerializeField] private Slider pressureGauge;
+        [SerializeField] private Image hpGaugeFill;
+        [SerializeField] private Image pressureGaugeFill;
+        [SerializeField] private Text hpGaugeText;
+        [SerializeField] private Text attackValueText;
+        [SerializeField] private Text defenseValueText;
 
         [Header("Commands")]
         [SerializeField] private Button closeButton;
@@ -203,11 +208,39 @@ namespace CardBattle.UI
             }
 
             SetText(heading, $"제{run.act}막");
-            SetText(subtitle, run.regionId);
+            SetText(subtitle, FieldRegionName(run));
             SetText(currency, $"{run.gold}냥");
             SetText(status, $"HP {run.player.currentHp}/{run.player.maxHp}  ·  압박 {run.player.currentPressure}/{run.player.maxPressure}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
             SetGauge(hpGauge, run.player.currentHp, run.player.maxHp);
             SetGauge(pressureGauge, run.player.currentPressure, run.player.maxPressure);
+            SetGauge(hpGaugeFill, run.player.currentHp, run.player.maxHp);
+            SetGauge(pressureGaugeFill, run.player.currentPressure, run.player.maxPressure);
+            SetText(hpGaugeText, $"HP {run.player.currentHp} / {run.player.maxHp}");
+            SetText(attackValueText, run.player.AttackForTurn(2).ToString());
+            SetText(defenseValueText, run.player.DefenseForTurn(2).ToString());
+        }
+
+        private static string FieldRegionName(RunState run)
+        {
+            if (GameKernel.Services.TryGet(out RunProgressionManager progression))
+            {
+                RunActDefinition act = progression.Campaign.GetAct(run.act);
+                if (!string.IsNullOrWhiteSpace(act.displayName))
+                {
+                    int separator = act.displayName.IndexOf(':');
+                    return separator >= 0
+                        ? act.displayName.Substring(separator + 1).Trim()
+                        : act.displayName.Trim();
+                }
+            }
+
+            return run.regionId switch
+            {
+                "act1_north_gate" => "북문 패거리",
+                "act2_poison_canal" => "독수로",
+                "act3_ruined_palace" => "무너진 궁",
+                _ => run.regionId
+            };
         }
 
         private void RefreshFieldMap()
@@ -223,7 +256,7 @@ namespace CardBattle.UI
             SetText(body, act.bossDoorUnlocked
                 ? "보스문이 열렸다. 지도 끝의 붉은 문양으로 향하자."
                 : $"보스문 조건: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")}");
-            string[] labels = { "전투", "사건", "상점", "휴식", "보스문" };
+            string[] labels = { "전투", "사건", "상점", "보스문" };
             for (int i = 0; i < actions.Count; i++)
             {
                 SetAction(i, i < labels.Length ? labels[i] : string.Empty, MapCountDetail(run, i), i < labels.Length);
@@ -345,16 +378,28 @@ namespace CardBattle.UI
             SetText(currency, reward == null ? "보상 없음" : $"{reward.gold}냥 획득");
             SetText(body, "장비를 선택하거나 카드 한 장을 연마하고, 다음 지역으로 돌아간다.");
             int itemCount = reward?.itemChoiceIds.Count ?? 0;
+            int cardCount = reward?.cardChoiceInstanceIds?.Count ?? 0;
             for (int i = 0; i < actions.Count; i++)
             {
                 if (i < itemCount)
                 {
-                    SetAction(i, reward.itemChoiceIds[i], "장비 보상", true);
+                    string itemId = reward.itemChoiceIds[i];
+                    EquipmentDefinition item = EquipmentCatalog.Get(itemId);
+                    string label = item != null ? item.DisplayName : itemId;
+                    string detail = item != null ? $"{RarityLabel(item.Rarity)} 장비 · {item.EffectText}" : "장비 보상";
+                    SetAction(i, label, detail, true);
                 }
-                else if (i - itemCount < run.pokerDeck.cards.Count)
+                else if (i - itemCount < cardCount)
                 {
-                    RunCardState card = run.pokerDeck.cards[i - itemCount];
-                    SetAction(i, card.cardId, $"카드 연마 +{card.enhancementLevel + 1}", true);
+                    string cardInstanceId = reward.cardChoiceInstanceIds[i - itemCount];
+                    RunCardState card = run.pokerDeck.FindCard(cardInstanceId);
+                    if (card == null)
+                    {
+                        SetAction(i, string.Empty, string.Empty, false);
+                        continue;
+                    }
+
+                    SetAction(i, card.cardId, $"카드 연마 {card.enhancementLevel} → {card.enhancementLevel + 1}", true);
                 }
                 else
                 {
@@ -402,9 +447,31 @@ namespace CardBattle.UI
         private void RefreshActTransition()
         {
             RunState run = CurrentRun();
-            RunActDefinition act = GameKernel.Services.Get<RunProgressionManager>().Campaign.GetAct(run.act);
-            SetText(heading, $"제{run.act}막 돌파");
-            SetText(body, $"{act.actRewardGold}냥 · HP {act.transitionHealPercent}% 회복 · 카드 정비 1회\n다음 막의 단서를 확인하고 길을 이어 간다.");
+            RunCampaignDefinition campaign = GameKernel.Services.Get<RunProgressionManager>().Campaign;
+            RunActDefinition act = campaign.GetAct(run.act);
+            bool isFinalAct = run.act >= campaign.Acts.Count;
+            string restId = RunProgressionManager.IntermissionRestId(run.act);
+            bool consumedRest = run.consumedRestIds.Contains(restId);
+
+            SetText(heading, isFinalAct ? "최종 판 돌파" : $"제{run.act}막 돌파");
+            SetText(subtitle, isFinalAct ? $"{act.bossId} 격파" : "막 사이 휴식 · 정비");
+            SetText(body, isFinalAct
+                ? $"{act.actRewardGold}냥을 받고 정산으로 넘어간다."
+                : $"{act.actRewardGold}냥을 받고 다음 막에 들어가기 전 한 가지만 고른다.\n선택 없이 진행하면 기본 휴식으로 HP {act.transitionHealPercent}%를 회복한다.");
+            SetText(primaryLabel, isFinalAct ? "정산 보기" : "다음 막으로");
+
+            RunContentCatalog catalog = GameKernel.Services.Get<RunEconomyManager>().Catalog;
+            for (int i = 0; i < actions.Count; i++)
+            {
+                if (isFinalAct || i >= catalog.RestOptions.Count)
+                {
+                    SetAction(i, string.Empty, string.Empty, false);
+                    continue;
+                }
+
+                RunRestOptionDefinition option = catalog.RestOptions[i];
+                SetAction(i, option.displayName, option.description, !consumedRest);
+            }
         }
 
         private void RefreshRunStatus()
@@ -476,6 +543,9 @@ namespace CardBattle.UI
                     return;
                 case UIScreenId.Rest:
                     ChooseRest(index);
+                    return;
+                case UIScreenId.ActTransition:
+                    ChooseActTransitionRest(index);
                     return;
                 case UIScreenId.RunStatus:
                     SaveSlot(index);
@@ -641,6 +711,30 @@ namespace CardBattle.UI
             }
         }
 
+        private void ChooseActTransitionRest(int index)
+        {
+            RunState run = CurrentRun();
+            if (run == null)
+            {
+                return;
+            }
+
+            RunCampaignDefinition campaign = GameKernel.Services.Get<RunProgressionManager>().Campaign;
+            if (run.act >= campaign.Acts.Count)
+            {
+                return;
+            }
+
+            IReadOnlyList<RunRestOptionDefinition> options = GameKernel.Services.Get<RunEconomyManager>().Catalog.RestOptions;
+            if (index < options.Count &&
+                GameKernel.Services.Get<RunEconomyManager>()
+                    .UseRest(RunProgressionManager.IntermissionRestId(run.act), options[index].type))
+            {
+                SetText(status, $"{options[index].displayName} 완료. 다음 막으로 넘어갈 수 있다.");
+                Refresh();
+            }
+        }
+
         private void OpenFieldCommand(int index)
         {
             switch (index)
@@ -800,8 +894,10 @@ namespace CardBattle.UI
                 ? reward.itemChoiceIds[selectedAction]
                 : null;
             int cardIndex = selectedAction - itemCount;
-            string selectedCard = cardIndex >= 0 && cardIndex < run.pokerDeck.cards.Count
-                ? run.pokerDeck.cards[cardIndex].instanceId
+            string selectedCard = reward?.cardChoiceInstanceIds != null &&
+                                  cardIndex >= 0 &&
+                                  cardIndex < reward.cardChoiceInstanceIds.Count
+                ? reward.cardChoiceInstanceIds[cardIndex]
                 : null;
             GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(selectedItem, selectedCard);
         }
@@ -939,10 +1035,28 @@ namespace CardBattle.UI
             target.value = Mathf.Clamp(current, 0, maximum);
         }
 
+        private static void SetGauge(Image target, int current, int maximum)
+        {
+            if (target != null)
+            {
+                target.fillAmount = Mathf.Clamp01(current / (float)Mathf.Max(1, maximum));
+            }
+        }
+
         private static string FormatTime(float seconds)
         {
             TimeSpan time = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
             return $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
+        }
+
+        private static string RarityLabel(EquipmentRarity rarity)
+        {
+            return rarity switch
+            {
+                EquipmentRarity.Legendary => "전설",
+                EquipmentRarity.Rare => "희귀",
+                _ => "일반"
+            };
         }
 
         private static string EquipmentSlotName(int index)
@@ -958,7 +1072,6 @@ namespace CardBattle.UI
                 0 => RunFieldContentType.Combat,
                 1 => RunFieldContentType.Event,
                 2 => RunFieldContentType.Shop,
-                3 => RunFieldContentType.Rest,
                 _ => RunFieldContentType.BossDoor
             };
             int count = run.CurrentActProgress.fieldNodes.FindAll(node => node != null && node.contentType == type && node.discovered).Count;

@@ -60,6 +60,20 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void PokerDeckCapsEquipmentRedrawsAtTwoAdditionalUses()
+        {
+            var deck = new RunPokerDeckState { bonusRedraws = 8 };
+
+            Assert.That(deck.RedrawLimit, Is.EqualTo(3));
+            Assert.That(deck.RedrawsRemaining, Is.EqualTo(3));
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.False);
+            Assert.That(deck.RedrawsRemaining, Is.Zero);
+        }
+
+        [Test]
         public void PokerDeckPersistsReservationStorageAndTopOrder()
         {
             var deck = new RunPokerDeckState();
@@ -327,17 +341,139 @@ namespace FFSS.Framework.Tests
             Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
             Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
             Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
+            CollectionAssert.AreEquivalent(
+                new[] { "7땡", "8땡", "9땡", "10땡" },
+                campaign.GetAct(3).normalEnemyIds);
 
-            int[] expectedNodeCounts = { 12, 15, 17 };
+            int[] expectedNodeCounts = { 11, 14, 16 };
             for (int act = 1; act <= 3; act++)
             {
                 RunActDefinition definition = campaign.GetAct(act);
                 Assert.That(definition.normalEnemyIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.eventIds.Count, Is.GreaterThanOrEqualTo(definition.requiredEvents), $"act {act}");
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
+                Assert.That(definition.restCount, Is.Zero, $"act {act}");
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
                                 definition.shopCount + definition.restCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
+            }
+        }
+
+        [Test]
+        public void ActCompletionUsesIntermissionRestInsteadOfFieldRest()
+        {
+            RunDefinition runDefinition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            RunState run = runDefinition.CreateState(130013);
+            run.player.currentHp = 50;
+            run.CurrentActProgress.bossDefeated = true;
+
+            Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True);
+
+            Assert.That(run.act, Is.EqualTo(2));
+            Assert.That(run.player.currentHp, Is.EqualTo(76));
+            Assert.That(run.consumedRestIds, Does.Contain(RunProgressionManager.IntermissionRestId(1)));
+            Assert.That(run.choiceHistory.Any(value => value.sourceId == RunProgressionManager.IntermissionRestId(1) &&
+                                                       value.choiceId == "DefaultHeal"), Is.True);
+        }
+
+        [Test]
+        public void ChosenIntermissionRestPreventsFreeTransitionHeal()
+        {
+            RunDefinition runDefinition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            RunState run = runDefinition.CreateState(130018);
+            run.player.currentHp = 50;
+            run.CurrentActProgress.bossDefeated = true;
+            run.consumedRestIds.Add(RunProgressionManager.IntermissionRestId(1));
+
+            Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True);
+
+            Assert.That(run.act, Is.EqualTo(2));
+            Assert.That(run.player.currentHp, Is.EqualTo(50));
+        }
+
+        [Test]
+        public void CombatRewardOnlyUpgradesDraftedCardsAndCapsAtThree()
+        {
+            var host = new GameObject("Run Reward Test");
+            try
+            {
+                RunManager runs = host.AddComponent<RunManager>();
+                var run = new RunState();
+                run.pokerDeck.cards.Add(new RunCardState("card-a", "poker.heart.01") { enhancementLevel = 2 });
+                run.pokerDeck.cards.Add(new RunCardState("card-b", "poker.spade.02") { enhancementLevel = 3 });
+                run.pokerDeck.cards.Add(new RunCardState("card-c", "poker.club.03"));
+                SetCurrentRun(runs, run);
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-a", "card-b" });
+                runs.ClaimReward(null, "card-a");
+                Assert.That(run.pokerDeck.FindCard("card-a").enhancementLevel, Is.EqualTo(3));
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-b" });
+                runs.ClaimReward(null, "card-b");
+                Assert.That(run.pokerDeck.FindCard("card-b").enhancementLevel, Is.EqualTo(3));
+
+                runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-a" });
+                runs.ClaimReward(null, "card-c");
+                Assert.That(run.pokerDeck.FindCard("card-c").enhancementLevel, Is.Zero);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void HexGeneratorBuildsRoamingFieldsInsteadOfSingleFileMazes()
+        {
+            var host = new GameObject("Hex Generator Test");
+            try
+            {
+                Type generatorType = Type.GetType(
+                    "CardBattle.Exploration.HexTileMapGenerator, Assembly-CSharp");
+                Assert.That(generatorType, Is.Not.Null);
+                Component generator = host.AddComponent(generatorType);
+                generatorType.GetMethod("SetRuntimeSeed")?.Invoke(generator, new object[] { 424242 });
+                generatorType.GetMethod("ConfigureRunLayout")?.Invoke(generator, new object[] { 58, 14 });
+
+                MethodInfo method = generatorType.GetMethod(
+                    "BuildCellPath",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(method, Is.Not.Null);
+
+                object[] arguments = { null, Vector2Int.zero };
+                var cells = (List<Vector2Int>)method.Invoke(generator, arguments);
+                var interactions = (HashSet<Vector2Int>)arguments[0];
+                var bossCell = (Vector2Int)arguments[1];
+                var cellSet = new HashSet<Vector2Int>(cells);
+
+                int leafCount = 0;
+                int narrowCount = 0;
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    int neighbors = CountHexNeighbors(cells[i], cellSet);
+                    if (neighbors <= 1)
+                        leafCount++;
+                    if (neighbors <= 2)
+                        narrowCount++;
+                }
+
+                Assert.That(cells.Count, Is.EqualTo(58));
+                Assert.That(interactions.Count, Is.GreaterThanOrEqualTo(14));
+                Assert.That(interactions, Does.Contain(bossCell));
+                Assert.That(cellSet.Contains(Vector2Int.zero), Is.True);
+                Assert.That(cellSet.Contains(bossCell), Is.True);
+                Assert.That(leafCount, Is.LessThanOrEqualTo(Mathf.Max(2, cells.Count / 20)));
+                Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.35f));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
             }
         }
 
@@ -554,6 +690,71 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EveryProductionMediaCueLoadsItsRuntimeAsset()
+        {
+            AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
+                "Assets/Data/Framework/AudioCueCatalog.asset");
+            var audioSerialized = new SerializedObject(audio);
+            SerializedProperty audioCues = audioSerialized.FindProperty("cues");
+            Assert.That(audioCues.arraySize, Is.EqualTo(67));
+            var audioIds = new HashSet<string>();
+            for (int i = 0; i < audioCues.arraySize; i++)
+            {
+                var cue = audioCues.GetArrayElementAtIndex(i).objectReferenceValue as AudioCueDefinition;
+                Assert.That(cue, Is.Not.Null, $"Audio catalog entry {i}");
+                Assert.That(audioIds.Add(cue.CueId), Is.True, $"Duplicate audio cue: {cue.CueId}");
+                Assert.That(cue.PickClip(), Is.Not.Null, cue.CueId);
+            }
+
+            VfxCueCatalog vfx = AssetDatabase.LoadAssetAtPath<VfxCueCatalog>(
+                "Assets/Data/Framework/VfxCueCatalog.asset");
+            var vfxSerialized = new SerializedObject(vfx);
+            SerializedProperty vfxCues = vfxSerialized.FindProperty("cues");
+            Assert.That(vfxCues.arraySize, Is.EqualTo(26));
+            var vfxIds = new HashSet<string>();
+            for (int i = 0; i < vfxCues.arraySize; i++)
+            {
+                var cue = vfxCues.GetArrayElementAtIndex(i).objectReferenceValue as VfxCueDefinition;
+                Assert.That(cue, Is.Not.Null, $"VFX catalog entry {i}");
+                Assert.That(vfxIds.Add(cue.CueId), Is.True, $"Duplicate VFX cue: {cue.CueId}");
+                Assert.That(cue.PickPrefab(), Is.Not.Null, cue.CueId);
+            }
+        }
+
+        [Test]
+        public void QuarterViewMovementKeepsCardinalAndDiagonalSpeedEqual()
+        {
+            Type controllerType = Type.GetType(
+                "CardBattle.Exploration.QuarterViewPlayerController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+            MethodInfo compose = controllerType.GetMethod(
+                "ComposeCameraRelativeDirection",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(compose, Is.Not.Null);
+
+            Vector3 forward = new Vector3(0.42f, -0.76f, 0.91f);
+            Vector3 right = new Vector3(0.91f, 0.21f, -0.42f);
+            Vector2[] inputs =
+            {
+                Vector2.up,
+                Vector2.down,
+                Vector2.left,
+                Vector2.right,
+                new Vector2(1f, 1f),
+                new Vector2(-1f, 1f),
+                new Vector2(1f, -1f),
+                new Vector2(-1f, -1f)
+            };
+
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                var direction = (Vector3)compose.Invoke(null, new object[] { inputs[i], forward, right });
+                Assert.That(direction.y, Is.EqualTo(0f).Within(0.0001f), inputs[i].ToString());
+                Assert.That(direction.magnitude, Is.EqualTo(1f).Within(0.0001f), inputs[i].ToString());
+            }
+        }
+
+        [Test]
         public void ProductionEnemyMovesExposeInspectableAudioAndVfxBeats()
         {
             AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
@@ -669,6 +870,53 @@ namespace FFSS.Framework.Tests
             }
 
             Assert.That(ids, Is.EquivalentTo(Enum.GetValues(typeof(UIScreenId)).Cast<UIScreenId>()));
+        }
+
+        [Test]
+        public void DynamicRunScreensUseBlankAtlasFramesWithoutBakedTextCollisions()
+        {
+            string[] screenNames =
+            {
+                "EventScreen",
+                "RewardScreen",
+                "ShopScreen",
+                "RestScreen"
+            };
+
+            foreach (string screenName in screenNames)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"Assets/Prefabs/UI/Screens/{screenName}.prefab");
+                Assert.That(prefab, Is.Not.Null, screenName);
+
+                Transform frame = prefab.transform.Find("Art Frame");
+                Assert.That(frame, Is.Not.Null, screenName);
+                var frameImage = frame.GetComponent<UnityEngine.UI.Image>();
+                Assert.That(frameImage, Is.Not.Null, screenName);
+                Assert.That(
+                    AssetDatabase.GetAssetPath(frameImage.sprite),
+                    Does.StartWith("Assets/Art/Production/UI/Atlas/03_panels_modals/"),
+                    screenName);
+
+                RectTransform body = frame.Find("Body") as RectTransform;
+                RectTransform firstAction = frame.Find("Action 1") as RectTransform;
+                Assert.That(body, Is.Not.Null, screenName);
+                Assert.That(firstAction, Is.Not.Null, screenName);
+                float requiredSeparation = (body.rect.height + firstAction.rect.height) * 0.5f;
+                Assert.That(
+                    Mathf.Abs(body.anchoredPosition.y - firstAction.anchoredPosition.y),
+                    Is.GreaterThan(requiredSeparation),
+                    $"{screenName} body overlaps its first action row.");
+            }
+
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/Screens/EventScreen.prefab")
+                    .transform.Find("Art Frame/Screen Banner"),
+                Is.Not.Null);
+            Assert.That(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/Screens/RewardScreen.prefab")
+                    .transform.Find("Art Frame/Screen Banner"),
+                Is.Not.Null);
         }
 
         [Test]
@@ -874,6 +1122,62 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/GameFlowDefinition.asset");
             Assert.That(flow.Allows(GameFlowState.Boot, GameFlowState.Field), Is.True);
             Assert.That(flow.Allows(GameFlowState.Reward, GameFlowState.ActTransition), Is.True);
+        }
+
+        [Test]
+        public void ProductionEncounterRewardsExposeEquipmentChoices()
+        {
+            EncounterSceneCatalog catalog = AssetDatabase.LoadAssetAtPath<EncounterSceneCatalog>(
+                "Assets/Data/Framework/EncounterSceneCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+
+            foreach (EncounterSceneEntry entry in catalog.Entries)
+            {
+                Assert.That(entry.rewardItemIds, Is.Not.Null, entry.enemyId);
+                Assert.That(entry.rewardItemIds.Count, Is.GreaterThanOrEqualTo(3), entry.enemyId);
+                Assert.That(entry.rewardItemIds.Distinct().Count(), Is.EqualTo(entry.rewardItemIds.Count),
+                    entry.enemyId);
+                Assert.That(entry.rewardItemWeights, Is.Not.Null, entry.enemyId);
+                Assert.That(entry.rewardItemWeights.Count, Is.EqualTo(entry.rewardItemIds.Count), entry.enemyId);
+                Assert.That(entry.rewardItemWeights.All(weight => weight > 0), Is.True, entry.enemyId);
+            }
+        }
+
+        [Test]
+        public void CombatControllerUsesRunPlayerStatsAsItsBaseline()
+        {
+            Type controllerType = Type.GetType("CardBattle.RpsCombatController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+
+            var host = new GameObject("Combat Controller Stat Sync Test");
+            try
+            {
+                Component controller = host.AddComponent(controllerType);
+                var state = new PlayerRunState
+                {
+                    maxHp = 111,
+                    currentHp = 73,
+                    maxPressure = 41,
+                    currentPressure = 9,
+                    baseAttack = 6,
+                    baseDefense = 5,
+                    baseBreakPower = 4
+                };
+
+                controllerType.GetMethod("ApplyRunPlayerState")?.Invoke(controller, new object[] { state });
+
+                Assert.That(ReadPrivateInt(controller, "playerMaxHp"), Is.EqualTo(111));
+                Assert.That(ReadPrivateInt(controller, "playerHp"), Is.EqualTo(73));
+                Assert.That(ReadPrivateInt(controller, "playerMaxBreak"), Is.EqualTo(41));
+                Assert.That(ReadPrivateInt(controller, "playerBreakCharge"), Is.EqualTo(9));
+                Assert.That(ReadPrivateInt(controller, "playerBaseAttack"), Is.EqualTo(6));
+                Assert.That(ReadPrivateInt(controller, "playerBaseDefense"), Is.EqualTo(5));
+                Assert.That(ReadPrivateInt(controller, "baseBreakPower"), Is.EqualTo(4));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
         }
 
         [Test]
@@ -1599,6 +1903,24 @@ namespace FFSS.Framework.Tests
             return null;
         }
 
+        private static int ReadPrivateInt(Component component, string fieldName)
+        {
+            FieldInfo field = component.GetType().GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, fieldName);
+            return (int)field.GetValue(component);
+        }
+
+        private static void SetCurrentRun(RunManager runs, RunState run)
+        {
+            FieldInfo field = typeof(RunManager).GetField(
+                "<Current>k__BackingField",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null);
+            field.SetValue(runs, run);
+        }
+
         private static EnemyEncounterDefinition Encounter(params EnemyMoveDefinition[] moves)
         {
             EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
@@ -1630,6 +1952,28 @@ namespace FFSS.Framework.Tests
                 seotdaPowerBonus = seotdaPowerBonus
             };
         }
+
+        private static int CountHexNeighbors(Vector2Int cell, HashSet<Vector2Int> cells)
+        {
+            int count = 0;
+            for (int i = 0; i < HexNeighborOffsets.Length; i++)
+            {
+                if (cells.Contains(cell + HexNeighborOffsets[i]))
+                    count++;
+            }
+
+            return count;
+        }
+
+        private static readonly Vector2Int[] HexNeighborOffsets =
+        {
+            new(1, 0),
+            new(1, -1),
+            new(0, -1),
+            new(-1, 0),
+            new(-1, 1),
+            new(0, 1),
+        };
 
         private sealed class TestService : IGameService
         {

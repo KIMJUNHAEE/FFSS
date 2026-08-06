@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using FFSS.Framework.Core;
 using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.UI;
 
 namespace CardBattle.Exploration
 {
@@ -17,6 +18,7 @@ namespace CardBattle.Exploration
         [SerializeField] private bool constrainToWorldBounds = false;
         [SerializeField] private Vector2 worldBoundsMin = new(-34f, -20f);
         [SerializeField] private Vector2 worldBoundsMax = new(34f, 20f);
+        [SerializeField] private HexTileMapGenerator walkableMap = null;
 
         [Header("View")]
         [SerializeField] private Transform cameraTransform = null;
@@ -82,6 +84,9 @@ namespace CardBattle.Exploration
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
 
+            if (walkableMap == null)
+                walkableMap = FindAnyObjectByType<HexTileMapGenerator>();
+
             if (animator != null)
             {
                 if (animator.HasState(0, IdleStateHash))
@@ -100,7 +105,7 @@ namespace CardBattle.Exploration
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
 
-            Vector3 planarDirection = ReadCameraRelativeDirection();
+            Vector3 planarDirection = IsMovementBlocked() ? Vector3.zero : ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
             float animationAmount = GetAnimationAmount(inputAmount);
             IsMoving = inputAmount > 0.05f;
@@ -124,31 +129,56 @@ namespace CardBattle.Exploration
             if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) input.y -= 1f;
             if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) input.y += 1f;
 
+            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
+            Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
+
+            return ComposeCameraRelativeDirection(input, forward, right);
+        }
+
+        public static Vector3 ComposeCameraRelativeDirection(
+            Vector2 input,
+            Vector3 cameraForward,
+            Vector3 cameraRight)
+        {
             input = Vector2.ClampMagnitude(input, 1f);
             if (input.sqrMagnitude <= 0.0001f)
                 return Vector3.zero;
 
-            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
-            Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
+            cameraForward.y = 0f;
+            cameraRight.y = 0f;
+            cameraForward = cameraForward.sqrMagnitude > 0.0001f
+                ? cameraForward.normalized
+                : Vector3.forward;
+            cameraRight = cameraRight.sqrMagnitude > 0.0001f
+                ? cameraRight.normalized
+                : Vector3.right;
 
-            forward.y = 0f;
-            right.y = 0f;
-            forward.Normalize();
-            right.Normalize();
-
-            return Vector3.ClampMagnitude((right * input.x) + (forward * input.y), 1f);
+            return Vector3.ClampMagnitude(
+                (cameraRight * input.x) + (cameraForward * input.y),
+                1f);
         }
 
         private void Move(Vector3 planarDirection)
         {
-            Vector3 motion = planarDirection * moveSpeed;
-            controller.Move(motion * Time.deltaTime);
+            Vector3 current = transform.position;
+            Vector3 desired = current + planarDirection * moveSpeed * Time.deltaTime;
+            Vector3 constrained = walkableMap != null
+                ? walkableMap.ConstrainMovement(current, desired)
+                : desired;
+            controller.Move(constrained - current);
 
             if (constrainToWorldBounds)
                 ClampToWorldBounds();
 
             if (lockToGroundPlane)
                 SnapToGroundPlane();
+        }
+
+        private static bool IsMovementBlocked()
+        {
+            return GameKernel.IsReady &&
+                   GameKernel.Services.TryGet(out UIManager ui) &&
+                   ui.HasVisibleModal;
         }
 
         private void ClampToWorldBounds()

@@ -20,6 +20,7 @@ namespace FFSS.Editor
         private const string TitlePrefabPath = ScreenRoot + "/TitleScreen.prefab";
         private const string ResultScenePath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
+        private const string PlayerHudPrefabPath = "Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab";
         private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
 
@@ -34,6 +35,11 @@ namespace FFSS.Editor
             public Text Status;
             public Slider HpGauge;
             public Slider PressureGauge;
+            public Image HpGaugeFill;
+            public Image PressureGaugeFill;
+            public Text HpGaugeText;
+            public Text AttackValueText;
+            public Text DefenseValueText;
             public Button CloseButton;
             public Button PrimaryButton;
             public Text PrimaryLabel;
@@ -157,7 +163,7 @@ namespace FFSS.Editor
                 new ScreenSpec(UIScreenId.Reward, "RewardScreen", "전리품", "하나를 골라 다음 판을 준비한다", "081_panel_reward_cards", 5, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.Rest, "RestScreen", "휴식처", "세 선택 중 하나만 고를 수 있다", "083_panel_rest", 3, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.BossDoor, "BossDoorScreen", "보스문", "마지막 점검", "086_panel_battle_result", 0, UILayer.Modal, false),
-                new ScreenSpec(UIScreenId.ActTransition, "ActTransitionScreen", "막 돌파", "다음 길이 열린다", "086_panel_battle_result", 0, UILayer.Screen, false),
+                new ScreenSpec(UIScreenId.ActTransition, "ActTransitionScreen", "막 돌파", "막 사이 휴식과 정비", "086_panel_battle_result", 3, UILayer.Screen, false),
                 new ScreenSpec(UIScreenId.RunStatus, "RunStatusScreen", "런 현황", "저장과 현재 빌드", "086_panel_battle_result", 3, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Options, "OptionsScreen", "설정", "플레이 환경", "084_panel_event", 6, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Result, "ResultScreen", "판의 끝", "이번 런의 기록", "086_panel_battle_result", 0, UILayer.Screen, false)
@@ -178,29 +184,29 @@ namespace FFSS.Editor
             Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.82f));
             Stretch(dim.rectTransform);
 
-            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1340f, 760f), Vector2.zero);
+            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1260f, 690f), Vector2.zero);
             Image frameImage = frame.gameObject.AddComponent<Image>();
-            frameImage.sprite = UsesBlankPanel(spec.Id)
-                ? SpriteAt("Assets/UI/BossCombatSkins/Common/skill_detail_panel.png")
-                : SpriteAt(BulkRoot + spec.PanelSprite + ".png");
+            frameImage.sprite = StandardPanelSprite(spec.Id);
             frameImage.preserveAspect = false;
             frameImage.raycastTarget = true;
-            if (UsesBlankPanel(spec.Id))
+
+            Sprite bannerSprite = BannerSprite(spec.Id);
+            if (bannerSprite != null)
             {
-                Image emblem = CreateImage("Screen Emblem", frame, ScreenIcon(spec.Id), Color.white);
-                emblem.rectTransform.sizeDelta = new Vector2(68f, 68f);
-                emblem.rectTransform.anchoredPosition = new Vector2(0f, 264f);
-                emblem.preserveAspect = true;
+                Image banner = CreateImage("Screen Banner", frame, bannerSprite, Color.white);
+                banner.rectTransform.sizeDelta = new Vector2(680f, 106f);
+                banner.rectTransform.anchoredPosition = new Vector2(0f, 264f);
+                banner.preserveAspect = false;
             }
 
-            build.Heading = CreateText("Heading", frame, spec.Heading, 42, TextAnchor.MiddleCenter,
-                new Color(1f, 0.81f, 0.28f), new Vector2(900f, 56f), new Vector2(0f, 195f));
-            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 22, TextAnchor.MiddleCenter,
-                new Color(0.88f, 0.91f, 0.97f), new Vector2(980f, 36f), new Vector2(0f, 155f));
+            build.Heading = CreateText("Heading", frame, spec.Heading, 36, TextAnchor.MiddleCenter,
+                new Color(1f, 0.84f, 0.38f), new Vector2(580f, 48f), new Vector2(0f, 270f));
+            build.Subtitle = CreateText("Subtitle", frame, spec.Subtitle, 20, TextAnchor.MiddleCenter,
+                new Color(0.88f, 0.91f, 0.97f), new Vector2(900f, 34f), new Vector2(0f, 198f));
             build.Currency = CreateText("Currency", frame, string.Empty, 24, TextAnchor.MiddleRight,
-                new Color(1f, 0.78f, 0.2f), new Vector2(300f, 38f), new Vector2(455f, 155f));
+                new Color(1f, 0.78f, 0.2f), new Vector2(250f, 34f), new Vector2(440f, 198f));
             build.Body = CreateText("Body", frame, DefaultBody(spec.Id), 20, TextAnchor.MiddleCenter,
-                new Color(0.93f, 0.94f, 0.98f), new Vector2(1050f, 46f), new Vector2(0f, 100f));
+                new Color(0.93f, 0.94f, 0.98f), new Vector2(980f, 58f), new Vector2(0f, 142f));
             build.Body.horizontalOverflow = HorizontalWrapMode.Wrap;
             build.Body.verticalOverflow = VerticalWrapMode.Truncate;
             if (spec.Id == UIScreenId.Load)
@@ -244,7 +250,7 @@ namespace FFSS.Editor
 
             if (spec.Id != UIScreenId.ActTransition && spec.Id != UIScreenId.Result)
             {
-                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(590f, 250f));
+                build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(560f, 270f));
             }
             ConfigureController(build);
             return Save(build.Root, spec.Path);
@@ -253,45 +259,50 @@ namespace FFSS.Editor
         private static GameObject BuildFieldHud(ScreenSpec spec)
         {
             ScreenBuild build = CreateRoot(spec);
-            RectTransform hud = CreateRect("Player Run HUD", build.Root.transform, new Vector2(760f, 260f), new Vector2(400f, -150f));
-            SetAnchor(hud, new Vector2(0f, 1f), new Vector2(0f, 1f));
-            Image frame = hud.gameObject.AddComponent<Image>();
-            frame.sprite = SpriteAt("Assets/UI/38Battle/CombatSkin/poker_player_hud.png");
-            frame.preserveAspect = false;
-            frame.raycastTarget = false;
+            GameObject playerHudPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerHudPrefabPath);
+            if (playerHudPrefab == null)
+                throw new InvalidOperationException("Production player HUD prefab is missing.");
 
-            build.Heading = CreateText("Act", hud, spec.Heading, 26, TextAnchor.MiddleLeft,
-                new Color(1f, 0.78f, 0.2f), new Vector2(150f, 36f), new Vector2(-70f, 56f));
-            build.Subtitle = CreateText("Region", hud, spec.Subtitle, 17, TextAnchor.MiddleLeft,
-                Color.white, new Vector2(300f, 30f), new Vector2(135f, 56f));
-            build.Currency = CreateText("Gold", hud, "30냥", 20, TextAnchor.MiddleRight,
-                new Color(1f, 0.78f, 0.2f), new Vector2(120f, 32f), new Vector2(300f, 56f));
-            build.Status = CreateText("Progress", hud, string.Empty, 16, TextAnchor.MiddleLeft,
-                new Color(0.82f, 0.87f, 0.96f), new Vector2(520f, 30f), new Vector2(100f, 15f));
-            build.HpGauge = CreateGauge("HP Gauge", hud, new Vector2(465f, 14f), new Vector2(112f, -40f),
-                new Color(0.85f, 0.08f, 0.12f));
-            build.PressureGauge = CreateGauge("Pressure Gauge", hud, new Vector2(465f, 9f), new Vector2(112f, -72f),
-                new Color(0.94f, 0.69f, 0.12f));
+            GameObject hudObject = PrefabUtility.InstantiatePrefab(playerHudPrefab, build.Root.transform) as GameObject;
+            hudObject.name = "Player Run HUD";
+            RectTransform hud = hudObject.GetComponent<RectTransform>();
+            hud.anchorMin = new Vector2(0f, 1f);
+            hud.anchorMax = new Vector2(0f, 1f);
+            hud.pivot = new Vector2(0f, 1f);
+            hud.anchoredPosition = new Vector2(24f, -52f);
+            hud.localScale = Vector3.one;
 
-            Image emblem = CreateImage("Poker Emblem", hud, SpriteAt("Assets/BasicCard/Back-B.png"), Color.white);
-            emblem.rectTransform.sizeDelta = new Vector2(82f, 116f);
-            emblem.rectTransform.anchoredPosition = new Vector2(-250f, -5f);
-            emblem.preserveAspect = true;
+            build.HpGaugeFill = FindRequired<Image>(hudObject.transform, "HpBarBg/HpBarFill");
+            build.PressureGaugeFill = FindRequired<Image>(hudObject.transform, "PressureBarBg/PressureBarFill");
+            build.HpGaugeText = FindRequired<Text>(hudObject.transform, "HpText");
+            build.AttackValueText = FindRequired<Text>(hudObject.transform, "AttackValueText");
+            build.DefenseValueText = FindRequired<Text>(hudObject.transform, "DefenseValueText");
 
-            string[] icons = { "036_button_map", "097_relic_blade", "101_relic_card" };
+            build.Heading = CreateText("Act", hud, spec.Heading, 23, TextAnchor.MiddleCenter,
+                new Color(1f, 0.78f, 0.2f), new Vector2(132f, 30f), new Vector2(-230f, 38f));
+            build.Subtitle = CreateText("Region", hud, spec.Subtitle, 14, TextAnchor.MiddleCenter,
+                Color.white, new Vector2(144f, 38f), new Vector2(-230f, 0f));
+            build.Subtitle.horizontalOverflow = HorizontalWrapMode.Wrap;
+            build.Subtitle.verticalOverflow = VerticalWrapMode.Truncate;
+            build.Currency = CreateText("Gold", hud, "30냥", 17, TextAnchor.MiddleCenter,
+                new Color(1f, 0.78f, 0.2f), new Vector2(128f, 26f), new Vector2(-230f, -40f));
+
+            string[] icons = { "icon_button_13_map", "icon_button_08_sword", "icon_button_17_deck" };
             string[] labels = { "지도", "장비", "현황" };
             for (int i = 0; i < icons.Length; i++)
             {
-                Vector2 size = i == 0 ? new Vector2(170f, 62f) : new Vector2(100f, 100f);
-                Vector2 position = i == 0 ? new Vector2(-105f, -64f) : new Vector2(-255f - (i - 1) * 118f, -82f);
-                RectTransform host = CreateRect($"{labels[i]} Button", build.Root.transform, size, position);
+                RectTransform host = CreateRect($"{labels[i]} Button", build.Root.transform,
+                    new Vector2(82f, 92f), new Vector2(-52f - i * 90f, -56f));
                 SetAnchor(host, Vector2.one, Vector2.one);
-                Image image = host.gameObject.AddComponent<Image>();
-                image.sprite = SpriteAt(BulkRoot + icons[i] + ".png");
+                Image image = CreateImage("Icon", host,
+                    SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/" + icons[i] + ".png"), Color.white);
+                image.rectTransform.sizeDelta = new Vector2(64f, 64f);
+                image.rectTransform.anchoredPosition = new Vector2(0f, 10f);
                 image.preserveAspect = true;
                 Button button = host.gameObject.AddComponent<Button>();
-                Text label = i == 0 ? null : CreateText("Label", host, labels[i], 17, TextAnchor.MiddleCenter, Color.white,
-                    new Vector2(100f, 28f), new Vector2(0f, -44f));
+                button.targetGraphic = image;
+                Text label = CreateText("Label", host, labels[i], 15, TextAnchor.MiddleCenter, Color.white,
+                    new Vector2(78f, 22f), new Vector2(0f, -34f));
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });
             }
 
@@ -351,7 +362,7 @@ namespace FFSS.Editor
                 float height = count <= 3 ? 82f : 78f;
                 RectTransform host = CreateRect($"Action {i + 1}", frame, new Vector2(width, height), new Vector2(x, y));
                 Image image = host.gameObject.AddComponent<Image>();
-                image.sprite = SpriteAt("Assets/UI/38Battle/CombatSkin/poker_command_button.png");
+                image.sprite = ActionButtonSprite(screenId, i);
                 image.preserveAspect = false;
                 Button button = host.gameObject.AddComponent<Button>();
                 ColorBlock colors = button.colors;
@@ -388,6 +399,11 @@ namespace FFSS.Editor
             SetReference(serialized, "status", build.Status);
             SetReference(serialized, "hpGauge", build.HpGauge);
             SetReference(serialized, "pressureGauge", build.PressureGauge);
+            SetReference(serialized, "hpGaugeFill", build.HpGaugeFill);
+            SetReference(serialized, "pressureGaugeFill", build.PressureGaugeFill);
+            SetReference(serialized, "hpGaugeText", build.HpGaugeText);
+            SetReference(serialized, "attackValueText", build.AttackValueText);
+            SetReference(serialized, "defenseValueText", build.DefenseValueText);
             SetReference(serialized, "closeButton", build.CloseButton);
             SetReference(serialized, "primaryButton", build.PrimaryButton);
             SetReference(serialized, "primaryLabel", build.PrimaryLabel);
@@ -549,10 +565,29 @@ namespace FFSS.Editor
         {
             RectTransform rect = CreateRect(name, parent, new Vector2(54f, 54f), position);
             Image image = rect.gameObject.AddComponent<Image>();
-            image.sprite = null;
-            image.color = Color.clear;
+            string iconName = text switch
+            {
+                "X" => "icon_button_11_x.png",
+                "<" => "icon_button_10_arrow.png",
+                ">" => "icon_button_10_arrow.png",
+                _ => string.Empty
+            };
+            image.sprite = string.IsNullOrEmpty(iconName)
+                ? null
+                : SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/" + iconName);
+            image.color = image.sprite != null ? Color.white : Color.clear;
+            image.preserveAspect = true;
             Button button = rect.gameObject.AddComponent<Button>();
-            CreateText("Icon", rect, text, 22, TextAnchor.MiddleCenter, Color.white, new Vector2(38f, 38f), Vector2.zero);
+            button.targetGraphic = image;
+            if (image.sprite == null)
+            {
+                CreateText("Icon", rect, text, 22, TextAnchor.MiddleCenter, Color.white,
+                    new Vector2(38f, 38f), Vector2.zero);
+            }
+            else if (text == "<")
+            {
+                rect.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            }
             return button;
         }
 
@@ -595,8 +630,11 @@ namespace FFSS.Editor
             text.fontStyle = FontStyle.Bold;
             text.alignment = anchor;
             text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(size * 0.62f));
+            text.resizeTextMaxSize = size;
             text.raycastTarget = false;
             Outline outline = rect.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.92f);
@@ -643,6 +681,15 @@ namespace FFSS.Editor
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
         }
 
+        private static T FindRequired<T>(Transform root, string path) where T : Component
+        {
+            Transform target = root.Find(path);
+            T component = target != null ? target.GetComponent<T>() : null;
+            if (component == null)
+                throw new InvalidOperationException($"Missing UI component: {root.name}/{path} ({typeof(T).Name})");
+            return component;
+        }
+
         private static string DefaultBody(UIScreenId id)
         {
             return id switch
@@ -674,13 +721,47 @@ namespace FFSS.Editor
             };
         }
 
-        private static bool UsesBlankPanel(UIScreenId id)
+        private static Sprite StandardPanelSprite(UIScreenId id)
         {
-            return id == UIScreenId.Load || id == UIScreenId.FieldMap || id == UIScreenId.Equipment ||
-                   id == UIScreenId.Shop || id == UIScreenId.CardWorkshop || id == UIScreenId.Event ||
-                   id == UIScreenId.Reward || id == UIScreenId.Rest ||
-                   id == UIScreenId.BossDoor || id == UIScreenId.ActTransition ||
-                   id == UIScreenId.RunStatus || id == UIScreenId.Options;
+            string fileName = id switch
+            {
+                UIScreenId.Event => "event_story_panel.png",
+                UIScreenId.Reward => "reward_panel.png",
+                UIScreenId.Shop => "shop_detail_panel.png",
+                _ => "modal_large.png"
+            };
+            return SpriteAt("Assets/Art/Production/UI/Atlas/03_panels_modals/" + fileName);
+        }
+
+        private static Sprite BannerSprite(UIScreenId id)
+        {
+            string fileName = id switch
+            {
+                UIScreenId.Event => "banner_event.png",
+                UIScreenId.Reward => "banner_reward.png",
+                UIScreenId.Rest => "banner_rest.png",
+                UIScreenId.Shop => "banner_shop.png",
+                _ => null
+            };
+            return string.IsNullOrWhiteSpace(fileName)
+                ? null
+                : SpriteAt("Assets/Art/Production/UI/Atlas/11_banners_tabs/" + fileName);
+        }
+
+        private static Sprite ActionButtonSprite(UIScreenId id, int index)
+        {
+            string color = id switch
+            {
+                UIScreenId.Shop => "gold",
+                UIScreenId.Reward => "gold",
+                UIScreenId.Rest => "green",
+                UIScreenId.Equipment => "blue",
+                UIScreenId.CardWorkshop => "blue",
+                UIScreenId.Event => index == 0 ? "blue" : "darkred",
+                UIScreenId.BossDoor => "red",
+                _ => "black"
+            };
+            return SpriteAt($"Assets/Art/Production/UI/Atlas/01_buttons/{color}/button_{color}_long.png");
         }
 
         private static Sprite ScreenIcon(UIScreenId id)

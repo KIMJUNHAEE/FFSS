@@ -133,7 +133,7 @@ namespace CardBattle
 
             string name = jokerCount > 0 ? $"{best.DisplayName} · 조커" : best.DisplayName;
             return new PokerHandResult(best.Rank, name, best.Tier, redCount, blackCount, best.HighRank,
-                best.Tier >= 6 || jokerCount > 0, best.SuitCounts, jokerCount, hasRedJoker, hasBlackJoker,
+                best.Tier >= 1 || jokerCount > 0, best.SuitCounts, jokerCount, hasRedJoker, hasBlackJoker,
                 aceCount, courtCardCount);
         }
 

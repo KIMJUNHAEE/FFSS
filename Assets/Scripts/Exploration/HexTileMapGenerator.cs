@@ -56,6 +56,7 @@ namespace CardBattle.Exploration
 
         [Header("Layout")]
         [SerializeField] private int randomSeed = 0;
+        [SerializeField, Min(12)] private int targetTileCount = 40;
         [SerializeField] private int mainPathLength = 18;
         [SerializeField] private int branchCount = 6;
         [SerializeField] private int minBranchLength = 3;
@@ -63,6 +64,7 @@ namespace CardBattle.Exploration
         [SerializeField] private int softRadiusLimit = 5;
         [SerializeField] private int minInteractionHexDistance = 4;
         [SerializeField, Range(0f, 1f)] private float interactionTileChance = 0f;
+        [SerializeField, Min(1)] private int plannedContentNodeCount = 8;
         [SerializeField] private bool generateOnStart = true;
         [SerializeField] private bool generatePreviewInEditMode = true;
 
@@ -81,6 +83,50 @@ namespace CardBattle.Exploration
         public event Action<IReadOnlyList<GeneratedHexTile>> GenerationCompleted;
 
         public IReadOnlyList<GeneratedHexTile> GeneratedTiles => generatedTileDescriptors;
+
+        public Vector3 ConstrainMovement(Vector3 currentWorldPosition, Vector3 desiredWorldPosition)
+        {
+            if (generatedTileDescriptors.Count == 0 || IsWalkable(desiredWorldPosition))
+                return desiredWorldPosition;
+
+            Vector3 slideX = new(desiredWorldPosition.x, desiredWorldPosition.y, currentWorldPosition.z);
+            Vector3 slideZ = new(currentWorldPosition.x, desiredWorldPosition.y, desiredWorldPosition.z);
+            bool canSlideX = IsWalkable(slideX);
+            bool canSlideZ = IsWalkable(slideZ);
+            if (canSlideX && canSlideZ)
+            {
+                float xDistance = (slideX - currentWorldPosition).sqrMagnitude;
+                float zDistance = (slideZ - currentWorldPosition).sqrMagnitude;
+                return xDistance >= zDistance ? slideX : slideZ;
+            }
+
+            if (canSlideX)
+                return slideX;
+            if (canSlideZ)
+                return slideZ;
+            return currentWorldPosition;
+        }
+
+        public bool IsWalkable(Vector3 worldPosition, float edgePadding = 0.18f)
+        {
+            Vector3 local = transform.InverseTransformPoint(worldPosition);
+            float usableRadius = Mathf.Max(0.1f, tileRadius - Mathf.Max(0f, edgePadding));
+            float maximumX = usableRadius * Mathf.Sqrt(3f) * 0.5f;
+            for (int i = 0; i < generatedTileDescriptors.Count; i++)
+            {
+                GameObject tile = generatedTileDescriptors[i].Tile;
+                if (tile == null)
+                    continue;
+
+                Vector3 offset = local - tile.transform.localPosition;
+                float x = Mathf.Abs(offset.x);
+                float z = Mathf.Abs(offset.z);
+                if (x <= maximumX && z + x / Mathf.Sqrt(3f) <= usableRadius)
+                    return true;
+            }
+
+            return false;
+        }
 
         private void OnEnable()
         {
@@ -145,16 +191,15 @@ namespace CardBattle.Exploration
         public void ConfigureRunLayout(int targetTileCount, int contentNodeCount)
         {
             int target = Mathf.Max(12, targetTileCount);
-            int branches = Mathf.Max(1, contentNodeCount - 1);
-            int trunk = Mathf.Clamp(Mathf.RoundToInt(target * 0.36f), 10, Mathf.Max(10, target - branches));
-            int branchBudget = Mathf.Max(branches, target - trunk);
-            int averageBranchLength = Mathf.Max(1, Mathf.RoundToInt(branchBudget / (float)branches));
+            int areas = Mathf.Clamp(Mathf.RoundToInt(target / 16f) + 1, 3, 6);
 
-            mainPathLength = trunk;
-            branchCount = branches;
-            minBranchLength = Mathf.Max(1, averageBranchLength - 1);
-            maxBranchLength = Mathf.Max(minBranchLength, averageBranchLength + 1);
-            softRadiusLimit = Mathf.Max(6, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.35f));
+            this.targetTileCount = target;
+            plannedContentNodeCount = Mathf.Max(1, contentNodeCount);
+            mainPathLength = areas;
+            branchCount = Mathf.Max(2, areas + Mathf.RoundToInt(target / 24f));
+            minBranchLength = 2;
+            maxBranchLength = 4;
+            softRadiusLimit = Mathf.Max(7, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.45f));
             minInteractionHexDistance = 2;
             interactionTileChance = 0f;
         }
@@ -201,54 +246,363 @@ namespace CardBattle.Exploration
         private List<Vector2Int> BuildCellPath(out HashSet<Vector2Int> interactionCells, out Vector2Int bossCell)
         {
             var random = new System.Random(GetEffectiveSeed());
-            var cells = new HashSet<Vector2Int> { Vector2Int.zero };
-            var orderedCells = new List<Vector2Int> { Vector2Int.zero };
-            var reservedInteractionCells = new List<Vector2Int>();
+            int targetCount = ResolveTargetTileCount();
+            var cells = new HashSet<Vector2Int>();
+            List<Vector2Int> areaCenters = BuildAreaCenters(random, targetCount);
 
-            Vector2Int current = Vector2Int.zero;
-            int previousDirection = -1;
-            int targetLength = Mathf.Max(1, mainPathLength);
-
-            for (int step = 1; step < targetLength; step++)
+            for (int i = 0; i < areaCenters.Count; i++)
             {
-                if (!TryPickNextCell(random, current, previousDirection, cells, out Vector2Int next, out int direction))
+                Vector2Int center = areaCenters[i];
+                CarveHexBrush(cells, center, PlazaRadiusFor(i, areaCenters.Count, targetCount));
+            }
+
+            for (int i = 1; i < areaCenters.Count; i++)
+                CarveWideRoad(random, cells, areaCenters[i - 1], areaCenters[i]);
+
+            AddIntentionalLoops(random, cells, areaCenters);
+            WidenFieldUntilTarget(random, cells, targetCount);
+            TrimFieldToTarget(cells, targetCount);
+
+            List<Vector2Int> orderedCells = SortCellsForProgression(cells);
+            bossCell = FindFarthestCell(cells);
+            interactionCells = PickInteractionCells(random, orderedCells, areaCenters, bossCell);
+            AddOptionalInteractionCells(random, orderedCells, interactionCells);
+            interactionCells.Add(bossCell);
+            interactionCells.Remove(Vector2Int.zero);
+
+            return orderedCells;
+        }
+
+        private int ResolveTargetTileCount()
+        {
+            if (targetTileCount > 0)
+                return Mathf.Max(12, targetTileCount);
+
+            int branchLength = Mathf.RoundToInt((Mathf.Max(1, minBranchLength) + Mathf.Max(1, maxBranchLength)) * 0.5f);
+            return Mathf.Max(12, mainPathLength + Mathf.Max(0, branchCount) * branchLength);
+        }
+
+        private List<Vector2Int> BuildAreaCenters(System.Random random, int targetCount)
+        {
+            int areaCount = Mathf.Clamp(Mathf.RoundToInt(targetCount / 16f) + 1, 3, 6);
+            var centers = new List<Vector2Int> { Vector2Int.zero };
+            int forwardDirection = random.Next(Directions.Length);
+            int sideDirection = (forwardDirection + 1 + random.Next(0, 2)) % Directions.Length;
+            Vector2Int current = Vector2Int.zero;
+
+            for (int i = 1; i < areaCount; i++)
+            {
+                int forward = random.Next(3, 6);
+                int lateral = random.Next(-2, 3);
+                Vector2Int next = current +
+                                  Scale(Directions[forwardDirection], forward) +
+                                  Scale(Directions[sideDirection], lateral);
+                int guard = 0;
+                while ((centers.Contains(next) || HexDistance(current, next) < 3) && guard++ < 12)
+                {
+                    next += Directions[(forwardDirection + guard) % Directions.Length];
+                }
+
+                current = next;
+                centers.Add(current);
+
+                if (random.NextDouble() < 0.35d)
+                    sideDirection = (sideDirection + (random.Next(0, 2) == 0 ? 1 : 5)) % Directions.Length;
+            }
+
+            return centers;
+        }
+
+        private static int PlazaRadiusFor(int index, int areaCount, int targetCount)
+        {
+            if (targetCount >= 36 && (index == 0 || index == areaCount - 1))
+                return 2;
+
+            if (targetCount >= 68 && index > 0 && index < areaCount - 1 && index % 2 == 0)
+                return 2;
+
+            if (targetCount >= 48 && index == areaCount / 2)
+                return 2;
+
+            return 1;
+        }
+
+        private static void CarveWideRoad(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            Vector2Int from,
+            Vector2Int to)
+        {
+            Vector2Int current = from;
+            int guard = 0;
+            while (current != to && guard++ < 80)
+            {
+                CarveHexBrush(cells, current, 1);
+                Vector2Int next = StepToward(random, current, to);
+                if (next == current)
                     break;
 
                 current = next;
-                previousDirection = direction;
-                AddCell(current, cells, orderedCells);
             }
 
-            if (current != Vector2Int.zero)
-                reservedInteractionCells.Add(current);
+            CarveHexBrush(cells, to, 1);
+        }
 
-            int targetBranchCount = Mathf.Max(0, branchCount);
-            int branchAttempts = Mathf.Max(12, targetBranchCount * 24);
-            int createdBranches = 0;
-            for (int attempt = 0; attempt < branchAttempts && createdBranches < targetBranchCount; attempt++)
+        private static Vector2Int StepToward(System.Random random, Vector2Int current, Vector2Int target)
+        {
+            int bestScore = int.MaxValue;
+            Vector2Int best = current;
+            int startDirection = random.Next(Directions.Length);
+
+            for (int offset = 0; offset < Directions.Length; offset++)
             {
-                if (!TryBuildBranch(random, cells, orderedCells, reservedInteractionCells, out List<Vector2Int> branchPath))
+                Vector2Int candidate = current + Directions[(startDirection + offset) % Directions.Length];
+                int score = HexDistance(candidate, target) * 10 + random.Next(0, 3);
+                if (score >= bestScore)
                     continue;
 
-                foreach (Vector2Int branchCell in branchPath)
-                {
-                    AddCell(branchCell, cells, orderedCells);
-                }
-
-                reservedInteractionCells.Add(branchPath[^1]);
-                createdBranches++;
+                bestScore = score;
+                best = candidate;
             }
 
-            interactionCells = FindDeadEndCells(cells);
-            interactionCells.Remove(Vector2Int.zero);
+            return best;
+        }
 
-            foreach (Vector2Int cell in reservedInteractionCells)
-                interactionCells.Add(cell);
+        private static void AddIntentionalLoops(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            IReadOnlyList<Vector2Int> areaCenters)
+        {
+            int loops = Mathf.Clamp(areaCenters.Count - 2, 1, 3);
+            for (int i = 0; i < loops; i++)
+            {
+                int fromIndex = Mathf.Clamp(i, 0, areaCenters.Count - 1);
+                int toIndex = Mathf.Clamp(i + 2, 0, areaCenters.Count - 1);
+                if (fromIndex == toIndex)
+                    continue;
 
-            AddOptionalInteractionCells(random, orderedCells, interactionCells);
-            bossCell = FindFarthestCell(interactionCells);
+                Vector2Int from = areaCenters[fromIndex] + Directions[(i + random.Next(0, 2)) % Directions.Length];
+                Vector2Int to = areaCenters[toIndex] + Directions[(i + 3 + random.Next(0, 2)) % Directions.Length];
+                CarveWideRoad(random, cells, from, to);
+            }
+        }
 
-            return orderedCells;
+        private static void WidenFieldUntilTarget(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            int targetCount)
+        {
+            int maxCount = Mathf.CeilToInt(targetCount * 1.12f);
+            int guard = 0;
+            while (cells.Count < targetCount && guard++ < targetCount * 24)
+            {
+                var candidates = new List<Vector2Int>();
+                foreach (Vector2Int cell in cells)
+                {
+                    foreach (Vector2Int direction in Directions)
+                    {
+                        Vector2Int candidate = cell + direction;
+                        if (cells.Contains(candidate))
+                            continue;
+
+                        int neighbors = CountExistingNeighbors(candidate, cells);
+                        if (neighbors >= 2 && HexDistance(candidate) <= targetCount / 4 + 6)
+                            candidates.Add(candidate);
+                    }
+                }
+
+                if (candidates.Count == 0)
+                    break;
+
+                cells.Add(candidates[random.Next(candidates.Count)]);
+                if (cells.Count >= maxCount)
+                    break;
+            }
+        }
+
+        private static void TrimFieldToTarget(HashSet<Vector2Int> cells, int targetCount)
+        {
+            int guard = 0;
+            while (cells.Count > targetCount && guard++ < targetCount * 48)
+            {
+                bool found = false;
+                Vector2Int bestCell = Vector2Int.zero;
+                int bestScore = int.MinValue;
+                foreach (Vector2Int cell in cells)
+                {
+                    if (cell == Vector2Int.zero)
+                        continue;
+
+                    int neighbors = CountExistingNeighbors(cell, cells);
+                    if (!CanRemoveWithoutDisconnecting(cell, cells))
+                        continue;
+
+                    int score = HexDistance(cell) * 12 + (6 - neighbors) * 8;
+                    if (score <= bestScore)
+                        continue;
+
+                    bestScore = score;
+                    bestCell = cell;
+                    found = true;
+                }
+
+                if (!found)
+                    break;
+
+                cells.Remove(bestCell);
+            }
+        }
+
+        private static bool CanRemoveWithoutDisconnecting(Vector2Int removedCell, HashSet<Vector2Int> cells)
+        {
+            if (removedCell == Vector2Int.zero || !cells.Contains(Vector2Int.zero))
+                return false;
+
+            int expectedCount = cells.Count - 1;
+            var visited = new HashSet<Vector2Int>();
+            var queue = new Queue<Vector2Int>();
+            visited.Add(Vector2Int.zero);
+            queue.Enqueue(Vector2Int.zero);
+
+            while (queue.Count > 0)
+            {
+                Vector2Int current = queue.Dequeue();
+                foreach (Vector2Int direction in Directions)
+                {
+                    Vector2Int next = current + direction;
+                    if (next == removedCell || !cells.Contains(next) || !visited.Add(next))
+                        continue;
+
+                    queue.Enqueue(next);
+                }
+            }
+
+            return visited.Count == expectedCount;
+        }
+
+        private HashSet<Vector2Int> PickInteractionCells(
+            System.Random random,
+            IReadOnlyList<Vector2Int> orderedCells,
+            IReadOnlyList<Vector2Int> areaCenters,
+            Vector2Int bossCell)
+        {
+            var interactions = new HashSet<Vector2Int>();
+            int targetInteractions = Mathf.Min(
+                orderedCells.Count,
+                Mathf.Max(4, plannedContentNodeCount + 1));
+
+            for (int i = 1; i < areaCenters.Count && interactions.Count < targetInteractions; i++)
+            {
+                Vector2Int center = areaCenters[i];
+                if (center != Vector2Int.zero && center != bossCell)
+                    interactions.Add(center);
+            }
+
+            var cellSet = new HashSet<Vector2Int>(orderedCells);
+            for (int i = 1; i <= targetInteractions && interactions.Count < targetInteractions; i++)
+            {
+                int index = Mathf.Clamp(
+                    Mathf.FloorToInt(i * orderedCells.Count / (float)(targetInteractions + 1)),
+                    0,
+                    orderedCells.Count - 1);
+                Vector2Int candidate = FindNearbyInteractionCandidate(
+                    random,
+                    orderedCells,
+                    cellSet,
+                    index,
+                    interactions,
+                    bossCell);
+                if (candidate != Vector2Int.zero && candidate != bossCell)
+                    interactions.Add(candidate);
+            }
+
+            return interactions;
+        }
+
+        private Vector2Int FindNearbyInteractionCandidate(
+            System.Random random,
+            IReadOnlyList<Vector2Int> orderedCells,
+            HashSet<Vector2Int> cellSet,
+            int preferredIndex,
+            HashSet<Vector2Int> interactions,
+            Vector2Int bossCell)
+        {
+            int minDistance = Mathf.Max(1, minInteractionHexDistance);
+            Vector2Int fallback = Vector2Int.zero;
+            int fallbackScore = int.MinValue;
+            for (int radius = 0; radius < orderedCells.Count; radius++)
+            {
+                int left = preferredIndex - radius;
+                int right = preferredIndex + radius;
+                if (TryEvaluateInteractionCandidate(left, orderedCells, cellSet, interactions, bossCell, minDistance, ref fallback, ref fallbackScore) ||
+                    TryEvaluateInteractionCandidate(right, orderedCells, cellSet, interactions, bossCell, minDistance, ref fallback, ref fallbackScore))
+                {
+                    return fallback;
+                }
+            }
+
+            return fallback == Vector2Int.zero && random.NextDouble() < 0.1d ? bossCell : fallback;
+        }
+
+        private static bool TryEvaluateInteractionCandidate(
+            int index,
+            IReadOnlyList<Vector2Int> orderedCells,
+            HashSet<Vector2Int> cellSet,
+            HashSet<Vector2Int> interactions,
+            Vector2Int bossCell,
+            int minDistance,
+            ref Vector2Int fallback,
+            ref int fallbackScore)
+        {
+            if (index < 0 || index >= orderedCells.Count)
+                return false;
+
+            Vector2Int candidate = orderedCells[index];
+            if (candidate == Vector2Int.zero || candidate == bossCell || interactions.Contains(candidate))
+                return false;
+
+            int score = CountExistingNeighbors(candidate, cellSet);
+            if (score > fallbackScore)
+            {
+                fallback = candidate;
+                fallbackScore = score;
+            }
+
+            return IsFarFromInteractionCells(candidate, interactions, minDistance);
+        }
+
+        private static List<Vector2Int> SortCellsForProgression(HashSet<Vector2Int> cells)
+        {
+            var ordered = new List<Vector2Int>(cells);
+            ordered.Sort((left, right) =>
+            {
+                int distance = HexDistance(left).CompareTo(HexDistance(right));
+                if (distance != 0)
+                    return distance;
+
+                int x = left.x.CompareTo(right.x);
+                return x != 0 ? x : left.y.CompareTo(right.y);
+            });
+            return ordered;
+        }
+
+        private static void CarveHexBrush(HashSet<Vector2Int> cells, Vector2Int center, int radius)
+        {
+            int clampedRadius = Mathf.Max(0, radius);
+            for (int q = -clampedRadius; q <= clampedRadius; q++)
+            {
+                for (int r = -clampedRadius; r <= clampedRadius; r++)
+                {
+                    Vector2Int offset = new(q, r);
+                    if (HexDistance(offset) <= clampedRadius)
+                        cells.Add(center + offset);
+                }
+            }
+        }
+
+        private static Vector2Int Scale(Vector2Int cell, int value)
+        {
+            return new Vector2Int(cell.x * value, cell.y * value);
         }
 
         private static bool ShouldUseInteractionTile(

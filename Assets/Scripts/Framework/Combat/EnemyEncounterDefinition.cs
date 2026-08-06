@@ -200,6 +200,10 @@ namespace FFSS.Framework.Combat
         public string combatTitle;
         public Color primaryColor = new Color(0.95f, 0.2f, 0.2f, 1f);
         public Color secondaryColor = new Color(1f, 0.78f, 0.22f, 1f);
+        [Tooltip("World-space character art shown while roaming the field.")]
+        public Sprite fieldSprite;
+        [Min(0.01f)] public float fieldVisualScale = 0.1f;
+        public Vector2 fieldVisualOffset;
         [Tooltip("The complete enemy-owned 20-card Seotda deck and card back.")]
         public EnemySeotdaDeckDefinition exclusiveSeotdaDeck;
         [Tooltip("Enemy-exclusive Seotda card data. Kept as an asset reference so it is visible in the Inspector.")]
