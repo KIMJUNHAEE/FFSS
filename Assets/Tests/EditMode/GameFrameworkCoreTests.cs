@@ -193,6 +193,33 @@ namespace FFSS.Framework.Tests
                     runId = "test-run",
                     seed = 47,
                     gold = 21,
+                    activeEncounterNodeId = "act2.combat.04",
+                    activeEnemyRule = new EnemyRuleState
+                    {
+                        enemyId = "8땡",
+                        turnNumber = 3,
+                        lastMoveId = "moon-seal"
+                    },
+                    actProgress = new List<RunActProgressState>
+                    {
+                        new RunActProgressState
+                        {
+                            act = 2,
+                            normalVictories = 4,
+                            completedEvents = 2,
+                            fieldNodes = new List<RunFieldNodeState>
+                            {
+                                new RunFieldNodeState
+                                {
+                                    nodeId = "act2.combat.04",
+                                    contentType = RunFieldContentType.Combat,
+                                    contentId = "8땡",
+                                    discovered = true,
+                                    visited = true
+                                }
+                            }
+                        }
+                    },
                     pendingReward = new RunRewardState
                     {
                         rewardId = "reward.001.1ddaeng",
@@ -208,6 +235,11 @@ namespace FFSS.Framework.Tests
             Assert.That(restored.schemaVersion, Is.EqualTo(SaveGameData.CurrentSchemaVersion));
             Assert.That(restored.run.runId, Is.EqualTo("test-run"));
             Assert.That(restored.run.gold, Is.EqualTo(21));
+            Assert.That(restored.run.activeEncounterNodeId, Is.EqualTo("act2.combat.04"));
+            Assert.That(restored.run.activeEnemyRule.enemyId, Is.EqualTo("8땡"));
+            Assert.That(restored.run.activeEnemyRule.turnNumber, Is.EqualTo(3));
+            Assert.That(restored.run.actProgress[0].normalVictories, Is.EqualTo(4));
+            Assert.That(restored.run.actProgress[0].fieldNodes[0].contentId, Is.EqualTo("8땡"));
             Assert.That(restored.run.pendingReward.enemyId, Is.EqualTo("1땡"));
             Assert.That(restored.run.pendingReward.gold, Is.EqualTo(20));
         }
@@ -275,6 +307,18 @@ namespace FFSS.Framework.Tests
             Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
             Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
             Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
+
+            int[] expectedNodeCounts = { 12, 15, 17 };
+            for (int act = 1; act <= 3; act++)
+            {
+                RunActDefinition definition = campaign.GetAct(act);
+                Assert.That(definition.normalEnemyIds, Is.Not.Empty, $"act {act}");
+                Assert.That(definition.eventIds.Count, Is.GreaterThanOrEqualTo(definition.requiredEvents), $"act {act}");
+                Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
+                int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
+                                definition.shopCount + definition.restCount + 2;
+                Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
+            }
         }
 
         [Test]
