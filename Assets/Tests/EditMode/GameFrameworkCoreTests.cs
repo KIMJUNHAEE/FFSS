@@ -680,6 +680,27 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void BuildSettingsStartAtTitleAndContainOnlyPlayableProductionScenes()
+        {
+            EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
+            Assert.That(scenes, Has.Length.EqualTo(20));
+            Assert.That(
+                scenes[0].path,
+                Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));
+            Assert.That(
+                scenes.Any(scene => scene.path == "Assets/Scenes/Production/Field/Production_Field.unity"),
+                Is.True);
+            Assert.That(
+                scenes.Any(scene => scene.path == "Assets/Scenes/Production/Frontend/Production_Result.unity"),
+                Is.True);
+            Assert.That(
+                scenes.Count(scene => scene.path.StartsWith("Assets/Scenes/Production/Battles/", StringComparison.Ordinal)),
+                Is.EqualTo(17));
+            Assert.That(scenes.Any(scene => scene.path.Contains("TempCombat", StringComparison.Ordinal)), Is.False);
+            Assert.That(scenes.All(scene => scene.enabled), Is.True);
+        }
+
+        [Test]
         public void ProductionEncounterCatalogMapsAllBattleSceneCopies()
         {
             EncounterSceneCatalog catalog = AssetDatabase.LoadAssetAtPath<EncounterSceneCatalog>(
