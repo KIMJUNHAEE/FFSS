@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using FFSS.Framework.Combat;
@@ -1393,6 +1394,52 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void FieldEnemyArtNormalizesVisibleAlphaHeightAndGrounding()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            Assert.That(guids, Has.Length.EqualTo(17));
+
+            foreach (string guid in guids)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                Assert.That(encounter.fieldSprite, Is.Not.Null, encounter.enemyId);
+                Assert.That(
+                    TryReadOpaqueBounds(encounter.fieldSprite, out RectInt opaqueBounds),
+                    Is.True,
+                    encounter.enemyId);
+
+                Sprite sprite = encounter.fieldSprite;
+                float pixelsPerUnit = Mathf.Max(1f, sprite.pixelsPerUnit);
+                float actualVisibleHeight = opaqueBounds.height / pixelsPerUnit * encounter.fieldVisualScale;
+                float expectedVisibleHeight = encounter.rank switch
+                {
+                    EnemyEncounterRank.Boss => 1.95f,
+                    EnemyEncounterRank.MidBoss => 1.75f,
+                    _ => 1.55f
+                };
+                Assert.That(actualVisibleHeight, Is.EqualTo(expectedVisibleHeight).Within(0.025f),
+                    $"{encounter.enemyId} uses canvas size instead of visible character height.");
+
+                Rect spriteRect = sprite.rect;
+                float opaqueCenterInSprite = opaqueBounds.center.x - spriteRect.xMin;
+                float opaqueBottomInSprite = opaqueBounds.yMin - spriteRect.yMin;
+                float centerFromPivot = (opaqueCenterInSprite - sprite.pivot.x) / pixelsPerUnit;
+                float bottomFromPivot = (opaqueBottomInSprite - sprite.pivot.y) / pixelsPerUnit;
+                float fullSpriteHeight = sprite.bounds.size.y * encounter.fieldVisualScale;
+                float runtimeLocalY = fullSpriteHeight * 0.5f + encounter.fieldVisualOffset.y;
+                float visibleBottom = runtimeLocalY + bottomFromPivot * encounter.fieldVisualScale;
+                float visibleCenterX = encounter.fieldVisualOffset.x + centerFromPivot * encounter.fieldVisualScale;
+                Assert.That(visibleBottom, Is.EqualTo(0.03f).Within(0.025f),
+                    $"{encounter.enemyId} is not grounded by its visible alpha bounds.");
+                Assert.That(visibleCenterX, Is.EqualTo(0.62f).Within(0.025f),
+                    $"{encounter.enemyId} is not centered by its visible alpha bounds.");
+            }
+        }
+
+        [Test]
         public void EveryEnemyExclusiveSeotdaCardLoadsItsVisibleFace()
         {
             string[] profileGuids = AssetDatabase.FindAssets(
@@ -1963,6 +2010,54 @@ namespace FFSS.Framework.Tests
             }
 
             return count;
+        }
+
+        private static bool TryReadOpaqueBounds(Sprite sprite, out RectInt bounds)
+        {
+            bounds = default;
+            string path = AssetDatabase.GetAssetPath(sprite);
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return false;
+
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            try
+            {
+                if (!ImageConversion.LoadImage(texture, File.ReadAllBytes(path), false))
+                    return false;
+
+                Rect rect = sprite.rect;
+                int startX = Mathf.Clamp(Mathf.FloorToInt(rect.xMin), 0, texture.width - 1);
+                int startY = Mathf.Clamp(Mathf.FloorToInt(rect.yMin), 0, texture.height - 1);
+                int endX = Mathf.Clamp(Mathf.CeilToInt(rect.xMax), startX + 1, texture.width);
+                int endY = Mathf.Clamp(Mathf.CeilToInt(rect.yMax), startY + 1, texture.height);
+                Color32[] pixels = texture.GetPixels32();
+                int minX = endX;
+                int minY = endY;
+                int maxX = -1;
+                int maxY = -1;
+                for (int y = startY; y < endY; y++)
+                {
+                    int row = y * texture.width;
+                    for (int x = startX; x < endX; x++)
+                    {
+                        if (pixels[row + x].a <= 16)
+                            continue;
+                        minX = Mathf.Min(minX, x);
+                        minY = Mathf.Min(minY, y);
+                        maxX = Mathf.Max(maxX, x);
+                        maxY = Mathf.Max(maxY, y);
+                    }
+                }
+
+                if (maxX < minX || maxY < minY)
+                    return false;
+                bounds = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+                return true;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
         }
 
         private static readonly Vector2Int[] HexNeighborOffsets =
