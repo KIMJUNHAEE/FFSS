@@ -152,6 +152,42 @@ namespace FFSS.Framework.Run
             return true;
         }
 
+        public bool TryUpgradeCard(string instanceId, int goldCost)
+        {
+            RunState run = RequireRun();
+            RunCardState card = run.pokerDeck.FindCard(instanceId);
+            if (card == null || card.enhancementLevel >= 3 || run.gold < Mathf.Max(0, goldCost))
+            {
+                return false;
+            }
+
+            run.gold -= Mathf.Max(0, goldCost);
+            card.enhancementLevel++;
+            card.isHoned = true;
+            if (!run.upgradedCardInstanceIds.Contains(card.instanceId))
+            {
+                run.upgradedCardInstanceIds.Add(card.instanceId);
+            }
+            Publish("card.workshop", card.instanceId, run.gold);
+            return true;
+        }
+
+        public bool TryChooseGrowthPath(string instanceId, CardGrowthPath path, int goldCost)
+        {
+            RunState run = RequireRun();
+            RunCardState card = run.pokerDeck.FindCard(instanceId);
+            if (card == null || path == CardGrowthPath.None || card.enhancementLevel < 1 ||
+                run.gold < Mathf.Max(0, goldCost))
+            {
+                return false;
+            }
+
+            run.gold -= Mathf.Max(0, goldCost);
+            card.growthPath = path;
+            Publish("card.workshop", $"{card.instanceId}.{path}", run.gold);
+            return true;
+        }
+
         protected override void OnInitialize(GameServiceContext context)
         {
             if (catalog == null)

@@ -67,6 +67,20 @@ namespace FFSS.Framework.Persistence
             return data;
         }
 
+        public SaveGameData Peek(int slot)
+        {
+            ValidateSlot(slot);
+            if (!repository.Exists(slot))
+            {
+                return null;
+            }
+
+            SaveGameData data = SaveDataMigrations.Upgrade(
+                JsonUtility.FromJson<SaveGameData>(repository.Read(slot)));
+            ValidateData(data);
+            return data;
+        }
+
         public void Delete(int slot)
         {
             ValidateSlot(slot);

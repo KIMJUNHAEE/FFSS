@@ -17,6 +17,7 @@ namespace FFSS.UI
         [Header("Main menu")]
         [SerializeField] private Button newRunButton;
         [SerializeField] private Button continueButton;
+        [SerializeField] private Button loadButton;
         [SerializeField] private Button optionsButton;
         [SerializeField] private Button quitButton;
 
@@ -30,6 +31,7 @@ namespace FFSS.UI
         {
             newRunButton.onClick.AddListener(StartNewRun);
             continueButton.onClick.AddListener(ContinueRun);
+            loadButton?.onClick.AddListener(OpenLoad);
             optionsButton.onClick.AddListener(OpenOptions);
             quitButton.onClick.AddListener(Quit);
             closeOptionsButton.onClick.AddListener(CloseOptions);
@@ -42,6 +44,7 @@ namespace FFSS.UI
         {
             newRunButton.onClick.RemoveListener(StartNewRun);
             continueButton.onClick.RemoveListener(ContinueRun);
+            loadButton?.onClick.RemoveListener(OpenLoad);
             optionsButton.onClick.RemoveListener(OpenOptions);
             quitButton.onClick.RemoveListener(Quit);
             closeOptionsButton.onClick.RemoveListener(CloseOptions);
@@ -58,6 +61,17 @@ namespace FFSS.UI
             }
 
             continueButton.interactable = GameKernel.Services.Get<SaveManager>().HasSave(0);
+            if (loadButton != null)
+            {
+                SaveManager saves = GameKernel.Services.Get<SaveManager>();
+                bool hasAnySave = false;
+                for (int slot = 0; slot < saves.SlotCount; slot++)
+                {
+                    hasAnySave |= saves.HasSave(slot);
+                }
+
+                loadButton.interactable = hasAnySave;
+            }
             float volume = PlayerPrefs.GetFloat(MasterVolumeKey, 0.85f);
             bool fullscreen = PlayerPrefs.GetInt(FullscreenKey, Screen.fullScreen ? 1 : 0) != 0;
             masterVolumeSlider.SetValueWithoutNotify(volume);
@@ -104,6 +118,15 @@ namespace FFSS.UI
         private void OpenOptions()
         {
             optionsPanel.SetActive(true);
+        }
+
+        private static void OpenLoad()
+        {
+            if (GameKernel.IsReady)
+            {
+                GameKernel.Services.Get<FFSS.Framework.UI.UIManager>()
+                    .Show(FFSS.Framework.UI.UIScreenId.Load);
+            }
         }
 
         private void CloseOptions()

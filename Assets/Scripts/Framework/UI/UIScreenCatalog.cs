@@ -25,6 +25,8 @@ namespace FFSS.Framework.UI
     {
         [SerializeField] private List<UIScreenCatalogEntry> screens = new List<UIScreenCatalogEntry>();
 
+        public IReadOnlyList<UIScreenCatalogEntry> Screens => screens;
+
         public UIScreenCatalogEntry Get(UIScreenId id)
         {
             UIScreenCatalogEntry entry = screens.Find(item => item != null && item.id == id);

@@ -458,6 +458,93 @@ namespace FFSS.Framework.Tests
             Assert.That(prefab.transform.Find("Background"), Is.Not.Null);
             Assert.That(prefab.transform.Find("Main Menu/New Run"), Is.Not.Null);
             Assert.That(prefab.transform.Find("Options Modal/Options Frame/Master Volume"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Main Menu/Load"), Is.Not.Null);
+            Component controller = prefab.GetComponent("TitleScreenController");
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(new SerializedObject(controller).FindProperty("loadButton").objectReferenceValue, Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionScreenCatalogContainsAllSeventeenInspectableScreens()
+        {
+            UIScreenCatalog catalog = AssetDatabase.LoadAssetAtPath<UIScreenCatalog>(
+                "Assets/Data/Framework/UIScreenCatalog.asset");
+
+            Assert.That(catalog, Is.Not.Null);
+            Assert.That(catalog.Screens, Has.Count.EqualTo(17));
+            var ids = new HashSet<UIScreenId>();
+            foreach (UIScreenCatalogEntry entry in catalog.Screens)
+            {
+                Assert.That(ids.Add(entry.id), Is.True, entry.id.ToString());
+                Assert.That(entry.prefab, Is.Not.Null, entry.id.ToString());
+                Assert.That(entry.prefab.Id, Is.EqualTo(entry.id));
+                if (entry.id != UIScreenId.Title)
+                {
+                    Assert.That(entry.prefab.GetComponent("RunUIScreenController"), Is.Not.Null, entry.id.ToString());
+                    Assert.That(PrefabUtility.IsPartOfPrefabAsset(entry.prefab), Is.True, entry.id.ToString());
+                }
+            }
+
+            Assert.That(ids, Is.EquivalentTo(Enum.GetValues(typeof(UIScreenId)).Cast<UIScreenId>()));
+        }
+
+        [Test]
+        public void CardWorkshopPrefabExposesInspectableCardActionsAndPaging()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/CardWorkshopScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Action 1"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Action 6"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Hone Card"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Growth Path"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Previous Page"), Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Next Page"), Is.Not.Null);
+
+            Component controller = prefab.GetComponent("RunUIScreenController");
+            var serialized = new SerializedObject(controller);
+            Assert.That(serialized.FindProperty("actions").arraySize, Is.EqualTo(6));
+            Assert.That(serialized.FindProperty("primaryButton").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("secondaryButton").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("previousPageButton").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("nextPageButton").objectReferenceValue, Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionFieldAndResultScenesOpenTheirRunScreens()
+        {
+            const string fieldPath = "Assets/Scenes/Production/Field/Production_Field.unity";
+            const string resultPath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
+            Scene field = EditorSceneManager.OpenScene(fieldPath, OpenSceneMode.Additive);
+            try
+            {
+                SceneEntryPoint entry = FindInScene<SceneEntryPoint>(field);
+                Assert.That(entry, Is.Not.Null);
+                var serialized = new SerializedObject(entry);
+                Assert.That(serialized.FindProperty("initialScreen").enumValueIndex,
+                    Is.EqualTo((int)UIScreenId.FieldHud));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(field, true);
+            }
+
+            Scene result = EditorSceneManager.OpenScene(resultPath, OpenSceneMode.Additive);
+            try
+            {
+                SceneEntryPoint entry = FindInScene<SceneEntryPoint>(result);
+                Assert.That(entry, Is.Not.Null);
+                var serialized = new SerializedObject(entry);
+                Assert.That(serialized.FindProperty("state").enumValueIndex,
+                    Is.EqualTo((int)GameFlowState.Result));
+                Assert.That(serialized.FindProperty("initialScreen").enumValueIndex,
+                    Is.EqualTo((int)UIScreenId.Result));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(result, true);
+            }
         }
 
         [Test]
