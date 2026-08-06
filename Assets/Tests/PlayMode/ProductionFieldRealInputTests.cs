@@ -8,6 +8,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -15,26 +16,41 @@ using Object = UnityEngine.Object;
 
 namespace FFSS.Framework.Tests
 {
-    public sealed class ProductionFieldRealInputTests : InputTestFixture
+    public sealed class ProductionFieldRealInputTests
     {
         private const string FieldScene = "Production_Field";
         private Keyboard keyboard;
         private Mouse mouse;
+        private InputSettings.BackgroundBehavior previousBackgroundBehavior;
+#if UNITY_EDITOR
+        private InputSettings.EditorInputBehaviorInPlayMode previousEditorInputBehavior;
+#endif
 
         [SetUp]
-        public override void Setup()
+        public void Setup()
         {
-            base.Setup();
+            previousBackgroundBehavior = InputSystem.settings.backgroundBehavior;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+#if UNITY_EDITOR
+            previousEditorInputBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.editorInputBehaviorInPlayMode =
+                InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
             keyboard = InputSystem.AddDevice<Keyboard>("FFSS Test Keyboard");
             mouse = InputSystem.AddDevice<Mouse>("FFSS Test Mouse");
         }
 
         [TearDown]
-        public override void TearDown()
+        public void TearDown()
         {
-            keyboard = null;
-            mouse = null;
-            base.TearDown();
+            if (keyboard != null && keyboard.added)
+                InputSystem.RemoveDevice(keyboard);
+            if (mouse != null && mouse.added)
+                InputSystem.RemoveDevice(mouse);
+            InputSystem.settings.backgroundBehavior = previousBackgroundBehavior;
+#if UNITY_EDITOR
+            InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInputBehavior;
+#endif
         }
 
         [UnityTest]
@@ -57,16 +73,19 @@ namespace FFSS.Framework.Tests
             Key[] directions = { Key.W, Key.D, Key.S, Key.A };
             for (int i = 0; i < directions.Length; i++)
             {
-                Press(keyboard[directions[i]]);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
+                InputSystem.Update();
                 for (int frame = 0; frame < 40; frame++)
                 {
-                    Set(keyboard[directions[i]], 1f);
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
+                    InputSystem.Update();
                     yield return null;
                     farthestDistance = Mathf.Max(
                         farthestDistance,
                         Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude);
                 }
-                Release(keyboard[directions[i]]);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                InputSystem.Update();
                 yield return null;
             }
 
@@ -139,11 +158,16 @@ namespace FFSS.Framework.Tests
                 camera,
                 rect.TransformPoint(rect.rect.center));
 
-            Set(mouse.position, position);
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            InputSystem.Update();
             yield return null;
-            Press(mouse.leftButton);
+            InputSystem.QueueStateEvent(
+                mouse,
+                new MouseState { position = position }.WithButton(MouseButton.Left));
+            InputSystem.Update();
             yield return null;
-            Release(mouse.leftButton);
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+            InputSystem.Update();
             yield return null;
         }
 
