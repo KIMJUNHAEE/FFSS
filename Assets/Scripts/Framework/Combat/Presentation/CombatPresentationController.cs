@@ -17,6 +17,22 @@ namespace FFSS.Framework.Combat.Presentation
 
         public EnemyEncounterDefinition Encounter => encounter;
 
+        public void RenderSnapshot(CombatPresentationSnapshot snapshot, bool immediate = false)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            playerHud?.SetCombatant(snapshot.player, immediate);
+            playerHud?.SetPlayerValues(snapshot.playerAttack, snapshot.playerDefense);
+            enemyHud?.SetCombatant(snapshot.enemy, immediate);
+            if (snapshot.enemyIntent != null)
+            {
+                enemyIntent?.Show(new EnemyIntentPlan(FindMove(snapshot.enemyIntent.sourceId), snapshot.enemyIntent));
+            }
+        }
+
         private void Awake()
         {
             enemyHud?.ConfigureEnemy(encounter);

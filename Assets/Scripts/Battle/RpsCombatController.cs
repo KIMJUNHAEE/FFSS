@@ -16,6 +16,8 @@ namespace CardBattle
 
     public class RpsCombatController : MonoBehaviour
     {
+        public event System.Action<RpsCombatPresentationSnapshot> PresentationChanged;
+
         private enum IntentKind
         {
             Attack,
@@ -240,6 +242,7 @@ namespace CardBattle
         private readonly Dictionary<string, int> enemyMoveReadyTurns = new();
         private Coroutine playerBreakRoutine;
         private Coroutine enemyBreakRoutine;
+        private bool presentationReady;
 
         private void Start()
         {
@@ -272,8 +275,65 @@ namespace CardBattle
             PrepareNextEnemyIntent();
             RefreshHandPreview();
             RefreshButtons();
+            presentationReady = true;
+            PublishPresentation();
 
             StartCoroutine(BeginInitialPlayerTurn());
+        }
+
+        public bool TryGetPresentationSnapshot(out RpsCombatPresentationSnapshot snapshot)
+        {
+            if (!presentationReady)
+            {
+                snapshot = default;
+                return false;
+            }
+
+            CombatNumbers playerNumbers = CalculatePlayerNumbers(pokerHand != null ? pokerHand.CurrentResult : default);
+            CombatNumbers enemyNumbers = CalculateEnemyNumbers();
+            RpsAction enemyAction = pendingEnemyIntent switch
+            {
+                IntentKind.Defend => RpsAction.Defend,
+                IntentKind.Skill => RpsAction.Skill,
+                IntentKind.Stunned => RpsAction.Stunned,
+                _ => RpsAction.Attack
+            };
+            int enemyPower = pendingEnemyMove != null
+                ? pendingEnemyMove.power
+                : enemyAction == RpsAction.Defend ? enemyNumbers.Defense : enemyNumbers.Attack;
+            string enemyMoveName = pendingEnemyMove != null && !string.IsNullOrWhiteSpace(pendingEnemyMove.displayName)
+                ? pendingEnemyMove.displayName
+                : enemyAction == RpsAction.Stunned ? "행동 불가" : $"다음 {ActionLabel(enemyAction)}";
+            string enemyTelegraph = pendingEnemyMove != null && !string.IsNullOrWhiteSpace(pendingEnemyMove.telegraph)
+                ? pendingEnemyMove.telegraph
+                : enemyAction == RpsAction.Stunned ? "이번 턴 행동할 수 없어" : $"{ActionLabel(enemyAction)} 행동을 준비하고 있어";
+
+            snapshot = new RpsCombatPresentationSnapshot(
+                playerHp,
+                playerMaxHp,
+                playerBreakCharge,
+                playerMaxBreak,
+                playerNumbers.Attack,
+                playerNumbers.Defense,
+                enemyDisplayName,
+                enemyHp,
+                enemyMaxHp,
+                enemyBreakCharge,
+                enemyMaxBreak,
+                MoveId(pendingEnemyMove),
+                enemyMoveName,
+                enemyTelegraph,
+                enemyAction,
+                enemyPower);
+            return true;
+        }
+
+        private void PublishPresentation()
+        {
+            if (TryGetPresentationSnapshot(out RpsCombatPresentationSnapshot snapshot))
+            {
+                PresentationChanged?.Invoke(snapshot);
+            }
         }
 
         private IEnumerator BeginInitialPlayerTurn()
@@ -1218,8 +1278,6 @@ namespace CardBattle
 
         private void RefreshHandPreview()
         {
-            if (!playerStatText && !playerAttackValueText && !playerDefenseValueText) return;
-
             var hand = pokerHand != null ? pokerHand.CurrentResult : default;
             var values = CalculatePlayerNumbers(hand);
 
@@ -1247,6 +1305,7 @@ namespace CardBattle
             }
 
             UpdateWeaknessEffectPanel(weaknessPreview);
+            PublishPresentation();
         }
 
         private readonly struct WeaknessPreview
@@ -1407,6 +1466,7 @@ namespace CardBattle
             SetBarRatio(playerHpFill, SafeRatio(playerHp, playerMaxHp));
             if (enemyHpText) enemyHpText.text = $"HP  {enemyHp} / {enemyMaxHp}";
             SetBarRatio(enemyHpFill, SafeRatio(enemyHp, enemyMaxHp));
+            PublishPresentation();
         }
 
         private void PrimeBreakBar(Image fill)
@@ -1420,6 +1480,7 @@ namespace CardBattle
             if (enemyBreakText) enemyBreakText.text = $"{enemyBreakCharge} / {enemyMaxBreak}";
             SetBreakFill(playerBreakFill, SafeRatio(playerBreakCharge, playerMaxBreak), animated, ref playerBreakRoutine);
             SetBreakFill(enemyBreakFill, SafeRatio(enemyBreakCharge, enemyMaxBreak), animated, ref enemyBreakRoutine);
+            PublishPresentation();
         }
 
         private void SetBreakFill(Image fill, float target, bool animated, ref Coroutine routine)
