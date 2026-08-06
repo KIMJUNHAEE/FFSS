@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using CardBattle;
 using CardBattle.EditorTools;
+using FFSS.Framework.Combat;
+using FFSS.Framework.Combat.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace FFSS.Editor
 {
@@ -70,6 +74,7 @@ namespace FFSS.Editor
                         $"{ProductionRelativeRoot}/{seed.SceneName}",
                         seed.Weakness,
                         seed.IncludeBackground);
+                    WireGeneratedScene(seed);
                 }
             }
             finally
@@ -83,6 +88,128 @@ namespace FFSS.Editor
             AssetDatabase.Refresh();
             Debug.Log(
                 $"Rebuilt {Seeds.Count} production battle scenes from the shared battle prefabs and current CardBattleSetup. Original scenes were not opened or modified.");
+        }
+
+        [MenuItem("FFSS/Production/Wire Existing Battle Scene Copies")]
+        public static void WireExistingProductionBattleScenes()
+        {
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            try
+            {
+                for (int i = 0; i < Seeds.Count; i++)
+                {
+                    BattleSeed seed = Seeds[i];
+                    string path = $"Assets/Scenes/{ProductionRelativeRoot}/{seed.SceneName}.unity";
+                    if (!File.Exists(path))
+                    {
+                        throw new FileNotFoundException($"Production battle scene is missing: {path}", path);
+                    }
+
+                    EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                    WireGeneratedScene(seed);
+                }
+            }
+            finally
+            {
+                if (!Application.isBatchMode && previousSetup.Length > 0)
+                {
+                    EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Wired inspectable combat services into {Seeds.Count} existing production battle scene copies.");
+        }
+
+        private static void WireGeneratedScene(BattleSeed seed)
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            Canvas canvas = combat != null && combat.attackButton != null
+                ? combat.attackButton.GetComponentInParent<Canvas>()
+                : FindInScene<Canvas>(scene);
+            EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                $"Assets/Data/Production/Encounters/{seed.EnemyId}.asset");
+            GameObject meterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"Assets/Prefabs/Production/Combat/RuleMeters/EnemyRuleMeter_{seed.EnemyId}.prefab");
+
+            if (combat == null || canvas == null || encounter == null || meterPrefab == null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot wire production battle scene {seed.EnemyId}: " +
+                    $"combat={combat != null}, canvas={canvas != null}, encounter={encounter != null}, meter={meterPrefab != null}");
+            }
+
+            EnemyRuleMeterView meterView = FindInScene<EnemyRuleMeterView>(scene);
+            GameObject meterObject = meterView != null ? meterView.gameObject : null;
+            if (meterObject == null)
+            {
+                meterObject = PrefabUtility.InstantiatePrefab(meterPrefab, canvas.transform) as GameObject;
+            }
+            if (meterObject == null)
+            {
+                throw new InvalidOperationException($"Failed to instantiate enemy rule meter prefab: {seed.EnemyId}");
+            }
+
+            meterObject.name = $"EnemyRuleMeter_{seed.EnemyId}";
+            RectTransform meterRect = meterObject.GetComponent<RectTransform>();
+            meterRect.anchorMin = Vector2.one;
+            meterRect.anchorMax = Vector2.one;
+            meterRect.pivot = Vector2.one;
+            meterRect.anchoredPosition = new Vector2(-48f, -320f);
+            meterRect.sizeDelta = new Vector2(300f, 60f);
+            meterRect.localScale = Vector3.one;
+            meterObject.transform.SetAsLastSibling();
+
+            meterView = meterObject.GetComponent<EnemyRuleMeterView>();
+            meterView.Bind(encounter, null);
+
+            LegacyCombatFeedbackBridge feedback = combat.GetComponent<LegacyCombatFeedbackBridge>();
+            if (feedback == null)
+            {
+                feedback = combat.gameObject.AddComponent<LegacyCombatFeedbackBridge>();
+            }
+            feedback.Configure(combat);
+
+            LegacyCombatFlowBridge flow = combat.GetComponent<LegacyCombatFlowBridge>();
+            if (flow == null)
+            {
+                flow = combat.gameObject.AddComponent<LegacyCombatFlowBridge>();
+            }
+            flow.Configure(combat, combat.battleResultView);
+
+            LegacyEnemyRulePresentationBridge rules = combat.GetComponent<LegacyEnemyRulePresentationBridge>();
+            if (rules == null)
+            {
+                rules = combat.gameObject.AddComponent<LegacyEnemyRulePresentationBridge>();
+            }
+            rules.Configure(combat, combat.pokerHand, encounter, meterView);
+
+            EditorUtility.SetDirty(combat.gameObject);
+            EditorUtility.SetDirty(meterObject);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        private static T FindInScene<T>(Scene scene) where T : Component
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                T component = roots[i].GetComponentInChildren<T>(true);
+                if (component != null)
+                {
+                    return component;
+                }
+            }
+
+            return null;
         }
     }
 }

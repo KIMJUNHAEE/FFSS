@@ -145,12 +145,14 @@ namespace FFSS.Framework.Run
 
         public int GetCounter(string key, int fallback = 0)
         {
+            counters ??= new List<RuleCounterState>();
             RuleCounterState counter = counters.Find(item => item != null && item.key == key);
             return counter == null ? fallback : counter.value;
         }
 
         public int SetCounter(string key, int value)
         {
+            counters ??= new List<RuleCounterState>();
             RuleCounterState counter = counters.Find(item => item != null && item.key == key);
             if (counter == null)
             {
@@ -171,12 +173,14 @@ namespace FFSS.Framework.Run
 
         public bool GetFlag(string key)
         {
+            flags ??= new List<RuleFlagState>();
             RuleFlagState flag = flags.Find(item => item != null && item.key == key);
             return flag != null && flag.value;
         }
 
         public void SetFlag(string key, bool value)
         {
+            flags ??= new List<RuleFlagState>();
             RuleFlagState flag = flags.Find(item => item != null && item.key == key);
             if (flag == null)
             {

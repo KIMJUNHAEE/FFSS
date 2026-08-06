@@ -768,6 +768,41 @@ namespace FFSS.Framework.Tests
                 Is.True);
         }
 
+        [Test]
+        public void ProductionBattleScenesExposePrefabRuleMetersAndInspectableBridges()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:Scene",
+                new[] { "Assets/Scenes/Production/Battles" });
+
+            Assert.That(guids, Has.Length.EqualTo(17));
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                try
+                {
+                    EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
+                    Assert.That(meter, Is.Not.Null, path);
+                    Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(meter.gameObject), Is.Not.Null, path);
+                    Assert.That(FindInScene(scene, "LegacyCombatFeedbackBridge"), Is.Not.Null, path);
+                    Assert.That(FindInScene(scene, "LegacyCombatFlowBridge"), Is.Not.Null, path);
+
+                    Component rules = FindInScene(scene, "LegacyEnemyRulePresentationBridge");
+                    Assert.That(rules, Is.Not.Null, path);
+                    var serialized = new SerializedObject(rules);
+                    Assert.That(serialized.FindProperty("source").objectReferenceValue, Is.Not.Null, path);
+                    Assert.That(serialized.FindProperty("pokerHand").objectReferenceValue, Is.Not.Null, path);
+                    Assert.That(serialized.FindProperty("encounter").objectReferenceValue, Is.Not.Null, path);
+                    Assert.That(serialized.FindProperty("meterView").objectReferenceValue, Is.SameAs(meter), path);
+                }
+                finally
+                {
+                    EditorSceneManager.CloseScene(scene, true);
+                }
+            }
+        }
+
         private static CombatIntent Intent(
             CombatSide side,
             CombatStance stance,

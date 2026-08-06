@@ -57,8 +57,12 @@ namespace FFSS.Framework.Combat.Presentation
 
             float range = Mathf.Max(1f, meter.maximumValue - meter.minimumValue);
             float ratio = Mathf.Clamp01((previewValue - meter.minimumValue) / range);
-            bool critical = previewValue >= meter.maximumValue;
-            bool warning = previewValue >= meter.warningThreshold;
+            bool critical = meter.countsDown
+                ? previewValue <= meter.minimumValue
+                : previewValue >= meter.maximumValue;
+            bool warning = meter.countsDown
+                ? previewValue <= meter.warningThreshold
+                : previewValue >= meter.warningThreshold;
             Color color = critical ? meter.criticalColor : warning ? meter.warningColor : meter.normalColor;
 
             if (fillImage != null)

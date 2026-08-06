@@ -1140,6 +1140,7 @@ RectTransform:
   - {fileID: 1804482361}
   - {fileID: 299783455}
   - {fileID: 1422165390}
+  - {fileID: 1756323162}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1652,6 +1653,9 @@ GameObject:
   m_Component:
   - component: {fileID: 692266395}
   - component: {fileID: 692266394}
+  - component: {fileID: 692266398}
+  - component: {fileID: 692266397}
+  - component: {fileID: 692266396}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -1689,6 +1693,11 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
+  aceAllPowerBonus: 2
+  courtCardSkillBonus: 1
+  redJokerAttackBonus: 3
+  blackJokerDefenseBonus: 3
+  jokerSkillBonus: 2
   enemyWeakness: 4
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -1727,8 +1736,8 @@ MonoBehaviour:
   enemyIntentTooltip: {fileID: 297581402}
   playerSkillDetailRoot: {fileID: 1191904743}
   playerSkillTitleText: {fileID: 1191904742}
-  playerSkillValueText: {fileID: 1191904741}
-  playerSkillBodyText: {fileID: 1191904740}
+  playerSkillValueText: {fileID: 0}
+  playerSkillBodyText: {fileID: 0}
   battleIntro: {fileID: 1804482362}
   turnBanner: {fileID: 299783456}
   combatImpactView: {fileID: 923997794}
@@ -1758,6 +1767,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &692266396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 692266393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536e7524639c4c2abc81ce29fdd29b9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyEnemyRulePresentationBridge
+  source: {fileID: 692266394}
+  pokerHand: {fileID: 1596896112}
+  encounter: {fileID: 11400000, guid: 37339e3fc4b3c244da7e81dcc994e3af, type: 2}
+  meterView: {fileID: 1756323163}
+--- !u!114 &692266397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 692266393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b0b1f98f475b9a4691745332c98a9ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFlowBridge
+  source: {fileID: 692266394}
+  resultView: {fileID: 1422165391}
+--- !u!114 &692266398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 692266393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c901ce15cb566534aad3feb8ba4c15ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFeedbackBridge
+  source: {fileID: 692266394}
+  heavyDamageThreshold: 15
 --- !u!1 &708639717
 GameObject:
   m_ObjectHideFlags: 0
@@ -2600,28 +2653,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 7176525289227360006, guid: e1c2559cda6b21443b3f3c71ba0d53f9, type: 3}
   m_PrefabInstance: {fileID: 1191904738}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1191904740 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1814220811771940734, guid: e1c2559cda6b21443b3f3c71ba0d53f9, type: 3}
-  m_PrefabInstance: {fileID: 1191904738}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ace7fb68214564489d7fca54af16b11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
---- !u!114 &1191904741 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5461559977281230836, guid: e1c2559cda6b21443b3f3c71ba0d53f9, type: 3}
-  m_PrefabInstance: {fileID: 1191904738}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ace7fb68214564489d7fca54af16b11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
 --- !u!114 &1191904742 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1097886060112213216, guid: e1c2559cda6b21443b3f3c71ba0d53f9, type: 3}
@@ -3333,6 +3364,119 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1001 &1756323161
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 377535535}
+    m_Modifications:
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_Pivot.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_Pivot.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -48
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -320
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5262726338324021478, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+      propertyPath: m_Name
+      value: "EnemyRuleMeter_7\uB561"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+--- !u!224 &1756323162 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 728523454605741652, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+  m_PrefabInstance: {fileID: 1756323161}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1756323163 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8557535191105052024, guid: 2bb816868cf2b5e4ba3dcfef0c52765a, type: 3}
+  m_PrefabInstance: {fileID: 1756323161}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54415c2830f65d3419f144731faf5272, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.EnemyRuleMeterView
 --- !u!1001 &1804482360
 PrefabInstance:
   m_ObjectHideFlags: 0

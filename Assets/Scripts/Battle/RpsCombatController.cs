@@ -426,6 +426,7 @@ namespace CardBattle
         private IEnumerator EndTurnRoutine(RpsAction playerAction)
         {
             var playerIntent = BuildPlayerIntent(playerAction);
+            PokerHandResult resolvedHand = pokerHand != null ? pokerHand.CurrentResult : default;
 
             if (pokerHand != null)
             {
@@ -435,7 +436,7 @@ namespace CardBattle
                 pokerHand.SetDeckPileVisible(false);
             }
 
-            yield return ShowEnemySideAndResolve(playerIntent);
+            yield return ShowEnemySideAndResolve(playerIntent, resolvedHand);
 
             if (gameOver) yield break;
 
@@ -455,7 +456,7 @@ namespace CardBattle
             yield return new WaitForSeconds(revealDelay);
 
             var stunnedIntent = new CombatIntent("플레이어", IntentKind.Stunned, "스턴", 0, 0, "");
-            yield return ShowEnemySideAndResolve(stunnedIntent);
+            yield return ShowEnemySideAndResolve(stunnedIntent, default);
 
             playerStunned = false;
             playerBreakCharge = 0;
@@ -466,7 +467,7 @@ namespace CardBattle
                 StartNextPlayerHand();
         }
 
-        private IEnumerator ShowEnemySideAndResolve(CombatIntent playerIntent)
+        private IEnumerator ShowEnemySideAndResolve(CombatIntent playerIntent, PokerHandResult resolvedHand)
         {
             yield return ShowTurnBanner($"{enemyDisplayName}의 섯다 턴 시작", false);
 
@@ -491,7 +492,7 @@ namespace CardBattle
             }
 
             var enemyIntent = BuildEnemyIntent(enemyHand);
-            yield return ResolveRound(playerIntent, enemyIntent);
+            yield return ResolveRound(playerIntent, enemyIntent, resolvedHand);
 
             if (seotdaTable != null)
             {
@@ -508,7 +509,10 @@ namespace CardBattle
             }
         }
 
-        private IEnumerator ResolveRound(CombatIntent playerIntent, CombatIntent enemyIntent)
+        private IEnumerator ResolveRound(
+            CombatIntent playerIntent,
+            CombatIntent enemyIntent,
+            PokerHandResult resolvedHand)
         {
             bool enemyWasStunned = enemyIntent.IsStunned;
             if (enemyActionText) enemyActionText.text = DescribeIntent(enemyIntent);
@@ -521,7 +525,7 @@ namespace CardBattle
             outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent)}\n{outcome.Message}";
 
             bool enemyAttackHitPlayer = enemyIntent.IsOffense && outcome.DamageToPlayer > 0;
-            bool hasMovePose = !enemyIntent.IsStunned && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null;
+            bool hasMovePose = enemyIntent.IsOffense && pendingEnemyMove != null && pendingEnemyMove.actionSprite != null;
             bool enemyTookHpDamage = outcome.DamageToEnemy > 0;
             bool hasImpact = outcome.DamageToPlayer > 0 || outcome.DamageToEnemy > 0 ||
                              outcome.BreakToPlayer > 0 || outcome.BreakToEnemy > 0;
@@ -538,7 +542,14 @@ namespace CardBattle
                 outcome.BreakToPlayer,
                 outcome.BreakToEnemy,
                 playerStunned,
-                enemyStunned));
+                enemyStunned,
+                ToRpsAction(playerIntent.Kind),
+                ToRpsAction(enemyIntent.Kind),
+                resolvedHand.Rank,
+                resolvedHand.Tier,
+                resolvedHand.RedCount,
+                resolvedHand.BlackCount,
+                MoveId(pendingEnemyMove)));
 
             bool impactFinished = combatImpactView == null || !hasImpact;
             if (combatImpactView != null && hasImpact)
@@ -984,6 +995,14 @@ namespace CardBattle
             BossMoveType.Defend => IntentKind.Defend,
             BossMoveType.Skill => IntentKind.Skill,
             _ => IntentKind.Attack,
+        };
+
+        private static RpsAction ToRpsAction(IntentKind kind) => kind switch
+        {
+            IntentKind.Defend => RpsAction.Defend,
+            IntentKind.Skill => RpsAction.Skill,
+            IntentKind.Stunned => RpsAction.Stunned,
+            _ => RpsAction.Attack,
         };
 
         private void UpdateEnemyActionIcon(IntentKind kind, BossMoveDefinition move)

@@ -171,6 +171,7 @@ RectTransform:
   - {fileID: 1382806662}
   - {fileID: 478585200}
   - {fileID: 1436805938}
+  - {fileID: 1194454661}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1584,6 +1585,9 @@ GameObject:
   m_Component:
   - component: {fileID: 675467358}
   - component: {fileID: 675467357}
+  - component: {fileID: 675467361}
+  - component: {fileID: 675467360}
+  - component: {fileID: 675467359}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -1621,6 +1625,11 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
+  aceAllPowerBonus: 2
+  courtCardSkillBonus: 1
+  redJokerAttackBonus: 3
+  blackJokerDefenseBonus: 3
+  jokerSkillBonus: 2
   enemyWeakness: 1
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -1663,7 +1672,7 @@ MonoBehaviour:
   playerSkillBodyText: {fileID: 1903037053}
   battleIntro: {fileID: 1382806663}
   turnBanner: {fileID: 478585201}
-  combatImpactView: {fileID: 1004442708}
+  combatImpactView: {fileID: 0}
   battleResultView: {fileID: 1436805939}
   combatLogText: {fileID: 1426610354}
   combatReadout: {fileID: 1426610355}
@@ -1690,6 +1699,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &675467359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675467356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536e7524639c4c2abc81ce29fdd29b9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyEnemyRulePresentationBridge
+  source: {fileID: 675467357}
+  pokerHand: {fileID: 1463923429}
+  encounter: {fileID: 11400000, guid: 07c11f76619d9174da960cb37652c302, type: 2}
+  meterView: {fileID: 1194454662}
+--- !u!114 &675467360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675467356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b0b1f98f475b9a4691745332c98a9ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFlowBridge
+  source: {fileID: 675467357}
+  resultView: {fileID: 1436805939}
+--- !u!114 &675467361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675467356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c901ce15cb566534aad3feb8ba4c15ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFeedbackBridge
+  source: {fileID: 675467357}
+  heavyDamageThreshold: 15
 --- !u!1 &683854901
 GameObject:
   m_ObjectHideFlags: 0
@@ -2171,7 +2224,7 @@ PrefabInstance:
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2057502640}
+      objectReference: {fileID: 0}
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -2278,17 +2331,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6192391814097943109, guid: d6639cb33fe775e469905af0aa80a72e, type: 3}
   m_PrefabInstance: {fileID: 1004442706}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1004442708 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7960935918450534545, guid: d6639cb33fe775e469905af0aa80a72e, type: 3}
-  m_PrefabInstance: {fileID: 1004442706}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.CombatImpactView
 --- !u!1001 &1169208511
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2414,6 +2456,119 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!1001 &1194454660
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 67110377}
+    m_Modifications:
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_Pivot.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_Pivot.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -48
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -320
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6625330910562704428, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+      propertyPath: m_Name
+      value: EnemyRuleMeter_13
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+--- !u!224 &1194454661 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 1793891549813461662, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+  m_PrefabInstance: {fileID: 1194454660}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1194454662 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7222483037003219378, guid: 64cfd9c795ca96b408e26b718329fdbe, type: 3}
+  m_PrefabInstance: {fileID: 1194454660}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54415c2830f65d3419f144731faf5272, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.EnemyRuleMeterView
 --- !u!1 &1255641484
 GameObject:
   m_ObjectHideFlags: 0
@@ -2466,36 +2621,6 @@ MonoBehaviour:
   m_EffectColor: {r: 0, g: 0, b: 0, a: 0.85}
   m_EffectDistance: {x: 2, y: -2}
   m_UseGraphicAlpha: 1
---- !u!114 &205769683
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 205769680}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2fd29f102d90ea24c99727bf6464063d, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1255641487
 CanvasRenderer:
   m_ObjectHideFlags: 0

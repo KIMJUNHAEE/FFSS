@@ -2150,6 +2150,9 @@ GameObject:
   m_Component:
   - component: {fileID: 952932887}
   - component: {fileID: 952932886}
+  - component: {fileID: 952932890}
+  - component: {fileID: 952932889}
+  - component: {fileID: 952932888}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -2187,6 +2190,11 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
+  aceAllPowerBonus: 2
+  courtCardSkillBonus: 1
+  redJokerAttackBonus: 3
+  blackJokerDefenseBonus: 3
+  jokerSkillBonus: 2
   enemyWeakness: 4
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -2206,7 +2214,7 @@ MonoBehaviour:
   enemyHpText: {fileID: 2112937741}
   enemyHpFill: {fileID: 2112937742}
   playerBreakText: {fileID: 0}
-  playerBreakFill: {fileID: 1265211910}
+  playerBreakFill: {fileID: 0}
   enemyBreakText: {fileID: 0}
   enemyBreakFill: {fileID: 2112937740}
   enemyActionText: {fileID: 308535184}
@@ -2256,6 +2264,163 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &952932888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 952932885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536e7524639c4c2abc81ce29fdd29b9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyEnemyRulePresentationBridge
+  source: {fileID: 952932886}
+  pokerHand: {fileID: 2146251525}
+  encounter: {fileID: 11400000, guid: 3fed00538c68eef4d9708567cefb47e1, type: 2}
+  meterView: {fileID: 1039828005}
+--- !u!114 &952932889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 952932885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b0b1f98f475b9a4691745332c98a9ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFlowBridge
+  source: {fileID: 952932886}
+  resultView: {fileID: 1267650264}
+--- !u!114 &952932890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 952932885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c901ce15cb566534aad3feb8ba4c15ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFeedbackBridge
+  source: {fileID: 952932886}
+  heavyDamageThreshold: 15
+--- !u!1001 &1039828003
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1452805053}
+    m_Modifications:
+    - target: {fileID: 2680283399602073727, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_Name
+      value: EnemyRuleMeter_18
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_Pivot.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_Pivot.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -48
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -320
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+--- !u!224 &1039828004 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 7360726829501382349, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+  m_PrefabInstance: {fileID: 1039828003}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1039828005 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1943526298369764833, guid: 6a024a8eb9bbe3e4ca38be891a843708, type: 3}
+  m_PrefabInstance: {fileID: 1039828003}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54415c2830f65d3419f144731faf5272, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.EnemyRuleMeterView
 --- !u!1001 &1265211908
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2283,7 +2448,7 @@ PrefabInstance:
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1395518907}
+      objectReference: {fileID: 0}
     - target: {fileID: 1851826053054833595, guid: cf1f87be459df834294dc5fc3706bfdd, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -2390,17 +2555,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4201367467086598084, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
   m_PrefabInstance: {fileID: 1265211908}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1265211910 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 288033167859552300, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
-  m_PrefabInstance: {fileID: 1265211908}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!114 &1265211911 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7274446627120632877, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
@@ -2942,6 +3096,7 @@ RectTransform:
   - {fileID: 1577419527}
   - {fileID: 2053087760}
   - {fileID: 1267650263}
+  - {fileID: 1039828004}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
