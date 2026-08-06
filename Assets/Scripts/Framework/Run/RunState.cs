@@ -4,6 +4,25 @@ using FFSS.Framework.Combat;
 
 namespace FFSS.Framework.Run
 {
+    public enum RunOutcome
+    {
+        InProgress,
+        Victory,
+        Defeat,
+        Abandoned
+    }
+
+    public enum RunFieldContentType
+    {
+        Road,
+        Combat,
+        Event,
+        Shop,
+        Rest,
+        MidBoss,
+        BossDoor
+    }
+
     [Serializable]
     public sealed class PlayerRunState
     {
@@ -18,6 +37,74 @@ namespace FFSS.Framework.Run
         public int baseAttack;
         public int baseDefense;
         public int baseBreakPower;
+        public int equipmentMaxHpBonus;
+        public int equipmentAttackBonus;
+        public int equipmentDefenseBonus;
+        public int firstTurnAttackBonus;
+        public int firstTurnDefenseBonus;
+
+        public int AttackForTurn(int turn)
+        {
+            return baseAttack + equipmentAttackBonus + (turn <= 1 ? firstTurnAttackBonus : 0);
+        }
+
+        public int DefenseForTurn(int turn)
+        {
+            return baseDefense + equipmentDefenseBonus + (turn <= 1 ? firstTurnDefenseBonus : 0);
+        }
+    }
+
+    [Serializable]
+    public sealed class RunFieldNodeState
+    {
+        public string nodeId;
+        public RunFieldContentType contentType;
+        public string contentId;
+        public int axialX;
+        public int axialY;
+        public bool discovered;
+        public bool visited;
+        public bool resolved;
+    }
+
+    [Serializable]
+    public sealed class RunActProgressState
+    {
+        public int act = 1;
+        public string regionId;
+        public int generatedTileCount;
+        public int requiredNormalVictories;
+        public int normalVictories;
+        public int requiredEvents;
+        public int completedEvents;
+        public int shopVisits;
+        public int restVisits;
+        public bool midBossDefeated;
+        public bool bossDoorUnlocked;
+        public bool bossDefeated;
+        public List<RunFieldNodeState> fieldNodes = new List<RunFieldNodeState>();
+    }
+
+    [Serializable]
+    public sealed class RunShopState
+    {
+        public string shopId;
+        public int act;
+        public bool refreshed;
+        public List<string> stockIds = new List<string>();
+        public List<string> purchasedIds = new List<string>();
+    }
+
+    [Serializable]
+    public sealed class RunResultState
+    {
+        public RunOutcome outcome = RunOutcome.InProgress;
+        public string causeId;
+        public string finalEnemyId;
+        public int completedActs;
+        public int defeatedEnemies;
+        public int earnedGold;
+        public string strongestEquipmentId;
     }
 
     [Serializable]
@@ -41,6 +128,7 @@ namespace FFSS.Framework.Run
         public float elapsedSeconds;
         public int gold;
         public bool isComplete;
+        public RunOutcome outcome = RunOutcome.InProgress;
         public PlayerRunState player = new PlayerRunState();
         public RunPokerDeckState pokerDeck = new RunPokerDeckState();
         public EnemyRuleState activeEnemyRule;
@@ -49,6 +137,30 @@ namespace FFSS.Framework.Run
         public List<string> equippedItemIds = new List<string>();
         public List<string> inventoryItemIds = new List<string>();
         public List<string> completedEventIds = new List<string>();
+        public List<string> completedEncounterIds = new List<string>();
+        public List<string> discoveredNodeIds = new List<string>();
+        public List<string> visitedNodeIds = new List<string>();
+        public List<string> upgradedCardInstanceIds = new List<string>();
+        public List<string> removedCardInstanceIds = new List<string>();
+        public List<RunActProgressState> actProgress = new List<RunActProgressState>();
+        public List<RunShopState> shops = new List<RunShopState>();
+        public RunResultState result = new RunResultState();
+
+        public RunActProgressState CurrentActProgress
+        {
+            get
+            {
+                RunActProgressState progress = actProgress.Find(value => value != null && value.act == act);
+                if (progress != null)
+                {
+                    return progress;
+                }
+
+                progress = new RunActProgressState { act = act, regionId = regionId };
+                actProgress.Add(progress);
+                return progress;
+            }
+        }
 
         public DeterministicRng CreateRng()
         {

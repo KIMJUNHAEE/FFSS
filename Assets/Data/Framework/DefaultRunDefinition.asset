@@ -13,12 +13,17 @@ MonoBehaviour:
   m_Name: DefaultRunDefinition
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Run.RunDefinition
   maximumHp: 90
-  maximumBalance: 36
+  maximumPressure: 36
   baseAttack: 8
   baseDefense: 7
   baseBreakPower: 5
+  startingEquipmentMaxHpBonus: 14
+  startingEquipmentAttackBonus: 2
+  startingEquipmentDefenseBonus: 1
+  firstTurnAttackBonus: 3
+  firstTurnDefenseBonus: 3
   startingRegionId: act1_north_gate
-  startingGold: 0
+  startingGold: 30
   startingCardIds:
   - poker.club.01
   - poker.club.02
@@ -74,4 +79,9 @@ MonoBehaviour:
   - poker.spade.13
   - poker.joker.black
   - poker.joker.red
-  startingEquipmentIds: []
+  startingEquipmentIds:
+  - weapon_red_moon_hwando
+  - garment_tiger_durumagi
+  - talisman_twin_crimson_cards
+  - keepsake_red_sand_hourglass
+  campaign: {fileID: 11400000, guid: 0ada0c07eb965bb4fbee0249a2c6b310, type: 2}

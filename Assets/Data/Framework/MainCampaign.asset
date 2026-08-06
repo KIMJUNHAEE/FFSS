@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd8ba445e982388429fa03225186e554, type: 3}
+  m_Name: MainCampaign
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Run.RunCampaignDefinition
+  campaignId: main_campaign
+  acts:
+  - act: 1
+    displayName: "\uC81C1\uB9C9: \uBD81\uBB38 \uD328\uAC70\uB9AC"
+    regionId: act1_north_gate
+    minimumTiles: 36
+    maximumTiles: 44
+    requiredNormalVictories: 5
+    requiredEvents: 3
+    shopCount: 1
+    restCount: 1
+    normalEnemyIds:
+    - "1\uB561"
+    - "2\uB561"
+    - "3\uB561"
+    - "4\uB561"
+    eventIds:
+    - event.act1.lost_wager
+    - event.act1.marked_card
+    - event.act1.old_dealer
+    midBossIds:
+    - "\uB561\uC7A1\uC774"
+    - "\uBA4D\uAD6C\uC0AC"
+    bossId: 13
+    actRewardGold: 35
+    transitionHealPercent: 25
+  - act: 2
+    displayName: "\uC81C2\uB9C9: \uB3C5\uC218\uB85C"
+    regionId: act2_poison_canal
+    minimumTiles: 48
+    maximumTiles: 58
+    requiredNormalVictories: 6
+    requiredEvents: 4
+    shopCount: 2
+    restCount: 1
+    normalEnemyIds:
+    - "5\uB561"
+    - "6\uB561"
+    - "7\uB561"
+    - "8\uB561"
+    eventIds:
+    - event.act2.poisoned_shoe
+    - event.act2.sunken_shop
+    - event.act2.suit_debt
+    - event.act2.closed_table
+    midBossIds:
+    - "\uAD6C\uC0AC"
+    bossId: 18
+    actRewardGold: 50
+    transitionHealPercent: 25
+  - act: 3
+    displayName: "\uC81C3\uB9C9: \uBB34\uB108\uC9C4 \uAD81"
+    regionId: act3_ruined_palace
+    minimumTiles: 68
+    maximumTiles: 80
+    requiredNormalVictories: 7
+    requiredEvents: 5
+    shopCount: 2
+    restCount: 1
+    normalEnemyIds:
+    - "9\uB561"
+    - "10\uB561"
+    eventIds:
+    - event.act3.false_warrant
+    - event.act3.gwang_altar
+    - event.act3.last_hand
+    - event.act3.broken_clock
+    - event.act3.royal_table
+    midBossIds:
+    - "\uC554\uD589\uC5B4\uC0AC"
+    bossId: 38
+    actRewardGold: 75
+    transitionHealPercent: 25

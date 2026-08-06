@@ -86,6 +86,7 @@ Transform:
   - {fileID: 4323333037651636137}
   - {fileID: 5685356562046433422}
   - {fileID: 2444718178631438090}
+  - {fileID: 5378120535306495640}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1043136626630917560
@@ -98,7 +99,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 973e4568660748899a1721904e1611fd, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Core.GameKernel
   persistBetweenScenes: 1
   serviceComponents: []
@@ -2147,6 +2148,52 @@ MonoBehaviour:
   initializationOrder: -500
   slotCount: 3
   forcePlayerPrefsRepository: 0
+--- !u!1 &6930495376755279692
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5378120535306495640}
+  - component: {fileID: 8256605025453319615}
+  m_Layer: 0
+  m_Name: Run Progression Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5378120535306495640
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6930495376755279692}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1212280368425730850}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8256605025453319615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6930495376755279692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 126d9b34c1e1117409a11c3c6f5ceca1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Run.RunProgressionManager
+  initializationOrder: -550
+  campaign: {fileID: 11400000, guid: 0ada0c07eb965bb4fbee0249a2c6b310, type: 2}
 --- !u!1 &7277043892700224225
 GameObject:
   m_ObjectHideFlags: 0

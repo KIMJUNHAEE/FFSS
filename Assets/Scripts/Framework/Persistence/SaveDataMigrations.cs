@@ -1,4 +1,5 @@
 using System;
+using FFSS.Framework.Run;
 
 namespace FFSS.Framework.Persistence
 {
@@ -24,6 +25,24 @@ namespace FFSS.Framework.Persistence
 #pragma warning restore CS0618
                 data.run.player.currentPressure = 0;
                 data.schemaVersion = 2;
+            }
+
+            if (data.schemaVersion < 3)
+            {
+                if (data.run != null)
+                {
+                    data.run.outcome = data.run.isComplete ? RunOutcome.Victory : RunOutcome.InProgress;
+                    data.run.result ??= new RunResultState { outcome = data.run.outcome };
+                    data.run.completedEncounterIds ??= new System.Collections.Generic.List<string>();
+                    data.run.discoveredNodeIds ??= new System.Collections.Generic.List<string>();
+                    data.run.visitedNodeIds ??= new System.Collections.Generic.List<string>();
+                    data.run.upgradedCardInstanceIds ??= new System.Collections.Generic.List<string>();
+                    data.run.removedCardInstanceIds ??= new System.Collections.Generic.List<string>();
+                    data.run.actProgress ??= new System.Collections.Generic.List<RunActProgressState>();
+                    data.run.shops ??= new System.Collections.Generic.List<RunShopState>();
+                }
+
+                data.schemaVersion = 3;
             }
 
             return data;

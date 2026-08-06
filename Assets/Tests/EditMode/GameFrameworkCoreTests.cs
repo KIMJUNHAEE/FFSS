@@ -248,6 +248,33 @@ namespace FFSS.Framework.Tests
             Assert.That(cardIds, Has.Count.EqualTo(54));
             Assert.That(state.player.maxPressure, Is.EqualTo(36));
             Assert.That(state.player.currentPressure, Is.Zero);
+            Assert.That(state.gold, Is.EqualTo(30));
+            Assert.That(state.player.maxHp, Is.EqualTo(104));
+            Assert.That(state.player.AttackForTurn(1), Is.EqualTo(13));
+            Assert.That(state.player.DefenseForTurn(1), Is.EqualTo(11));
+            Assert.That(state.player.AttackForTurn(2), Is.EqualTo(10));
+            Assert.That(state.player.DefenseForTurn(2), Is.EqualTo(8));
+            Assert.That(state.equippedItemIds, Has.Count.EqualTo(4));
+            Assert.That(state.actProgress, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void ProductionCampaignDefinesTheFullThreeActRun()
+        {
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+
+            Assert.That(campaign, Is.Not.Null);
+            Assert.That(campaign.Acts, Has.Count.EqualTo(3));
+            Assert.That(campaign.GetAct(1).minimumTiles, Is.EqualTo(36));
+            Assert.That(campaign.GetAct(1).maximumTiles, Is.EqualTo(44));
+            Assert.That(campaign.GetAct(1).bossId, Is.EqualTo("13"));
+            Assert.That(campaign.GetAct(2).minimumTiles, Is.EqualTo(48));
+            Assert.That(campaign.GetAct(2).maximumTiles, Is.EqualTo(58));
+            Assert.That(campaign.GetAct(2).bossId, Is.EqualTo("18"));
+            Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
+            Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
+            Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
         }
 
         [Test]
@@ -257,7 +284,8 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(10));
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(11));
+            Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
@@ -573,7 +601,7 @@ namespace FFSS.Framework.Tests
 
             SaveDataMigrations.Upgrade(data);
 
-            Assert.That(data.schemaVersion, Is.EqualTo(2));
+            Assert.That(data.schemaVersion, Is.EqualTo(SaveGameData.CurrentSchemaVersion));
             Assert.That(data.run.player.maxPressure, Is.EqualTo(36));
             Assert.That(data.run.player.currentPressure, Is.Zero);
         }
