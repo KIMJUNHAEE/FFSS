@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using CardBattle;
 using FFSS.Framework.Combat;
 using UnityEditor;
@@ -99,7 +98,12 @@ namespace FFSS.Editor
                 return;
 
             encounter.fieldSprite = sprite;
-            if (!TryReadOpaqueBounds(sprite, out RectInt bounds))
+            if (!ProductionSpriteGeometry.TryCalculateFieldPlacement(
+                    sprite,
+                    2.8f,
+                    Vector2.zero,
+                    out float scale,
+                    out Vector2 offset))
             {
                 float height = Mathf.Max(0.01f, sprite.bounds.size.y);
                 encounter.fieldVisualScale = 2.8f / height;
@@ -107,15 +111,8 @@ namespace FFSS.Editor
                 return;
             }
 
-            float pixelsPerUnit = Mathf.Max(1f, sprite.pixelsPerUnit);
-            float visibleHeight = Mathf.Max(1f, bounds.height) / pixelsPerUnit;
-            float scale = 2.8f / visibleHeight;
-            float centerOffset = bounds.center.x - sprite.pivot.x;
-            float bottomOffset = bounds.yMin - sprite.pivot.y;
             encounter.fieldVisualScale = scale;
-            encounter.fieldVisualOffset = new Vector2(
-                -centerOffset / pixelsPerUnit * scale,
-                -bottomOffset / pixelsPerUnit * scale);
+            encounter.fieldVisualOffset = offset;
         }
 
         private static Sprite FindFieldSprite(string enemyId)
@@ -134,52 +131,6 @@ namespace FFSS.Editor
             }
 
             return AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Enemy/{enemyId}/{enemyId}.png");
-        }
-
-        private static bool TryReadOpaqueBounds(Sprite sprite, out RectInt bounds)
-        {
-            bounds = default;
-            string path = AssetDatabase.GetAssetPath(sprite);
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-                return false;
-
-            byte[] bytes = File.ReadAllBytes(path);
-            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            try
-            {
-                if (!ImageConversion.LoadImage(texture, bytes, false))
-                    return false;
-
-                Color32[] pixels = texture.GetPixels32();
-                int minX = texture.width;
-                int minY = texture.height;
-                int maxX = -1;
-                int maxY = -1;
-                for (int y = 0; y < texture.height; y++)
-                {
-                    int row = y * texture.width;
-                    for (int x = 0; x < texture.width; x++)
-                    {
-                        if (pixels[row + x].a <= 16)
-                            continue;
-
-                        minX = Mathf.Min(minX, x);
-                        minY = Mathf.Min(minY, y);
-                        maxX = Mathf.Max(maxX, x);
-                        maxY = Mathf.Max(maxY, y);
-                    }
-                }
-
-                if (maxX < minX || maxY < minY)
-                    return false;
-
-                bounds = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
-                return true;
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(texture);
-            }
         }
 
         private static EnemyMoveDefinition CreateMove(BossMoveDefinition source)
