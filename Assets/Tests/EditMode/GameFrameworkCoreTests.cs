@@ -284,8 +284,9 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(11));
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
+            Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
@@ -307,6 +308,22 @@ namespace FFSS.Framework.Tests
             Transform oneShotPool = prefab.transform.Find("Audio Manager/One Shot Pool");
             Assert.That(oneShotPool, Is.Not.Null);
             Assert.That(oneShotPool.childCount, Is.EqualTo(12));
+        }
+
+        [Test]
+        public void ProductionRunContentCoversEveryPlannedFieldInteraction()
+        {
+            RunContentCatalog catalog = AssetDatabase.LoadAssetAtPath<RunContentCatalog>(
+                "Assets/Data/Framework/RunContentCatalog.asset");
+
+            Assert.That(catalog, Is.Not.Null);
+            Assert.That(catalog.Events, Has.Count.EqualTo(12));
+            Assert.That(catalog.Events.Count(value => value.act == 1), Is.EqualTo(3));
+            Assert.That(catalog.Events.Count(value => value.act == 2), Is.EqualTo(4));
+            Assert.That(catalog.Events.Count(value => value.act == 3), Is.EqualTo(5));
+            Assert.That(catalog.Events.All(value => value.choices.Count >= 2), Is.True);
+            Assert.That(catalog.ShopOffers, Has.Count.GreaterThanOrEqualTo(10));
+            Assert.That(catalog.RestOptions, Has.Count.EqualTo(3));
         }
 
         [Test]

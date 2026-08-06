@@ -96,6 +96,14 @@ namespace FFSS.Framework.Run
     }
 
     [Serializable]
+    public sealed class RunChoiceRecord
+    {
+        public string sourceId;
+        public string choiceId;
+        public int act;
+    }
+
+    [Serializable]
     public sealed class RunResultState
     {
         public RunOutcome outcome = RunOutcome.InProgress;
@@ -144,6 +152,8 @@ namespace FFSS.Framework.Run
         public List<string> removedCardInstanceIds = new List<string>();
         public List<RunActProgressState> actProgress = new List<RunActProgressState>();
         public List<RunShopState> shops = new List<RunShopState>();
+        public List<RunChoiceRecord> choiceHistory = new List<RunChoiceRecord>();
+        public List<string> consumedRestIds = new List<string>();
         public RunResultState result = new RunResultState();
 
         public RunActProgressState CurrentActProgress

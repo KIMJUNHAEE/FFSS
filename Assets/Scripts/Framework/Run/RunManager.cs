@@ -94,12 +94,29 @@ namespace FFSS.Framework.Run
             return Current.pendingReward;
         }
 
-        public RunRewardState ClaimReward()
+        public RunRewardState ClaimReward(string selectedItemId = null, string selectedCardInstanceId = null)
         {
             RequireRun();
             RunRewardState reward = Current.pendingReward ??
                                     throw new InvalidOperationException("There is no pending reward.");
             Current.gold += Math.Max(0, reward.gold);
+            if (!string.IsNullOrWhiteSpace(selectedItemId) && reward.itemChoiceIds.Contains(selectedItemId) &&
+                !Current.inventoryItemIds.Contains(selectedItemId))
+            {
+                Current.inventoryItemIds.Add(selectedItemId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedCardInstanceId) &&
+                Current.pokerDeck.cards.Exists(card => card != null && card.instanceId == selectedCardInstanceId))
+            {
+                RunCardState card = Current.pokerDeck.cards.Find(value => value.instanceId == selectedCardInstanceId);
+                card.enhancementLevel++;
+                card.isHoned = true;
+                if (!Current.upgradedCardInstanceIds.Contains(selectedCardInstanceId))
+                {
+                    Current.upgradedCardInstanceIds.Add(selectedCardInstanceId);
+                }
+            }
             Current.pendingReward = null;
             return reward;
         }

@@ -40,6 +40,8 @@ namespace FFSS.Framework.Persistence
                     data.run.removedCardInstanceIds ??= new System.Collections.Generic.List<string>();
                     data.run.actProgress ??= new System.Collections.Generic.List<RunActProgressState>();
                     data.run.shops ??= new System.Collections.Generic.List<RunShopState>();
+                    data.run.choiceHistory ??= new System.Collections.Generic.List<RunChoiceRecord>();
+                    data.run.consumedRestIds ??= new System.Collections.Generic.List<string>();
                 }
 
                 data.schemaVersion = 3;

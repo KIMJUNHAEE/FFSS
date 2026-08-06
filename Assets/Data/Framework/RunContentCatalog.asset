@@ -1,0 +1,427 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0650390eaf363e498ff898a5cc5464a, type: 3}
+  m_Name: RunContentCatalog
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Run.RunContentCatalog
+  events:
+  - eventId: event.act1.lost_wager
+    act: 1
+    title: "\uC783\uC5B4\uBC84\uB9B0 \uD310\uB3C8"
+    situation: "\uAEBC\uC9C4 \uB4F1\uBD88 \uC544\uB798, \uC8FC\uC778 \uC5C6\uB294
+      \uD310\uB3C8 \uC8FC\uBA38\uB2C8\uAC00 \uD754\uB4E4\uB9B0\uB2E4."
+    choices:
+    - choiceId: take
+      label: "\uD310\uB3C8\uC744 \uCC59\uAE34\uB2E4"
+      consequencePreview: "\uACE8\uB4DC +18, \uC555\uBC15 +4"
+      goldCost: 0
+      effects:
+      - type: 0
+        amount: 18
+        contentId: 
+      - type: 3
+        amount: 4
+        contentId: 
+    - choiceId: return
+      label: "\uD754\uC801\uC744 \uB530\uB77C \uB3CC\uB824\uC900\uB2E4"
+      consequencePreview: "HP 15% \uD68C\uBCF5"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 15
+        contentId: 
+  - eventId: event.act1.marked_card
+    act: 1
+    title: "\uD45C\uC2DD \uB09C \uCE74\uB4DC"
+    situation: "\uBAA8\uC11C\uB9AC\uC5D0 \uC2DC\uACC4 \uBB38\uC591\uC774 \uC0C8\uACA8\uC9C4
+      \uCE74\uB4DC \uD55C \uC7A5\uC774 \uB371 \uC704\uC5D0 \uB193\uC5EC \uC788\uB2E4."
+    choices:
+    - choiceId: hone
+      label: "\uD45C\uC2DD\uC744 \uBC1B\uC544\uB4E4\uC778\uB2E4"
+      consequencePreview: "\uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8, \uC555\uBC15 +3"
+      goldCost: 0
+      effects:
+      - type: 6
+        amount: 1
+        contentId: 
+      - type: 3
+        amount: 3
+        contentId: 
+    - choiceId: sell
+      label: "\uC0C1\uC778\uC5D0\uAC8C \uB118\uAE34\uB2E4"
+      consequencePreview: "\uACE8\uB4DC +14"
+      goldCost: 0
+      effects:
+      - type: 0
+        amount: 14
+        contentId: 
+  - eventId: event.act1.old_dealer
+    act: 1
+    title: "\uB299\uC740 \uB51C\uB7EC"
+    situation: "\uB51C\uB7EC\uB294 \uB2E4\uC74C \uD328\uB97C \uC54C\uB824 \uC8FC\uB294
+      \uB300\uC2E0 \uC791\uC740 \uB300\uAC00\uB97C \uC694\uAD6C\uD55C\uB2E4."
+    choices:
+    - choiceId: lesson
+      label: "\uC218\uC5C5\uC744 \uC0B0\uB2E4"
+      consequencePreview: "\uACE8\uB4DC -12, \uCD94\uAC00 \uB2E4\uC2DC\uBF51\uAE30
+        +1"
+      goldCost: 12
+      effects:
+      - type: 5
+        amount: 1
+        contentId: 
+    - choiceId: decline
+      label: "\uACE0\uAC1C\uB97C \uC813\uB294\uB2E4"
+      consequencePreview: "HP 8 \uD68C\uBCF5"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: 8
+        contentId: 
+  - eventId: event.act2.poisoned_shoe
+    act: 2
+    title: "\uB3C5\uC774 \uBC34 \uD328\uD1B5"
+    situation: "\uBC84\uB9B0 \uCE74\uB4DC \uD2C8\uC5D0\uC11C \uC790\uC90F\uBE5B \uB3C5\uAE30\uAC00
+      \uC0C8\uC5B4 \uB098\uC628\uB2E4."
+    choices:
+    - choiceId: cleanse
+      label: "\uB371\uC744 \uC53B\uC5B4\uB0B8\uB2E4"
+      consequencePreview: "\uACE8\uB4DC -18, \uC555\uBC15 -10"
+      goldCost: 18
+      effects:
+      - type: 3
+        amount: -10
+        contentId: 
+    - choiceId: endure
+      label: "\uB3C5\uC744 \uC77D\uACE0 \uC9C0\uB098\uAC04\uB2E4"
+      consequencePreview: "HP -8, \uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: -8
+        contentId: 
+      - type: 6
+        amount: 1
+        contentId: 
+  - eventId: event.act2.sunken_shop
+    act: 2
+    title: "\uC7A0\uAE34 \uC804\uB2F9\uD3EC"
+    situation: "\uBB3C\uC5D0 \uC7A0\uAE34 \uC9C4\uC5F4\uC7A5 \uC548\uCABD\uC5D0\uC11C
+      \uC628\uC804\uD55C \uC7A5\uBE44 \uD558\uB098\uAC00 \uBE5B\uB09C\uB2E4."
+    choices:
+    - choiceId: pry
+      label: "\uC9C4\uC5F4\uC7A5\uC744 \uC5F0\uB2E4"
+      consequencePreview: "HP -10, \uC7A5\uBE44 \uD68D\uB4DD"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: -10
+        contentId: 
+      - type: 8
+        amount: 1
+        contentId: talisman_ink_cloud
+    - choiceId: coins
+      label: "\uBC14\uB2E5\uC758 \uB3D9\uC804\uB9CC \uC90D\uB294\uB2E4"
+      consequencePreview: "\uACE8\uB4DC +20"
+      goldCost: 0
+      effects:
+      - type: 0
+        amount: 20
+        contentId: 
+  - eventId: event.act2.suit_debt
+    act: 2
+    title: "\uBB38\uC591\uC758 \uBE5A"
+    situation: "\uB124 \uBB38\uC591\uC744 \uC0C8\uAE34 \uC800\uC6B8\uC774 \uBD89\uC740
+      \uD328\uC640 \uAC80\uC740 \uD328\uC758 \uAC12\uC744 \uBB3B\uB294\uB2E4."
+    choices:
+    - choiceId: red
+      label: "\uBD89\uC740 \uCABD\uC5D0 \uAC74\uB2E4"
+      consequencePreview: "\uCD5C\uB300 HP -4, \uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8"
+      goldCost: 0
+      effects:
+      - type: 4
+        amount: -4
+        contentId: 
+      - type: 6
+        amount: 1
+        contentId: 
+    - choiceId: black
+      label: "\uAC80\uC740 \uCABD\uC5D0 \uAC74\uB2E4"
+      consequencePreview: "\uC555\uBC15 -8, \uACE8\uB4DC +8"
+      goldCost: 0
+      effects:
+      - type: 3
+        amount: -8
+        contentId: 
+      - type: 0
+        amount: 8
+        contentId: 
+  - eventId: event.act2.closed_table
+    act: 2
+    title: "\uB2EB\uD78C \uB3C4\uBC15\uD310"
+    situation: "\uBD09\uC778\uB41C \uD310\uC744 \uC5F4\uB824\uBA74 \uB371\uC5D0\uC11C
+      \uD55C \uC7A5\uC744 \uC601\uC601 \uB0B4\uB193\uC544\uC57C \uD55C\uB2E4."
+    choices:
+    - choiceId: open
+      label: "\uD55C \uC7A5\uC744 \uC9C0\uBD88\uD55C\uB2E4"
+      consequencePreview: "\uCE74\uB4DC 1\uC7A5 \uC81C\uAC70, \uACE8\uB4DC +28"
+      goldCost: 0
+      effects:
+      - type: 7
+        amount: 1
+        contentId: 
+      - type: 0
+        amount: 28
+        contentId: 
+    - choiceId: leave
+      label: "\uBD09\uC778\uC744 \uC720\uC9C0\uD55C\uB2E4"
+      consequencePreview: "HP 12% \uD68C\uBCF5"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 12
+        contentId: 
+  - eventId: event.act3.false_warrant
+    act: 3
+    title: "\uC704\uC870\uB41C \uC5B4\uBA85"
+    situation: "\uAC00\uC9DC \uC5B4\uBA85\uC774 \uC7A5\uBE44\uC640 \uD589\uB3D9\uC744
+      \uC8C4\uBAA9\uC73C\uB85C \uC801\uC5B4 \uB0B4\uB824\uAC04\uB2E4."
+    choices:
+    - choiceId: burn
+      label: "\uC5B4\uBA85\uC744 \uD0DC\uC6B4\uB2E4"
+      consequencePreview: "HP -12, \uC555\uBC15 -12"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: -12
+        contentId: 
+      - type: 3
+        amount: -12
+        contentId: 
+    - choiceId: bribe
+      label: "\uAC80\uBB38\uC744 \uB9E4\uC218\uD55C\uB2E4"
+      consequencePreview: "\uACE8\uB4DC -24, \uCD5C\uB300 HP +4"
+      goldCost: 24
+      effects:
+      - type: 4
+        amount: 4
+        contentId: 
+  - eventId: event.act3.gwang_altar
+    act: 3
+    title: "\uAD11\uD328\uC758 \uC81C\uB2E8"
+    situation: "\uC138 \uC7A5\uC758 \uAD11\uD328\uAC00 \uB9C8\uC9C0\uB9C9 \uC804\uD22C\uC758
+      \uC5F4\uAE30\uB97C \uBBF8\uB9AC \uBE44\uCD98\uB2E4."
+    choices:
+    - choiceId: offer
+      label: "\uACE8\uB4DC\uB97C \uC62C\uB9B0\uB2E4"
+      consequencePreview: "\uACE8\uB4DC -30, \uCE74\uB4DC 2\uC7A5 \uC5F0\uB9C8"
+      goldCost: 30
+      effects:
+      - type: 6
+        amount: 1
+        contentId: 
+      - type: 6
+        amount: 1
+        contentId: 
+    - choiceId: draw
+      label: "\uAD11\uD328\uC640 \uB9DE\uC120\uB2E4"
+      consequencePreview: "\uC555\uBC15 +8, \uCD94\uAC00 \uB2E4\uC2DC\uBF51\uAE30
+        +1"
+      goldCost: 0
+      effects:
+      - type: 3
+        amount: 8
+        contentId: 
+      - type: 5
+        amount: 1
+        contentId: 
+  - eventId: event.act3.last_hand
+    act: 3
+    title: "\uB9C8\uC9C0\uB9C9 \uC190\uD328"
+    situation: "\uD328\uBC30\uD55C \uB3C4\uBC15\uC0AC\uAC00 \uB9C8\uC9C0\uB9C9 \uB2E4\uC12F
+      \uC7A5\uC744 \uAC74\uB124\uBA70 \uD55C \uC7A5\uB9CC \uB0A8\uAE30\uB77C \uD55C\uB2E4."
+    choices:
+    - choiceId: thin
+      label: "\uB371\uC744 \uB0A0\uCE74\uB86D\uAC8C \uB2E4\uB4EC\uB294\uB2E4"
+      consequencePreview: "\uCE74\uB4DC 1\uC7A5 \uC81C\uAC70"
+      goldCost: 0
+      effects:
+      - type: 7
+        amount: 1
+        contentId: 
+    - choiceId: keep
+      label: "\uBAA8\uB4E0 \uD328\uB97C \uD488\uB294\uB2E4"
+      consequencePreview: "HP 18% \uD68C\uBCF5"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 18
+        contentId: 
+  - eventId: event.act3.broken_clock
+    act: 3
+    title: "\uBA48\uCD98 \uC2DC\uACC4"
+    situation: "\uC8FC\uC778\uACF5\uACFC \uAC19\uC740 \uD0DC\uC5FD \uC18C\uB9AC\uAC00
+      \uD3D0\uD5C8\uC758 \uC2DC\uACC4 \uC548\uC5D0\uC11C \uD55C \uBC88 \uC6B8\uB9B0\uB2E4."
+    choices:
+    - choiceId: wind
+      label: "\uD0DC\uC5FD\uC744 \uAC10\uB294\uB2E4"
+      consequencePreview: "\uCD5C\uB300 HP +6, \uC555\uBC15 +5"
+      goldCost: 0
+      effects:
+      - type: 4
+        amount: 6
+        contentId: 
+      - type: 3
+        amount: 5
+        contentId: 
+    - choiceId: listen
+      label: "\uC6B8\uB9BC\uB9CC \uAE30\uC5B5\uD55C\uB2E4"
+      consequencePreview: "\uC555\uBC15 -14"
+      goldCost: 0
+      effects:
+      - type: 3
+        amount: -14
+        contentId: 
+  - eventId: event.act3.royal_table
+    act: 3
+    title: "\uC655\uC758 \uBE48 \uC790\uB9AC"
+    situation: "38\uAD11\uB561\uC744 \uAE30\uB2E4\uB9AC\uB294 \uBE48 \uC790\uB9AC\uC5D0
+      \uB9C8\uC9C0\uB9C9 \uD310\uB3C8\uC774 \uB193\uC5EC \uC788\uB2E4."
+    choices:
+    - choiceId: stake
+      label: "\uC804\uBD80 \uAC74\uB2E4"
+      consequencePreview: "\uACE8\uB4DC -36, \uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8, HP
+        20% \uD68C\uBCF5"
+      goldCost: 36
+      effects:
+      - type: 6
+        amount: 1
+        contentId: 
+      - type: 2
+        amount: 20
+        contentId: 
+    - choiceId: steal
+      label: "\uD310\uB3C8\uC744 \uAC70\uB454\uB2E4"
+      consequencePreview: "\uACE8\uB4DC +26, \uC555\uBC15 +6"
+      goldCost: 0
+      effects:
+      - type: 0
+        amount: 26
+        contentId: 
+      - type: 3
+        amount: 6
+        contentId: 
+  shopOffers:
+  - offerId: shop.weapon.plum
+    type: 0
+    displayName: "\uB9E4\uD654 \uC7A5\uCC3D"
+    description: "\uBD89\uC740 \uD328 \uC911\uC2EC \uACF5\uACA9 \uC7A5\uBE44"
+    contentId: weapon_plum_spear
+    price: 34
+    minimumAct: 1
+    maximumAct: 2
+  - offerId: shop.weapon.ink
+    type: 0
+    displayName: "\uBA39\uBE5B \uC30D\uAC80"
+    description: "\uAC80\uC740 \uD328 \uC911\uC2EC \uACF5\uACA9 \uC7A5\uBE44"
+    contentId: weapon_ink_twin_blades
+    price: 42
+    minimumAct: 1
+    maximumAct: 3
+  - offerId: shop.weapon.hammer
+    type: 0
+    displayName: "\uAE08\uAC15 \uCCA0\uD1F4"
+    description: "\uACA9\uD30C \uC555\uB825\uC744 \uB192\uC774\uB294 \uBB34\uAE30"
+    contentId: weapon_gold_war_hammer
+    price: 48
+    minimumAct: 2
+    maximumAct: 3
+  - offerId: shop.garment.plum
+    type: 0
+    displayName: "\uB9E4\uD654 \uBE44\uB2E8\uAC11"
+    description: "\uBD89\uC740 \uD328 \uBC29\uC5B4 \uC7A5\uBE44"
+    contentId: garment_plum_silk_armor
+    price: 38
+    minimumAct: 1
+    maximumAct: 2
+  - offerId: shop.garment.black
+    type: 0
+    displayName: "\uBA39\uC7A5\uAD70 \uCCA0\uAC11"
+    description: "\uBC29\uC5B4\uC640 \uCD5C\uB300 \uACA9\uD30C \uB0B4\uAD6C\uB97C
+      \uB192\uC778\uB2E4"
+    contentId: garment_black_brigandine
+    price: 44
+    minimumAct: 2
+    maximumAct: 3
+  - offerId: shop.garment.crane
+    type: 0
+    displayName: "\uBC31\uD559 \uC678\uD22C"
+    description: "\uB192\uC740 \uC871\uBCF4\uC758 \uD798\uC744 \uC99D\uD3ED\uD55C\uB2E4"
+    contentId: garment_white_crane_mantle
+    price: 68
+    minimumAct: 3
+    maximumAct: 3
+  - offerId: shop.talisman.thunder
+    type: 0
+    displayName: "\uC801\uB8B0 \uAC80\uBB38"
+    description: "\uBD89\uC740 \uCE74\uB4DC \uACF5\uACA9\uC744 \uAC15\uD654\uD55C\uB2E4"
+    contentId: talisman_red_thunder
+    price: 40
+    minimumAct: 1
+    maximumAct: 3
+  - offerId: shop.talisman.hunter
+    type: 0
+    displayName: "\uC57D\uC810 \uCD94\uC801\uBD80"
+    description: "\uBCF4\uC2A4\uC758 \uACA9\uD30C \uC57D\uC810\uC744 \uB178\uB9B0\uB2E4"
+    contentId: talisman_hunters_eye
+    price: 64
+    minimumAct: 3
+    maximumAct: 3
+  - offerId: shop.service.hone
+    type: 1
+    displayName: "\uCE74\uB4DC \uC5F0\uB9C8"
+    description: "\uB371\uC758 \uBBF8\uC5F0\uB9C8 \uCE74\uB4DC \uD55C \uC7A5\uC744
+      \uAC15\uD654\uD55C\uB2E4"
+    contentId: 
+    price: 24
+    minimumAct: 1
+    maximumAct: 3
+  - offerId: shop.service.remove
+    type: 2
+    displayName: "\uCE74\uB4DC \uD3D0\uAE30"
+    description: "\uB371\uC5D0\uC11C \uC870\uCEE4\uAC00 \uC544\uB2CC \uCE74\uB4DC
+      \uD55C \uC7A5\uC744 \uC81C\uAC70\uD55C\uB2E4"
+    contentId: 
+    price: 30
+    minimumAct: 1
+    maximumAct: 3
+  - offerId: shop.service.heal
+    type: 3
+    displayName: "\uC751\uAE09 \uC815\uBE44"
+    description: "\uCD5C\uB300 HP\uC758 25%\uB97C \uD68C\uBCF5\uD55C\uB2E4"
+    contentId: 
+    price: 18
+    minimumAct: 1
+    maximumAct: 3
+  restOptions:
+  - type: 0
+    displayName: "\uD0DC\uC5FD \uC815\uBE44"
+    description: "\uCD5C\uB300 HP\uC758 35%\uB97C \uD68C\uBCF5\uD55C\uB2E4"
+    amount: 35
+  - type: 1
+    displayName: "\uD328 \uAC08\uAE30"
+    description: "\uBBF8\uC5F0\uB9C8 \uCE74\uB4DC \uD55C \uC7A5\uC744 \uAC15\uD654\uD55C\uB2E4"
+    amount: 1
+  - type: 2
+    displayName: "\uC0C1\uCC98 \uBD09\uD569"
+    description: "\uCD5C\uB300 HP +4, HP 4 \uD68C\uBCF5, \uC555\uBC15 8 \uAC10\uC18C"
+    amount: 4
+  shopStockSize: 5

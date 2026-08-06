@@ -36,6 +36,8 @@ namespace FFSS.Framework.Run
         public List<string> revealedTopOrder = new List<string>();
         public List<string> resolvedEquipmentIds = new List<string>();
         public bool redrawUsedThisTurn;
+        [UnityEngine.Range(0, 2)] public int bonusRedraws;
+        public int redrawsUsedThisTurn;
         public string activeHonedCardInstanceId;
 
         public void BeginTurn()
@@ -44,16 +46,18 @@ namespace FFSS.Framework.Run
             revealedTopOrder.Clear();
             resolvedEquipmentIds.Clear();
             redrawUsedThisTurn = false;
+            redrawsUsedThisTurn = 0;
             activeHonedCardInstanceId = string.Empty;
         }
 
         public bool TryUseRedraw()
         {
-            if (redrawUsedThisTurn)
+            if (redrawsUsedThisTurn >= 1 + Math.Min(2, Math.Max(0, bonusRedraws)))
             {
                 return false;
             }
 
+            redrawsUsedThisTurn++;
             redrawUsedThisTurn = true;
             return true;
         }
