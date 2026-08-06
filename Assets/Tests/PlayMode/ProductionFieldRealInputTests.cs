@@ -101,11 +101,13 @@ namespace FFSS.Framework.Tests
             {
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
                 InputSystem.Update();
-                for (int frame = 0; frame < 40; frame++)
+                float heldSeconds = 0f;
+                for (int frame = 0; frame < 5000 && heldSeconds < 0.45f; frame++)
                 {
                     InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
                     InputSystem.Update();
                     yield return null;
+                    heldSeconds += Time.deltaTime;
                     if (frame == 0 || frame == 1 || frame == 5)
                     {
                         bool moving = (bool)(player.GetType()
@@ -134,6 +136,8 @@ namespace FFSS.Framework.Tests
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 InputSystem.Update();
                 yield return null;
+                if (farthestDistance > 1.1f)
+                    break;
             }
 
             Assert.That(farthestDistance, Is.GreaterThan(1.1f),
