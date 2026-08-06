@@ -411,9 +411,23 @@ namespace FFSS.Editor
                 };
                 var serialized = new SerializedObject(encounter);
                 serialized.FindProperty("fieldSprite").objectReferenceValue = sprite;
-                serialized.FindProperty("fieldVisualScale").floatValue =
-                    targetHeight / Mathf.Max(0.01f, sprite.bounds.size.y);
-                serialized.FindProperty("fieldVisualOffset").vector2Value = new Vector2(0.62f, 0.03f);
+                Vector2 designerOffset = new(0.62f, 0.03f);
+                if (ProductionSpriteGeometry.TryCalculateFieldPlacement(
+                        sprite,
+                        targetHeight,
+                        designerOffset,
+                        out float scale,
+                        out Vector2 offset))
+                {
+                    serialized.FindProperty("fieldVisualScale").floatValue = scale;
+                    serialized.FindProperty("fieldVisualOffset").vector2Value = offset;
+                }
+                else
+                {
+                    serialized.FindProperty("fieldVisualScale").floatValue =
+                        targetHeight / Mathf.Max(0.01f, sprite.bounds.size.y);
+                    serialized.FindProperty("fieldVisualOffset").vector2Value = designerOffset;
+                }
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(encounter);
             }
