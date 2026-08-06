@@ -1166,6 +1166,9 @@ namespace FFSS.Framework.Tests
             Assert.That(EditorBuildSettings.scenes[0].enabled, Is.True);
             Assert.That(EditorBuildSettings.scenes[0].path,
                 Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));
+            Assert.That(EditorSceneManager.playModeStartScene, Is.Not.Null);
+            Assert.That(AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),
+                Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));
         }
 
         [Test]
