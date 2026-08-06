@@ -31,7 +31,8 @@ namespace CardBattle.Exploration
             RunFieldContentType type,
             string runContentId,
             Transform playerTarget,
-            float radius)
+            float radius,
+            string locationName = null)
         {
             nodeId = runNodeId ?? string.Empty;
             contentType = type;
@@ -40,7 +41,9 @@ namespace CardBattle.Exploration
             activationRadius = Mathf.Max(0.2f, radius);
             focusRadius = Mathf.Max(activationRadius + 0.35f, activationRadius * 1.75f);
             markerView = markerView != null ? markerView : GetComponent<FieldEncounterMarkerView>();
-            markerView?.Configure(DisplayName(type), Accent(type));
+            markerView?.Configure(
+                string.IsNullOrWhiteSpace(locationName) ? DisplayName(type) : locationName,
+                Accent(type));
         }
 
         private void Update()

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using FFSS.Framework.Core;
 using FFSS.Framework.Presentation.Audio;
+using FFSS.Framework.UI;
 
 namespace CardBattle.Exploration
 {
@@ -17,6 +18,7 @@ namespace CardBattle.Exploration
         [SerializeField] private bool constrainToWorldBounds = false;
         [SerializeField] private Vector2 worldBoundsMin = new(-34f, -20f);
         [SerializeField] private Vector2 worldBoundsMax = new(34f, 20f);
+        [SerializeField] private HexTileMapGenerator walkableMap = null;
 
         [Header("View")]
         [SerializeField] private Transform cameraTransform = null;
@@ -82,6 +84,9 @@ namespace CardBattle.Exploration
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
 
+            if (walkableMap == null)
+                walkableMap = FindAnyObjectByType<HexTileMapGenerator>();
+
             if (animator != null)
             {
                 if (animator.HasState(0, IdleStateHash))
@@ -100,7 +105,7 @@ namespace CardBattle.Exploration
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
 
-            Vector3 planarDirection = ReadCameraRelativeDirection();
+            Vector3 planarDirection = IsMovementBlocked() ? Vector3.zero : ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
             float animationAmount = GetAnimationAmount(inputAmount);
             IsMoving = inputAmount > 0.05f;
@@ -141,14 +146,25 @@ namespace CardBattle.Exploration
 
         private void Move(Vector3 planarDirection)
         {
-            Vector3 motion = planarDirection * moveSpeed;
-            controller.Move(motion * Time.deltaTime);
+            Vector3 current = transform.position;
+            Vector3 desired = current + planarDirection * moveSpeed * Time.deltaTime;
+            Vector3 constrained = walkableMap != null
+                ? walkableMap.ConstrainMovement(current, desired)
+                : desired;
+            controller.Move(constrained - current);
 
             if (constrainToWorldBounds)
                 ClampToWorldBounds();
 
             if (lockToGroundPlane)
                 SnapToGroundPlane();
+        }
+
+        private static bool IsMovementBlocked()
+        {
+            return GameKernel.IsReady &&
+                   GameKernel.Services.TryGet(out UIManager ui) &&
+                   ui.HasVisibleModal;
         }
 
         private void ClampToWorldBounds()

@@ -166,6 +166,11 @@ namespace FFSS.Framework.Run
             return completed;
         }
 
+        public static string IntermissionRestId(int act)
+        {
+            return $"rest.act{Mathf.Max(1, act)}.intermission";
+        }
+
         public static bool CompleteActCore(RunState run, RunCampaignDefinition campaign)
         {
             if (run == null || campaign == null)
@@ -183,8 +188,22 @@ namespace FFSS.Framework.Run
             run.gold += definition.actRewardGold;
             run.result.earnedGold += definition.actRewardGold;
             run.result.completedActs = run.act;
-            int heal = Mathf.CeilToInt(run.player.maxHp * (definition.transitionHealPercent / 100f));
-            run.player.currentHp = Mathf.Min(run.player.maxHp, run.player.currentHp + heal);
+            if (run.act < campaign.Acts.Count)
+            {
+                string intermissionRestId = IntermissionRestId(run.act);
+                if (!run.consumedRestIds.Contains(intermissionRestId))
+                {
+                    int heal = Mathf.CeilToInt(run.player.maxHp * (definition.transitionHealPercent / 100f));
+                    run.player.currentHp = Mathf.Min(run.player.maxHp, run.player.currentHp + heal);
+                    run.consumedRestIds.Add(intermissionRestId);
+                    run.choiceHistory.Add(new RunChoiceRecord
+                    {
+                        sourceId = intermissionRestId,
+                        choiceId = "DefaultHeal",
+                        act = run.act
+                    });
+                }
+            }
 
             if (run.act >= campaign.Acts.Count)
             {

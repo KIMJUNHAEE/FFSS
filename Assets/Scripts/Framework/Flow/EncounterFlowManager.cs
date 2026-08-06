@@ -81,6 +81,7 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
+            services.Get<UIManager>().HideAll(false);
             runs.BeginEncounter(entry.enemyId, nodeId);
             if (!scenes.TryLoadSceneName(entry.sceneName))
             {
@@ -131,7 +132,7 @@ namespace FFSS.Framework.Flow
                 return false;
             }
 
-            services.Get<UIManager>().Show(UIScreenId.Reward);
+            services.Get<UIManager>().ShowExclusive(UIScreenId.Reward);
             return true;
         }
 

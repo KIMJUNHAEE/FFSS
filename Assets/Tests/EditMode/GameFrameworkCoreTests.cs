@@ -335,9 +335,97 @@ namespace FFSS.Framework.Tests
                 Assert.That(definition.normalEnemyIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.eventIds.Count, Is.GreaterThanOrEqualTo(definition.requiredEvents), $"act {act}");
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
+                Assert.That(definition.restCount, Is.EqualTo(1), $"act {act}");
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
                                 definition.shopCount + definition.restCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
+            }
+        }
+
+        [Test]
+        public void ActCompletionUsesIntermissionRestInsteadOfFieldRest()
+        {
+            RunDefinition runDefinition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            RunState run = runDefinition.CreateState(130013);
+            run.player.currentHp = 50;
+            run.CurrentActProgress.bossDefeated = true;
+
+            Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True);
+
+            Assert.That(run.act, Is.EqualTo(2));
+            Assert.That(run.player.currentHp, Is.EqualTo(76));
+            Assert.That(run.consumedRestIds, Does.Contain(RunProgressionManager.IntermissionRestId(1)));
+            Assert.That(run.choiceHistory.Any(value => value.sourceId == RunProgressionManager.IntermissionRestId(1) &&
+                                                       value.choiceId == "DefaultHeal"), Is.True);
+        }
+
+        [Test]
+        public void ChosenIntermissionRestPreventsFreeTransitionHeal()
+        {
+            RunDefinition runDefinition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            RunState run = runDefinition.CreateState(130018);
+            run.player.currentHp = 50;
+            run.CurrentActProgress.bossDefeated = true;
+            run.consumedRestIds.Add(RunProgressionManager.IntermissionRestId(1));
+
+            Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True);
+
+            Assert.That(run.act, Is.EqualTo(2));
+            Assert.That(run.player.currentHp, Is.EqualTo(50));
+        }
+
+        [Test]
+        public void HexGeneratorBuildsRoamingFieldsInsteadOfSingleFileMazes()
+        {
+            var host = new GameObject("Hex Generator Test");
+            try
+            {
+                Type generatorType = Type.GetType(
+                    "CardBattle.Exploration.HexTileMapGenerator, Assembly-CSharp");
+                Assert.That(generatorType, Is.Not.Null);
+                Component generator = host.AddComponent(generatorType);
+                generatorType.GetMethod("SetRuntimeSeed")?.Invoke(generator, new object[] { 424242 });
+                generatorType.GetMethod("ConfigureRunLayout")?.Invoke(generator, new object[] { 58, 14 });
+
+                MethodInfo method = generatorType.GetMethod(
+                    "BuildCellPath",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(method, Is.Not.Null);
+
+                object[] arguments = { null, Vector2Int.zero };
+                var cells = (List<Vector2Int>)method.Invoke(generator, arguments);
+                var interactions = (HashSet<Vector2Int>)arguments[0];
+                var bossCell = (Vector2Int)arguments[1];
+                var cellSet = new HashSet<Vector2Int>(cells);
+
+                int leafCount = 0;
+                int narrowCount = 0;
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    int neighbors = CountHexNeighbors(cells[i], cellSet);
+                    if (neighbors <= 1)
+                        leafCount++;
+                    if (neighbors <= 2)
+                        narrowCount++;
+                }
+
+                Assert.That(cells.Count, Is.EqualTo(58));
+                Assert.That(interactions.Count, Is.GreaterThanOrEqualTo(14));
+                Assert.That(interactions, Does.Contain(bossCell));
+                Assert.That(cellSet.Contains(Vector2Int.zero), Is.True);
+                Assert.That(cellSet.Contains(bossCell), Is.True);
+                Assert.That(leafCount, Is.LessThanOrEqualTo(Mathf.Max(2, cells.Count / 20)));
+                Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.42f));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
             }
         }
 
@@ -1630,6 +1718,28 @@ namespace FFSS.Framework.Tests
                 seotdaPowerBonus = seotdaPowerBonus
             };
         }
+
+        private static int CountHexNeighbors(Vector2Int cell, HashSet<Vector2Int> cells)
+        {
+            int count = 0;
+            for (int i = 0; i < HexNeighborOffsets.Length; i++)
+            {
+                if (cells.Contains(cell + HexNeighborOffsets[i]))
+                    count++;
+            }
+
+            return count;
+        }
+
+        private static readonly Vector2Int[] HexNeighborOffsets =
+        {
+            new(1, 0),
+            new(1, -1),
+            new(0, -1),
+            new(-1, 0),
+            new(-1, 1),
+            new(0, 1),
+        };
 
         private sealed class TestService : IGameService
         {

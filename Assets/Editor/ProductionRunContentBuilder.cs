@@ -241,9 +241,9 @@ namespace FFSS.Editor
         {
             var options = new (RunRestOptionType type, string name, string description, int amount)[]
             {
-                (RunRestOptionType.Heal, "태엽 정비", "최대 HP의 35%를 회복한다", 35),
-                (RunRestOptionType.UpgradeCard, "패 갈기", "미연마 카드 한 장을 강화한다", 1),
-                (RunRestOptionType.TreatWound, "상처 봉합", "최대 HP +4, HP 4 회복, 압박 8 감소", 4)
+                (RunRestOptionType.Heal, "숨 고르기", "최대 HP의 35%를 회복한다. 성장은 얻지 못한다.", 35),
+                (RunRestOptionType.UpgradeCard, "카드 손질", "미연마 포커 카드 한 장을 강화한다. HP는 회복하지 않는다.", 1),
+                (RunRestOptionType.TreatWound, "장비 손질", "최대 HP +4, HP 4 회복, 압박 8 감소. 장비를 만질 여유를 만든다.", 4)
             };
 
             list.arraySize = options.Length;

@@ -1458,8 +1458,12 @@ namespace CardBattle.EditorTools
 
         private static void EnsureSpriteImport(string path)
         {
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
-            if (AssetImporter.GetAtPath(path) is not TextureImporter importer) return;
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+            {
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            }
+            if (importer == null) return;
 
             bool isConfigured = importer.textureType == TextureImporterType.Sprite &&
                                 importer.spriteImportMode == SpriteImportMode.Single &&
@@ -2025,7 +2029,7 @@ namespace CardBattle.EditorTools
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 1f;
+            scaler.matchWidthOrHeight = 0.5f;
             var canvasT = canvasGO.transform;
 
             // 배경 (캔버스 맨 뒤에 깔림)
@@ -2276,8 +2280,7 @@ namespace CardBattle.EditorTools
             hlg.childAlignment = TextAnchor.MiddleCenter;
             hlg.spacing = useBoss38SmallTables ? 44 : 22;
             // 카드 크기를 고정 픽셀(sizeDelta)이 아니라 HandPanel의 실제 렉트에서 매 프레임 계산하게 함.
-            // CanvasScaler가 참조 해상도(1920x1080)와 실제 창 비율이 다를 때 폭 기준으로만 스케일하기
-            // 때문에, 고정 sizeDelta 카드 크기는 창 비율이 16:9가 아니면 금색 슬롯과 어긋났었음.
+            // 모든 런 UI와 같은 1920x1080 / Match 0.5 기준에서 카드가 슬롯 안에 머물게 한다.
             hlg.childControlWidth = !useBoss38SmallTables;
             hlg.childControlHeight = !useBoss38SmallTables;
             hlg.childForceExpandWidth = !useBoss38SmallTables;
@@ -2642,6 +2645,9 @@ namespace CardBattle.EditorTools
             text.color = color;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.58f));
+            text.resizeTextMaxSize = fontSize;
             return text;
         }
 

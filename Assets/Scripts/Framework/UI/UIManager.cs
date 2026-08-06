@@ -25,6 +25,27 @@ namespace FFSS.Framework.UI
         private readonly Stack<UIScreenId> modalStack = new Stack<UIScreenId>();
         private GameEventBus events;
 
+        public bool HasVisibleModal
+        {
+            get
+            {
+                foreach (KeyValuePair<UIScreenId, UIScreen> pair in instances)
+                {
+                    if (pair.Value == null || !pair.Value.IsVisible)
+                    {
+                        continue;
+                    }
+
+                    if (catalog.Get(pair.Key).layer == UILayer.Modal)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
         public UIScreen Show(UIScreenId id, bool playAnimation = true)
         {
             UIScreenCatalogEntry entry = catalog.Get(id);
@@ -46,22 +67,13 @@ namespace FFSS.Framework.UI
 
         public UIScreen ShowExclusive(UIScreenId id, bool playAnimation = true)
         {
-            var screensToHide = new List<UIScreenId>();
-            foreach (KeyValuePair<UIScreenId, UIScreen> pair in instances)
-            {
-                if (pair.Key != id && pair.Value != null && pair.Value.IsVisible)
-                {
-                    screensToHide.Add(pair.Key);
-                }
-            }
-
-            for (int i = 0; i < screensToHide.Count; i++)
-            {
-                Hide(screensToHide[i], playAnimation);
-            }
-
-            modalStack.Clear();
+            HideAllExcept(id, playAnimation);
             return Show(id, playAnimation);
+        }
+
+        public void HideAll(bool playAnimation = true)
+        {
+            HideAllExcept(null, playAnimation);
         }
 
         public void Hide(UIScreenId id, bool playAnimation = true)
@@ -144,6 +156,26 @@ namespace FFSS.Framework.UI
             {
                 Hide(screensToHide[i], playAnimation);
             }
+        }
+
+        private void HideAllExcept(UIScreenId? except, bool playAnimation)
+        {
+            var screensToHide = new List<UIScreenId>();
+            foreach (KeyValuePair<UIScreenId, UIScreen> pair in instances)
+            {
+                if ((!except.HasValue || pair.Key != except.Value) &&
+                    pair.Value != null && pair.Value.IsVisible)
+                {
+                    screensToHide.Add(pair.Key);
+                }
+            }
+
+            for (int i = 0; i < screensToHide.Count; i++)
+            {
+                Hide(screensToHide[i], playAnimation);
+            }
+
+            modalStack.Clear();
         }
 
         private Transform GetLayerRoot(UILayer layer)

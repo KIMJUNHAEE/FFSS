@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 678850385892509717}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.7, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 3904525611224247244}
   - component: {fileID: 1250927254777723135}
   - component: {fileID: 3409066903576678311}
+  - component: {fileID: 4769000880907558991}
   m_Layer: 0
   m_Name: FieldEncounter_MidBoss
   m_TagString: Untagged
@@ -231,7 +232,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8208d772fcd982f4ab79939c2e5c5f09, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldEncounterMarkerView
   visualRoot: {fileID: 2358595402237976066}
   iconRenderer: {fileID: 7341788161581771750}
@@ -239,6 +240,8 @@ MonoBehaviour:
   nameText: {fileID: 6918697643198572880}
   idleColor: {r: 1, g: 1, b: 1, a: 1}
   focusedColor: {r: 1, g: 0.82, b: 0.28, a: 1}
+  hideLabelUntilFocused: 1
+  tintCharacterWhenFocused: 0
   bobHeight: 0.1
   bobSpeed: 1.8
   focusedScale: 1.12
@@ -252,15 +255,42 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 06a0f43cbee70c845aeac7ae760b71ea, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldEncounterNode
-  enemyId:
-  nodeId:
+  enemyId: 
+  nodeId: 
   player: {fileID: 0}
   markerView: {fileID: 1250927254777723135}
   focusRadius: 1.6
   activationRadius: 0.85
   activationDelay: 0.12
+  patrol: 1
+  patrolRadius: 0.62
+  patrolSpeed: 0.34
+  patrolPause: 0.7
+--- !u!136 &4769000880907558991
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178568705539571068}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.36
+  m_Height: 2.5
+  m_Direction: 1
+  m_Center: {x: 0, y: 1.25, z: 0}
 --- !u!1 &6723299938849014500
 GameObject:
   m_ObjectHideFlags: 0
@@ -277,7 +307,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5084823546817988941
 Transform:
   m_ObjectHideFlags: 0
@@ -287,7 +317,7 @@ Transform:
   m_GameObject: {fileID: 6723299938849014500}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.7, z: 0.03}
+  m_LocalPosition: {x: 0, y: 0, z: 0.03}
   m_LocalScale: {x: 1.16, y: 1.16, z: 1.16}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -409,7 +439,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
   m_Color: {r: 0.96, g: 0.93, b: 0.82, a: 1}
@@ -443,7 +473,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
   m_EffectColor: {r: 0.02, g: 0.025, b: 0.035, a: 0.95}
   m_EffectDistance: {x: 2, y: -2}
