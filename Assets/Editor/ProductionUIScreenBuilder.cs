@@ -107,6 +107,26 @@ namespace FFSS.Editor
             Debug.Log("FFSS all 17 run UI screens are ready as inspectable prefabs.");
         }
 
+        [MenuItem("FFSS/Production/Build Field Command Screens")]
+        public static void BuildFieldCommandScreens()
+        {
+            EnsureFolder("Assets/Prefabs/UI");
+            EnsureFolder(ScreenRoot);
+            UIScreenId[] targets = { UIScreenId.FieldMap, UIScreenId.Equipment, UIScreenId.RunStatus };
+            ScreenSpec[] specs = CreateSpecs();
+            for (int i = 0; i < specs.Length; i++)
+            {
+                if (targets.Contains(specs[i].Id))
+                {
+                    BuildStandardScreen(specs[i]);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
+        }
+
         [MenuItem("FFSS/Production/Ensure Run Status Options Path")]
         public static void EnsureRunStatusOptionsPath()
         {
@@ -211,6 +231,12 @@ namespace FFSS.Editor
             if (spec.Id == UIScreenId.Load)
             {
                 build.Body.fontSize = 18;
+            }
+            else if (spec.Id == UIScreenId.RunStatus)
+            {
+                build.Body.rectTransform.sizeDelta = new Vector2(980f, 96f);
+                build.Body.rectTransform.anchoredPosition = new Vector2(0f, 130f);
+                build.Body.lineSpacing = 1.08f;
             }
 
             CreateActionSlots(frame, build, spec.Id, spec.Actions);
@@ -478,7 +504,7 @@ namespace FFSS.Editor
                     new Color(0.75f, 0.82f, 0.92f), new Vector2(textWidth, 26f), new Vector2(55f, -15f));
                 detail.horizontalOverflow = HorizontalWrapMode.Wrap;
                 detail.verticalOverflow = VerticalWrapMode.Truncate;
-                Image icon = CreateImage("Icon", host, ScreenIcon(screenId), Color.white);
+                Image icon = CreateImage("Icon", host, ScreenActionIcon(screenId, i), Color.white);
                 icon.rectTransform.sizeDelta = new Vector2(44f, 44f);
                 icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : -214f, 0f);
                 icon.preserveAspect = true;
@@ -873,6 +899,30 @@ namespace FFSS.Editor
                 _ => BulkRoot + "101_relic_card.png"
             };
             return SpriteAt(path);
+        }
+
+        private static Sprite ScreenActionIcon(UIScreenId id, int index)
+        {
+            string path = id switch
+            {
+                UIScreenId.FieldMap => index switch
+                {
+                    0 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_fight.png",
+                    1 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_event.png",
+                    2 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_shop.png",
+                    3 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_boss.png",
+                    _ => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_mystery.png"
+                },
+                UIScreenId.Equipment => index switch
+                {
+                    0 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_08_sword.png",
+                    1 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_07_shield.png",
+                    2 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_05_flower.png",
+                    _ => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_06_coin.png"
+                },
+                _ => null
+            };
+            return string.IsNullOrWhiteSpace(path) ? ScreenIcon(id) : SpriteAt(path);
         }
 
         private static void SetReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)

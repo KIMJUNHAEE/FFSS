@@ -204,6 +204,38 @@ namespace FFSS.Framework.Tests
             AssertVisibleUiInsideViewport("returned field 1280x720");
         }
 
+        [UnityTest]
+        public IEnumerator FieldCommandOverlaysStayReadableAtSmallDesktopResolution()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become ready for overlay QA.");
+            yield return WaitFrames(3);
+
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+            (UIScreenId id, string fileName)[] overlays =
+            {
+                (UIScreenId.FieldMap, "flow_map_1280x720"),
+                (UIScreenId.Equipment, "flow_equipment_1280x720"),
+                (UIScreenId.RunStatus, "flow_status_1280x720")
+            };
+
+            foreach ((UIScreenId id, string fileName) in overlays)
+            {
+                UIScreen overlay = ui.Show(id, false);
+                yield return WaitFrames(2);
+                Assert.That(overlay, Is.Not.Null);
+                Assert.That(ui.HasVisibleModal, Is.True, $"{id} did not block field input.");
+                AssertVisibleUiInsideViewport($"{id} 1280x720");
+                yield return CaptureScreenshot(fileName, 1280, 720);
+                ui.Hide(id, false);
+                yield return WaitFrames(2);
+                Assert.That(ui.HasVisibleModal, Is.False, $"{id} stayed open after closing.");
+            }
+        }
+
         private static Button FindButton(string objectName)
         {
             Button[] buttons = Object.FindObjectsByType<Button>(
