@@ -293,6 +293,69 @@ namespace FFSS.Framework.Tests
             Assert.That(data.run.player.currentPressure, Is.Zero);
         }
 
+        [Test]
+        public void EnemyPlannerTelegraphsBaseActionBeforeSeotdaVariation()
+        {
+            EnemyEncounterDefinition encounter = Encounter(
+                Move("moon_slash", CombatActionType.Attack, CombatStance.Offense, 13,
+                    EnemySeotdaCondition.ExactMonths, 3, 8, 4));
+            var state = new EnemyRuleState();
+
+            EnemyIntentPlan plan = EnemyIntentPlanner.Prepare(encounter, state, new DeterministicRng(38));
+            EnemySeotdaVariation variation = EnemyIntentPlanner.ApplySeotdaVariation(
+                plan,
+                new EnemySeotdaSnapshot(true, 9, 3, 8, true, true, true));
+
+            Assert.That(plan.Intent.basePower, Is.EqualTo(13));
+            Assert.That(plan.Intent.conditionalPowerBonus, Is.Zero);
+            Assert.That(variation.Matched, Is.True);
+            Assert.That(variation.Intent.basePower, Is.EqualTo(13));
+            Assert.That(variation.Intent.Power, Is.EqualTo(17));
+
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyPlannerUsesCadenceMoveOnItsConfiguredRound()
+        {
+            EnemyMoveDefinition regular = Move(
+                "regular", CombatActionType.Defend, CombatStance.Defense, 9);
+            EnemyMoveDefinition cadence = Move(
+                "signature", CombatActionType.Skill, CombatStance.Offense, 18);
+            cadence.minimumRound = 3;
+            cadence.cadenceRounds = 3;
+            cadence.cadenceOffset = 3;
+            EnemyEncounterDefinition encounter = Encounter(regular, cadence);
+            var state = new EnemyRuleState();
+            var random = new DeterministicRng(13);
+
+            EnemyIntentPlanner.Prepare(encounter, state, random);
+            EnemyIntentPlanner.Prepare(encounter, state, random);
+            EnemyIntentPlan third = EnemyIntentPlanner.Prepare(encounter, state, random);
+
+            Assert.That(third.Move.Id, Is.EqualTo("signature"));
+            Assert.That(third.Intent.action, Is.EqualTo(CombatActionType.Skill));
+
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyPlannerAvoidsImmediateRepeatWhenAnotherMoveIsAvailable()
+        {
+            EnemyEncounterDefinition encounter = Encounter(
+                Move("first", CombatActionType.Attack, CombatStance.Offense, 10),
+                Move("second", CombatActionType.Defend, CombatStance.Defense, 10));
+            var state = new EnemyRuleState();
+            var random = new DeterministicRng(1);
+
+            EnemyIntentPlan first = EnemyIntentPlanner.Prepare(encounter, state, random);
+            EnemyIntentPlan second = EnemyIntentPlanner.Prepare(encounter, state, random);
+
+            Assert.That(second.Move.Id, Is.Not.EqualTo(first.Move.Id));
+
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
         private static CombatIntent Intent(
             CombatSide side,
             CombatStance stance,
@@ -308,6 +371,38 @@ namespace FFSS.Framework.Tests
                 stance = stance,
                 basePower = power,
                 pressurePower = pressurePower
+            };
+        }
+
+        private static EnemyEncounterDefinition Encounter(params EnemyMoveDefinition[] moves)
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "test.enemy";
+            encounter.moves.AddRange(moves);
+            return encounter;
+        }
+
+        private static EnemyMoveDefinition Move(
+            string id,
+            CombatActionType action,
+            CombatStance stance,
+            int power,
+            EnemySeotdaCondition condition = EnemySeotdaCondition.None,
+            int valueA = 0,
+            int valueB = 0,
+            int seotdaPowerBonus = 0)
+        {
+            return new EnemyMoveDefinition
+            {
+                moveId = id,
+                displayName = id,
+                action = action,
+                stance = stance,
+                basePower = power,
+                seotdaCondition = condition,
+                conditionValueA = valueA,
+                conditionValueB = valueB,
+                seotdaPowerBonus = seotdaPowerBonus
             };
         }
 

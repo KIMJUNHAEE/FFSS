@@ -23,6 +23,7 @@ namespace FFSS.Framework.Run
         public string enemyId;
         public int phase = 1;
         public int turnNumber;
+        public string lastMoveId;
         public List<RuleCounterState> counters = new List<RuleCounterState>();
         public List<RuleFlagState> flags = new List<RuleFlagState>();
 
