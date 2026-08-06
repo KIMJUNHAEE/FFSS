@@ -24,6 +24,7 @@ namespace FFSS.Framework.Tests
         private Mouse mouse;
         private readonly List<InputDevice> disabledPhysicalDevices = new();
         private InputSettings.BackgroundBehavior previousBackgroundBehavior;
+        private InputSettings.UpdateMode previousUpdateMode;
 #if UNITY_EDITOR
         private InputSettings.EditorInputBehaviorInPlayMode previousEditorInputBehavior;
 #endif
@@ -33,6 +34,8 @@ namespace FFSS.Framework.Tests
         {
             previousBackgroundBehavior = InputSystem.settings.backgroundBehavior;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            previousUpdateMode = InputSystem.settings.updateMode;
+            InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
 #if UNITY_EDITOR
             previousEditorInputBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
             InputSystem.settings.editorInputBehaviorInPlayMode =
@@ -64,6 +67,7 @@ namespace FFSS.Framework.Tests
                     InputSystem.EnableDevice(device);
             }
             disabledPhysicalDevices.Clear();
+            InputSystem.settings.updateMode = previousUpdateMode;
             InputSystem.settings.backgroundBehavior = previousBackgroundBehavior;
 #if UNITY_EDITOR
             InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInputBehavior;
