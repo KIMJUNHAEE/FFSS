@@ -21,6 +21,15 @@ namespace FFSS.Framework.Run
     }
 
     [Serializable]
+    public sealed class RunRewardState
+    {
+        public string rewardId;
+        public string enemyId;
+        public int gold;
+        public List<string> itemChoiceIds = new List<string>();
+    }
+
+    [Serializable]
     public sealed class RunState
     {
         public string runId;
@@ -36,6 +45,7 @@ namespace FFSS.Framework.Run
         public RunPokerDeckState pokerDeck = new RunPokerDeckState();
         public EnemyRuleState activeEnemyRule;
         public CombatEncounterState activeCombat;
+        public RunRewardState pendingReward;
         public List<string> equippedItemIds = new List<string>();
         public List<string> inventoryItemIds = new List<string>();
         public List<string> completedEventIds = new List<string>();

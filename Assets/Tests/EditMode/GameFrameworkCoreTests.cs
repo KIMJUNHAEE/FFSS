@@ -89,7 +89,13 @@ namespace FFSS.Framework.Tests
                 {
                     runId = "test-run",
                     seed = 47,
-                    gold = 21
+                    gold = 21,
+                    pendingReward = new RunRewardState
+                    {
+                        rewardId = "reward.001.1ddaeng",
+                        enemyId = "1땡",
+                        gold = 20
+                    }
                 }
             };
 
@@ -99,6 +105,8 @@ namespace FFSS.Framework.Tests
             Assert.That(restored.schemaVersion, Is.EqualTo(SaveGameData.CurrentSchemaVersion));
             Assert.That(restored.run.runId, Is.EqualTo("test-run"));
             Assert.That(restored.run.gold, Is.EqualTo(21));
+            Assert.That(restored.run.pendingReward.enemyId, Is.EqualTo("1땡"));
+            Assert.That(restored.run.pendingReward.gold, Is.EqualTo(20));
         }
 
         [Test]
@@ -146,7 +154,7 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(8));
+            Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(9));
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
             SerializedObject combatSerialized = new SerializedObject(combat);
@@ -213,6 +221,31 @@ namespace FFSS.Framework.Tests
                 AssetDatabase.LoadAssetAtPath<SceneAsset>(
                     "Assets/Scenes/ClockworkTimekeeper_MapRoaming.unity"),
                 Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductionEncounterCatalogMapsAllBattleSceneCopies()
+        {
+            EncounterSceneCatalog catalog = AssetDatabase.LoadAssetAtPath<EncounterSceneCatalog>(
+                "Assets/Data/Framework/EncounterSceneCatalog.asset");
+
+            Assert.That(catalog, Is.Not.Null);
+            Assert.That(catalog.Entries, Has.Count.EqualTo(17));
+            var enemyIds = new HashSet<string>();
+            var sceneNames = new HashSet<string>();
+            foreach (EncounterSceneEntry entry in catalog.Entries)
+            {
+                Assert.That(enemyIds.Add(entry.enemyId), Is.True, entry.enemyId);
+                Assert.That(sceneNames.Add(entry.sceneName), Is.True, entry.sceneName);
+                Assert.That(entry.encounter, Is.Not.Null, entry.enemyId);
+                Assert.That(entry.encounter.enemyId, Is.EqualTo(entry.enemyId));
+                Assert.That(entry.rewardGold, Is.GreaterThan(0));
+                Assert.That(
+                    AssetDatabase.LoadAssetAtPath<SceneAsset>(
+                        $"Assets/Scenes/Production/Battles/{entry.sceneName}.unity"),
+                    Is.Not.Null,
+                    entry.sceneName);
+            }
         }
 
         [Test]

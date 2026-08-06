@@ -65,6 +65,45 @@ namespace FFSS.Framework.Run
             Current.activeEnemyRule = null;
         }
 
+        public void CancelEncounter()
+        {
+            RequireRun();
+            Current.activeEnemyRule = null;
+            Current.activeCombat = null;
+        }
+
+        public void UpdatePlayerVitals(int currentHp, int currentPressure)
+        {
+            RequireRun();
+            Current.player.currentHp = Math.Max(0, Math.Min(Current.player.maxHp, currentHp));
+            Current.player.currentPressure = Math.Max(0, Math.Min(Current.player.maxPressure, currentPressure));
+        }
+
+        public RunRewardState PrepareReward(string enemyId, int gold, params string[] itemChoiceIds)
+        {
+            RequireRun();
+            Current.pendingReward = new RunRewardState
+            {
+                rewardId = $"reward.{Current.encounterIndex:D3}.{enemyId}",
+                enemyId = enemyId,
+                gold = Math.Max(0, gold),
+                itemChoiceIds = itemChoiceIds == null
+                    ? new System.Collections.Generic.List<string>()
+                    : new System.Collections.Generic.List<string>(itemChoiceIds)
+            };
+            return Current.pendingReward;
+        }
+
+        public RunRewardState ClaimReward()
+        {
+            RequireRun();
+            RunRewardState reward = Current.pendingReward ??
+                                    throw new InvalidOperationException("There is no pending reward.");
+            Current.gold += Math.Max(0, reward.gold);
+            Current.pendingReward = null;
+            return reward;
+        }
+
         public void CompleteRun()
         {
             RequireRun();
