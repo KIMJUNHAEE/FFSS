@@ -31,7 +31,7 @@ namespace FFSS.Framework.Flow
 
             if (showInitialScreen)
             {
-                services.Get<UIManager>().Show(initialScreen, false);
+                services.Get<UIManager>().ShowExclusive(initialScreen, false);
             }
 
             if (!string.IsNullOrWhiteSpace(musicCueId))

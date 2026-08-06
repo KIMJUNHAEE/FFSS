@@ -12,7 +12,10 @@ namespace FFSS.Editor
 
         static ProductionPlayModeStartScene()
         {
-            EditorApplication.delayCall += EnsureTitleStartScene;
+            if (!Application.isBatchMode)
+            {
+                EditorApplication.delayCall += EnsureTitleStartScene;
+            }
         }
 
         [MenuItem("FFSS/Production/Use Title As Play Start Scene")]

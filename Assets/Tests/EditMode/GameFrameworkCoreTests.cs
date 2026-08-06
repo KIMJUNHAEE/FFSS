@@ -1166,6 +1166,14 @@ namespace FFSS.Framework.Tests
             Assert.That(EditorBuildSettings.scenes[0].enabled, Is.True);
             Assert.That(EditorBuildSettings.scenes[0].path,
                 Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));
+
+            if (Application.isBatchMode)
+            {
+                Assert.That(EditorSceneManager.playModeStartScene, Is.Null,
+                    "Automated PlayMode tests need control of their own bootstrap scene.");
+                return;
+            }
+
             Assert.That(EditorSceneManager.playModeStartScene, Is.Not.Null);
             Assert.That(AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),
                 Is.EqualTo("Assets/Scenes/Production/Frontend/Production_Title.unity"));

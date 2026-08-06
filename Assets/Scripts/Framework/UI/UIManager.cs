@@ -44,6 +44,26 @@ namespace FFSS.Framework.UI
             return screen;
         }
 
+        public UIScreen ShowExclusive(UIScreenId id, bool playAnimation = true)
+        {
+            var screensToHide = new List<UIScreenId>();
+            foreach (KeyValuePair<UIScreenId, UIScreen> pair in instances)
+            {
+                if (pair.Key != id && pair.Value != null && pair.Value.IsVisible)
+                {
+                    screensToHide.Add(pair.Key);
+                }
+            }
+
+            for (int i = 0; i < screensToHide.Count; i++)
+            {
+                Hide(screensToHide[i], playAnimation);
+            }
+
+            modalStack.Clear();
+            return Show(id, playAnimation);
+        }
+
         public void Hide(UIScreenId id, bool playAnimation = true)
         {
             if (!instances.TryGetValue(id, out UIScreen screen))
