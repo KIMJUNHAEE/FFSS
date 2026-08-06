@@ -103,6 +103,8 @@ namespace FFSS.Framework.Tests
                 InputSystem.Update();
                 for (int frame = 0; frame < 40; frame++)
                 {
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(directions[i]));
+                    InputSystem.Update();
                     yield return null;
                     farthestDistance = Mathf.Max(
                         farthestDistance,
