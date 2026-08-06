@@ -60,6 +60,7 @@ namespace FFSS.Framework.Tests
                 Press(keyboard[directions[i]]);
                 for (int frame = 0; frame < 40; frame++)
                 {
+                    Set(keyboard[directions[i]], 1f);
                     yield return null;
                     farthestDistance = Mathf.Max(
                         farthestDistance,
