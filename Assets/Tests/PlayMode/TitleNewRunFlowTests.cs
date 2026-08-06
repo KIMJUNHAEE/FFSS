@@ -62,6 +62,10 @@ namespace FFSS.Framework.Tests
 
             Button newRunButton = FindButton("New Run");
             Assert.That(newRunButton, Is.Not.Null, "The title screen New Run button is missing.");
+            yield return SetResolutionAndCapture("flow_title_1920x1080", 1920, 1080);
+            AssertVisibleUiInsideViewport("title 1920x1080");
+            yield return SetResolutionAndCapture("flow_title_1280x720", 1280, 720);
+            AssertVisibleUiInsideViewport("title 1280x720");
             newRunButton.onClick.Invoke();
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene,
@@ -110,7 +114,11 @@ namespace FFSS.Framework.Tests
                 () => SceneManager.GetActiveScene().name == "Combat_Ddaeng_01",
                 300,
                 "Entering 1땡 did not load its production combat scene.");
-            yield return WaitFrames(8);
+            yield return WaitUntil(
+                IsCombatInputReady,
+                600,
+                "Combat never reached its playable state after the intro and card deal.");
+            yield return WaitFrames(2);
 
             Assert.That(flow.Current, Is.EqualTo(GameFlowState.Combat));
             Assert.That(FindVisibleScreen(UIScreenId.FieldHud), Is.Null,
@@ -309,6 +317,31 @@ namespace FFSS.Framework.Tests
                 BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(method, Is.Not.Null, "The field movement gate is unavailable.");
             return (bool)method.Invoke(null, null);
+        }
+
+        private static bool IsCombatInputReady()
+        {
+            Type controllerType = Type.GetType(
+                "CardBattle.RpsCombatController, Assembly-CSharp");
+            if (controllerType == null)
+            {
+                return false;
+            }
+
+            Object[] controllers = Object.FindObjectsByType(
+                controllerType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            if (controllers.Length != 1)
+            {
+                return false;
+            }
+
+            FieldInfo attackButtonField = controllerType.GetField(
+                "attackButton",
+                BindingFlags.Public | BindingFlags.Instance);
+            return attackButtonField?.GetValue(controllers[0]) is Button attackButton &&
+                   attackButton.interactable;
         }
 
         private static void AssertVisibleUiInsideViewport(string stage)
