@@ -111,7 +111,7 @@ namespace FFSS.Framework.Tests
             Assert.That(definition.Allows(GameFlowState.Title, GameFlowState.Field), Is.True);
             Assert.That(definition.Allows(GameFlowState.Title, GameFlowState.Combat), Is.False);
 
-            Object.DestroyImmediate(definition);
+            UnityEngine.Object.DestroyImmediate(definition);
         }
 
         private sealed class TestService : IGameService
