@@ -42,8 +42,8 @@ namespace FFSS.Editor
             settings.loadType = isMusic
                 ? AudioClipLoadType.Streaming
                 : AudioClipLoadType.CompressedInMemory;
+            settings.preloadAudioData = !isMusic;
             importer.defaultSampleSettings = settings;
-            importer.preloadAudioData = !isMusic;
             importer.loadInBackground = isMusic;
         }
     }
