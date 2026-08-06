@@ -22,6 +22,47 @@ namespace FFSS.Framework.Tests
         private const string TitleScene = "Production_Title";
         private const string FieldScene = "Production_Field";
 
+        [Test]
+        public void PokerCombatBalanceMakesHighCardAChipPlanInsteadOfMainDamage()
+        {
+            Type balanceType = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
+            Type rankType = Type.GetType("CardBattle.PokerHandRank, Assembly-CSharp");
+            Assert.That(balanceType, Is.Not.Null);
+            Assert.That(rankType, Is.Not.Null);
+
+            MethodInfo scale = balanceType.GetMethod("ScaleAttackForHand",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo fatigue = balanceType.GetMethod("ConsecutiveHighCardAttackPenalty",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(scale, Is.Not.Null);
+            Assert.That(fatigue, Is.Not.Null);
+
+            object highCard = Enum.Parse(rankType, "HighCard");
+            object onePair = Enum.Parse(rankType, "OnePair");
+            object twoPair = Enum.Parse(rankType, "TwoPair");
+
+            Assert.That((int)scale.Invoke(null, new[] { highCard, (object)24 }), Is.EqualTo(13));
+            Assert.That((int)scale.Invoke(null, new[] { onePair, (object)24 }), Is.EqualTo(22));
+            Assert.That((int)scale.Invoke(null, new[] { twoPair, (object)24 }), Is.EqualTo(24));
+            Assert.That((int)fatigue.Invoke(null, new object[] { 1 }), Is.Zero);
+            Assert.That((int)fatigue.Invoke(null, new object[] { 2 }), Is.EqualTo(3));
+            Assert.That((int)fatigue.Invoke(null, new object[] { 4 }), Is.EqualTo(9));
+
+            MethodInfo pressure = balanceType.GetMethod("ConsecutiveHighCardPressureDamage",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(pressure, Is.Not.Null);
+            Assert.That((int)pressure.Invoke(null, new object[] { 1 }), Is.Zero);
+            Assert.That((int)pressure.Invoke(null, new object[] { 2 }), Is.EqualTo(4));
+            Assert.That((int)pressure.Invoke(null, new object[] { 4 }), Is.EqualTo(12));
+
+            MethodInfo rewardBonus = balanceType.GetMethod("RewardItemChanceBonusForEnemyBreaks",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(rewardBonus, Is.Not.Null);
+            Assert.That((float)rewardBonus.Invoke(null, new object[] { 0 }), Is.EqualTo(0f));
+            Assert.That((float)rewardBonus.Invoke(null, new object[] { 1 }), Is.EqualTo(0.07f));
+            Assert.That((float)rewardBonus.Invoke(null, new object[] { 2 }), Is.EqualTo(0.12f));
+        }
+
         [UnityTest]
         public IEnumerator NewRunButtonCreatesRunAndShowsPlayableField()
         {
@@ -130,6 +171,7 @@ namespace FFSS.Framework.Tests
             AssertVisibleUiInsideViewport("combat 1920x1080");
             yield return SetResolutionAndCapture("flow_combat_1ddaeng_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("combat 1280x720");
+            yield return AssertPlannedRedrawFlow();
 
             RunState run = runs.Current;
             encounters.CompleteVictory(run.player.currentHp, run.player.currentPressure);
@@ -342,6 +384,130 @@ namespace FFSS.Framework.Tests
                 BindingFlags.Public | BindingFlags.Instance);
             return attackButtonField?.GetValue(controllers[0]) is Button attackButton &&
                    attackButton.interactable;
+        }
+
+        private static IEnumerator AssertPlannedRedrawFlow()
+        {
+            Type controllerType = Type.GetType(
+                "CardBattle.RpsCombatController, Assembly-CSharp");
+            Type handType = Type.GetType(
+                "CardBattle.PokerHandController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+            Assert.That(handType, Is.Not.Null);
+
+            Object[] controllers = Object.FindObjectsByType(
+                controllerType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(controllers, Has.Length.EqualTo(1));
+            object controller = controllers[0];
+            object hand = controllerType.GetField("pokerHand")?.GetValue(controller);
+            Button redraw = controllerType.GetField("redrawButton")?.GetValue(controller) as Button;
+            Assert.That(hand, Is.Not.Null);
+            Assert.That(redraw, Is.Not.Null);
+
+            PropertyInfo limitProperty = handType.GetProperty("RedrawLimit");
+            PropertyInfo remainingProperty = handType.GetProperty("RedrawsRemaining");
+            PropertyInfo readyProperty = handType.GetProperty("HasResolvedHand");
+            PropertyInfo cardsProperty = handType.GetProperty("CurrentCardSprites");
+            PropertyInfo cardInstancesProperty = handType.GetProperty("CurrentCardInstanceIds");
+            Assert.That((int)limitProperty.GetValue(hand), Is.EqualTo(1));
+            Assert.That((int)remainingProperty.GetValue(hand), Is.EqualTo(1));
+            Assert.That(redraw.interactable, Is.True);
+
+            List<string> opening = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
+                .Select(sprite => sprite.name)
+                .ToList();
+            redraw.onClick.Invoke();
+            yield return WaitUntil(
+                () => (bool)readyProperty.GetValue(hand) &&
+                      (int)remainingProperty.GetValue(hand) == 0,
+                300,
+                "The first redraw did not finish or consume its turn resource.");
+            yield return WaitFrames(2);
+
+            List<string> replaced = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
+                .Select(sprite => sprite.name)
+                .ToList();
+            Assert.That(replaced, Has.Count.EqualTo(5));
+            Assert.That(replaced.Distinct().Count(), Is.EqualTo(5));
+            Assert.That(replaced.Intersect(opening), Is.Empty,
+                "A card already seen this turn returned during redraw.");
+            Assert.That(redraw.interactable, Is.False,
+                "The redraw button stayed enabled after its base use was spent.");
+            Assert.That(redraw.GetComponentInChildren<Text>(true).text, Does.Contain("0/1"));
+
+            handType.GetMethod("Redraw")?.Invoke(hand, null);
+            yield return WaitFrames(2);
+            List<string> afterBlockedAttempt = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
+                .Select(sprite => sprite.name)
+                .ToList();
+            Assert.That(afterBlockedAttempt, Is.EqualTo(replaced),
+                "Calling redraw after the turn limit changed the hand.");
+
+            IReadOnlyList<string> instanceIds =
+                (IReadOnlyList<string>)cardInstancesProperty.GetValue(hand);
+            Assert.That(instanceIds, Has.Count.EqualTo(5));
+            Assert.That(instanceIds, Is.Unique);
+            RunPokerDeckState runDeck = GameKernel.Services.Get<RunManager>().Current.pokerDeck;
+            Assert.That(instanceIds.All(instanceId => runDeck.FindCard(instanceId) != null), Is.True,
+                "The visible poker hand is not backed by actual run-card instances.");
+            Assert.That(instanceIds.Intersect(runDeck.storedCards), Is.Empty,
+                "A card stored outside the deck appeared in the combat hand.");
+
+            Button attack = controllerType.GetField("attackButton")?.GetValue(controller) as Button;
+            Button endTurn = controllerType.GetField("endTurnButton")?.GetValue(controller) as Button;
+            object seotda = controllerType.GetField("seotdaTable")?.GetValue(controller);
+            Assert.That(attack, Is.Not.Null);
+            Assert.That(endTurn, Is.Not.Null);
+            Assert.That(seotda, Is.Not.Null);
+
+            int enemyHpBefore = (int)controllerType.GetProperty("EnemyHp").GetValue(controller);
+            int enemyPressureBefore = (int)controllerType.GetProperty("EnemyBreakCharge").GetValue(controller);
+            int playerHpBefore = (int)controllerType.GetField(
+                "playerHp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+            int playerPressureBefore = (int)controllerType.GetField(
+                "playerBreakCharge", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+
+            attack.onClick.Invoke();
+            yield return WaitFrames(2);
+            Assert.That(endTurn.interactable, Is.True, "Selecting attack did not enable turn end.");
+            endTurn.onClick.Invoke();
+            yield return WaitUntil(
+                () => !(bool)readyProperty.GetValue(hand),
+                300,
+                "Ending the player turn did not gather the poker hand back into the deck.");
+
+            Type seotdaType = seotda.GetType();
+            Image faceSlot = seotdaType.GetField("cardSlotA")?.GetValue(seotda) as Image;
+            Sprite back = seotdaType.GetField("backSprite")?.GetValue(seotda) as Sprite;
+            Assert.That(faceSlot, Is.Not.Null);
+            yield return WaitUntil(
+                () => faceSlot.gameObject.activeInHierarchy && faceSlot.enabled &&
+                      faceSlot.sprite != null && faceSlot.sprite != back,
+                600,
+                "The enemy Seotda draw never showed its visible front card.");
+            yield return CaptureScreenshot("flow_combat_1ddaeng_seotda_face", 1280, 720);
+
+            yield return WaitUntil(
+                () => (bool)readyProperty.GetValue(hand) &&
+                      (int)remainingProperty.GetValue(hand) == 1 && redraw.interactable,
+                900,
+                "The resolved exchange did not return to a fresh player turn with one redraw.");
+            yield return WaitFrames(2);
+
+            int enemyHpAfter = (int)controllerType.GetProperty("EnemyHp").GetValue(controller);
+            int enemyPressureAfter = (int)controllerType.GetProperty("EnemyBreakCharge").GetValue(controller);
+            int playerHpAfter = (int)controllerType.GetField(
+                "playerHp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+            int playerPressureAfter = (int)controllerType.GetField(
+                "playerBreakCharge", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(controller);
+            Assert.That(
+                enemyHpAfter != enemyHpBefore || enemyPressureAfter != enemyPressureBefore ||
+                playerHpAfter != playerHpBefore || playerPressureAfter != playerPressureBefore,
+                Is.True,
+                "The attack/defense exchange completed without changing HP or the thin pressure gauge.");
+            Assert.That(redraw.GetComponentInChildren<Text>(true).text, Does.Contain("1/1"));
         }
 
         private static void AssertVisibleUiInsideViewport(string stage)

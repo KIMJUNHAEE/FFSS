@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FFSS.Framework.Combat;
+using FFSS.Framework.Core;
 using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -15,6 +16,21 @@ namespace CardBattle
         Defend,
         Skill,
         Stunned,
+    }
+
+    public enum CombatFlowPhase
+    {
+        Initializing,
+        PlayerTurnBanner,
+        PlayerInput,
+        RetractingPoker,
+        EnemyTurnBanner,
+        SwitchingToSeotda,
+        RevealingSeotda,
+        ResolvingExchange,
+        RetractingSeotda,
+        SwitchingToPoker,
+        Finished
     }
 
     public class RpsCombatController : MonoBehaviour
@@ -266,6 +282,11 @@ namespace CardBattle
         private BossMoveDefinition pendingEnemyMove;
         private string lastEnemyMoveId;
         private int enemyIntentTurn;
+        private int highCardAttackStreak;
+        private int enemyBreaksTriggered;
+        private int committedPlayerRedCount;
+        private int committedPlayerBlackCount;
+        private PlayerRunState appliedRunPlayerState;
         private readonly Dictionary<string, int> enemyMoveReadyTurns = new();
         private readonly List<string> committedPlayerCardIds = new();
         private Coroutine playerBreakRoutine;
@@ -276,6 +297,7 @@ namespace CardBattle
         public int EnemyMaxHp => enemyMaxHp;
         public int EnemyBreakCharge => enemyBreakCharge;
         public int EnemyMaxBreak => enemyMaxBreak;
+        public CombatFlowPhase CurrentPhase { get; private set; } = CombatFlowPhase.Initializing;
 
         private void Start()
         {
@@ -287,13 +309,18 @@ namespace CardBattle
             enemyHp = enemyMaxHp;
             playerBreakCharge = 0;
             enemyBreakCharge = 0;
+            enemyBreaksTriggered = 0;
             combatLocked = true;
 
             if (attackButton) attackButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Attack));
             if (defendButton) defendButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Defend));
             if (skillButton) skillButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Skill));
             if (endTurnButton) endTurnButton.onClick.AddListener(EndTurn);
-            if (pokerHand != null) pokerHand.HandChanged += HandleHandChanged;
+            if (pokerHand != null)
+            {
+                pokerHand.HandChanged += HandleHandChanged;
+                pokerHand.RedrawAvailabilityChanged += HandleRedrawAvailabilityChanged;
+            }
 
             if (enemyActionText) enemyActionText.text = "";
             if (playerStatusText) playerStatusText.text = "";
@@ -366,6 +393,12 @@ namespace CardBattle
             if (state == null)
                 return;
 
+            appliedRunPlayerState = state;
+            playerMaxHp = Mathf.Max(1, state.maxHp);
+            playerMaxBreak = Mathf.Max(1, state.maxPressure);
+            playerBaseAttack = Mathf.Max(0, state.baseAttack);
+            playerBaseDefense = Mathf.Max(0, state.baseDefense);
+            baseBreakPower = Mathf.Max(0, state.baseBreakPower);
             playerHp = Mathf.Clamp(state.currentHp, 0, playerMaxHp);
             playerBreakCharge = Mathf.Clamp(state.currentPressure, 0, playerMaxBreak);
             UpdateHpUI();
@@ -394,6 +427,7 @@ namespace CardBattle
                 yield return new WaitUntil(() => introFinished);
             }
 
+            CurrentPhase = CombatFlowPhase.PlayerTurnBanner;
             yield return ShowTurnBanner("플레이어 턴 시작", true);
 
             if (pokerHand != null && !pokerHand.HasResolvedHand)
@@ -404,12 +438,22 @@ namespace CardBattle
             }
 
             combatLocked = false;
+            CurrentPhase = CombatFlowPhase.PlayerInput;
             RefreshButtons();
         }
 
         private void OnDestroy()
         {
-            if (pokerHand != null) pokerHand.HandChanged -= HandleHandChanged;
+            if (pokerHand != null)
+            {
+                pokerHand.HandChanged -= HandleHandChanged;
+                pokerHand.RedrawAvailabilityChanged -= HandleRedrawAvailabilityChanged;
+            }
+        }
+
+        private void HandleRedrawAvailabilityChanged(int remaining, int limit)
+        {
+            RefreshButtons();
         }
 
         private void Update()
@@ -451,6 +495,7 @@ namespace CardBattle
             if (playerStatusText) playerStatusText.text = $"{ActionLabel(action)} 선택";
             if (action == RpsAction.Skill) ShowPlayerSkillDetail();
             else HidePlayerSkillDetail();
+            pokerHand?.PlayCombatAnimation(action);
             UpdateSelectionHighlight();
             RefreshButtons();
         }
@@ -471,9 +516,11 @@ namespace CardBattle
 
         private IEnumerator EndTurnRoutine(RpsAction playerAction)
         {
+            CurrentPhase = CombatFlowPhase.RetractingPoker;
             var playerIntent = BuildPlayerIntent(playerAction);
             PokerHandResult resolvedHand = pokerHand != null ? pokerHand.CurrentResult : default;
             committedPlayerCardIds.Clear();
+            (committedPlayerRedCount, committedPlayerBlackCount) = EffectiveColorCounts(resolvedHand);
             if (pokerHand != null)
             {
                 committedPlayerCardIds.AddRange(pokerHand.CurrentCardSprites
@@ -522,10 +569,12 @@ namespace CardBattle
 
         private IEnumerator ShowEnemySideAndResolve(CombatIntent playerIntent, PokerHandResult resolvedHand)
         {
+            CurrentPhase = CombatFlowPhase.EnemyTurnBanner;
             yield return ShowTurnBanner($"{enemyDisplayName}의 섯다 턴 시작", false);
 
             if (tableSwitcher != null)
             {
+                CurrentPhase = CombatFlowPhase.SwitchingToSeotda;
                 bool switched = false;
                 tableSwitcher.SwitchTo(true, () => switched = true);
                 yield return new WaitUntil(() => switched);
@@ -534,6 +583,7 @@ namespace CardBattle
             SeotdaHandResult enemyHand = default;
             if (!enemyStunned && seotdaTable != null)
             {
+                CurrentPhase = CombatFlowPhase.RevealingSeotda;
                 bool dealt = false;
                 seotdaTable.ShowEnemyHandAnimated(result =>
                 {
@@ -545,10 +595,12 @@ namespace CardBattle
             }
 
             var enemyIntent = BuildEnemyIntent(enemyHand);
+            CurrentPhase = CombatFlowPhase.ResolvingExchange;
             yield return ResolveRound(playerIntent, enemyIntent, resolvedHand);
 
             if (seotdaTable != null)
             {
+                CurrentPhase = CombatFlowPhase.RetractingSeotda;
                 bool retracted = false;
                 seotdaTable.RetractEnemyHandAnimated(() => retracted = true);
                 yield return new WaitUntil(() => retracted);
@@ -556,6 +608,7 @@ namespace CardBattle
 
             if (!gameOver && tableSwitcher != null)
             {
+                CurrentPhase = CombatFlowPhase.SwitchingToPoker;
                 bool switchedBack = false;
                 tableSwitcher.SwitchTo(false, () => switchedBack = true);
                 yield return new WaitUntil(() => switchedBack);
@@ -576,6 +629,12 @@ namespace CardBattle
                 ruleContext.enemyPowerDelta,
                 ruleContext.enemyBreakDelta,
                 ruleContext.enemyPowerFloor);
+            int highCardPenalty = RegisterHighCardAttackPenalty(playerIntent, resolvedHand);
+            if (highCardPenalty > 0)
+            {
+                playerIntent = playerIntent.WithRuleModifiers(-highCardPenalty, 0);
+                ruleContext.AddNote($"하이카드 연타 피로 -{highCardPenalty}");
+            }
 
             bool enemyWasStunned = enemyIntent.IsStunned;
             if (enemyActionText) enemyActionText.text = DescribeIntent(enemyIntent, ruleContext.enemyPowerVisibilityRange);
@@ -587,6 +646,12 @@ namespace CardBattle
             bool seotdaModifierStripped = ApplyEnemySeotdaBreakInterference(ref outcome, playerIntent);
             ApplyEnemySeotdaEffect(ref outcome, enemyIntent, !seotdaModifierStripped);
             ApplyEnemyRuleOutcome(ref outcome, ruleContext);
+            int highCardPressure = PokerCombatBalance.ConsecutiveHighCardPressureDamage(highCardAttackStreak);
+            if (highCardPressure > 0)
+            {
+                outcome.BreakToPlayer += highCardPressure;
+                ruleContext.AddNote($"하이카드 반복 읽힘: 플레이어 균형 +{highCardPressure}");
+            }
             outcome.Message = $"{BuildValueLine(playerIntent, enemyIntent, ruleContext.enemyPowerVisibilityRange)}\n{outcome.Message}";
             if (!string.IsNullOrWhiteSpace(ruleContext.ruleNote))
                 outcome.Message += $"\n<color=#FFD34E>적 규칙: {ruleContext.ruleNote}</color>";
@@ -617,8 +682,8 @@ namespace CardBattle
                 ToRpsAction(enemyIntent.Kind),
                 resolvedHand.Rank,
                 resolvedHand.Tier,
-                resolvedHand.RedCount,
-                resolvedHand.BlackCount,
+                committedPlayerRedCount,
+                committedPlayerBlackCount,
                 MoveId(pendingEnemyMove)));
 
             bool impactFinished = combatImpactView == null || !hasImpact;
@@ -831,6 +896,7 @@ namespace CardBattle
                 if (enemyBreakCharge >= enemyMaxBreak && !enemyStunned)
                 {
                     enemyStunned = true;
+                    enemyBreaksTriggered++;
                     outcome.Message += "\n적 보조 게이지 최대: 다음 행동 스턴";
                 }
                 Pulse(enemyBreakFill);
@@ -916,8 +982,8 @@ namespace CardBattle
                 enemyAction = ToFrameworkAction(enemyIntent.Kind),
                 playerHand = ToRuleHand(hand.Rank),
                 playerHandTier = hand.Tier,
-                redCardCount = hand.RedCount,
-                blackCardCount = hand.BlackCount,
+                redCardCount = committedPlayerRedCount,
+                blackCardCount = committedPlayerBlackCount,
                 spadeCount = SuitCount(hand, CardSuit.Spade),
                 heartCount = SuitCount(hand, CardSuit.Heart),
                 clubCount = SuitCount(hand, CardSuit.Clover),
@@ -981,8 +1047,13 @@ namespace CardBattle
         {
             string rankName = result.IsValid ? result.DisplayName : "손패 없음";
             int tier = result.IsValid ? result.Tier : 0;
-            int red = result.IsValid ? result.RedCount : 0;
-            int black = result.IsValid ? result.BlackCount : 0;
+            (int red, int black) = EffectiveColorCounts(result);
+            int firstTurnAttack = appliedRunPlayerState != null && enemyIntentTurn <= 1
+                ? Mathf.Max(0, appliedRunPlayerState.firstTurnAttackBonus)
+                : 0;
+            int firstTurnDefense = appliedRunPlayerState != null && enemyIntentTurn <= 1
+                ? Mathf.Max(0, appliedRunPlayerState.firstTurnDefenseBonus)
+                : 0;
             int highRankKick = result.IsValid ? Mathf.Clamp(result.HighRank - 10, 0, 4) : 0;
             float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
             var context = BuildEquipmentContext(result, weaknessRatio);
@@ -998,20 +1069,77 @@ namespace CardBattle
             int redJokerPower = result.HasRedJoker ? redJokerAttackBonus : 0;
             int blackJokerPower = result.HasBlackJoker ? blackJokerDefenseBonus : 0;
             int jokerSkill = result.JokerCount * jokerSkillBonus;
-            int attack = playerBaseAttack + equipmentAttack + red * redPower + tier * tierPowerPerLevel +
-                         highRankKick + acePower + redJokerPower;
-            int defense = playerBaseDefense + equipmentDefense + black * blackPower + tier * tierPowerPerLevel +
+            int rawAttack = playerBaseAttack + firstTurnAttack + equipmentAttack + red * redPower + tier * tierPowerPerLevel +
+                            highRankKick + acePower + redJokerPower;
+            int attack = result.IsValid
+                ? PokerCombatBalance.ScaleAttackForHand(result.Rank, rawAttack)
+                : rawAttack;
+            int defense = playerBaseDefense + firstTurnDefense + equipmentDefense + black * blackPower + tier * tierPowerPerLevel +
                           acePower + blackJokerPower;
             int breakPower = baseBreakPower + equipmentBreak + black + tier * 2;
             int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill + jokerSkill;
             int redBonus = red * redPower;
             int blackBonus = black * blackPower;
             int tierPower = tier * tierPowerPerLevel;
-            string attackFormula = $"기{playerBaseAttack}+장{equipmentAttack}+빨{redBonus}+족{tierPower}+높{highRankKick}+A{acePower}+적J{redJokerPower}";
-            string defenseFormula = $"기{playerBaseDefense}+장{equipmentDefense}+검{blackBonus}+족{tierPower}+A{acePower}+흑J{blackJokerPower}";
+            string attackFormula = $"기{playerBaseAttack}+선{firstTurnAttack}+장{equipmentAttack}+빨{redBonus}+족{tierPower}+높{highRankKick}+A{acePower}+적J{redJokerPower}";
+            if (result.IsValid && attack != rawAttack)
+            {
+                attackFormula += $" -> {PokerCombatBalance.AttackScaleLabel(result.Rank)} {attack}";
+            }
+            string defenseFormula = $"기{playerBaseDefense}+선{firstTurnDefense}+장{equipmentDefense}+검{blackBonus}+족{tierPower}+A{acePower}+흑J{blackJokerPower}";
             string skillFormula = $"{attack}+스{skillBaseBonus}+족{tier * skillTierBonus}+장{equipmentSkill}+궁{courtSkill}+J{jokerSkill}";
             return new CombatNumbers(rankName, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
+        }
+
+        private (int Red, int Black) EffectiveColorCounts(PokerHandResult result)
+        {
+            if (!result.IsValid)
+                return (0, 0);
+            if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count != 5 ||
+                !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return (result.RedCount, result.BlackCount);
+            }
+
+            int red = 0;
+            int black = 0;
+            RunPokerDeckState deck = runs.Current.pokerDeck;
+            for (int i = 0; i < pokerHand.CurrentCardInstanceIds.Count; i++)
+            {
+                RunCardState card = deck.FindCard(pokerHand.CurrentCardInstanceIds[i]);
+                if (card == null)
+                    return (result.RedCount, result.BlackCount);
+                if (PokerRunDeckRules.IsEffectivelyRed(card)) red++;
+                else black++;
+            }
+
+            return (red, black);
+        }
+
+        private static float NextCombatRandomValue()
+        {
+            if (!GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+                return Random.value;
+
+            DeterministicRng rng = runs.Current.CreateRng();
+            float value = rng.Value();
+            runs.Current.StoreRng(rng);
+            return value;
+        }
+
+        private int RegisterHighCardAttackPenalty(CombatIntent playerIntent, PokerHandResult resolvedHand)
+        {
+            if (!PokerCombatBalance.CountsAsHighCardAttack(
+                    resolvedHand.Rank,
+                    playerIntent.Kind == IntentKind.Attack))
+            {
+                highCardAttackStreak = 0;
+                return 0;
+            }
+
+            highCardAttackStreak++;
+            return PokerCombatBalance.ConsecutiveHighCardAttackPenalty(highCardAttackStreak);
         }
 
         private void ResolveEquipmentLoadout()
@@ -1123,7 +1251,7 @@ namespace CardBattle
 
             float totalWeight = 0f;
             foreach (var move in candidates) totalWeight += Mathf.Max(0.01f, move.weight);
-            float roll = Random.value * totalWeight;
+            float roll = NextCombatRandomValue() * totalWeight;
             BossMoveDefinition selected = candidates[candidates.Count - 1];
             foreach (var move in candidates)
             {
@@ -1193,7 +1321,7 @@ namespace CardBattle
                 pendingEnemyMove = SelectEnemyMove(handBand);
                 pendingEnemyIntent = pendingEnemyMove != null
                     ? ToIntentKind(pendingEnemyMove.moveType)
-                    : Random.value < Mathf.Clamp01(enemyAttackChance) ? IntentKind.Attack : IntentKind.Defend;
+                    : NextCombatRandomValue() < Mathf.Clamp01(enemyAttackChance) ? IntentKind.Attack : IntentKind.Defend;
 
                 var values = CalculateEnemyNumbers();
                 int basePower = pendingEnemyMove != null
@@ -1413,6 +1541,7 @@ namespace CardBattle
             PlayerTurnStarted?.Invoke();
             PrepareNextEnemyIntent();
             if (combatReadout) combatReadout.SetActive(false);
+            CurrentPhase = CombatFlowPhase.PlayerTurnBanner;
             yield return ShowTurnBanner("플레이어 턴 시작", true);
 
             if (pokerHand != null)
@@ -1423,6 +1552,7 @@ namespace CardBattle
             }
 
             combatLocked = false;
+            CurrentPhase = CombatFlowPhase.PlayerInput;
             if (playerStatusText && !playerStunned) playerStatusText.text = "";
             RefreshButtons();
         }
@@ -1472,6 +1602,7 @@ namespace CardBattle
             if (gameOver || (enemyHp > 0 && playerHp > 0)) return;
 
             gameOver = true;
+            CurrentPhase = CombatFlowPhase.Finished;
             combatLocked = true;
             RefreshButtons();
             battleIntro?.HideImmediate();
@@ -1491,7 +1622,8 @@ namespace CardBattle
                 victory,
                 enemyDisplayName,
                 playerHp,
-                playerBreakCharge));
+                playerBreakCharge,
+                enemyBreaksTriggered));
         }
 
         private static string ActionLabel(RpsAction action) => action switch
@@ -1706,7 +1838,16 @@ namespace CardBattle
             if (attackButton) attackButton.interactable = canInput;
             if (defendButton) defendButton.interactable = canInput;
             if (skillButton) skillButton.interactable = canInput && CanUseSkill();
-            if (redrawButton) redrawButton.interactable = canInput;
+            if (redrawButton)
+            {
+                bool canRedraw = pokerHand == null || pokerHand.CanRedraw;
+                redrawButton.interactable = canInput && canRedraw;
+                Text label = redrawButton.GetComponentInChildren<Text>(true);
+                if (label != null && pokerHand != null)
+                {
+                    label.text = $"다시뽑기  {pokerHand.RedrawsRemaining}/{pokerHand.RedrawLimit}";
+                }
+            }
             if (endTurnButton) endTurnButton.interactable = canInput && selectedAction != null;
             UpdateSelectionHighlight();
         }

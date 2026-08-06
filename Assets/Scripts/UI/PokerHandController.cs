@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using FFSS.Framework.Core;
+using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -10,6 +12,18 @@ namespace CardBattle
 {
     public class PokerHandController : MonoBehaviour
     {
+        private readonly struct DrawnCard
+        {
+            public DrawnCard(Sprite sprite, string instanceId)
+            {
+                Sprite = sprite;
+                InstanceId = instanceId ?? string.Empty;
+            }
+
+            public Sprite Sprite { get; }
+            public string InstanceId { get; }
+        }
+
         [Header("52장 카드 스프라이트 (뒷면 제외, 인스펙터에서 채움)")]
         public List<Sprite> deckSprites = new();
 
@@ -31,19 +45,28 @@ namespace CardBattle
         [SerializeField] private bool dealOnStart = true;
 
         private readonly List<PokerCardView> spawnedCards = new();
+        private readonly List<string> spawnedCardInstanceIds = new();
+        private readonly HashSet<Sprite> seenThisTurn = new();
+        private readonly HashSet<string> seenCardInstancesThisTurn = new();
         private Coroutine dealRoutine;
         private Coroutine combatAnimationRoutine;
+        private int fallbackRedrawsUsed;
 
         public event Action<PokerHandResult> HandChanged;
         public event Action CardDealt;
         public event Action CardRedrawn;
         public event Action<int, int> RedrawCommitted;
         public event Action<IReadOnlyList<Sprite>, IReadOnlyList<Sprite>> RedrawCardsCommitted;
+        public event Action<int, int> RedrawAvailabilityChanged;
         public event Action HandRetracted;
         public PokerHandResult CurrentResult { get; private set; }
         public bool HasResolvedHand => spawnedCards.Count == handSize && dealRoutine == null && CurrentResult.IsValid;
         public IReadOnlyList<PokerCardView> Cards => spawnedCards;
         public IReadOnlyList<Sprite> CurrentCardSprites => spawnedCards.Select(card => card.CardSprite).ToList();
+        public IReadOnlyList<string> CurrentCardInstanceIds => spawnedCardInstanceIds;
+        public int RedrawLimit => CurrentRunDeck()?.RedrawLimit ?? 1;
+        public int RedrawsRemaining => CurrentRunDeck()?.RedrawsRemaining ?? Mathf.Max(0, 1 - fallbackRedrawsUsed);
+        public bool CanRedraw => dealRoutine == null && HasResolvedHand && RedrawsRemaining > 0;
 
         private void Start()
         {
@@ -74,29 +97,64 @@ namespace CardBattle
         public void Deal()
         {
             if (dealRoutine != null) StopCoroutine(dealRoutine);
+            BeginTurnState();
             ClearHand();
-            dealRoutine = StartCoroutine(DealRoutine(PickRandomUnique(handSize, new HashSet<Sprite>())));
+            List<DrawnCard> openingHand = DrawCards(handSize, null, seenThisTurn);
+            seenThisTurn.UnionWith(openingHand.Select(card => card.Sprite));
+            seenCardInstancesThisTurn.UnionWith(openingHand.Select(card => card.InstanceId)
+                .Where(instanceId => !string.IsNullOrWhiteSpace(instanceId)));
+            dealRoutine = StartCoroutine(DealRoutine(openingHand));
         }
 
         public void Redraw()
         {
-            if (dealRoutine != null) return;
+            if (!CanRedraw || !TryUseRedraw())
+            {
+                ShowRedrawLimitReached();
+                RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
+                return;
+            }
 
-            var kept = spawnedCards.Where(c => c.IsSelected).Select(c => c.CardSprite);
+            var kept = spawnedCards.Where(c => c.IsSelected).Select(c => c.CardSprite).ToList();
             var toReplace = spawnedCards.Where(c => !c.IsSelected).ToList();
-            var newSprites = PickRandomUnique(toReplace.Count, new HashSet<Sprite>(kept));
+            var excluded = new HashSet<Sprite>(seenThisTurn);
+            excluded.UnionWith(kept);
+            var excludedInstances = new HashSet<string>(seenCardInstancesThisTurn);
+            for (int i = 0; i < spawnedCards.Count; i++)
+            {
+                if (spawnedCards[i].IsSelected && i < spawnedCardInstanceIds.Count &&
+                    !string.IsNullOrWhiteSpace(spawnedCardInstanceIds[i]))
+                {
+                    excludedInstances.Add(spawnedCardInstanceIds[i]);
+                }
+            }
+            var newCards = DrawCards(toReplace.Count, excludedInstances, excluded);
+            if (newCards.Count != toReplace.Count)
+            {
+                ShowRedrawUnavailable();
+                return;
+            }
+            seenThisTurn.UnionWith(newCards.Select(card => card.Sprite));
+            seenCardInstancesThisTurn.UnionWith(newCards.Select(card => card.InstanceId)
+                .Where(instanceId => !string.IsNullOrWhiteSpace(instanceId)));
 
             RedrawCommitted?.Invoke(toReplace.Count, spawnedCards.Count - toReplace.Count);
             RedrawCardsCommitted?.Invoke(
                 toReplace.Select(card => card.CardSprite).ToList(),
                 spawnedCards.Where(card => card.IsSelected).Select(card => card.CardSprite).ToList());
-            dealRoutine = StartCoroutine(RedrawRoutine(toReplace, newSprites));
+            dealRoutine = StartCoroutine(RedrawRoutine(toReplace, newCards));
+            RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
         }
 
         /// <summary>손패의 카드를 전부 더미로 되돌리며 뒷면(Back_R)으로 뒤집고, 끝나면 손패를 비운다.</summary>
         public void RetractToBacks(Action onComplete = null)
         {
             if (dealRoutine != null) StopCoroutine(dealRoutine);
+            if (combatAnimationRoutine != null)
+            {
+                StopCoroutine(combatAnimationRoutine);
+                combatAnimationRoutine = null;
+            }
             dealRoutine = StartCoroutine(RetractRoutine(onComplete));
         }
 
@@ -174,18 +232,19 @@ namespace CardBattle
             foreach (var card in spawnedCards)
                 if (card) Destroy(card.gameObject);
             spawnedCards.Clear();
+            spawnedCardInstanceIds.Clear();
             CurrentResult = default;
             HandChanged?.Invoke(CurrentResult);
             if (handRankText) handRankText.gameObject.SetActive(false);
             if (redrawGuideText) redrawGuideText.gameObject.SetActive(false);
         }
 
-        private IEnumerator DealRoutine(List<Sprite> sprites)
+        private IEnumerator DealRoutine(List<DrawnCard> cards)
         {
             // 슬롯을 먼저 전부 배치하고(더미 위치에서 대기), 오른쪽 슬롯부터 순서대로 날아오게 한다.
             var views = new List<PokerCardView>();
-            foreach (var sprite in sprites)
-                views.Add(SpawnCard(sprite));
+            foreach (DrawnCard card in cards)
+                views.Add(SpawnCard(card));
 
             // HandPanel 자신도 앵커 기반으로 크기가 정해지는 렉트라, 씬 로드 직후(Start)에는 아직
             // 캔버스가 그 크기를 확정하기 전이라 ForceRebuildLayoutImmediate가 잘못된(찌그러진) 크기로
@@ -214,7 +273,7 @@ namespace CardBattle
             UpdateHandRank();
         }
 
-        private IEnumerator RedrawRoutine(List<PokerCardView> toReplace, List<Sprite> newSprites)
+        private IEnumerator RedrawRoutine(List<PokerCardView> toReplace, List<DrawnCard> newCards)
         {
             int keptCount = spawnedCards.Count - toReplace.Count;
             foreach (var card in spawnedCards)
@@ -227,17 +286,20 @@ namespace CardBattle
             if (keepAnimations > 0)
                 yield return new WaitUntil(() => keepAnimations <= 0);
 
-            var ordered = new List<(PokerCardView view, Sprite sprite)>();
+            var ordered = new List<(PokerCardView view, DrawnCard card)>();
             for (int i = 0; i < toReplace.Count; i++)
-                ordered.Add((toReplace[i], newSprites[i]));
+                ordered.Add((toReplace[i], newCards[i]));
             ordered.Reverse(); // 오른쪽(마지막 슬롯)부터 먼저 교체
 
-            foreach (var (view, sprite) in ordered)
+            foreach (var (view, card) in ordered)
             {
+                int handIndex = spawnedCards.IndexOf(view);
+                if (handIndex >= 0 && handIndex < spawnedCardInstanceIds.Count)
+                    spawnedCardInstanceIds[handIndex] = card.InstanceId;
                 if (deckPileTransform != null)
-                    view.PlayRedrawAnimation(deckPileTransform, sprite, dealAnimationDuration, dealAnimationDuration);
+                    view.PlayRedrawAnimation(deckPileTransform, card.Sprite, dealAnimationDuration, dealAnimationDuration);
                 else
-                    view.Bind(sprite);
+                    view.Bind(card.Sprite);
                 CardRedrawn?.Invoke();
                 yield return new WaitForSeconds(dealStagger);
             }
@@ -250,22 +312,25 @@ namespace CardBattle
                 card.SetSelectionContext(false);
             }
 
+            SynchronizeHeldCards();
             dealRoutine = null;
             UpdateHandRank();
         }
 
-        private PokerCardView SpawnCard(Sprite sprite)
+        private PokerCardView SpawnCard(DrawnCard card)
         {
             var view = Instantiate(cardPrefab, handContainer);
             view.Configure(backSprite, arcAnchor);
-            view.Bind(sprite);
+            view.Bind(card.Sprite);
             view.SelectionChanged += HandleSelectionChanged;
             spawnedCards.Add(view);
+            spawnedCardInstanceIds.Add(card.InstanceId);
             return view;
         }
 
         private void HandleSelectionChanged(PokerCardView view)
         {
+            SynchronizeHeldCards();
             RefreshSelectionContext();
         }
 
@@ -307,6 +372,83 @@ namespace CardBattle
             redrawGuideText.text = $"<color=#FFE078><b>{prefix} {kept}장</b></color>   <color=#FF8178><b>교체 예정 {replaced}장</b></color>";
         }
 
+        private void BeginTurnState()
+        {
+            seenThisTurn.Clear();
+            seenCardInstancesThisTurn.Clear();
+            fallbackRedrawsUsed = 0;
+            CurrentRunDeck()?.BeginTurn();
+            RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
+        }
+
+        private bool TryUseRedraw()
+        {
+            RunPokerDeckState deck = CurrentRunDeck();
+            if (deck != null)
+            {
+                return deck.TryUseRedraw();
+            }
+
+            if (fallbackRedrawsUsed >= 1)
+            {
+                return false;
+            }
+
+            fallbackRedrawsUsed++;
+            return true;
+        }
+
+        private void SynchronizeHeldCards()
+        {
+            RunPokerDeckState deck = CurrentRunDeck();
+            if (deck == null)
+            {
+                return;
+            }
+
+            deck.heldCardInstanceIds.Clear();
+            for (int i = 0; i < spawnedCards.Count && i < spawnedCardInstanceIds.Count; i++)
+            {
+                PokerCardView card = spawnedCards[i];
+                string instanceId = spawnedCardInstanceIds[i];
+                if (card.IsSelected && !string.IsNullOrWhiteSpace(instanceId))
+                {
+                    deck.SetHeld(instanceId, true);
+                }
+            }
+        }
+
+        private void ShowRedrawLimitReached()
+        {
+            if (redrawGuideText == null)
+            {
+                return;
+            }
+
+            redrawGuideText.gameObject.SetActive(true);
+            redrawGuideText.text = "<color=#FF8178><b>이번 턴 다시뽑기를 모두 사용했어</b></color>";
+        }
+
+        private void ShowRedrawUnavailable()
+        {
+            if (redrawGuideText == null) return;
+            redrawGuideText.gameObject.SetActive(true);
+            redrawGuideText.text = "<color=#FF8178><b>교체할 수 있는 카드가 부족해</b></color>";
+        }
+
+        private static RunPokerDeckState CurrentRunDeck()
+        {
+            if (!GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) ||
+                !runs.HasActiveRun)
+            {
+                return null;
+            }
+
+            runs.Current.pokerDeck.EnsureCollections();
+            return runs.Current.pokerDeck;
+        }
+
         private List<Sprite> PickRandomUnique(int count, HashSet<Sprite> exclude)
         {
             var candidates = deckSprites
@@ -319,6 +461,67 @@ namespace CardBattle
             }
 
             return candidates.Take(count).ToList();
+        }
+
+        private List<DrawnCard> DrawCards(
+            int count,
+            ISet<string> excludedInstances,
+            HashSet<Sprite> excludedSprites)
+        {
+            if (TryGetCurrentRun(out RunState run))
+            {
+                RunPokerDeckState deck = run.pokerDeck;
+                var excluded = excludedInstances != null
+                    ? new HashSet<string>(excludedInstances)
+                    : new HashSet<string>();
+                var rng = run.CreateRng();
+                IReadOnlyList<string> planned = PokerRunDeckRules.Draw(deck, count, excluded, rng);
+                run.StoreRng(rng);
+
+                var result = new List<DrawnCard>(planned.Count);
+                for (int i = 0; i < planned.Count; i++)
+                {
+                    RunCardState state = deck.FindCard(planned[i]);
+                    Sprite sprite = ResolveRunCardSprite(state);
+                    if (sprite == null)
+                    {
+                        Debug.LogError($"Poker sprite is missing for run card '{state?.cardId}'.", this);
+                        continue;
+                    }
+                    result.Add(new DrawnCard(sprite, planned[i]));
+                }
+                return result;
+            }
+
+            return PickRandomUnique(count, excludedSprites ?? new HashSet<Sprite>())
+                .Select(sprite => new DrawnCard(sprite, string.Empty))
+                .ToList();
+        }
+
+        private Sprite ResolveRunCardSprite(RunCardState card)
+        {
+            if (card == null || !PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
+                return null;
+            Sprite assigned = deckSprites.FirstOrDefault(
+                sprite => sprite != null && sprite.name.Split('_')[0] == token);
+            return assigned != null
+                ? assigned
+                : Resources.Load<Sprite>($"Cards/AscendantPoker/{token}");
+        }
+
+        private static bool TryGetCurrentRun(out RunState run)
+        {
+            run = null;
+            if (!GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) ||
+                !runs.HasActiveRun)
+            {
+                return false;
+            }
+
+            run = runs.Current;
+            run.pokerDeck.EnsureCollections();
+            return true;
         }
     }
 }
