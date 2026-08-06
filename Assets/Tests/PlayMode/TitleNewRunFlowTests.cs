@@ -124,7 +124,7 @@ namespace FFSS.Framework.Tests
             EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
 
             AssertOpeningLandmarks();
-            AssertPlayerHudGeometry("Player Run HUD");
+            AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_field_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("field 1920x1080");
             yield return SetResolutionAndCapture("flow_field_1280x720", 1280, 720);
@@ -199,7 +199,7 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(3);
             Assert.That(flow.Current, Is.EqualTo(GameFlowState.Field));
             Assert.That(ui.HasVisibleModal, Is.False);
-            AssertPlayerHudGeometry("Player Run HUD");
+            AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_return_field_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("returned field 1280x720");
         }
@@ -347,6 +347,35 @@ namespace FFSS.Framework.Tests
             Assert.That(hud.anchoredPosition.y, Is.EqualTo(-52f).Within(0.1f));
             Assert.That(hud.sizeDelta.x, Is.EqualTo(680f).Within(0.1f));
             Assert.That(hud.sizeDelta.y, Is.EqualTo(286f).Within(0.1f));
+        }
+
+        private static void AssertFieldHudGeometry()
+        {
+            RectTransform hud = Object.FindObjectsByType<RectTransform>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(rect => rect.name == "Field Player HUD");
+            Assert.That(hud, Is.Not.Null, "The compact field player HUD is missing.");
+            Assert.That(hud.anchorMin, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(hud.anchorMax, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(hud.pivot, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(hud.anchoredPosition.x, Is.EqualTo(230f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.y, Is.EqualTo(-89f).Within(0.1f));
+            Assert.That(hud.sizeDelta.x, Is.EqualTo(420f).Within(0.1f));
+            Assert.That(hud.sizeDelta.y, Is.EqualTo(138f).Within(0.1f));
+
+            string[] commands = { "지도 Button", "장비 Button", "현황 Button" };
+            for (int i = 0; i < commands.Length; i++)
+            {
+                Button button = Object.FindObjectsByType<Button>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .FirstOrDefault(candidate => candidate.name == commands[i]);
+                Assert.That(button, Is.Not.Null, $"Field command is missing: {commands[i]}");
+                Assert.That(button.targetGraphic, Is.Not.Null);
+                Assert.That(button.targetGraphic.raycastTarget, Is.True,
+                    $"Field command has no pointer hit area: {commands[i]}");
+            }
         }
 
         private static bool IsFieldMovementBlocked()
