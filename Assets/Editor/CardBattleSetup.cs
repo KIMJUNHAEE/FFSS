@@ -296,6 +296,19 @@ namespace CardBattle.EditorTools
                 enemySkillDetailPanels.TryGetValue(enemyId, out var prefab) ? prefab : skillDetailPanel;
         }
 
+        private static Boss38CombatUiAssets battleSceneBuildAssets;
+
+        internal static void BeginBattleSceneBuildBatch()
+        {
+            if (battleSceneBuildAssets == null)
+                battleSceneBuildAssets = EnsureBoss38CombatUiPrefabs();
+        }
+
+        internal static void EndBattleSceneBuildBatch()
+        {
+            battleSceneBuildAssets = null;
+        }
+
         [MenuItem("Card Battle/Setup/2c. Build Boss 38 Combat UI Prefabs")]
         public static void BuildBoss38CombatUiPrefabs()
         {
@@ -1913,7 +1926,7 @@ namespace CardBattle.EditorTools
         /// 적 id(Assets/Enemy/{enemyId}/{enemyId}*, Assets/BackGround/{enemyId}_BackGround.png)를 기준으로
         /// 배틀 씬을 통째로 생성한다. 적/배경 이외의 레이아웃과 로직은 모든 적에 대해 동일하게 유지된다.
         /// </summary>
-        private static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None,
+        internal static void BuildBattleSceneFor(string enemyId, string sceneFileName, CardSuit weakness = CardSuit.None,
             bool includeBackground = true)
         {
             var bossProfile = EnsureBossCombatProfile(enemyId);
@@ -1947,7 +1960,7 @@ namespace CardBattle.EditorTools
             // 모든 보스가 검증된 소형 포커/섯다 판과 공용 전투 UI 프리팹을 사용한다.
             // 테이블/카드 픽셀 크기는 38 씬에서 맞춘 값을 그대로 유지한다.
             var useBoss38SmallTables = true;
-            var boss38Ui = EnsureBoss38CombatUiPrefabs();
+            var boss38Ui = battleSceneBuildAssets ?? EnsureBoss38CombatUiPrefabs();
             var pokerTableV2Sprite = LoadSpriteAtPath(useBoss38SmallTables
                 ? $"{Boss38TableDir}/38_poker_table_small.png"
                 : $"{TableV2Dir}/포커테이블.png");

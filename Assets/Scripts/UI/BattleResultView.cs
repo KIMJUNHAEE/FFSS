@@ -56,6 +56,8 @@ namespace CardBattle
         private void Present(bool victory, string subtitle, string actionLabel, Action onConfirm)
         {
             confirmAction = onConfirm ?? RetryBattle;
+            if (retryButton != null)
+                retryButton.interactable = true;
             if (actionButtonText != null)
                 actionButtonText.text = actionLabel;
 
@@ -114,6 +116,8 @@ namespace CardBattle
         private void Confirm()
         {
             Time.timeScale = 1f;
+            if (retryButton != null)
+                retryButton.interactable = false;
             confirmAction?.Invoke();
         }
 

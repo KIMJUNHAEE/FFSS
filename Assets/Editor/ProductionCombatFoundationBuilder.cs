@@ -1,4 +1,5 @@
 using System;
+using CardBattle;
 using FFSS.Framework.Combat;
 using UnityEditor;
 using UnityEngine;
@@ -33,6 +34,12 @@ namespace FFSS.Editor
                     serviceObject.transform.SetParent(root.transform, false);
                     manager = serviceObject.AddComponent<CombatManager>();
                     SetInteger(manager, "initializationOrder", -200);
+                    changed = true;
+                }
+
+                if (root.GetComponent<LegacyCombatRuntimeAdapter>() == null)
+                {
+                    root.AddComponent<LegacyCombatRuntimeAdapter>();
                     changed = true;
                 }
 

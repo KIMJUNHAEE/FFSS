@@ -1,5 +1,6 @@
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using UnityEngine;
 
@@ -70,7 +71,12 @@ namespace CardBattle
                 true,
                 $"{result.EnemyName} 격파  ·  엽전 +{reward.gold}\n전리품을 챙기고 필드로 돌아가자",
                 "획득하고 복귀",
-                () => flow.ClaimRewardAndReturnToField());
+                () =>
+                {
+                    if (GameKernel.Services.TryGet(out AudioManager audio))
+                        audio.Play("sfx.reward.coin");
+                    flow.ClaimRewardAndReturnToField();
+                });
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using FFSS.Framework.Core;
@@ -541,21 +542,30 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void ProductionBattleSceneConnectsLegacyResultToRunFlow()
+        public void ProductionBattleScenesPreserveOriginalUiAndKernelConnectsRuntimeFlow()
         {
             const string path = "Assets/Scenes/Production/Battles/Combat_Boss_Gwang_38.unity";
             Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
             try
             {
                 Assert.That(FindInScene(scene, "RpsCombatController"), Is.Not.Null);
-                Assert.That(FindInScene(scene, "LegacyCombatPresentationBridge"), Is.Not.Null);
-                Assert.That(FindInScene(scene, "LegacyCombatFlowBridge"), Is.Not.Null);
                 Assert.That(FindInScene(scene, "BattleResultView"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "LegacyCombatPresentationBridge"), Is.Null);
+                Assert.That(FindInScene(scene, "CombatPresentationController"), Is.Null);
             }
             finally
             {
                 EditorSceneManager.CloseScene(scene, true);
             }
+
+            GameObject kernel = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Framework/GameKernel.prefab");
+            Assert.That(kernel, Is.Not.Null);
+            Assert.That(
+                kernel.GetComponentsInChildren<MonoBehaviour>(true)
+                    .Any(value => value != null &&
+                                  value.GetType().FullName == "CardBattle.LegacyCombatRuntimeAdapter"),
+                Is.True);
         }
 
         private static CombatIntent Intent(

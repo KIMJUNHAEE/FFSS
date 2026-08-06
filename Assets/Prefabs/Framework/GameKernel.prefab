@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1212280368425730850}
   - component: {fileID: 1043136626630917560}
+  - component: {fileID: 6407072163723379285}
   m_Layer: 0
   m_Name: GameKernel
   m_TagString: Untagged
@@ -51,10 +52,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 973e4568660748899a1721904e1611fd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Core.GameKernel
   persistBetweenScenes: 1
   serviceComponents: []
+--- !u!114 &6407072163723379285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 797056175282437661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9cbc49252d7d734399f9f89cadda7e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatRuntimeAdapter
+  battleMusicCue: bgm.battle
+  musicFadeSeconds: 0.55
 --- !u!1 &816184471697589853
 GameObject:
   m_ObjectHideFlags: 0
@@ -140,7 +155,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cc90a03c9c5dd524ba4ace88c1de0ecb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Flow.EncounterFlowManager
   initializationOrder: -250
   catalog: {fileID: 11400000, guid: 51892f281553c6146afaed12688193d7, type: 2}

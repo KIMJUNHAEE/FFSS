@@ -249,7 +249,6 @@ RectTransform:
   - {fileID: 1998125383}
   - {fileID: 157981578}
   - {fileID: 1610675446}
-  - {fileID: 1926736446}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -291,7 +290,7 @@ MonoBehaviour:
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0.5
+  m_MatchWidthOrHeight: 1
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -774,8 +773,6 @@ GameObject:
   m_Component:
   - component: {fileID: 202460634}
   - component: {fileID: 202460633}
-  - component: {fileID: 202460635}
-  - component: {fileID: 202460636}
   m_Layer: 0
   m_Name: RpsCombatController
   m_TagString: Untagged
@@ -813,11 +810,6 @@ MonoBehaviour:
   skillBaseBonus: 10
   skillTierBonus: 3
   baseBreakPower: 5
-  aceAllPowerBonus: 2
-  courtCardSkillBonus: 1
-  redJokerAttackBonus: 3
-  blackJokerDefenseBonus: 3
-  jokerSkillBonus: 2
   enemyWeakness: 3
   weaknessBreakMultiplierPerRatio: 1
   weaknessPenetrationThreshold: 0.6
@@ -887,34 +879,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &202460635
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 202460632}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7e1d579c57b76da4bb9661338fe707c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatPresentationBridge
-  source: {fileID: 202460633}
-  presentation: {fileID: 1926736447}
---- !u!114 &202460636
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 202460632}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b0b1f98f475b9a4691745332c98a9ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatFlowBridge
-  source: {fileID: 202460633}
-  resultView: {fileID: 1610675447}
 --- !u!1 &229397014
 GameObject:
   m_ObjectHideFlags: 0
@@ -2404,10 +2368,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerHUD
       objectReference: {fileID: 0}
-    - target: {fileID: 4028641720493753017, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4201367467086598084, guid: bf38843810ffe2f4f9f564804024b18d, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -2788,10 +2748,6 @@ PrefabInstance:
     - target: {fileID: 2873497937422888643, guid: bc710513af65fac48bf0877abbf3de6d, type: 3}
       propertyPath: m_Name
       value: EnemyIntentBadge
-      objectReference: {fileID: 0}
-    - target: {fileID: 2873497937422888643, guid: bc710513af65fac48bf0877abbf3de6d, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4357112530011504632, guid: bc710513af65fac48bf0877abbf3de6d, type: 3}
       propertyPath: m_RaycastTarget
@@ -3721,119 +3677,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1761487842}
   m_CullTransparentMesh: 1
---- !u!1001 &1926736445
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 42676991}
-    m_Modifications:
-    - target: {fileID: 4154622948469142914, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_Name
-      value: '[Production] Combat Presentation'
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
---- !u!224 &1926736446 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 5303746669214251601, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-  m_PrefabInstance: {fileID: 1926736445}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1926736447 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4395971923874766699, guid: b4bba727a0a32ba4c8c5bf6429839835, type: 3}
-  m_PrefabInstance: {fileID: 1926736445}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 410fef8b5f84eb44d9b673a22b16e248, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.Presentation.CombatPresentationController
 --- !u!1 &1933396409
 GameObject:
   m_ObjectHideFlags: 0
@@ -4102,10 +3945,6 @@ PrefabInstance:
     - target: {fileID: 6452481471735377413, guid: 5d98780c523769c42940bc279a393270, type: 3}
       propertyPath: m_Name
       value: EnemyHUD
-      objectReference: {fileID: 0}
-    - target: {fileID: 6452481471735377413, guid: 5d98780c523769c42940bc279a393270, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

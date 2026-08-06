@@ -17,6 +17,7 @@ namespace CardBattle
     public class RpsCombatController : MonoBehaviour
     {
         public event System.Action<RpsCombatPresentationSnapshot> PresentationChanged;
+        public event System.Action<RpsCombatExchangeResult> ExchangeResolved;
         public event System.Action<RpsCombatResult> CombatEnded;
 
         private enum IntentKind
@@ -531,6 +532,13 @@ namespace CardBattle
                 yield return PlayAndWait(EnemyAnimState.Attack);
 
             ApplyOutcome(ref outcome);
+            ExchangeResolved?.Invoke(new RpsCombatExchangeResult(
+                outcome.DamageToPlayer,
+                outcome.DamageToEnemy,
+                outcome.BreakToPlayer,
+                outcome.BreakToEnemy,
+                playerStunned,
+                enemyStunned));
 
             bool impactFinished = combatImpactView == null || !hasImpact;
             if (combatImpactView != null && hasImpact)
