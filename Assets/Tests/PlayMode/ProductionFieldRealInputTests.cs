@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
 using UnityEngine;
@@ -175,6 +176,53 @@ namespace FFSS.Framework.Tests
             Assert.That(flow.Current, Is.EqualTo(GameFlowState.Field));
         }
 
+        [UnityTest]
+        public IEnumerator WalkingToAnEventLandmarkOpensAndResolvesItsChoices()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become input-ready.");
+
+            GameKernel.Services.Get<RunManager>().StartNewRun(238013);
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => FindVisibleScreen(UIScreenId.FieldHud) != null && FindEventNode() != null,
+                500,
+                "Fresh field did not build an event landmark.");
+            yield return WaitFrames(3);
+
+            Component player = FindPlayerController();
+            Component eventNode = FindEventNode();
+            Assert.That(player, Is.Not.Null);
+            Assert.That(eventNode, Is.Not.Null);
+            Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.False);
+
+            yield return MoveTowardUntil(
+                player,
+                eventNode.transform,
+                () => FindVisibleScreen(UIScreenId.Event) != null,
+                2.5f,
+                "Walking into the event building did not open its event screen.");
+
+            UIScreen eventScreen = FindVisibleScreen(UIScreenId.Event);
+            Assert.That(eventScreen, Is.Not.Null);
+            Button choice = FindVisibleButton(eventScreen, "Action 1");
+            Assert.That(choice, Is.Not.Null);
+            Assert.That(choice.interactable, Is.True);
+            yield return Click(choice);
+            yield return WaitFrames(3);
+
+            Assert.That(FindVisibleScreen(UIScreenId.Event), Is.Null,
+                "Choosing an event result did not close the event screen.");
+            Assert.That(GameKernel.Services.Get<GameFlowManager>().Current, Is.EqualTo(GameFlowState.Field));
+            Assert.That(
+                GameKernel.Services.Get<RunManager>().Current.CurrentActProgress.completedEvents,
+                Is.EqualTo(1),
+                "The approached event landmark did not advance run progress.");
+        }
+
         private IEnumerator ClickFieldCommandAndClose(string buttonName, UIScreenId expectedScreen)
         {
             Button command = FindVisibleButton(null, buttonName);
@@ -231,6 +279,70 @@ namespace FFSS.Framework.Tests
                     component != null &&
                     component.GetType().FullName ==
                     "CardBattle.Exploration.QuarterViewPlayerController");
+        }
+
+        private static Component FindEventNode()
+        {
+            return Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(component =>
+                    component != null &&
+                    component.GetType().FullName == "CardBattle.Exploration.FieldRunContentNode")
+                .FirstOrDefault(component =>
+                {
+                    object contentType = component.GetType().GetProperty("ContentType")?.GetValue(component);
+                    return contentType != null && contentType.ToString() == "Event";
+                });
+        }
+
+        private IEnumerator MoveTowardUntil(
+            Component player,
+            Transform target,
+            Func<bool> completed,
+            float timeLimit,
+            string failureMessage)
+        {
+            float elapsed = 0f;
+            int frames = 0;
+            while (!completed() && elapsed < timeLimit && frames < 30000)
+            {
+                Key[] heldKeys = DirectionKeys(player.transform.position, target.position);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKeys));
+                InputSystem.Update();
+                yield return null;
+                elapsed += Time.deltaTime;
+                frames++;
+            }
+
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.Update();
+            yield return null;
+            Assert.That(completed(), Is.True,
+                $"{failureMessage} Player={player.transform.position}, Target={target.position}, " +
+                $"Distance={Vector3.ProjectOnPlane(target.position - player.transform.position, Vector3.up).magnitude:F2}");
+        }
+
+        private static Key[] DirectionKeys(Vector3 from, Vector3 to)
+        {
+            Vector3 direction = Vector3.ProjectOnPlane(to - from, Vector3.up);
+            if (direction.sqrMagnitude <= 0.0001f)
+                return Array.Empty<Key>();
+
+            direction.Normalize();
+            Transform cameraTransform = Camera.main != null ? Camera.main.transform : null;
+            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
+            Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
+            forward = Vector3.ProjectOnPlane(forward, Vector3.up).normalized;
+            right = Vector3.ProjectOnPlane(right, Vector3.up).normalized;
+            float horizontal = Vector3.Dot(direction, right);
+            float vertical = Vector3.Dot(direction, forward);
+            var keys = new List<Key>(2);
+            if (horizontal > 0.16f) keys.Add(Key.D);
+            else if (horizontal < -0.16f) keys.Add(Key.A);
+            if (vertical > 0.16f) keys.Add(Key.W);
+            else if (vertical < -0.16f) keys.Add(Key.S);
+            return keys.ToArray();
         }
 
         private static Button FindVisibleButton(UIScreen scope, string objectName)
