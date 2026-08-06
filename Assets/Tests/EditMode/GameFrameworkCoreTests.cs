@@ -333,6 +333,38 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionEnemyMovesExposeInspectableAudioAndVfxBeats()
+        {
+            AudioCueCatalog audio = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(
+                "Assets/Data/Framework/AudioCueCatalog.asset");
+            VfxCueCatalog vfx = AssetDatabase.LoadAssetAtPath<VfxCueCatalog>(
+                "Assets/Data/Framework/VfxCueCatalog.asset");
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+
+            Assert.That(guids, Has.Length.EqualTo(17));
+            for (int i = 0; i < guids.Length; i++)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guids[i]));
+                Assert.That(encounter.moves, Is.Not.Empty, encounter.enemyId);
+                foreach (EnemyMoveDefinition move in encounter.moves)
+                {
+                    Assert.That(move.anticipationAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(move.impactAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(move.impactVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                    Assert.That(audio.TryGet(move.anticipationAudioCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.anticipationAudioCue}");
+                    Assert.That(audio.TryGet(move.impactAudioCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.impactAudioCue}");
+                    Assert.That(vfx.TryGet(move.impactVfxCue, out _), Is.True,
+                        $"{encounter.enemyId}/{move.Id}/{move.impactVfxCue}");
+                }
+            }
+        }
+
+        [Test]
         public void ProductionTitlePrefabIsCataloguedAndInspectable()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -785,7 +817,10 @@ namespace FFSS.Framework.Tests
                     EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
                     Assert.That(meter, Is.Not.Null, path);
                     Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(meter.gameObject), Is.Not.Null, path);
-                    Assert.That(FindInScene(scene, "LegacyCombatFeedbackBridge"), Is.Not.Null, path);
+                    Component feedback = FindInScene(scene, "LegacyCombatFeedbackBridge");
+                    Assert.That(feedback, Is.Not.Null, path);
+                    Assert.That(new SerializedObject(feedback).FindProperty("encounter").objectReferenceValue,
+                        Is.Not.Null, path);
                     Assert.That(FindInScene(scene, "LegacyCombatFlowBridge"), Is.Not.Null, path);
 
                     Component rules = FindInScene(scene, "LegacyEnemyRulePresentationBridge");

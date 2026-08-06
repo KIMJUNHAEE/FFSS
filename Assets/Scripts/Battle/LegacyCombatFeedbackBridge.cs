@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Linq;
+using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
 using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Presentation.Vfx;
@@ -20,14 +23,22 @@ namespace CardBattle
         private const string CardRevealVfxCue = "vfx.card.reveal";
 
         [SerializeField] private RpsCombatController source;
+        [SerializeField] private EnemyEncounterDefinition encounter;
         [SerializeField, Min(1)] private int heavyDamageThreshold = 15;
 
         public RpsCombatController Source => source;
+        public EnemyEncounterDefinition Encounter => encounter;
 
         public void Configure(RpsCombatController combatSource)
         {
+            Configure(combatSource, encounter);
+        }
+
+        public void Configure(RpsCombatController combatSource, EnemyEncounterDefinition definition)
+        {
             Unsubscribe();
             source = combatSource;
+            encounter = definition;
             Subscribe();
         }
 
@@ -50,6 +61,8 @@ namespace CardBattle
 
             source.ExchangeResolved -= HandleExchangeResolved;
             source.ExchangeResolved += HandleExchangeResolved;
+            source.EnemyActionStarted -= HandleEnemyActionStarted;
+            source.EnemyActionStarted += HandleEnemyActionStarted;
             if (source.pokerHand != null)
             {
                 source.pokerHand.CardDealt -= HandleCardMoved;
@@ -69,6 +82,7 @@ namespace CardBattle
             if (source != null)
             {
                 source.ExchangeResolved -= HandleExchangeResolved;
+                source.EnemyActionStarted -= HandleEnemyActionStarted;
                 if (source.pokerHand != null)
                 {
                     source.pokerHand.CardDealt -= HandleCardMoved;
@@ -81,12 +95,12 @@ namespace CardBattle
 
         private void HandleExchangeResolved(RpsCombatExchangeResult result)
         {
-            if (!GameKernel.IsReady || !GameKernel.Services.TryGet(out AudioManager audio))
+            if (!GameKernel.IsReady)
                 return;
 
             if (result.CausedStun)
             {
-                audio.Play(BreakCue);
+                PlayAudio(BreakCue);
                 if (result.EnemyStunned)
                     PlayVfx(BreakVfxCue, EnemyTarget());
                 if (result.PlayerStunned)
@@ -96,19 +110,40 @@ namespace CardBattle
 
             if (result.HasDamage)
             {
-                audio.Play(result.HighestDamage >= heavyDamageThreshold ? HeavyHitCue : LightHitCue);
                 if (result.DamageToEnemy > 0)
+                {
+                    PlayAudio(result.DamageToEnemy >= heavyDamageThreshold ? HeavyHitCue : LightHitCue);
                     PlayVfx(SlashVfxCue, EnemyTarget());
+                }
                 if (result.DamageToPlayer > 0)
-                    PlayVfx(EnemyAttackVfxCue(), PlayerTarget());
+                {
+                    EnemyMoveDefinition move = FindMove(result.EnemyMoveId);
+                    PlayAudio(CueOrFallback(move?.impactAudioCue,
+                        result.DamageToPlayer >= heavyDamageThreshold ? HeavyHitCue : LightHitCue));
+                    PlayVfx(CueOrFallback(move?.impactVfxCue, EnemyAttackVfxCue()), PlayerTarget());
+                    PlayTail(move, PlayerTarget());
+                }
                 return;
             }
 
             if (result.HasPressure)
             {
-                audio.Play(GuardCue);
-                PlayVfx(GuardVfxCue, result.PressureToEnemy > 0 ? EnemyTarget() : PlayerTarget());
+                Transform target = result.PressureToEnemy > 0 ? EnemyTarget() : PlayerTarget();
+                EnemyMoveDefinition move = result.PressureToPlayer > 0 ? FindMove(result.EnemyMoveId) : null;
+                PlayAudio(CueOrFallback(move?.impactAudioCue, GuardCue));
+                PlayVfx(CueOrFallback(move?.impactVfxCue, GuardVfxCue), target);
+                PlayTail(move, target);
             }
+        }
+
+        private void HandleEnemyActionStarted(string moveId, RpsAction action)
+        {
+            EnemyMoveDefinition move = FindMove(moveId);
+            if (move == null)
+                return;
+
+            PlayAudio(move.anticipationAudioCue);
+            PlayVfx(move.anticipationVfxCue, EnemyTarget());
         }
 
         private static void HandleCardMoved()
@@ -159,9 +194,49 @@ namespace CardBattle
             };
         }
 
+        private EnemyMoveDefinition FindMove(string moveId)
+        {
+            if (encounter == null || encounter.moves == null || string.IsNullOrWhiteSpace(moveId))
+                return null;
+
+            return encounter.moves.FirstOrDefault(move => move != null && move.Id == moveId);
+        }
+
+        private void PlayTail(EnemyMoveDefinition move, Transform target)
+        {
+            if (move == null || (string.IsNullOrWhiteSpace(move.tailAudioCue) &&
+                                 string.IsNullOrWhiteSpace(move.tailVfxCue)))
+                return;
+
+            StartCoroutine(PlayTailRoutine(move, target));
+        }
+
+        private IEnumerator PlayTailRoutine(EnemyMoveDefinition move, Transform target)
+        {
+            float until = Time.realtimeSinceStartup + Mathf.Max(0f, move.tailDelaySeconds);
+            while (Time.realtimeSinceStartup < until)
+                yield return null;
+
+            PlayAudio(move.tailAudioCue);
+            PlayVfx(move.tailVfxCue, target);
+        }
+
+        private static void PlayAudio(string cueId)
+        {
+            if (!string.IsNullOrWhiteSpace(cueId) && GameKernel.IsReady &&
+                GameKernel.Services.TryGet(out AudioManager audio))
+                audio.Play(cueId);
+        }
+
+        private static string CueOrFallback(string cueId, string fallback)
+        {
+            return string.IsNullOrWhiteSpace(cueId) ? fallback : cueId;
+        }
+
         private static void PlayVfx(string cueId, Transform target)
         {
-            if (target == null || !GameKernel.IsReady || !GameKernel.Services.TryGet(out VfxManager vfx))
+            if (string.IsNullOrWhiteSpace(cueId) || target == null || !GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out VfxManager vfx))
                 return;
 
             if (vfx.TryPlay(cueId, target.position, Quaternion.identity, out GameObject instance, target.parent) &&

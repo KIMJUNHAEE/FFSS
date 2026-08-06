@@ -175,7 +175,7 @@ namespace FFSS.Editor
             {
                 feedback = combat.gameObject.AddComponent<LegacyCombatFeedbackBridge>();
             }
-            feedback.Configure(combat);
+            feedback.Configure(combat, encounter);
 
             LegacyCombatFlowBridge flow = combat.GetComponent<LegacyCombatFlowBridge>();
             if (flow == null)

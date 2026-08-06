@@ -18,6 +18,7 @@ namespace CardBattle
     {
         public event System.Action<RpsCombatPresentationSnapshot> PresentationChanged;
         public event System.Action<RpsCombatExchangeResult> ExchangeResolved;
+        public event System.Action<string, RpsAction> EnemyActionStarted;
         public event System.Action<RpsCombatResult> CombatEnded;
 
         private enum IntentKind
@@ -529,6 +530,9 @@ namespace CardBattle
             bool enemyTookHpDamage = outcome.DamageToEnemy > 0;
             bool hasImpact = outcome.DamageToPlayer > 0 || outcome.DamageToEnemy > 0 ||
                              outcome.BreakToPlayer > 0 || outcome.BreakToEnemy > 0;
+
+            if (!enemyIntent.IsStunned)
+                EnemyActionStarted?.Invoke(MoveId(pendingEnemyMove), ToRpsAction(enemyIntent.Kind));
 
             if (enemyAnimator != null && hasMovePose)
                 yield return PlayAndWait(EnemyAnimState.Attack);

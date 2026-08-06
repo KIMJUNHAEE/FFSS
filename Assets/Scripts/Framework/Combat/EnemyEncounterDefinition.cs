@@ -109,6 +109,15 @@ namespace FFSS.Framework.Combat
         [Range(0.5f, 2f)] public float actionMotionIntensity = 1f;
         [Range(1, 6)] public int actionMotionRepetitions = 1;
 
+        [Header("Audio and VFX beats")]
+        public string anticipationAudioCue;
+        public string anticipationVfxCue;
+        public string impactAudioCue;
+        public string impactVfxCue;
+        public string tailAudioCue;
+        public string tailVfxCue;
+        [Min(0f)] public float tailDelaySeconds = 0.12f;
+
         public string Id => string.IsNullOrWhiteSpace(moveId) ? displayName : moveId;
     }
 
