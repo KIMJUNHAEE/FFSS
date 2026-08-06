@@ -144,7 +144,7 @@ namespace FFSS.Framework.Tests
             Assert.That(farthestDistance, Is.GreaterThan(1.1f),
                 "Real keyboard input could not move the player away from the starting tile.");
 
-            yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap);
+            yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap, true);
             yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Equipment);
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 
@@ -154,6 +154,13 @@ namespace FFSS.Framework.Tests
             UIScreen eventScreen = ui.Show(UIScreenId.Event, false);
             yield return WaitFrames(2);
             Assert.That(ui.HasVisibleModal, Is.True);
+
+            Vector3 modalStart = player.transform.position;
+            yield return HoldKey(Key.W, 0.25f);
+            Assert.That(
+                Vector3.ProjectOnPlane(player.transform.position - modalStart, Vector3.up).magnitude,
+                Is.LessThan(0.03f),
+                "The player kept moving while an event choice blocked the field.");
 
             Button close = FindVisibleButton(eventScreen, "Close");
             Assert.That(close, Is.Not.Null, "Event modal has no clickable close button.");
@@ -263,7 +270,10 @@ namespace FFSS.Framework.Tests
                 Is.EqualTo(enemyId));
         }
 
-        private IEnumerator ClickFieldCommandAndClose(string buttonName, UIScreenId expectedScreen)
+        private IEnumerator ClickFieldCommandAndClose(
+            string buttonName,
+            UIScreenId expectedScreen,
+            bool exerciseFirstAction = false)
         {
             Button command = FindVisibleButton(null, buttonName);
             Assert.That(command, Is.Not.Null, $"Field HUD button is missing: {buttonName}");
@@ -275,12 +285,41 @@ namespace FFSS.Framework.Tests
                 $"A real pointer click did not open {expectedScreen}.");
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.True);
 
+            if (exerciseFirstAction)
+            {
+                Button action = FindVisibleButton(modal, "Action 1");
+                Assert.That(action, Is.Not.Null, $"{expectedScreen} has no selectable map category.");
+                yield return Click(action);
+                yield return WaitFrames(2);
+                Text body = modal.GetComponentsInChildren<Text>(true)
+                    .FirstOrDefault(text => text.name == "Body");
+                Assert.That(body, Is.Not.Null);
+                Assert.That(body.text, Does.Contain("건물"),
+                    "Clicking a map category did not show discovered landmark details.");
+            }
+
             Button close = FindVisibleButton(modal, "Close");
             Assert.That(close, Is.Not.Null, $"{expectedScreen} has no close button.");
             yield return Click(close);
             yield return WaitFrames(2);
             Assert.That(FindVisibleScreen(expectedScreen), Is.Null,
                 $"A real pointer click did not close {expectedScreen}.");
+        }
+
+        private IEnumerator HoldKey(Key key, float seconds)
+        {
+            float elapsed = 0f;
+            while (elapsed < seconds)
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
+                InputSystem.Update();
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.Update();
+            yield return null;
         }
 
         private IEnumerator Click(Button button)
