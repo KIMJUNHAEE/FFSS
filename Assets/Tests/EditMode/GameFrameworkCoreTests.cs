@@ -322,6 +322,77 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void FullThreeActRunCanReachTheFinalVictoryState()
+        {
+            RunDefinition runDefinition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            RunState run = runDefinition.CreateState(380118);
+
+            for (int actNumber = 1; actNumber <= 3; actNumber++)
+            {
+                RunActDefinition act = campaign.GetAct(actNumber);
+                Assert.That(run.act, Is.EqualTo(actNumber));
+
+                for (int i = 0; i < act.requiredNormalVictories; i++)
+                {
+                    string nodeId = $"test.act{actNumber}.combat.{i}";
+                    RunProgressionManager.RegisterNodeCore(
+                        run,
+                        nodeId,
+                        RunFieldContentType.Combat,
+                        act.normalEnemyIds[i % act.normalEnemyIds.Count],
+                        i,
+                        0);
+                    RunProgressionManager.ResolveNodeCore(run, nodeId);
+                }
+
+                for (int i = 0; i < act.requiredEvents; i++)
+                {
+                    string nodeId = $"test.act{actNumber}.event.{i}";
+                    RunProgressionManager.RegisterNodeCore(
+                        run,
+                        nodeId,
+                        RunFieldContentType.Event,
+                        act.eventIds[i],
+                        i,
+                        1);
+                    RunProgressionManager.ResolveNodeCore(run, nodeId);
+                }
+
+                Assert.That(RunProgressionManager.MeetsBossRequirements(run), Is.False, $"act {actNumber}");
+                string midBossNode = $"test.act{actNumber}.midboss";
+                RunProgressionManager.RegisterNodeCore(
+                    run,
+                    midBossNode,
+                    RunFieldContentType.MidBoss,
+                    act.midBossIds[0],
+                    0,
+                    2);
+                RunProgressionManager.ResolveNodeCore(run, midBossNode);
+                Assert.That(RunProgressionManager.MeetsBossRequirements(run), Is.True, $"act {actNumber}");
+
+                string bossNode = $"test.act{actNumber}.boss";
+                RunProgressionManager.RegisterNodeCore(
+                    run,
+                    bossNode,
+                    RunFieldContentType.BossDoor,
+                    act.bossId,
+                    0,
+                    3);
+                RunProgressionManager.ResolveNodeCore(run, bossNode);
+                Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True, $"act {actNumber}");
+            }
+
+            Assert.That(run.isComplete, Is.True);
+            Assert.That(run.outcome, Is.EqualTo(RunOutcome.Victory));
+            Assert.That(run.result.completedActs, Is.EqualTo(3));
+            Assert.That(run.regionId, Is.EqualTo(campaign.GetAct(3).regionId));
+            Assert.That(run.gold, Is.EqualTo(190));
+        }
+
+        [Test]
         public void ProductionKernelPrefabExposesServiceAndUiHierarchy()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

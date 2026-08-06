@@ -27,6 +27,27 @@ namespace FFSS.Framework.Run
         public bool RegisterNode(string nodeId, RunFieldContentType type, string contentId, int axialX, int axialY)
         {
             RunState run = RequireRun();
+            bool registered = RegisterNodeCore(run, nodeId, type, contentId, axialX, axialY);
+            if (registered)
+            {
+                Publish(run, "node.registered");
+            }
+            return registered;
+        }
+
+        public static bool RegisterNodeCore(
+            RunState run,
+            string nodeId,
+            RunFieldContentType type,
+            string contentId,
+            int axialX,
+            int axialY)
+        {
+            if (run == null || string.IsNullOrWhiteSpace(nodeId))
+            {
+                return false;
+            }
+
             RunActProgressState act = run.CurrentActProgress;
             if (act.fieldNodes.Exists(node => node != null && node.nodeId == nodeId))
             {
@@ -41,7 +62,6 @@ namespace FFSS.Framework.Run
                 axialX = axialX,
                 axialY = axialY
             });
-            Publish(run, "node.registered");
             return true;
         }
 
@@ -63,6 +83,21 @@ namespace FFSS.Framework.Run
         public bool ResolveNode(string nodeId)
         {
             RunState run = RequireRun();
+            bool resolved = ResolveNodeCore(run, nodeId);
+            if (resolved)
+            {
+                Publish(run, "node.resolved");
+            }
+            return resolved;
+        }
+
+        public static bool ResolveNodeCore(RunState run, string nodeId)
+        {
+            if (run == null)
+            {
+                return false;
+            }
+
             RunFieldNodeState node = FindNode(run, nodeId);
             if (node.resolved)
             {
@@ -98,12 +133,16 @@ namespace FFSS.Framework.Run
                     break;
             }
 
-            act.bossDoorUnlocked = CanChallengeBoss(run);
-            Publish(run, "node.resolved");
+            act.bossDoorUnlocked = MeetsBossRequirements(run);
             return true;
         }
 
         public bool CanChallengeBoss(RunState run)
+        {
+            return MeetsBossRequirements(run);
+        }
+
+        public static bool MeetsBossRequirements(RunState run)
         {
             if (run == null)
             {
@@ -119,6 +158,21 @@ namespace FFSS.Framework.Run
         public bool CompleteAct()
         {
             RunState run = RequireRun();
+            bool completed = CompleteActCore(run, campaign);
+            if (completed)
+            {
+                Publish(run, run.isComplete ? "run.victory" : "act.completed");
+            }
+            return completed;
+        }
+
+        public static bool CompleteActCore(RunState run, RunCampaignDefinition campaign)
+        {
+            if (run == null || campaign == null)
+            {
+                return false;
+            }
+
             RunActProgressState progress = run.CurrentActProgress;
             if (!progress.bossDefeated)
             {
@@ -127,6 +181,8 @@ namespace FFSS.Framework.Run
 
             RunActDefinition definition = campaign.GetAct(run.act);
             run.gold += definition.actRewardGold;
+            run.result.earnedGold += definition.actRewardGold;
+            run.result.completedActs = run.act;
             int heal = Mathf.CeilToInt(run.player.maxHp * (definition.transitionHealPercent / 100f));
             run.player.currentHp = Mathf.Min(run.player.maxHp, run.player.currentHp + heal);
 
@@ -136,14 +192,12 @@ namespace FFSS.Framework.Run
                 run.outcome = RunOutcome.Victory;
                 run.result.outcome = RunOutcome.Victory;
                 run.result.completedActs = run.act;
-                Publish(run, "run.victory");
                 return true;
             }
 
             run.act++;
             RunActDefinition next = campaign.GetAct(run.act);
             run.regionId = next.regionId;
-            Publish(run, "act.completed");
             return true;
         }
 
