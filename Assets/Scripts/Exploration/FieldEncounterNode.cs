@@ -54,9 +54,7 @@ namespace CardBattle.Exploration
             if (!Application.isPlaying || loading || player == null || string.IsNullOrWhiteSpace(enemyId))
                 return;
 
-            Vector3 offset = player.position - transform.position;
-            offset.y = 0f;
-            float distance = offset.magnitude;
+            float distance = ExplorationGeometryUtility.PlanarDistance(player.position, transform.position);
             markerView?.SetFocused(distance <= focusRadius);
             UpdatePatrol(distance);
 
@@ -82,7 +80,7 @@ namespace CardBattle.Exploration
 
         private void UpdatePatrol(float playerDistance)
         {
-            if (!patrol || loading || playerDistance <= focusRadius || IsWorldPaused())
+            if (!patrol || loading || playerDistance <= focusRadius || ExplorationGeometryUtility.IsWorldPaused())
                 return;
 
             Vector3 current = transform.localPosition;
@@ -105,13 +103,6 @@ namespace CardBattle.Exploration
                 current,
                 patrolTarget,
                 patrolSpeed * Time.deltaTime);
-        }
-
-        private static bool IsWorldPaused()
-        {
-            return GameKernel.IsReady &&
-                   GameKernel.Services.TryGet(out UIManager ui) &&
-                   ui.HasVisibleModal;
         }
 
         private static bool GameKernelReady()

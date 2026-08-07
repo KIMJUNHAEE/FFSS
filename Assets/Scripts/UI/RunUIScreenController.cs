@@ -398,7 +398,7 @@ namespace CardBattle.UI
                     string itemId = reward.itemChoiceIds[i];
                     EquipmentDefinition item = EquipmentCatalog.Get(itemId);
                     string label = item != null ? item.DisplayName : itemId;
-                    string detail = item != null ? $"{RarityLabel(item.Rarity)} 장비 · {item.EffectText}" : "장비 보상";
+                    string detail = item != null ? $"{EquipmentCatalog.RarityLabel(item.Rarity)} 장비 · {item.EffectText}" : "장비 보상";
                     SetAction(i, label, detail, true);
                     SetActionArtwork(i, item?.Icon, label,
                         item != null ? $"{item.Description}\n\n{item.EffectText}" : detail);
@@ -877,7 +877,7 @@ namespace CardBattle.UI
             if (!string.IsNullOrWhiteSpace(previous))
                 run.inventoryItemIds.Add(previous);
             run.equippedItemIds[slotIndex] = next;
-            RecalculateRunEquipment(run);
+            EquipmentStatsCalculator.Recalculate(run);
             SetText(status, $"{EquipmentCatalog.Get(next).DisplayName} 장착");
             Refresh();
         }
@@ -893,53 +893,6 @@ namespace CardBattle.UI
             };
             while (run.equippedItemIds.Count < defaults.Length)
                 run.equippedItemIds.Add(defaults[run.equippedItemIds.Count]);
-        }
-
-        private static void RecalculateRunEquipment(RunState run)
-        {
-            int oldHpMaximum = run.player.maxHp;
-            int oldPressureMaximum = run.player.maxPressure;
-            int hpBonus = 0;
-            int pressureBonus = 0;
-            int attackAfterFirstTurn = 0;
-            int defenseAfterFirstTurn = 0;
-            int attackFirstTurn = 0;
-            int defenseFirstTurn = 0;
-            var later = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 2, 0f);
-            var first = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 1, 0f);
-
-            for (int i = 0; i < run.equippedItemIds.Count; i++)
-            {
-                EquipmentDefinition item = EquipmentCatalog.Get(run.equippedItemIds[i]);
-                if (item == null)
-                    continue;
-
-                hpBonus += item.Modifier(EquipmentStat.MaxHp, later);
-                pressureBonus += item.Modifier(EquipmentStat.MaxBreak, later);
-                attackAfterFirstTurn += item.Modifier(EquipmentStat.Attack, later);
-                defenseAfterFirstTurn += item.Modifier(EquipmentStat.Defense, later);
-                attackFirstTurn += item.Modifier(EquipmentStat.Attack, first);
-                defenseFirstTurn += item.Modifier(EquipmentStat.Defense, first);
-            }
-
-            int baseHp = oldHpMaximum - run.player.equipmentMaxHpBonus;
-            int basePressure = oldPressureMaximum - run.player.equipmentMaxPressureBonus;
-            run.player.equipmentMaxHpBonus = hpBonus;
-            run.player.equipmentMaxPressureBonus = pressureBonus;
-            run.player.maxHp = Mathf.Max(1, baseHp + hpBonus);
-            run.player.maxPressure = Mathf.Max(1, basePressure + pressureBonus);
-            run.player.currentHp = Mathf.Clamp(
-                run.player.currentHp + run.player.maxHp - oldHpMaximum,
-                0,
-                run.player.maxHp);
-            run.player.currentPressure = Mathf.Clamp(
-                run.player.currentPressure + run.player.maxPressure - oldPressureMaximum,
-                0,
-                run.player.maxPressure);
-            run.player.equipmentAttackBonus = attackAfterFirstTurn;
-            run.player.equipmentDefenseBonus = defenseAfterFirstTurn;
-            run.player.firstTurnAttackBonus = attackFirstTurn - attackAfterFirstTurn;
-            run.player.firstTurnDefenseBonus = defenseFirstTurn - defenseAfterFirstTurn;
         }
 
         private void EnterBoss()
@@ -1138,16 +1091,6 @@ namespace CardBattle.UI
         {
             TimeSpan time = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
             return $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
-        }
-
-        private static string RarityLabel(EquipmentRarity rarity)
-        {
-            return rarity switch
-            {
-                EquipmentRarity.Legendary => "전설",
-                EquipmentRarity.Rare => "희귀",
-                _ => "일반"
-            };
         }
 
         private static string EquipmentSlotName(int index)

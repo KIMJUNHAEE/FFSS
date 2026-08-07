@@ -105,7 +105,7 @@ namespace CardBattle.Exploration
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
 
-            Vector3 planarDirection = IsMovementBlocked() ? Vector3.zero : ReadCameraRelativeDirection();
+            Vector3 planarDirection = ExplorationGeometryUtility.IsWorldPaused() ? Vector3.zero : ReadCameraRelativeDirection();
             float inputAmount = Mathf.Clamp01(planarDirection.magnitude);
             float animationAmount = GetAnimationAmount(inputAmount);
             IsMoving = inputAmount > 0.05f;
@@ -172,13 +172,6 @@ namespace CardBattle.Exploration
 
             if (lockToGroundPlane)
                 SnapToGroundPlane();
-        }
-
-        private static bool IsMovementBlocked()
-        {
-            return GameKernel.IsReady &&
-                   GameKernel.Services.TryGet(out UIManager ui) &&
-                   ui.HasVisibleModal;
         }
 
         private void ClampToWorldBounds()

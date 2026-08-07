@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CardBattle.EditorTools;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
@@ -26,9 +27,9 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Missing Foundation Assets")]
         public static void BuildMissingAssets()
         {
-            EnsureFolder(DataRoot);
-            EnsureFolder(AudioCueRoot);
-            EnsureFolder(PrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(DataRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(AudioCueRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(PrefabRoot);
 
             RunDefinition runDefinition = CreateRunDefinition();
             SceneCatalog sceneCatalog = CreateSceneCatalog();
@@ -54,7 +55,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Scene Transition")]
         public static void BuildSceneTransition()
         {
-            EnsureFolder(PrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(PrefabRoot);
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             Sprite bannerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(TransitionBannerPath);
 
@@ -521,22 +522,6 @@ namespace FFSS.Editor
 
             property.objectReferenceValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
     }
 }

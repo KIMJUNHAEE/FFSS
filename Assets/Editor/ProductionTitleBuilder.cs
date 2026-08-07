@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CardBattle.EditorTools;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
 using FFSS.UI;
@@ -28,9 +29,9 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Missing Title Assets")]
         public static void BuildMissingTitleAssets()
         {
-            EnsureFolder(ScreenPrefabRoot);
-            EnsureFolder(FrontendSceneRoot);
-            EnsureFolder(FieldSceneRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenPrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(FrontendSceneRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(FieldSceneRoot);
 
             GameObject titlePrefab = CreateTitlePrefab();
             AddTitleToCatalog(titlePrefab);
@@ -51,7 +52,7 @@ namespace FFSS.Editor
                 return existing;
             }
 
-            Font font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/NanumBarunGothicBold.ttf");
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             Sprite backgroundSprite = LoadSprite("Assets/Art/Production/Project/title-pokerpoker-seotdaseotda.png");
             Sprite modalSprite = LoadSprite("Assets/Art/Production/UI/Atlas/03_panels_modals/modal_medium.png");
 
@@ -464,22 +465,6 @@ namespace FFSS.Editor
             SerializedProperty property = serialized.FindProperty(propertyName);
             property.stringValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
     }
 }

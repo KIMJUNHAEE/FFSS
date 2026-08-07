@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using UnityEditor;
@@ -14,7 +15,6 @@ namespace FFSS.Editor
         private const string PrefabRoot = "Assets/Prefabs/Production/Combat/RuleMeters";
         private const string EmptyGaugePath = "Assets/Art/Production/UI/Atlas/05_gauges/gauge_empty_small.png";
         private const string FillGaugePath = "Assets/Art/Production/UI/Atlas/05_gauges/gauge_pressure_gold_small.png";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
 
         private readonly struct MeterSpec
         {
@@ -65,7 +65,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Enemy Rule Meters")]
         public static void BuildEnemyRuleMeters()
         {
-            EnsureFolder(PrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(PrefabRoot);
             Dictionary<string, EnemyEncounterDefinition> encounters = LoadEncounters();
             for (int i = 0; i < Specs.Length; i++)
             {
@@ -264,7 +264,7 @@ namespace FFSS.Editor
         {
             Sprite empty = AssetDatabase.LoadAssetAtPath<Sprite>(EmptyGaugePath);
             Sprite fill = AssetDatabase.LoadAssetAtPath<Sprite>(FillGaugePath);
-            Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             if (empty == null || fill == null || font == null)
             {
                 throw new InvalidOperationException("Enemy rule meter source assets are missing.");
@@ -367,21 +367,6 @@ namespace FFSS.Editor
             text.resizeTextMinSize = 9;
             text.resizeTextMaxSize = 14;
             return text;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-                current = next;
-            }
         }
     }
 }

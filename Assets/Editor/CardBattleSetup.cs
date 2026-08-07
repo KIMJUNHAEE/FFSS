@@ -40,7 +40,7 @@ namespace CardBattle.EditorTools
         private const string Boss38CombatPrefabDir = "Assets/Prefabs/CombatUI38";
         private const string BossProfileDir = "Assets/Data/BossProfiles";
         private const string CombatIconDir = "Assets/UI/CommonCombat/Icons";
-        private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        internal const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
@@ -263,7 +263,7 @@ namespace CardBattle.EditorTools
             return LoadSpriteAtPath($"{PokerCardDir}/Back-R.png");
         }
 
-        private static Sprite LoadSpriteAtPath(string path)
+        internal static Sprite LoadSpriteAtPath(string path)
         {
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
         }
@@ -1803,7 +1803,7 @@ namespace CardBattle.EditorTools
             return prefab;
         }
 
-        private static List<Sprite> LoadSpriteFolder(string folderPath)
+        internal static List<Sprite> LoadSpriteFolder(string folderPath)
         {
             if (!AssetDatabase.IsValidFolder(folderPath)) return new List<Sprite>();
 
@@ -2572,7 +2572,7 @@ namespace CardBattle.EditorTools
             rt.pivot = new Vector2(0.5f, 0.5f);
         }
 
-        private static RectTransform CreateUIObject(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+        internal static RectTransform CreateUIObject(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -2585,7 +2585,7 @@ namespace CardBattle.EditorTools
             return rt;
         }
 
-        private static Image CreatePanel(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color color)
+        internal static Image CreatePanel(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color color)
         {
             var rt = CreateUIObject(name, parent, anchorMin, anchorMax);
             var img = rt.gameObject.AddComponent<Image>();
@@ -2593,7 +2593,7 @@ namespace CardBattle.EditorTools
             return img;
         }
 
-        private static Text CreateText(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, string content, int fontSize, TextAnchor alignment, Color color)
+        internal static Text CreateText(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, string content, int fontSize, TextAnchor alignment, Color color)
         {
             var rt = CreateUIObject(name, parent, anchorMin, anchorMax);
             var text = rt.gameObject.AddComponent<Text>();

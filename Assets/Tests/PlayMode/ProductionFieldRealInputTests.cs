@@ -182,6 +182,27 @@ namespace FFSS.Framework.Tests
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
+            Vector3 inventoryStart = player.transform.position;
+            yield return TapKey(Key.I);
+            yield return WaitUntil(
+                () => FindVisibleScreen(UIScreenId.Inventory) != null,
+                120,
+                "The inventory hotkey did not open its modal.");
+            Assert.That(ui.HasVisibleModal, Is.True,
+                "The inventory did not register as a field-blocking modal.");
+            yield return HoldKey(Key.W, 0.25f);
+            Assert.That(
+                Vector3.ProjectOnPlane(player.transform.position - inventoryStart, Vector3.up).magnitude,
+                Is.LessThan(0.03f),
+                "The player kept moving while the inventory was open.");
+            yield return TapKey(Key.I);
+            yield return WaitUntilSeconds(
+                () => FindVisibleScreen(UIScreenId.Inventory) == null,
+                2f,
+                "The inventory hotkey did not close its modal.");
+            Assert.That(ui.HasVisibleModal, Is.False,
+                "Closing the inventory left field movement blocked.");
+
             GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
             Assert.That(flow.TryChangeState(GameFlowState.Event), Is.True);
             UIScreen eventScreen = ui.Show(UIScreenId.Event, false);
@@ -405,6 +426,16 @@ namespace FFSS.Framework.Tests
                 elapsed += Time.deltaTime;
             }
 
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.Update();
+            yield return null;
+        }
+
+        private IEnumerator TapKey(Key key)
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
+            InputSystem.Update();
+            yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             InputSystem.Update();
             yield return null;

@@ -51,9 +51,7 @@ namespace CardBattle.Exploration
             if (!Application.isPlaying || player == null || string.IsNullOrWhiteSpace(nodeId))
                 return;
 
-            Vector3 offset = player.position - transform.position;
-            offset.y = 0f;
-            float distance = offset.magnitude;
+            float distance = ExplorationGeometryUtility.PlanarDistance(player.position, transform.position);
             markerView?.SetFocused(distance <= focusRadius);
 
             if (opened)

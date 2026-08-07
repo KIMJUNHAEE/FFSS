@@ -869,20 +869,29 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void ProductionScreenCatalogContainsAllSeventeenInspectableScreens()
+        public void ProductionScreenCatalogContainsAllEighteenInspectableScreens()
         {
             UIScreenCatalog catalog = AssetDatabase.LoadAssetAtPath<UIScreenCatalog>(
                 "Assets/Data/Framework/UIScreenCatalog.asset");
 
             Assert.That(catalog, Is.Not.Null);
-            Assert.That(catalog.Screens, Has.Count.EqualTo(17));
+            Assert.That(catalog.Screens, Has.Count.EqualTo(18));
             var ids = new HashSet<UIScreenId>();
             foreach (UIScreenCatalogEntry entry in catalog.Screens)
             {
                 Assert.That(ids.Add(entry.id), Is.True, entry.id.ToString());
                 Assert.That(entry.prefab, Is.Not.Null, entry.id.ToString());
                 Assert.That(entry.prefab.Id, Is.EqualTo(entry.id));
-                if (entry.id != UIScreenId.Title)
+                if (entry.id == UIScreenId.Inventory)
+                {
+                    Assert.That(
+                        entry.prefab.GetComponentsInChildren<Component>(true)
+                            .Any(component => component.GetType().Name == "InventoryGridRefresher"),
+                        Is.True,
+                        entry.id.ToString());
+                    Assert.That(PrefabUtility.IsPartOfPrefabAsset(entry.prefab), Is.True, entry.id.ToString());
+                }
+                else if (entry.id != UIScreenId.Title)
                 {
                     Assert.That(entry.prefab.GetComponent("RunUIScreenController"), Is.Not.Null, entry.id.ToString());
                     Assert.That(PrefabUtility.IsPartOfPrefabAsset(entry.prefab), Is.True, entry.id.ToString());
@@ -1295,7 +1304,6 @@ namespace FFSS.Framework.Tests
             };
 #pragma warning disable CS0618
             data.run.player.maxBalance = 36;
-            data.run.player.currentBalance = 20;
 #pragma warning restore CS0618
 
             SaveDataMigrations.Upgrade(data);

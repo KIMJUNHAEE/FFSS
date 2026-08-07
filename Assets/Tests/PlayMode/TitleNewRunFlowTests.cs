@@ -229,13 +229,16 @@ namespace FFSS.Framework.Tests
             {
                 (UIScreenId.FieldMap, "flow_map_1280x720"),
                 (UIScreenId.Equipment, "flow_equipment_1280x720"),
-                (UIScreenId.RunStatus, "flow_status_1280x720")
+                (UIScreenId.RunStatus, "flow_status_1280x720"),
+                (UIScreenId.Inventory, "flow_inventory_1280x720")
             };
 
             foreach ((UIScreenId id, string fileName) in overlays)
             {
                 UIScreen overlay = ui.Show(id, false);
                 yield return WaitFrames(2);
+                if (id == UIScreenId.Inventory)
+                    yield return new WaitForSecondsRealtime(0.5f);
                 Assert.That(overlay, Is.Not.Null);
                 Assert.That(ui.HasVisibleModal, Is.True, $"{id} did not block field input.");
                 AssertVisibleUiInsideViewport($"{id} 1280x720");
@@ -504,12 +507,12 @@ namespace FFSS.Framework.Tests
 
         private static bool IsFieldMovementBlocked()
         {
-            Type controllerType = Type.GetType(
-                "CardBattle.Exploration.QuarterViewPlayerController, Assembly-CSharp");
-            Assert.That(controllerType, Is.Not.Null, "QuarterViewPlayerController type is unavailable.");
-            MethodInfo method = controllerType.GetMethod(
-                "IsMovementBlocked",
-                BindingFlags.NonPublic | BindingFlags.Static);
+            Type utilityType = Type.GetType(
+                "CardBattle.Exploration.ExplorationGeometryUtility, Assembly-CSharp");
+            Assert.That(utilityType, Is.Not.Null, "ExplorationGeometryUtility type is unavailable.");
+            MethodInfo method = utilityType.GetMethod(
+                "IsWorldPaused",
+                BindingFlags.Public | BindingFlags.Static);
             Assert.That(method, Is.Not.Null, "The field movement gate is unavailable.");
             return (bool)method.Invoke(null, null);
         }

@@ -1909,14 +1909,7 @@ namespace CardBattle
         private IEnumerator AnimateFill(Image fill, float target, float duration)
         {
             float start = fill.fillAmount;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
-                SetBarRatio(fill, Mathf.Lerp(start, target, t));
-                yield return null;
-            }
+            yield return UiTween.Run(duration, t => SetBarRatio(fill, Mathf.Lerp(start, target, t)), UiTween.SmoothStep);
             SetBarRatio(fill, target);
         }
 
@@ -1944,16 +1937,7 @@ namespace CardBattle
         {
             Vector3 start = Vector3.one;
             Vector3 peak = new Vector3(1.08f, 1.18f, 1f);
-            float duration = 0.18f;
-            float elapsed = 0f;
-
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Sin(Mathf.Clamp01(elapsed / duration) * Mathf.PI);
-                rt.localScale = Vector3.Lerp(start, peak, t);
-                yield return null;
-            }
+            yield return UiTween.Run(0.18f, t => rt.localScale = Vector3.Lerp(start, peak, t), t => UiTween.SinPunch(t));
 
             rt.localScale = start;
         }
@@ -1968,19 +1952,13 @@ namespace CardBattle
         private IEnumerator ShakeRoutine(RectTransform target, float strength)
         {
             Vector2 start = target.anchoredPosition;
-            float duration = 0.24f;
-            float elapsed = 0f;
-
-            while (elapsed < duration)
+            yield return UiTween.Run(0.24f, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
                 float damping = 1f - t;
                 float x = Mathf.Sin(t * Mathf.PI * 8f) * strength * damping;
                 float y = Mathf.Sin(t * Mathf.PI * 5f) * strength * 0.25f * damping;
                 target.anchoredPosition = start + new Vector2(x, y);
-                yield return null;
-            }
+            });
 
             target.anchoredPosition = start;
         }
