@@ -812,7 +812,8 @@ namespace FFSS.Framework.Tests
                 yield break;
             }
 
-            yield return null;
+            Screen.SetResolution(width, height, false);
+            yield return WaitFrames(3);
 
             Camera camera = Camera.main;
             Assert.That(camera, Is.Not.Null, "Production_Field has no main camera to render.");
@@ -834,6 +835,30 @@ namespace FFSS.Framework.Tests
                     canvases[i].worldCamera = camera;
                     canvases[i].planeDistance = 1f;
                 }
+            }
+
+            CanvasScaler[] scalers = Object.FindObjectsByType<CanvasScaler>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            var scalerModes = new CanvasScaler.ScaleMode[scalers.Length];
+            var scalerFactors = new float[scalers.Length];
+            for (int i = 0; i < scalers.Length; i++)
+            {
+                CanvasScaler scaler = scalers[i];
+                scalerModes[i] = scaler.uiScaleMode;
+                scalerFactors[i] = scaler.scaleFactor;
+                if (scaler.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                    continue;
+
+                float widthScale = width / Mathf.Max(1f, scaler.referenceResolution.x);
+                float heightScale = height / Mathf.Max(1f, scaler.referenceResolution.y);
+                float logWidth = Mathf.Log(Mathf.Max(0.001f, widthScale), 2f);
+                float logHeight = Mathf.Log(Mathf.Max(0.001f, heightScale), 2f);
+                float targetScale = Mathf.Pow(
+                    2f,
+                    Mathf.Lerp(logWidth, logHeight, scaler.matchWidthOrHeight));
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+                scaler.scaleFactor = targetScale;
             }
 
             var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
@@ -874,6 +899,13 @@ namespace FFSS.Framework.Tests
                     canvases[i].renderMode = renderModes[i];
                     canvases[i].worldCamera = worldCameras[i];
                     canvases[i].planeDistance = planeDistances[i];
+                }
+                for (int i = 0; i < scalers.Length; i++)
+                {
+                    if (scalers[i] == null)
+                        continue;
+                    scalers[i].uiScaleMode = scalerModes[i];
+                    scalers[i].scaleFactor = scalerFactors[i];
                 }
             }
         }
