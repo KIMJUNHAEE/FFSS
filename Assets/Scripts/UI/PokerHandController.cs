@@ -300,6 +300,7 @@ namespace CardBattle
                     view.PlayRedrawAnimation(deckPileTransform, card.Sprite, dealAnimationDuration, dealAnimationDuration);
                 else
                     view.Bind(card.Sprite);
+                view.SetHoverDetail(CardTitle(card.Sprite), CardBody(card.InstanceId));
                 CardRedrawn?.Invoke();
                 yield return new WaitForSeconds(dealStagger);
             }
@@ -322,10 +323,64 @@ namespace CardBattle
             var view = Instantiate(cardPrefab, handContainer);
             view.Configure(backSprite, arcAnchor);
             view.Bind(card.Sprite);
+            view.SetHoverDetail(CardTitle(card.Sprite), CardBody(card.InstanceId));
             view.SelectionChanged += HandleSelectionChanged;
             spawnedCards.Add(view);
             spawnedCardInstanceIds.Add(card.InstanceId);
             return view;
+        }
+
+        private static string CardTitle(Sprite sprite)
+        {
+            if (sprite == null)
+                return string.Empty;
+            if (!PokerHandEvaluator.TryParse(sprite, out int rank, out char suit))
+                return sprite.name;
+            if (rank == 0)
+                return suit == 'R' ? "레드 조커" : "블랙 조커";
+
+            string suitName = suit switch
+            {
+                'S' => "스페이드",
+                'H' => "하트",
+                'D' => "다이아몬드",
+                'C' => "클로버",
+                _ => string.Empty
+            };
+            string rankName = rank switch
+            {
+                1 => "A",
+                11 => "J",
+                12 => "Q",
+                13 => "K",
+                _ => rank.ToString()
+            };
+            return $"{suitName} {rankName}";
+        }
+
+        private static string CardBody(string instanceId)
+        {
+            if (!TryGetCurrentRun(out RunState run) || string.IsNullOrWhiteSpace(instanceId))
+                return string.Empty;
+
+            RunCardState card = run.pokerDeck.FindCard(instanceId);
+            if (card == null || (card.enhancementLevel <= 0 && card.growthPath == CardGrowthPath.None))
+                return string.Empty;
+
+            string growth = card.growthPath == CardGrowthPath.None
+                ? "성장 방향 미선택"
+                : $"성장: {GrowthLabel(card.growthPath)}";
+            return $"연마 +{card.enhancementLevel}\n{growth}\n기본 카드의 원화는 성장해도 유지돼.";
+        }
+
+        private static string GrowthLabel(CardGrowthPath path)
+        {
+            return path switch
+            {
+                CardGrowthPath.Reverse => "반전",
+                CardGrowthPath.TimeAwakened => "시간 각성",
+                _ => path.ToString()
+            };
         }
 
         private void HandleSelectionChanged(PokerCardView view)

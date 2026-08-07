@@ -43,6 +43,7 @@ namespace CardBattle.EditorTools
         private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
+        private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
         private const string SeotdaCardDir = "Assets/섰다패";
         private static readonly string[] BossIds =
         {
@@ -1634,7 +1635,59 @@ namespace CardBattle.EditorTools
             label.fontStyle = FontStyle.Bold;
             EnableBestFit(label, 17, 23);
             AddTextOutline(label, Color.black, new Vector2(2f, -2f));
+            AddCommandSelectionEffect(root, sprite);
             return SavePrefabAndDestroy(root, $"{Boss38CombatPrefabDir}/PokerCommandButton.prefab");
+        }
+
+        private static void AddCommandSelectionEffect(GameObject root, Sprite frameSprite)
+        {
+            CombatCommandSelectionView view = root.AddComponent<CombatCommandSelectionView>();
+            var effect = new GameObject("SelectionVfx", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+            RectTransform effectRect = effect.GetComponent<RectTransform>();
+            effectRect.SetParent(root.transform, false);
+            effectRect.anchorMin = Vector2.zero;
+            effectRect.anchorMax = Vector2.one;
+            effectRect.offsetMin = new Vector2(-8f, -8f);
+            effectRect.offsetMax = new Vector2(8f, 8f);
+            Image frame = effect.GetComponent<Image>();
+            frame.sprite = frameSprite;
+            frame.color = new Color(1f, 0.78f, 0.24f, 0.65f);
+            frame.raycastTarget = false;
+            CanvasGroup group = effect.GetComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+
+            Sprite sparkSprite = LoadSpriteAtPath(SelectionSparkPath);
+            Vector2[] positions = { new(-126f, 0f), new(126f, 0f), new(-72f, 42f), new(72f, -42f) };
+            var sparkRects = new List<RectTransform>();
+            for (int i = 0; i < positions.Length; i++)
+            {
+                Image spark = CreatePanel($"Spark {i + 1}", effectRect,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Color.white);
+                spark.rectTransform.sizeDelta = new Vector2(18f, 18f);
+                spark.rectTransform.anchoredPosition = positions[i];
+                spark.sprite = sparkSprite;
+                spark.preserveAspect = true;
+                spark.raycastTarget = false;
+                sparkRects.Add(spark.rectTransform);
+            }
+            Image sweep = CreatePanel("Sweep", effectRect,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Color.white);
+            sweep.rectTransform.sizeDelta = new Vector2(23f, 23f);
+            sweep.rectTransform.anchoredPosition = new Vector2(-126f, 0f);
+            sweep.sprite = sparkSprite;
+            sweep.preserveAspect = true;
+            sweep.raycastTarget = false;
+
+            SerializedObject serialized = new(view);
+            serialized.FindProperty("effectGroup").objectReferenceValue = group;
+            serialized.FindProperty("sweep").objectReferenceValue = sweep.rectTransform;
+            SerializedProperty sparks = serialized.FindProperty("sparks");
+            sparks.arraySize = sparkRects.Count;
+            for (int i = 0; i < sparkRects.Count; i++)
+                sparks.GetArrayElementAtIndex(i).objectReferenceValue = sparkRects[i];
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            effect.SetActive(false);
         }
 
         private static GameObject BuildBattleBannerPrefab(Sprite sprite)
@@ -2145,7 +2198,6 @@ namespace CardBattle.EditorTools
             Text playerAttackFormulaText = null;
             Text playerDefenseFormulaText = null;
             Text playerStatusText;
-            Text enemyWeaknessText;
 
             if (useBoss38SmallTables)
             {
@@ -2153,6 +2205,9 @@ namespace CardBattle.EditorTools
                     new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -28f));
                 enemyPanel = enemyHud.GetComponent<Image>();
                 FindUi<Text>(enemyHud, "NameText").text = BossDisplayName(enemyId);
+                Text enemyTitle = FindUi<Text>(enemyHud, "TitleText");
+                if (enemyTitle != null)
+                    enemyTitle.text = $"{enemyTitle.text}  ·  약점 {weakness.ToSymbol()}";
                 enemyHpFill = FindUi<Image>(enemyHud, "HpBarBg/HpBarFill");
                 enemyHpText = FindUi<Text>(enemyHud, "HpText");
                 enemyBreakFill = FindUi<Image>(enemyHud, "PressureBarBg/PressureBarFill");
@@ -2187,14 +2242,11 @@ namespace CardBattle.EditorTools
                 playerStatText.lineSpacing = 1f;
                 AddTextOutline(playerStatText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
                 playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.365f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
+                Text weaknessSubtitle = CreateText("EnemyWeaknessSubtitle", enemyPanel.transform,
+                    new Vector2(0.03f, 0.69f), new Vector2(0.97f, 0.82f),
+                    $"약점 {weakness.ToSymbol()}", 13, TextAnchor.MiddleRight, weakness.ToDisplayColor());
+                weaknessSubtitle.fontStyle = FontStyle.Bold;
             }
-
-            // 적 약점 속성(포커 무늬) 배지 - 캐릭터 머리 위, 화면 기준 고정 위치 (HUD 레이아웃과 무관)
-            enemyWeaknessText = CreateText("EnemyWeaknessText", canvasT, new Vector2(0.42f, 0.905f), new Vector2(0.58f, 0.985f),
-                weakness.ToSymbol(), 34, TextAnchor.MiddleCenter, weakness.ToDisplayColor());
-            enemyWeaknessText.fontStyle = FontStyle.Bold;
-            enemyWeaknessText.raycastTarget = false;
-            AddTextOutline(enemyWeaknessText, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
 
             // 약점 효과 미리보기 패널 - 테이블 위(포커 테이블 상단과 적 초상화 하단 사이 빈 공간),
             // 현재 손패가 약점을 찌르고 있을 때만 나타나 공격/방어 각각의 효과를 보여준다.

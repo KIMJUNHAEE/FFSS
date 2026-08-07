@@ -30,6 +30,8 @@ namespace CardBattle
         private Coroutine feedbackRoutine;
         private bool selectionContextActive;
         private bool pointerInside;
+        private string hoverTitle;
+        private string hoverBody;
 
         public event Action<PokerCardView> SelectionChanged;
 
@@ -62,6 +64,12 @@ namespace CardBattle
             SetSelected(false);
             SetSelectionContext(false);
             SetRuleMark(EnemyCardRuleMark.None);
+        }
+
+        public void SetHoverDetail(string title, string body)
+        {
+            hoverTitle = title ?? string.Empty;
+            hoverBody = body ?? string.Empty;
         }
 
         public void SetRuleMark(EnemyCardRuleMark mark, int value = 0)
@@ -124,12 +132,14 @@ namespace CardBattle
         {
             pointerInside = true;
             ApplyRestScale();
+            CardHoverPreview.Current?.Show(CardSprite, hoverTitle, hoverBody);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             pointerInside = false;
             ApplyRestScale();
+            CardHoverPreview.Current?.Hide();
         }
 
         public void PlayKeepConfirmAnimation(Action onComplete = null)

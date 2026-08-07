@@ -495,7 +495,6 @@ namespace CardBattle
             if (playerStatusText) playerStatusText.text = $"{ActionLabel(action)} 선택";
             if (action == RpsAction.Skill) ShowPlayerSkillDetail();
             else HidePlayerSkillDetail();
-            pokerHand?.PlayCombatAnimation(action);
             UpdateSelectionHighlight();
             RefreshButtons();
         }
@@ -1367,13 +1366,14 @@ namespace CardBattle
                 ? $"\n<size=12><color=#F4C967>{seotdaTable.PreviewSummary}</color></size>"
                 : string.Empty;
 
+            string detailBody = $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}";
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
-            if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>{preview}";
+            if (enemyStatText) enemyStatText.text = detailBody;
             if (enemyIntentTooltip)
                 enemyIntentTooltip.SetContent(
                     moveName,
                     $"{label} {power}",
-                    $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}");
+                    detailBody);
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
 
             // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
@@ -1862,7 +1862,8 @@ namespace CardBattle
         private void SetHighlight(Button button, bool selected)
         {
             if (!button) return;
-            button.transform.localScale = selected ? selectedButtonScale : Vector3.one;
+            button.transform.localScale = Vector3.one;
+            button.GetComponent<CombatCommandSelectionView>()?.SetSelected(selected);
         }
 
         private void UpdateHpUI()

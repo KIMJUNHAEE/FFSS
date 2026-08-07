@@ -17,6 +17,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace FFSS.Framework.Tests
 {
@@ -1565,10 +1566,11 @@ namespace FFSS.Framework.Tests
                     .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
                     .FirstOrDefault(type => type != null);
                 Assert.That(controllerType, Is.Not.Null);
+                Component controller = root.AddComponent(controllerType);
                 MethodInfo method = controllerType.GetMethod("SetCardSprite",
-                    BindingFlags.NonPublic | BindingFlags.Static);
+                    BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.That(method, Is.Not.Null);
-                method.Invoke(null, new object[] { image, expected });
+                method.Invoke(controller, new object[] { image, expected });
 
                 Assert.That(image.enabled, Is.True);
                 Assert.That(image.sprite, Is.SameAs(expected));
@@ -1892,6 +1894,37 @@ namespace FFSS.Framework.Tests
                     EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
                     Assert.That(meter, Is.Not.Null, path);
                     Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(meter.gameObject), Is.Not.Null, path);
+                    RectTransform meterRect = meter.GetComponent<RectTransform>();
+                    Assert.That(meterRect.anchoredPosition, Is.EqualTo(new Vector2(-24f, -250f)), path);
+
+                    Component cardPreview = FindInScene(scene, "CardHoverPreview");
+                    Assert.That(cardPreview, Is.Not.Null, path);
+                    Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(cardPreview.gameObject), Is.Not.Null, path);
+                    Assert.That(scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+                        .Any(transform => transform.name == "EnemyWeaknessText"), Is.False, path);
+
+                    Component combat = FindInScene(scene, "RpsCombatController");
+                    Assert.That(combat, Is.Not.Null, path);
+                    SerializedObject serializedCombat = new(combat);
+                    foreach (string propertyName in new[] { "attackButton", "defendButton", "skillButton" })
+                    {
+                        Button button = serializedCombat.FindProperty(propertyName).objectReferenceValue as Button;
+                        Assert.That(button, Is.Not.Null, $"{path}: {propertyName}");
+                        Assert.That(button.GetComponent("CombatCommandSelectionView"), Is.Not.Null,
+                            $"{path}: {propertyName}");
+                    }
+
+                    Component seotda = serializedCombat.FindProperty("seotdaTable").objectReferenceValue as Component;
+                    Assert.That(seotda, Is.Not.Null, path);
+                    SerializedObject serializedSeotda = new(seotda);
+                    foreach (string propertyName in new[] { "cardSlotA", "cardSlotB" })
+                    {
+                        Image card = serializedSeotda.FindProperty(propertyName).objectReferenceValue as Image;
+                        Assert.That(card, Is.Not.Null, $"{path}: {propertyName}");
+                        Assert.That(card.GetComponent("CardHoverSource"), Is.Not.Null,
+                            $"{path}: {propertyName}");
+                    }
                     Component feedback = FindInScene(scene, "LegacyCombatFeedbackBridge");
                     Assert.That(feedback, Is.Not.Null, path);
                     Assert.That(new SerializedObject(feedback).FindProperty("encounter").objectReferenceValue,
