@@ -133,7 +133,7 @@ namespace CardBattle
         }
     }
 
-    public sealed class EquipmentDefinition
+    public sealed class EquipmentDefinition : IInventoryEntry
     {
         public EquipmentDefinition(string id, string displayName, EquipmentSlotType slot, EquipmentRarity rarity,
             string description, string effectText, params EquipmentEffectDefinition[] effects)
@@ -155,6 +155,7 @@ namespace CardBattle
         public string EffectText { get; }
         public IReadOnlyList<EquipmentEffectDefinition> Effects { get; }
         public Sprite Icon => Resources.Load<Sprite>($"Equipment/{Id}");
+        public int MaxStack => 1;
 
         public int Modifier(EquipmentStat stat, EquipmentContext context)
         {

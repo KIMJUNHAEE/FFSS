@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using CardBattle.Inventory;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
@@ -758,7 +759,7 @@ namespace CardBattle.UI
                     Show(UIScreenId.FieldMap);
                     break;
                 case 1:
-                    Show(UIScreenId.Equipment);
+                    InventoryScreenController.Open();
                     break;
                 case 2:
                     Show(UIScreenId.RunStatus);
@@ -848,7 +849,7 @@ namespace CardBattle.UI
             if (run == null || slotIndex < 0 || slotIndex > 3)
                 return;
 
-            EnsureEquipmentSlots(run);
+            EquipmentStatsCalculator.EnsureSlots(run);
             EquipmentSlotType slot = (EquipmentSlotType)slotIndex;
             var candidates = new List<string>();
             for (int i = 0; i < run.inventoryItemIds.Count; i++)
@@ -874,19 +875,6 @@ namespace CardBattle.UI
             EquipmentStatsCalculator.Recalculate(run);
             SetText(status, $"{EquipmentCatalog.Get(next).DisplayName} 장착");
             Refresh();
-        }
-
-        private static void EnsureEquipmentSlots(RunState run)
-        {
-            string[] defaults =
-            {
-                EquipmentLoadout.DefaultWeapon,
-                EquipmentLoadout.DefaultGarment,
-                EquipmentLoadout.DefaultTalisman,
-                EquipmentLoadout.DefaultKeepsake
-            };
-            while (run.equippedItemIds.Count < defaults.Length)
-                run.equippedItemIds.Add(defaults[run.equippedItemIds.Count]);
         }
 
         private void EnterBoss()

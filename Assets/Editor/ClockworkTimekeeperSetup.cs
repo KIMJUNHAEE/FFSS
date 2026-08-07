@@ -57,7 +57,9 @@ namespace CardBattle.EditorTools
         private static readonly Vector3 CameraOffset = new(0f, 5.8f, -9.5f);
         private static readonly Vector3 CameraLookAtOffset = new(0f, 0.8f, 0f);
 
-        private const string ItemDir = "Assets/Data/Items";
+        // Production 인벤토리 화면(ProductionUIScreenBuilder)과 같은 ItemData 애셋을 공유한다 -
+        // Resources 밑이라야 InventoryModel이 빌드된 플레이어에서도 ItemCatalog.Get()으로 찾을 수 있음.
+        private const string ItemDir = "Assets/Resources/Items";
         private const string ItemIconDir = ItemDir + "/Icons";
 
         private const string PlayerDir = "Assets/Player";
@@ -435,7 +437,7 @@ namespace CardBattle.EditorTools
                 item.itemId = def.id;
                 item.displayName = def.displayName;
                 item.maxStack = def.maxStack;
-                item.icon = EnsureSolidColorIcon(def.id, def.color);
+                if (item.icon == null) item.icon = EnsureSolidColorIcon(def.id, def.color);
                 EditorUtility.SetDirty(item);
                 items.Add(item);
             }

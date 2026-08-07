@@ -7,7 +7,7 @@ namespace FFSS.Framework.Persistence
     [Serializable]
     public sealed class SaveGameData
     {
-        public const int CurrentSchemaVersion = 7;
+        public const int CurrentSchemaVersion = 8;
 
         public int schemaVersion = CurrentSchemaVersion;
         public string savedAtUtc;

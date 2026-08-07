@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle;
 using CardBattle.EditorTools;
 using CardBattle.Inventory;
 using CardBattle.UI;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
 using UnityEditor;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -484,6 +486,8 @@ namespace FFSS.Editor
         private const float InventoryEquipStepXPx = 92f;
         private const float InventoryEquipWidthPx = 74f;
         private const int InventoryEquipCount = 4;
+        private const float InventoryEquipLabelHeightPx = 24f;
+        private static readonly string[] InventoryEquipLabels = { "무기", "의복", "부적", "기념품" };
         private const int InventoryGridCols = 6;
         private const int InventoryGridRows = 5;
         private const float InventoryGridColStartPx = 602f;
@@ -492,9 +496,14 @@ namespace FFSS.Editor
         private const float InventoryGridRowStartPx = 229f;
         private const float InventoryGridRowStepPx = 127f;
         private const float InventoryGridCellHeightPx = 116f;
+        // 그리드 아래 넓은 빈 띠 - 클릭한 아이템/장비의 설명이 뜨는 자리 (Python/PIL로 테두리
+        // 선 위치 측정: x=582/1385, y=759/943).
+        private static readonly Rect InventoryDetailPx = Rect.MinMaxRect(582f, 759f, 1385f, 943f);
 
-        // 인벤토리 UI/스택 시스템 확인용 테스트 아이템 - Assets/Data/Items의 기존 ItemData를 그대로
-        // 불러다 쓴다(생성은 여기서 하지 않음).
+        // 인벤토리 UI/스택 시스템 확인용 테스트 아이템 - Assets/Resources/Items의 기존 ItemData를
+        // 그대로 불러다 쓴다(생성은 여기서 하지 않음). Resources 밑에 있어야 InventoryModel이
+        // 빌드된 플레이어에서도 ItemCatalog.Get()으로 런타임에 찾을 수 있음(AssetDatabase는 에디터
+        // 전용이라 여기 에디터 스크립트에서만 통함).
         private static readonly (string id, int startCount)[] InventoryDummyStacks =
         {
             ("gear", 5),
@@ -502,7 +511,36 @@ namespace FFSS.Editor
             ("gem", 1),
             ("potion", 2),
             ("map", 1),
+            (HealPotionId, 2),
         };
+
+        // 기획 문서(포커포커섯다섯다 게임 성경)의 "회복 소모품" - HP 12~18 회복이라고만 적혀있어서
+        // 중간값 15로 잡음. 실제 아트가 없어서 기존 Equipment 아이콘(청화 묵병, 물약병 모양)을
+        // 임시로 재사용 - gear/spring/gem/potion/map(더미 placeholder)과 달리 이건 진짜 효과가
+        // 있는 아이템(ItemEffectType.HealFlat)이라 EnsureHealPotionAsset에서 애셋 자체를 만든다.
+        private const string HealPotionId = "heal_potion";
+        private const string HealPotionIconPath = "Assets/Resources/Equipment/keepsake_porcelain_ink_bottle.png";
+
+        private static void EnsureHealPotionAsset()
+        {
+            string assetPath = $"Assets/Resources/Items/{HealPotionId}.asset";
+            ItemData item = AssetDatabase.LoadAssetAtPath<ItemData>(assetPath);
+            if (item == null)
+            {
+                item = ScriptableObject.CreateInstance<ItemData>();
+                AssetDatabase.CreateAsset(item, assetPath);
+            }
+
+            item.itemId = HealPotionId;
+            item.displayName = "회복 물약";
+            item.description = "HP를 15 회복한다.";
+            item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(HealPotionIconPath);
+            item.maxStack = 10;
+            item.effectType = ItemEffectType.HealFlat;
+            item.effectAmount = 15;
+            EditorUtility.SetDirty(item);
+            AssetDatabase.SaveAssets();
+        }
 
         private static GameObject BuildInventoryScreen(ScreenSpec spec)
         {
@@ -528,12 +566,26 @@ namespace FFSS.Editor
             InventorySlidePanel slide = build.Root.AddComponent<InventorySlidePanel>();
             ClockworkTimekeeperEditorUtils.SetObjectReference(slide, "panel", bounds.rectTransform);
 
+            BuildInventoryCloseButton(build.Root.transform);
             BuildInventoryPortrait(panel.transform);
+            InventoryDetailView detailView = BuildInventoryDetail(panel.transform);
+
+            var modelGO = new GameObject("InventoryModel", typeof(InventoryModel));
+            modelGO.transform.SetParent(build.Root.transform, false);
+            InventoryModel model = modelGO.GetComponent<InventoryModel>();
+            SetInventoryStartingStacks(model);
+
+            var equipmentSlots = new EquipmentSlotView[InventoryEquipCount];
             for (int i = 0; i < InventoryEquipCount; i++)
             {
                 Rect slotPx = new(InventoryEquipStartXPx + i * InventoryEquipStepXPx, InventoryEquipTopPx,
                     InventoryEquipWidthPx, InventoryEquipBottomPx - InventoryEquipTopPx);
-                BuildInventorySlot($"EquipSlot_{i}", panel.transform, slotPx);
+                equipmentSlots[i] = BuildEquipmentSlot($"EquipSlot_{i}", panel.transform, slotPx,
+                    (EquipmentSlotType)i, detailView);
+
+                Rect labelPx = new(InventoryEquipStartXPx + i * InventoryEquipStepXPx,
+                    InventoryEquipBottomPx, InventoryEquipWidthPx, InventoryEquipLabelHeightPx);
+                BuildInventoryEquipLabel(panel.transform, labelPx, InventoryEquipLabels[i]);
             }
 
             var slotViews = new InventorySlotView[InventoryGridCols * InventoryGridRows];
@@ -544,21 +596,83 @@ namespace FFSS.Editor
                 Rect cellPx = new(InventoryGridColStartPx + col * InventoryGridColStepPx,
                     InventoryGridRowStartPx + row * InventoryGridRowStepPx,
                     InventoryGridCellWidthPx, InventoryGridCellHeightPx);
-                slotViews[slotIndex++] = BuildInventorySlot($"Slot_{row}_{col}", panel.transform, cellPx);
+                slotViews[slotIndex] = BuildInventorySlot($"Slot_{row}_{col}", panel.transform, cellPx,
+                    model, slotIndex, detailView);
+                slotIndex++;
             }
-
-            var modelGO = new GameObject("InventoryModel", typeof(InventoryModel));
-            modelGO.transform.SetParent(build.Root.transform, false);
-            InventoryModel model = modelGO.GetComponent<InventoryModel>();
-            SetInventoryStartingStacks(model);
 
             var refresherGO = new GameObject("InventoryGridRefresher", typeof(InventoryGridRefresher));
             refresherGO.transform.SetParent(build.Root.transform, false);
             InventoryGridRefresher refresher = refresherGO.GetComponent<InventoryGridRefresher>();
             ClockworkTimekeeperEditorUtils.SetObjectReference(refresher, "model", model);
             ClockworkTimekeeperEditorUtils.SetObjectReferenceArray(refresher, "slotViews", slotViews);
+            ClockworkTimekeeperEditorUtils.SetObjectReferenceArray(refresher, "equipmentSlots", equipmentSlots);
+
+            BuildInventoryDragGhost(build.Root.transform);
 
             return Save(build.Root, spec.Path);
+        }
+
+        private static void BuildInventoryCloseButton(Transform screenRoot)
+        {
+            Image closeBg = CardBattleSetup.CreatePanel("Close", screenRoot,
+                new Vector2(0.90f, 0.90f), new Vector2(0.965f, 0.965f), Color.clear);
+            Sprite iconSprite = SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_11_x.png");
+            closeBg.sprite = iconSprite;
+            closeBg.color = iconSprite != null ? Color.white : Color.clear;
+            closeBg.preserveAspect = true;
+
+            Button button = closeBg.gameObject.AddComponent<Button>();
+            button.targetGraphic = closeBg;
+            UnityEventTools.AddPersistentListener(button.onClick, InventoryScreenController.Close);
+        }
+
+        /// <summary>그리드 아래 넓은 빈 띠에 선택된 아이템/장비의 아이콘/이름/설명을 보여준다.</summary>
+        private static InventoryDetailView BuildInventoryDetail(Transform panelTransform)
+        {
+            Image detailBg = InventoryArtRect("Detail", panelTransform, InventoryDetailPx, Color.clear);
+
+            Image icon = CardBattleSetup.CreatePanel("Icon", detailBg.transform,
+                new Vector2(0.02f, 0.12f), new Vector2(0.16f, 0.88f), Color.white);
+            icon.preserveAspect = true;
+            icon.enabled = false;
+
+            Text nameText = CardBattleSetup.CreateText("Name", detailBg.transform,
+                new Vector2(0.20f, 0.60f), new Vector2(0.98f, 0.92f), string.Empty, 24,
+                TextAnchor.LowerLeft, new Color(1f, 0.84f, 0.38f));
+
+            Text descriptionText = CardBattleSetup.CreateText("Description", detailBg.transform,
+                new Vector2(0.20f, 0.06f), new Vector2(0.78f, 0.56f), string.Empty, 18,
+                TextAnchor.UpperLeft, Color.white);
+
+            Image useButtonBg = CardBattleSetup.CreatePanel("Use Button", detailBg.transform,
+                new Vector2(0.82f, 0.10f), new Vector2(0.97f, 0.45f), new Color(0.16f, 0.32f, 0.2f));
+            Button useButton = useButtonBg.gameObject.AddComponent<Button>();
+            useButton.targetGraphic = useButtonBg;
+            CardBattleSetup.CreateText("Label", useButtonBg.transform, Vector2.zero, Vector2.one,
+                "사용", 20, TextAnchor.MiddleCenter, Color.white);
+
+            InventoryDetailView detailView = detailBg.gameObject.AddComponent<InventoryDetailView>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(detailView, "icon", icon);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(detailView, "nameText", nameText);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(detailView, "descriptionText", descriptionText);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(detailView, "useButton", useButton);
+            return detailView;
+        }
+
+        /// <summary>커서를 따라다니는 드래그 고스트 아이콘 - 화면 전체 위에 떠야 하니 맨 위(다른
+        /// 슬롯들보다 나중에, screenRoot 바로 아래)에 만든다.</summary>
+        private static void BuildInventoryDragGhost(Transform screenRoot)
+        {
+            Image ghostIcon = CardBattleSetup.CreatePanel("Drag Ghost", screenRoot,
+                Vector2.zero, Vector2.zero, Color.white);
+            RectTransform ghostRect = ghostIcon.rectTransform;
+            ghostRect.sizeDelta = new Vector2(80f, 80f);
+            ghostIcon.preserveAspect = true;
+            ghostIcon.raycastTarget = false;
+
+            InventoryDragGhost ghost = ghostIcon.gameObject.AddComponent<InventoryDragGhost>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(ghost, "icon", ghostIcon);
         }
 
         /// <summary>좌측에 미리 그려진 직사각형 자리에 플레이어 idle 애니메이션을 채워 넣는다.</summary>
@@ -591,7 +705,8 @@ namespace FFSS.Editor
             return CardBattleSetup.CreatePanel(name, parent, anchorMin, anchorMax, color);
         }
 
-        private static InventorySlotView BuildInventorySlot(string name, Transform parent, Rect pixelRect)
+        private static InventorySlotView BuildInventorySlot(string name, Transform parent, Rect pixelRect,
+            InventoryModel model, int slotIndex, InventoryDetailView detailView)
         {
             Image slotBg = InventoryArtRect(name, parent, pixelRect, Color.clear);
 
@@ -606,21 +721,67 @@ namespace FFSS.Editor
             InventorySlotView slotView = slotBg.gameObject.AddComponent<InventorySlotView>();
             ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "icon", icon);
             ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "countText", countText);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "detailView", detailView);
+            slotView.Initialize(model, slotIndex);
             return slotView;
         }
 
+        /// <summary>초상화 아래 4개 장비 칸 중 하나 - 실제 장착 장비를 보여주고, 그리드에서 같은
+        /// 부위 장비를 드래그해 오면 받아서 장착을 바꾼다.</summary>
+        private static EquipmentSlotView BuildEquipmentSlot(string name, Transform parent, Rect pixelRect,
+            EquipmentSlotType slotType, InventoryDetailView detailView)
+        {
+            Image slotBg = InventoryArtRect(name, parent, pixelRect, Color.clear);
+
+            Image icon = CardBattleSetup.CreatePanel("Icon", slotBg.transform,
+                new Vector2(0.12f, 0.12f), new Vector2(0.88f, 0.88f), Color.white);
+            icon.preserveAspect = true;
+            icon.enabled = false;
+
+            EquipmentSlotView slotView = slotBg.gameObject.AddComponent<EquipmentSlotView>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "icon", icon);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "detailView", detailView);
+            slotView.Initialize(slotType);
+            return slotView;
+        }
+
+        /// <summary>장비 칸 바로 아래에 "무기/의복/부적/기념품" 같은 부위 이름을 작게 적어준다 -
+        /// 어느 칸에 뭐가 들어가는지 한눈에 보이게.</summary>
+        private static void BuildInventoryEquipLabel(Transform parent, Rect pixelRect, string label)
+        {
+            Vector2 anchorMin = new(pixelRect.xMin / InventoryArtWidthPx, 1f - pixelRect.yMax / InventoryArtHeightPx);
+            Vector2 anchorMax = new(pixelRect.xMax / InventoryArtWidthPx, 1f - pixelRect.yMin / InventoryArtHeightPx);
+            CardBattleSetup.CreateText("Label", parent, anchorMin, anchorMax, label, 14,
+                TextAnchor.UpperCenter, new Color(0.85f, 0.78f, 0.6f));
+        }
+
+        // 그리드 드래그 장착 테스트용 여분 장비 - 기본 장착품(무기: weapon_red_moon_hwando, 의복:
+        // garment_tiger_durumagi)과 다른 부위별 대체품을 하나씩 넣어서 드래그로 바꿔볼 게 있게 함.
+        private static readonly string[] InventoryDummyEquipmentIds =
+        {
+            "weapon_plum_spear",
+            "garment_plum_silk_armor",
+        };
+
         private static void SetInventoryStartingStacks(InventoryModel model)
         {
+            EnsureHealPotionAsset();
+
             var serializedObject = new SerializedObject(model);
             SerializedProperty stacks = serializedObject.FindProperty("startingStacks");
             stacks.arraySize = InventoryDummyStacks.Length;
             for (int i = 0; i < InventoryDummyStacks.Length; i++)
             {
-                ItemData item = AssetDatabase.LoadAssetAtPath<ItemData>($"Assets/Data/Items/{InventoryDummyStacks[i].id}.asset");
+                ItemData item = AssetDatabase.LoadAssetAtPath<ItemData>($"Assets/Resources/Items/{InventoryDummyStacks[i].id}.asset");
                 SerializedProperty element = stacks.GetArrayElementAtIndex(i);
                 element.FindPropertyRelative("item").objectReferenceValue = item;
                 element.FindPropertyRelative("count").intValue = InventoryDummyStacks[i].startCount;
             }
+
+            SerializedProperty equipmentIds = serializedObject.FindProperty("startingEquipmentIds");
+            equipmentIds.arraySize = InventoryDummyEquipmentIds.Length;
+            for (int i = 0; i < InventoryDummyEquipmentIds.Length; i++)
+                equipmentIds.GetArrayElementAtIndex(i).stringValue = InventoryDummyEquipmentIds[i];
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(model);

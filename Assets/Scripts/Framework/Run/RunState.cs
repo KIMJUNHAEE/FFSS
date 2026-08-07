@@ -119,6 +119,13 @@ namespace FFSS.Framework.Run
     }
 
     [Serializable]
+    public sealed class RunItemStack
+    {
+        public string itemId;
+        public int count;
+    }
+
+    [Serializable]
     public sealed class RunRewardState
     {
         public string rewardId;
@@ -149,6 +156,7 @@ namespace FFSS.Framework.Run
         public RunRewardState pendingReward;
         public List<string> equippedItemIds = new List<string>();
         public List<string> inventoryItemIds = new List<string>();
+        public List<RunItemStack> itemStacks = new List<RunItemStack>();
         public List<string> completedEventIds = new List<string>();
         public List<string> completedEncounterIds = new List<string>();
         public List<string> discoveredNodeIds = new List<string>();
