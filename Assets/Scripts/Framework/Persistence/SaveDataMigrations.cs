@@ -126,6 +126,16 @@ namespace FFSS.Framework.Persistence
                 data.schemaVersion = 7;
             }
 
+            if (data.schemaVersion < 8)
+            {
+                if (data.run != null)
+                {
+                    data.run.itemStacks ??= new System.Collections.Generic.List<RunItemStack>();
+                }
+
+                data.schemaVersion = 8;
+            }
+
             return data;
         }
     }

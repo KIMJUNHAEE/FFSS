@@ -214,6 +214,8 @@ namespace FFSS.Framework.Run
                     return FindUpgradeableCard(run) != null;
                 case RunShopOfferType.RemoveCard:
                     return FindRemovableCard(run) != null;
+                case RunShopOfferType.Item:
+                    return !string.IsNullOrWhiteSpace(offer.contentId);
                 default:
                     return run.player.currentHp < run.player.maxHp;
             }
@@ -235,7 +237,29 @@ namespace FFSS.Framework.Run
                 case RunShopOfferType.Heal:
                     HealPercent(run, 25);
                     break;
+                case RunShopOfferType.Item:
+                    AddItemStack(run, offer.contentId, 1);
+                    break;
             }
+        }
+
+        /// <summary>소지품(RunState.itemStacks)에 아이템을 더한다 - maxStack 분할은 InventoryModel이
+        /// 화면에 그릴 때 알아서 처리하므로, 여기서는 그냥 개수만 더해 둔다.</summary>
+        private static void AddItemStack(RunState run, string itemId, int amount)
+        {
+            if (string.IsNullOrWhiteSpace(itemId) || amount <= 0)
+            {
+                return;
+            }
+
+            RunItemStack stack = run.itemStacks.Find(value => value != null && value.itemId == itemId);
+            if (stack == null)
+            {
+                stack = new RunItemStack { itemId = itemId };
+                run.itemStacks.Add(stack);
+            }
+
+            stack.count += amount;
         }
 
         private static void ApplyEffect(RunState run, RunEffectDefinition effect)

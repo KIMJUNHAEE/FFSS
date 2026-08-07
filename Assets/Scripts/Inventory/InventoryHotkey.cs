@@ -1,41 +1,23 @@
-using FFSS.Framework.Core;
-using FFSS.Framework.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace CardBattle.Inventory
 {
-    /// <summary>필드에서 I키로 인벤토리 모달을 토글한다. 화면 인스턴스/보이기 상태는 UIManager가
-    /// 관리하므로(keepAlive 화면이라 인스턴스가 계속 살아있음), 마지막으로 받은 UIScreen 참조의
-    /// IsVisible만 확인해서 Show/Hide를 고른다.</summary>
+    /// <summary>필드에서 I키로 인벤토리 모달을 토글한다. 실제 여닫기는 InventoryScreenController가
+    /// 담당 - FieldHud의 "소지품" 버튼도 같은 진입점을 쓰므로 어느 쪽으로 열고 닫든 동일하게 동작.</summary>
     public sealed class InventoryHotkey : MonoBehaviour
     {
         [SerializeField] private Key toggleKey = Key.I;
 
-        private UIScreen inventoryScreen;
-
         private void Update()
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard[toggleKey].wasPressedThisFrame || !GameKernel.IsReady) return;
+            if (keyboard == null || !keyboard[toggleKey].wasPressedThisFrame) return;
 
-            UIManager ui = GameKernel.Services.Get<UIManager>();
-            if (inventoryScreen != null && inventoryScreen.IsVisible)
-            {
-                InventorySlidePanel slide = inventoryScreen.GetComponent<InventorySlidePanel>();
-                if (slide != null)
-                {
-                    slide.PlayExitAnimation(() => ui.Hide(UIScreenId.Inventory));
-                }
-                else
-                {
-                    ui.Hide(UIScreenId.Inventory);
-                }
-            }
+            if (InventoryScreenController.IsOpen())
+                InventoryScreenController.Close();
             else
-            {
-                inventoryScreen = ui.Show(UIScreenId.Inventory);
-            }
+                InventoryScreenController.Open();
         }
     }
 }

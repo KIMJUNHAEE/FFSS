@@ -22,7 +22,8 @@ namespace FFSS.Framework.Run
         Equipment,
         UpgradeCard,
         RemoveCard,
-        Heal
+        Heal,
+        Item
     }
 
     public enum RunRestOptionType

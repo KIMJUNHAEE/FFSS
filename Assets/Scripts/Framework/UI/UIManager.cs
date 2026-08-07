@@ -46,6 +46,10 @@ namespace FFSS.Framework.UI
             }
         }
 
+        public bool IsVisible(UIScreenId id) => instances.TryGetValue(id, out UIScreen screen) && screen.IsVisible;
+
+        public UIScreen TryGetScreen(UIScreenId id) => instances.TryGetValue(id, out UIScreen screen) ? screen : null;
+
         public UIScreen Show(UIScreenId id, bool playAnimation = true)
         {
             UIScreenCatalogEntry entry = catalog.Get(id);
