@@ -39,6 +39,61 @@ namespace CardBattle.Exploration
         [Header("Tiles")]
         [SerializeField] private string tileResourceFolder = "ClockworkTimekeeper/HexTiles";
         [SerializeField] private string plainRoadTextureName = "hex_plain_road";
+        [SerializeField] private string cityTileResourceFolder = "ClockworkTimekeeper/HexTiles/City";
+        [SerializeField]
+        private string[] actOneRoadTextureNames =
+        {
+            "hex_city_01_basic",
+            "hex_city_02_ruined_homes",
+            "hex_city_07_rain",
+            "hex_city_08_scorched",
+            "hex_city_09_rubble",
+            "hex_city_13_market",
+        };
+        [SerializeField]
+        private string[] actTwoRoadTextureNames =
+        {
+            "hex_city_01_basic",
+            "hex_city_07_rain",
+            "hex_city_11_kintsugi",
+            "hex_city_12_moss",
+            "hex_city_13_market",
+            "hex_city_15_workshop",
+        };
+        [SerializeField]
+        private string[] actThreeRoadTextureNames =
+        {
+            "hex_city_08_scorched",
+            "hex_city_09_rubble",
+            "hex_city_10_time_crack",
+            "hex_city_11_kintsugi",
+            "hex_city_17_ash",
+            "hex_city_18_blockade",
+        };
+        [SerializeField]
+        private string[] actOneInteractionTextureNames =
+        {
+            "hex_city_03_heart",
+            "hex_city_04_spade",
+            "hex_city_05_diamond",
+            "hex_city_06_club",
+        };
+        [SerializeField]
+        private string[] actTwoInteractionTextureNames =
+        {
+            "hex_city_05_diamond",
+            "hex_city_06_club",
+            "hex_city_14_shrine",
+            "hex_city_15_workshop",
+        };
+        [SerializeField]
+        private string[] actThreeInteractionTextureNames =
+        {
+            "hex_city_10_time_crack",
+            "hex_city_14_shrine",
+            "hex_city_16_clock",
+            "hex_city_18_blockade",
+        };
         [SerializeField]
         private string[] interactionTextureNames =
         {
@@ -51,8 +106,8 @@ namespace CardBattle.Exploration
         [SerializeField] private float tileY = -0.03f;
         [SerializeField] private float plainRoadMeshScale = 1f;
         [SerializeField] private float interactionMeshScale = 1f;
-        [SerializeField, Range(0f, 0.2f)] private float plainRoadUvPadding = 0.04f;
-        [SerializeField, Range(0f, 0.2f)] private float interactionUvPadding = 0.04f;
+        [SerializeField, Range(0f, 0.2f)] private float plainRoadUvPadding = 0f;
+        [SerializeField, Range(0f, 0.2f)] private float interactionUvPadding = 0f;
         [SerializeField] private Material tileMaterialTemplate = null;
 
         [Header("Layout")]
@@ -79,6 +134,7 @@ namespace CardBattle.Exploration
         private readonly Dictionary<string, Mesh> generatedMeshes = new();
         private int runtimeSeed;
         private bool hasRuntimeSeed;
+        private int districtAct = 1;
 
         public event Action GenerationStarted;
         public event Action<IReadOnlyList<GeneratedHexTile>> GenerationCompleted;
@@ -194,16 +250,38 @@ namespace CardBattle.Exploration
                 return;
             }
 
-            Texture2D[] interactionTextures = LoadTileTextures(interactionTextureNames);
+            Texture2D[] districtRoadTextures = LoadTileTextures(
+                cityTileResourceFolder,
+                ResolveDistrictRoadTextureNames());
+            Texture2D[] districtInteractionTextures = LoadTileTextures(
+                cityTileResourceFolder,
+                ResolveDistrictInteractionTextureNames());
+            Texture2D[] legacyInteractionTextures = LoadTileTextures(interactionTextureNames);
             ClearGeneratedMeshes();
             List<Vector2Int> cells = BuildCellPath(out HashSet<Vector2Int> interactionCells, out Vector2Int bossCell);
             for (int i = 0; i < cells.Count; i++)
             {
-                bool isInteractionTile = ShouldUseInteractionTile(cells[i], interactionCells, interactionTextures.Length);
+                int interactionTextureCount = districtInteractionTextures.Length > 0
+                    ? districtInteractionTextures.Length
+                    : legacyInteractionTextures.Length;
+                bool isInteractionTile = ShouldUseInteractionTile(cells[i], interactionCells, interactionTextureCount);
                 bool isBossTile = isInteractionTile && cells[i] == bossCell;
-                Texture2D texture = isInteractionTile
-                    ? interactionTextures[ChooseTextureIndex(cells[i], i, interactionTextures.Length)]
-                    : plainRoadTexture;
+                Texture2D texture;
+                if (isInteractionTile)
+                {
+                    Texture2D[] interactions = districtInteractionTextures.Length > 0
+                        ? districtInteractionTextures
+                        : legacyInteractionTextures;
+                    texture = interactions[ChooseTextureIndex(cells[i], i, interactions.Length)];
+                }
+                else if (districtRoadTextures.Length > 0)
+                {
+                    texture = districtRoadTextures[ChooseDistrictTextureIndex(cells[i], districtRoadTextures.Length)];
+                }
+                else
+                {
+                    texture = plainRoadTexture;
+                }
                 CreateTile(cells[i], texture, isInteractionTile, isBossTile);
             }
 
@@ -224,6 +302,11 @@ namespace CardBattle.Exploration
 
         public void ConfigureRunLayout(int targetTileCount, int contentNodeCount)
         {
+            ConfigureRunLayoutForAct(targetTileCount, contentNodeCount, 1);
+        }
+
+        public void ConfigureRunLayoutForAct(int targetTileCount, int contentNodeCount, int act)
+        {
             int target = Mathf.Max(12, targetTileCount);
             int areas = Mathf.Clamp(Mathf.RoundToInt(target / 16f) + 1, 3, 6);
 
@@ -236,6 +319,7 @@ namespace CardBattle.Exploration
             softRadiusLimit = Mathf.Max(7, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.45f));
             minInteractionHexDistance = 2;
             interactionTileChance = 0f;
+            districtAct = Mathf.Clamp(act, 1, 3);
         }
 
         public void ClearRuntimeSeed()
@@ -246,16 +330,21 @@ namespace CardBattle.Exploration
 
         private Texture2D[] LoadTileTextures(string[] textureNames)
         {
+            return LoadTileTextures(tileResourceFolder, textureNames);
+        }
+
+        private Texture2D[] LoadTileTextures(string resourceFolder, string[] textureNames)
+        {
             var textures = new List<Texture2D>();
             foreach (string tileName in textureNames)
             {
                 if (string.IsNullOrWhiteSpace(tileName))
                     continue;
 
-                Texture2D texture = LoadTileTexture(tileName);
+                Texture2D texture = LoadTileTexture(resourceFolder, tileName);
                 if (texture == null)
                 {
-                    Debug.LogWarning($"[HexTileMapGenerator] Missing tile texture: {tileResourceFolder}/{tileName}");
+                    Debug.LogWarning($"[HexTileMapGenerator] Missing tile texture: {resourceFolder}/{tileName}");
                     continue;
                 }
 
@@ -267,7 +356,12 @@ namespace CardBattle.Exploration
 
         private Texture2D LoadTileTexture(string tileName)
         {
-            Texture2D texture = Resources.Load<Texture2D>($"{tileResourceFolder}/{tileName}");
+            return LoadTileTexture(tileResourceFolder, tileName);
+        }
+
+        private static Texture2D LoadTileTexture(string resourceFolder, string tileName)
+        {
+            Texture2D texture = Resources.Load<Texture2D>($"{resourceFolder}/{tileName}");
             if (texture == null)
                 return null;
 
@@ -275,6 +369,26 @@ namespace CardBattle.Exploration
             texture.anisoLevel = Mathf.Max(texture.anisoLevel, 16);
             texture.mipMapBias = -0.35f;
             return texture;
+        }
+
+        private string[] ResolveDistrictRoadTextureNames()
+        {
+            return districtAct switch
+            {
+                2 => actTwoRoadTextureNames,
+                3 => actThreeRoadTextureNames,
+                _ => actOneRoadTextureNames,
+            };
+        }
+
+        private string[] ResolveDistrictInteractionTextureNames()
+        {
+            return districtAct switch
+            {
+                2 => actTwoInteractionTextureNames,
+                3 => actThreeInteractionTextureNames,
+                _ => actOneInteractionTextureNames,
+            };
         }
 
         private List<Vector2Int> BuildCellPath(out HashSet<Vector2Int> interactionCells, out Vector2Int bossCell)
@@ -1060,6 +1174,20 @@ namespace CardBattle.Exploration
             unchecked
             {
                 int hash = cell.x * 73856093 ^ cell.y * 19349663 ^ order * 83492791;
+                return (int)((uint)hash % (uint)textureCount);
+            }
+        }
+
+        private static int ChooseDistrictTextureIndex(Vector2Int cell, int textureCount)
+        {
+            if (textureCount <= 0)
+                return 0;
+
+            int districtX = Mathf.FloorToInt(cell.x / 3f);
+            int districtY = Mathf.FloorToInt(cell.y / 3f);
+            unchecked
+            {
+                int hash = districtX * 73856093 ^ districtY * 19349663;
                 return (int)((uint)hash % (uint)textureCount);
             }
         }

@@ -116,9 +116,10 @@ namespace CardBattle.Exploration
 
             int act = Mathf.Clamp(runs.Current.act, 1, 3);
             RunActDefinition definition = campaign.GetAct(act);
-            mapGenerator.ConfigureRunLayout(
+            mapGenerator.ConfigureRunLayoutForAct(
                 runs.Current.CurrentActProgress.generatedTileCount,
-                CountPlannedNodes(definition));
+                CountPlannedNodes(definition),
+                act);
             mapGenerator.SetRuntimeSeed(unchecked(runs.Current.seed ^ (act * 486187739)));
         }
 
@@ -402,8 +403,8 @@ namespace CardBattle.Exploration
         private void CreateAmbientLandmarks(IReadOnlyList<GeneratedHexTile> tiles, int act)
         {
             const float actorClearance = 3.2f;
-            const float landmarkClearance = 4.4f;
-            const float landmarkFootprint = 2.2f;
+            const float landmarkClearance = 3.35f;
+            const float landmarkFootprint = 1.65f;
             if (ambientLandmarkPrefab == null)
                 return;
 
@@ -422,6 +423,9 @@ namespace CardBattle.Exploration
                 return;
 
             var candidates = new List<GeneratedHexTile>();
+            var tileCells = new HashSet<Vector2Int>();
+            for (int i = 0; i < tiles.Count; i++)
+                tileCells.Add(tiles[i].Cell);
             for (int i = 0; i < tiles.Count; i++)
             {
                 GeneratedHexTile tile = tiles[i];
@@ -436,7 +440,13 @@ namespace CardBattle.Exploration
                 if (IsClearOfOccupied(position, landmarkFootprint))
                     candidates.Add(tile);
             }
-            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            candidates.Sort((left, right) =>
+            {
+                int leftNeighbors = CountTileNeighbors(left.Cell, tileCells);
+                int rightNeighbors = CountTileNeighbors(right.Cell, tileCells);
+                int edgeOrder = leftNeighbors.CompareTo(rightNeighbors);
+                return edgeOrder != 0 ? edgeOrder : left.Order.CompareTo(right.Order);
+            });
 
             for (int i = 0; i < landmarks.Count && candidates.Count > 0; i++)
             {
@@ -462,6 +472,23 @@ namespace CardBattle.Exploration
                     ExplorationGeometryUtility.PlanarSqrDistance(candidate.Tile.transform.position, landmarkPosition) <
                     landmarkClearance * landmarkClearance);
             }
+        }
+
+        private static int CountTileNeighbors(Vector2Int cell, HashSet<Vector2Int> cells)
+        {
+            Vector2Int[] directions =
+            {
+                new(1, 0), new(1, -1), new(0, -1),
+                new(-1, 0), new(-1, 1), new(0, 1),
+            };
+            int count = 0;
+            for (int i = 0; i < directions.Length; i++)
+            {
+                if (cells.Contains(cell + directions[i]))
+                    count++;
+            }
+
+            return count;
         }
 
         private int FindClearTileIndex(

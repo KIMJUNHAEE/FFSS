@@ -28,6 +28,7 @@ namespace FFSS.Editor
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
         private const string BuildingRoot = "Assets/Art/Production/Field/Buildings";
         private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
+        private const string CityTileRoot = "Assets/Resources/ClockworkTimekeeper/HexTiles/City";
         private const string EncounterRoot = "Assets/Data/Production/Encounters";
         private const string EnemyArtRoot = "Assets/Enemy";
 
@@ -61,6 +62,10 @@ namespace FFSS.Editor
         {
             new LandmarkSeed(1, RunFieldContentType.Road, 1, 1, "북문 진입문", 3.8f),
             new LandmarkSeed(1, RunFieldContentType.Road, 2, 2, "장터 약방", 3.35f),
+            new LandmarkSeed(1, RunFieldContentType.Road, 3, 3, "회복 약방", 3.45f),
+            new LandmarkSeed(1, RunFieldContentType.Road, 4, 4, "시계 골목", 3.65f),
+            new LandmarkSeed(1, RunFieldContentType.Road, 5, 5, "네무늬 신사", 3.55f),
+            new LandmarkSeed(1, RunFieldContentType.Road, 6, 6, "가면 도박장", 3.55f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 1, 1, "소나무 검문소", 3.15f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 2, 2, "매화 패거리 주둔지", 3.15f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 3, 3, "벚꽃 패거리 주둔지", 3.15f),
@@ -74,6 +79,10 @@ namespace FFSS.Editor
 
             new LandmarkSeed(2, RunFieldContentType.Road, 1, 7, "수로 진료소", 3.45f),
             new LandmarkSeed(2, RunFieldContentType.Road, 2, 9, "관아 창고", 3.35f),
+            new LandmarkSeed(2, RunFieldContentType.Road, 3, 8, "시장 상점", 3.45f),
+            new LandmarkSeed(2, RunFieldContentType.Road, 4, 10, "금속 공방", 3.35f),
+            new LandmarkSeed(2, RunFieldContentType.Road, 5, 11, "도시 치료소", 3.5f),
+            new LandmarkSeed(2, RunFieldContentType.Road, 6, 12, "금고 은행", 3.6f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 1, 7, "오동 패거리 진료소", 3.2f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 2, 8, "모란 패거리 대장간", 3.2f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 3, 9, "싸리 패거리 창고", 3.2f),
@@ -89,6 +98,10 @@ namespace FFSS.Editor
 
             new LandmarkSeed(3, RunFieldContentType.Road, 1, 13, "구사 붉은 궁문", 3.8f),
             new LandmarkSeed(3, RunFieldContentType.Road, 2, 14, "암행어사 검은 관아", 3.45f),
+            new LandmarkSeed(3, RunFieldContentType.Road, 3, 15, "포커 카지노", 3.55f),
+            new LandmarkSeed(3, RunFieldContentType.Road, 4, 16, "붕괴 주택", 3.35f),
+            new LandmarkSeed(3, RunFieldContentType.Road, 5, 17, "패시계 정거장", 3.45f),
+            new LandmarkSeed(3, RunFieldContentType.Road, 6, 18, "붉은달 청사", 3.7f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 1, 13, "국화 패거리 궁문", 3.2f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 2, 14, "단풍 패거리 관아", 3.2f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 3, 15, "폐궁 동쪽 회랑", 3.2f),
@@ -319,11 +332,22 @@ namespace FFSS.Editor
 
             SerializedObject map = new SerializedObject(generator);
             map.FindProperty("randomSeed").intValue = 1701;
+            map.FindProperty("plainRoadUvPadding").floatValue = 0f;
+            map.FindProperty("interactionUvPadding").floatValue = 0f;
             map.ApplyModifiedPropertiesWithoutUndo();
 
             Camera fieldCamera = UnityEngine.Object.FindAnyObjectByType<Camera>();
             if (fieldCamera != null && fieldCamera.orthographic)
-                fieldCamera.orthographicSize = 5.8f;
+                fieldCamera.orthographicSize = 5.25f;
+
+            QuarterViewCameraFollow cameraFollow = UnityEngine.Object.FindAnyObjectByType<QuarterViewCameraFollow>();
+            if (cameraFollow != null)
+            {
+                SerializedObject follow = new SerializedObject(cameraFollow);
+                follow.FindProperty("offset").vector3Value = new Vector3(0f, 5.15f, -8.7f);
+                follow.FindProperty("lookAtOffset").vector3Value = new Vector3(0f, 0.55f, 0f);
+                follow.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             generator.Generate();
 
@@ -459,6 +483,33 @@ namespace FFSS.Editor
                     importer.filterMode = FilterMode.Bilinear;
                     importer.SaveAndReimport();
                 }
+            }
+
+            PrepareCityTiles();
+        }
+
+        private static void PrepareCityTiles()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { CityTileRoot });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                    continue;
+
+                importer.textureType = TextureImporterType.Default;
+                importer.sRGBTexture = true;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = true;
+                importer.streamingMipmaps = false;
+                importer.npotScale = TextureImporterNPOTScale.None;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                importer.compressionQuality = 100;
+                importer.maxTextureSize = 2048;
+                importer.filterMode = FilterMode.Trilinear;
+                importer.anisoLevel = 16;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
             }
         }
 

@@ -69,6 +69,7 @@ namespace FFSS.Editor
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 2000;
+            canvas.pixelPerfect = true;
             CanvasScaler scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
@@ -289,6 +290,7 @@ namespace FFSS.Editor
 
             var root = new GameObject("[FFSS] Game Kernel");
             root.AddComponent<GameKernel>();
+            root.AddComponent<VisualQualityController>();
 
             RunManager runs = AddService<RunManager>(root.transform, "Run Manager", -600);
             SetReference(runs, "defaultRunDefinition", runDefinition);
@@ -319,6 +321,7 @@ namespace FFSS.Editor
             Canvas canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 100;
+            canvas.pixelPerfect = true;
 
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -335,6 +338,47 @@ namespace FFSS.Editor
             SetReference(manager, "screenRoot", screenRoot);
             SetReference(manager, "overlayRoot", overlayRoot);
             SetReference(manager, "modalRoot", modalRoot);
+        }
+
+        [MenuItem("FFSS/Production/Configure Visual Quality")]
+        public static void ConfigureVisualQuality()
+        {
+            GameObject kernel = PrefabUtility.LoadPrefabContents(KernelPrefabPath);
+            try
+            {
+                if (kernel.GetComponent<VisualQualityController>() == null)
+                    kernel.AddComponent<VisualQualityController>();
+
+                Canvas[] canvases = kernel.GetComponentsInChildren<Canvas>(true);
+                for (int i = 0; i < canvases.Length; i++)
+                {
+                    if (canvases[i].isRootCanvas && canvases[i].renderMode != RenderMode.WorldSpace)
+                        canvases[i].pixelPerfect = true;
+                }
+
+                PrefabUtility.SaveAsPrefabAsset(kernel, KernelPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(kernel);
+            }
+
+            GameObject transition = PrefabUtility.LoadPrefabContents(TransitionPrefabPath);
+            try
+            {
+                Canvas canvas = transition.GetComponent<Canvas>();
+                if (canvas != null)
+                    canvas.pixelPerfect = true;
+                PrefabUtility.SaveAsPrefabAsset(transition, TransitionPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(transition);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS visual quality is configured on inspectable prefabs.");
         }
 
         private static void BuildAudioService(Transform parent, AudioCueCatalog catalog)
