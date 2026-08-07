@@ -673,10 +673,10 @@ namespace FFSS.Framework.Tests
             Assert.That(hud.anchorMax.y, Is.EqualTo(1f).Within(0.001f));
             Assert.That(hud.pivot.x, Is.EqualTo(0f).Within(0.001f));
             Assert.That(hud.pivot.y, Is.EqualTo(1f).Within(0.001f));
-            Assert.That(hud.anchoredPosition.x, Is.EqualTo(24f).Within(0.1f));
-            Assert.That(hud.anchoredPosition.y, Is.EqualTo(-52f).Within(0.1f));
-            Assert.That(hud.sizeDelta.x, Is.EqualTo(680f).Within(0.1f));
-            Assert.That(hud.sizeDelta.y, Is.EqualTo(286f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.x, Is.EqualTo(0f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.y, Is.EqualTo(0f).Within(0.1f));
+            Assert.That(hud.sizeDelta.x, Is.EqualTo(560f).Within(0.1f));
+            Assert.That(hud.sizeDelta.y, Is.EqualTo(242f).Within(0.1f));
         }
 
         private static void AssertFieldHudGeometry()

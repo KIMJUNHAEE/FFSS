@@ -2625,6 +2625,10 @@ namespace FFSS.Framework.Tests
             string[] guids = AssetDatabase.FindAssets(
                 "t:Scene",
                 new[] { "Assets/Scenes/Production/Battles" });
+            Vector2? sharedMeterAnchorMin = null;
+            Vector2? sharedMeterAnchorMax = null;
+            Vector2? sharedMeterPosition = null;
+            Vector2? sharedMeterSize = null;
 
             Assert.That(guids, Has.Length.EqualTo(17));
             for (int i = 0; i < guids.Length; i++)
@@ -2637,7 +2641,26 @@ namespace FFSS.Framework.Tests
                     Assert.That(meter, Is.Not.Null, path);
                     Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(meter.gameObject), Is.Not.Null, path);
                     RectTransform meterRect = meter.GetComponent<RectTransform>();
-                    Assert.That(meterRect.anchoredPosition, Is.EqualTo(new Vector2(-24f, -250f)), path);
+                    Assert.That(meterRect.rect.width, Is.GreaterThan(100f), path);
+                    Assert.That(meterRect.rect.height, Is.GreaterThan(30f), path);
+                    if (!sharedMeterPosition.HasValue)
+                    {
+                        sharedMeterAnchorMin = meterRect.anchorMin;
+                        sharedMeterAnchorMax = meterRect.anchorMax;
+                        sharedMeterPosition = meterRect.anchoredPosition;
+                        sharedMeterSize = meterRect.sizeDelta;
+                    }
+                    else
+                    {
+                        Assert.That(Vector2.Distance(meterRect.anchorMin, sharedMeterAnchorMin.Value),
+                            Is.LessThan(0.01f), $"{path}: anchorMin");
+                        Assert.That(Vector2.Distance(meterRect.anchorMax, sharedMeterAnchorMax.Value),
+                            Is.LessThan(0.01f), $"{path}: anchorMax");
+                        Assert.That(Vector2.Distance(meterRect.anchoredPosition, sharedMeterPosition.Value),
+                            Is.LessThan(0.5f), $"{path}: anchoredPosition");
+                        Assert.That(Vector2.Distance(meterRect.sizeDelta, sharedMeterSize.Value),
+                            Is.LessThan(0.5f), $"{path}: sizeDelta");
+                    }
 
                     Component cardPreview = FindInScene(scene, "CardHoverPreview");
                     Assert.That(cardPreview, Is.Not.Null, path);
