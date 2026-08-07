@@ -1528,6 +1528,62 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionFieldActsUseEveryCityHexInDistinctPalettes()
+        {
+            const string path = "Assets/Scenes/Production/Field/Production_Field.unity";
+            Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            try
+            {
+                Component generator = FindInScene(scene, "HexTileMapGenerator");
+                Assert.That(generator, Is.Not.Null);
+                var serialized = new SerializedObject(generator);
+
+                HashSet<string> ReadPalette(string roadProperty, string interactionProperty)
+                {
+                    var palette = new HashSet<string>();
+                    foreach (string propertyName in new[] { roadProperty, interactionProperty })
+                    {
+                        SerializedProperty property = serialized.FindProperty(propertyName);
+                        Assert.That(property, Is.Not.Null, propertyName);
+                        for (int i = 0; i < property.arraySize; i++)
+                            palette.Add(property.GetArrayElementAtIndex(i).stringValue);
+                    }
+                    return palette;
+                }
+
+                HashSet<string> actOne = ReadPalette(
+                    "actOneRoadTextureNames",
+                    "actOneInteractionTextureNames");
+                HashSet<string> actTwo = ReadPalette(
+                    "actTwoRoadTextureNames",
+                    "actTwoInteractionTextureNames");
+                HashSet<string> actThree = ReadPalette(
+                    "actThreeRoadTextureNames",
+                    "actThreeInteractionTextureNames");
+
+                Assert.That(actOne.Overlaps(actTwo), Is.False, "Act 1 and Act 2 share visible floor art.");
+                Assert.That(actOne.Overlaps(actThree), Is.False, "Act 1 and Act 3 share visible floor art.");
+                Assert.That(actTwo.Overlaps(actThree), Is.False, "Act 2 and Act 3 share visible floor art.");
+
+                var allTiles = new HashSet<string>(actOne);
+                allTiles.UnionWith(actTwo);
+                allTiles.UnionWith(actThree);
+                Assert.That(allTiles, Has.Count.EqualTo(18));
+                foreach (string tileName in allTiles)
+                {
+                    Assert.That(
+                        Resources.Load<Texture2D>($"ClockworkTimekeeper/HexTiles/City/{tileName}"),
+                        Is.Not.Null,
+                        tileName);
+                }
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
         public void PokerGrowthPathsUseDedicatedCardArtwork()
         {
             Type presentation = Type.GetType("CardBattle.PokerCardPresentation, Assembly-CSharp");
@@ -1547,19 +1603,27 @@ namespace FFSS.Framework.Tests
             Assert.That(loadBaseArtwork, Is.Not.Null);
             Assert.That(loadRunArtwork, Is.Not.Null);
 
-            string[] cardIds =
-            {
-                "poker.spade.01",
-                "poker.heart.13",
-                "poker.joker.red",
-                "poker.joker.black"
-            };
+            RunDefinition definition = AssetDatabase.LoadAssetAtPath<RunDefinition>(
+                "Assets/Data/Framework/DefaultRunDefinition.asset");
+            Assert.That(definition, Is.Not.Null);
+            RunState run = definition.CreateState(380054);
+            Assert.That(run.pokerDeck.cards, Has.Count.EqualTo(54));
             CardGrowthPath[] paths = { CardGrowthPath.TimeAwakened, CardGrowthPath.Reverse };
 
-            foreach (string cardId in cardIds)
+            foreach (RunCardState sourceCard in run.pokerDeck.cards)
             {
+                string cardId = sourceCard.cardId;
+                Assert.That(PokerRunDeckRules.TryGetSpriteToken(cardId, out string token), Is.True, cardId);
+                Assert.That(PokerRunDeckRules.TryGetCardId(token, out string roundTripId), Is.True, cardId);
+                Assert.That(roundTripId, Is.EqualTo(cardId), cardId);
+
                 Sprite baseArtwork = loadBaseArtwork.Invoke(null, new object[] { cardId }) as Sprite;
                 Assert.That(baseArtwork, Is.Not.Null, cardId);
+
+                bool naturallyRed = cardId.StartsWith("poker.heart.", StringComparison.Ordinal) ||
+                                    cardId.StartsWith("poker.diamond.", StringComparison.Ordinal) ||
+                                    cardId == "poker.joker.red";
+                Assert.That(PokerRunDeckRules.IsEffectivelyRed(sourceCard), Is.EqualTo(naturallyRed), cardId);
                 foreach (CardGrowthPath path in paths)
                 {
                     var card = new RunCardState($"test.{cardId}", cardId)
@@ -1570,6 +1634,15 @@ namespace FFSS.Framework.Tests
                     Sprite artwork = loadRunArtwork.Invoke(null, new object[] { card }) as Sprite;
                     Assert.That(artwork, Is.Not.Null, $"{cardId} / {path}");
                     Assert.That(artwork, Is.Not.SameAs(baseArtwork), $"{cardId} / {path}");
+
+                    bool isStandardCard = cardId != "poker.joker.red" && cardId != "poker.joker.black";
+                    bool expectedRed = path == CardGrowthPath.Reverse && isStandardCard
+                        ? !naturallyRed
+                        : naturallyRed;
+                    Assert.That(
+                        PokerRunDeckRules.IsEffectivelyRed(card),
+                        Is.EqualTo(expectedRed),
+                        $"{cardId} / {path}");
                 }
             }
 
@@ -2182,6 +2255,83 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.maximumHp, Is.EqualTo(planned.hp), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.EqualTo(planned.pressure), encounter.enemyId);
                 Assert.That(encounter.ruleRuntime.kind, Is.EqualTo(planned.rule), encounter.enemyId);
+            }
+        }
+
+        [Test]
+        public void EveryProductionEnemyGimmickChangesItsTriggeredExchange()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            Assert.That(guids, Has.Length.EqualTo(17));
+
+            foreach (string guid in guids)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                var state = new EnemyRuleState { phase = 1, turnNumber = 1 };
+                int triggerMeter = encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.FinalCountdown
+                    ? encounter.ruleMeter.minimumValue
+                    : encounter.ruleMeter.maximumValue;
+                state.SetCounter(encounter.ruleMeter.stateKey, triggerMeter);
+
+                var context = new EnemyRuleExchangeContext
+                {
+                    playerAction = CombatActionType.Attack,
+                    enemyAction = CombatActionType.Attack,
+                    playerHand = EnemyRuleHandKind.OnePair,
+                    playerHandTier = 2,
+                    trackedCardCount = 2,
+                    targetedCardCount = 2
+                };
+
+                switch (encounter.ruleRuntime.kind)
+                {
+                    case EnemyRuleBehaviorKind.ReadRepeatedAction:
+                        state.SetCounter("rule.read.action", (int)context.playerAction);
+                        break;
+                    case EnemyRuleBehaviorKind.RedrawRisk:
+                        state.SetCounter(encounter.ruleMeter.stateKey, Math.Max(4, triggerMeter));
+                        break;
+                    case EnemyRuleBehaviorKind.UniqueActionCycle:
+                        state.SetFlag("rule.cycle.reward.ready", true);
+                        break;
+                    case EnemyRuleBehaviorKind.CardPoison:
+                        context.poisonedCardCount = 2;
+                        break;
+                    case EnemyRuleBehaviorKind.CardSeal:
+                        context.sealedCardCount = 2;
+                        break;
+                    case EnemyRuleBehaviorKind.LowHandReversal:
+                        context.playerHand = EnemyRuleHandKind.HighCard;
+                        break;
+                    case EnemyRuleBehaviorKind.SuitWheel:
+                        int sealedSuit = triggerMeter % 4;
+                        context.spadeCount = sealedSuit == 0 ? 2 : 0;
+                        context.heartCount = sealedSuit == 1 ? 2 : 0;
+                        context.clubCount = sealedSuit == 2 ? 2 : 0;
+                        context.diamondCount = sealedSuit == 3 ? 2 : 0;
+                        break;
+                    case EnemyRuleBehaviorKind.GwangHeat:
+                        context.enemyAction = CombatActionType.Defend;
+                        break;
+                }
+
+                EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, context);
+
+                bool changed = context.playerPowerDelta != 0 ||
+                               context.playerBreakDelta != 0 ||
+                               context.enemyPowerDelta != 0 ||
+                               context.enemyBreakDelta != 0 ||
+                               context.enemyPowerFloor != 0 ||
+                               context.directDamageToPlayer != 0 ||
+                               context.directDamageToEnemy != 0 ||
+                               context.directPressureToEnemy != 0 ||
+                               !Mathf.Approximately(context.pressureToPlayerMultiplier, 1f) ||
+                               context.enemyPowerVisibilityRange != 0 ||
+                               !string.IsNullOrWhiteSpace(context.ruleNote);
+                Assert.That(changed, Is.True, $"{encounter.enemyId} / {encounter.ruleRuntime.kind}");
             }
         }
 

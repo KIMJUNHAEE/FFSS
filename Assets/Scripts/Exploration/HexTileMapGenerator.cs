@@ -46,19 +46,18 @@ namespace CardBattle.Exploration
         {
             "hex_city_01_basic",
             "hex_city_02_ruined_homes",
-            "hex_city_07_rain",
-            "hex_city_08_scorched",
-            "hex_city_09_rubble",
+            "hex_city_03_heart",
+            "hex_city_04_spade",
+            "hex_city_05_diamond",
+            "hex_city_06_club",
             "hex_city_13_market",
         };
         [SerializeField]
         private string[] actTwoRoadTextureNames =
         {
-            "hex_city_01_basic",
             "hex_city_07_rain",
-            "hex_city_11_kintsugi",
             "hex_city_12_moss",
-            "hex_city_13_market",
+            "hex_city_14_shrine",
             "hex_city_15_workshop",
         };
         [SerializeField]
@@ -82,8 +81,8 @@ namespace CardBattle.Exploration
         [SerializeField]
         private string[] actTwoInteractionTextureNames =
         {
-            "hex_city_05_diamond",
-            "hex_city_06_club",
+            "hex_city_07_rain",
+            "hex_city_12_moss",
             "hex_city_14_shrine",
             "hex_city_15_workshop",
         };
@@ -91,7 +90,7 @@ namespace CardBattle.Exploration
         private string[] actThreeInteractionTextureNames =
         {
             "hex_city_10_time_crack",
-            "hex_city_14_shrine",
+            "hex_city_11_kintsugi",
             "hex_city_16_clock",
             "hex_city_18_blockade",
         };
@@ -278,7 +277,10 @@ namespace CardBattle.Exploration
                 }
                 else if (districtRoadTextures.Length > 0)
                 {
-                    texture = districtRoadTextures[ChooseDistrictTextureIndex(cells[i], districtRoadTextures.Length)];
+                    texture = districtRoadTextures[ChooseDistrictTextureIndex(
+                        cells[i],
+                        i,
+                        districtRoadTextures.Length)];
                 }
                 else
                 {
@@ -1230,7 +1232,7 @@ namespace CardBattle.Exploration
             }
         }
 
-        private static int ChooseDistrictTextureIndex(Vector2Int cell, int textureCount)
+        private static int ChooseDistrictTextureIndex(Vector2Int cell, int order, int textureCount)
         {
             if (textureCount <= 0)
                 return 0;
@@ -1239,7 +1241,8 @@ namespace CardBattle.Exploration
             int districtY = Mathf.FloorToInt(cell.y / 3f);
             unchecked
             {
-                int hash = districtX * 73856093 ^ districtY * 19349663;
+                int progressionBand = Mathf.Max(0, order / 6);
+                int hash = districtX * 73856093 ^ districtY * 19349663 ^ progressionBand * 83492791;
                 return (int)((uint)hash % (uint)textureCount);
             }
         }
