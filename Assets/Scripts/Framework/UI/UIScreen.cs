@@ -21,7 +21,8 @@ namespace FFSS.Framework.UI
         ActTransition,
         RunStatus,
         Options,
-        Result
+        Result,
+        Inventory
     }
 
     [RequireComponent(typeof(CanvasGroup))]

@@ -30,6 +30,14 @@ namespace CardBattle.EditorTools
         public static void SetObjectReference(UnityEngine.Object target, string fieldName, UnityEngine.Object value) =>
             WithProperty(target, fieldName, prop => prop.objectReferenceValue = value);
 
+        public static void SetObjectReferenceArray(UnityEngine.Object target, string fieldName, UnityEngine.Object[] values) =>
+            WithProperty(target, fieldName, prop =>
+            {
+                prop.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            });
+
         private static void WithProperty(UnityEngine.Object target, string fieldName, Action<SerializedProperty> assign)
         {
             var serializedObject = new SerializedObject(target);

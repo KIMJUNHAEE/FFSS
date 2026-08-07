@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle.EditorTools;
+using CardBattle.Inventory;
 using CardBattle.UI;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
@@ -93,7 +95,9 @@ namespace FFSS.Editor
                         ? BuildTransparentCombat(spec)
                         : spec.Id == UIScreenId.Break
                             ? BuildBreakOverlay(spec)
-                            : BuildStandardScreen(spec);
+                            : spec.Id == UIScreenId.Inventory
+                                ? BuildInventoryScreen(spec)
+                                : BuildStandardScreen(spec);
                 created[spec.Id] = prefab.GetComponent<UIScreen>();
             }
 
@@ -174,6 +178,7 @@ namespace FFSS.Editor
                 new ScreenSpec(UIScreenId.FieldHud, "FieldHudScreen", "제1막", "북문 패거리", "041_hud_player_normal", 3, UILayer.Overlay, true),
                 new ScreenSpec(UIScreenId.FieldMap, "FieldMapScreen", "필드 지도", "발견한 길과 목적지", "084_panel_event", 5, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Equipment, "EquipmentScreen", "장비", "네 개의 장비 슬롯", "085_panel_card_select", 4, UILayer.Modal, true),
+                new ScreenSpec(UIScreenId.Inventory, "InventoryScreen", "소지품", "주운 물건과 재료", "", 0, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Shop, "ShopScreen", "떠돌이 패상", "이번 상점의 재고", "082_panel_shop", 5, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.CardWorkshop, "CardWorkshopScreen", "카드 공방", "연마 · 시간 각성 · 역행", "085_panel_card_select", 6, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.Event, "EventScreen", "갈림길", "선택은 다음 판까지 남는다", "084_panel_event", 3, UILayer.Modal, false),
@@ -400,6 +405,8 @@ namespace FFSS.Editor
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });
             }
 
+            build.Root.AddComponent<InventoryHotkey>();
+
             ConfigureController(build);
             return Save(build.Root, spec.Path);
         }
@@ -460,6 +467,164 @@ namespace FFSS.Editor
             build.PrimaryLabel = label;
             ConfigureController(build);
             return Save(build.Root, spec.Path);
+        }
+
+        // 사용자가 준 인벤토리 배경 아트(Assets/Player/인벤토리UI.png, 1536x1024)에 칸이 이미 그려져
+        // 있어서, 그 위에 정확히 겹치도록 각 칸의 픽셀 좌표를 Python/PIL로 측정해 하드코딩함
+        // (ClockworkTimekeeperSetup의 구 데모 씬 인벤토리와 같은 아트/측정값 - 프로토타입 전용
+        // 파이프라인에 대한 의존을 만들지 않으려고 여기 따로 둠. 아트가 바뀌면 다시 측정해야 함.)
+        private const string InventoryArtPath = "Assets/Player/인벤토리UI.png";
+        private const float InventoryArtWidthPx = 1536f;
+        private const float InventoryArtHeightPx = 1024f;
+        private const string PlayerIdleFramesDir = "Assets/Player/플레이어_Idle";
+        private const float PortraitFrameRate = 8f;
+        private static readonly Rect InventoryPortraitPx = Rect.MinMaxRect(171f, 89f, 514f, 691f);
+        private const float InventoryEquipTopPx = 714f;
+        private const float InventoryEquipBottomPx = 806f;
+        private const float InventoryEquipStartXPx = 165f;
+        private const float InventoryEquipStepXPx = 92f;
+        private const float InventoryEquipWidthPx = 74f;
+        private const int InventoryEquipCount = 4;
+        private const int InventoryGridCols = 6;
+        private const int InventoryGridRows = 5;
+        private const float InventoryGridColStartPx = 602f;
+        private const float InventoryGridColStepPx = 125.2f;
+        private const float InventoryGridCellWidthPx = 114f;
+        private const float InventoryGridRowStartPx = 229f;
+        private const float InventoryGridRowStepPx = 127f;
+        private const float InventoryGridCellHeightPx = 116f;
+
+        // 인벤토리 UI/스택 시스템 확인용 테스트 아이템 - Assets/Data/Items의 기존 ItemData를 그대로
+        // 불러다 쓴다(생성은 여기서 하지 않음).
+        private static readonly (string id, int startCount)[] InventoryDummyStacks =
+        {
+            ("gear", 5),
+            ("spring", 3),
+            ("gem", 1),
+            ("potion", 2),
+            ("map", 1),
+        };
+
+        private static GameObject BuildInventoryScreen(ScreenSpec spec)
+        {
+            ScreenBuild build = CreateRoot(spec);
+
+            Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.82f));
+            Stretch(dim.rectTransform);
+
+            // 아트 원본 비율(1536:1024)을 유지한 채 최대 크기로 맞춘다 - 창 비율이 16:9가 아니어도
+            // 찌그러지지 않음 (CardBattleSetup.CreatePanel의 앵커-비율 방식이 CanvasScaler 하에서도
+            // 안전한 이유는 ClockworkTimekeeperSetup 참고).
+            Image bounds = CardBattleSetup.CreatePanel("Inventory Bounds", build.Root.transform,
+                new Vector2(0.08f, 0.06f), new Vector2(0.92f, 0.94f), Color.clear);
+            AspectRatioFitter fitter = bounds.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = InventoryArtWidthPx / InventoryArtHeightPx;
+
+            Image panel = CardBattleSetup.CreatePanel("Panel Art", bounds.transform, Vector2.zero, Vector2.one, Color.white);
+            panel.sprite = SpriteAt(InventoryArtPath);
+            if (panel.sprite == null)
+                Debug.LogWarning($"[ProductionUIScreenBuilder] 인벤토리 배경 아트를 찾지 못했습니다: {InventoryArtPath}");
+
+            InventorySlidePanel slide = build.Root.AddComponent<InventorySlidePanel>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slide, "panel", bounds.rectTransform);
+
+            BuildInventoryPortrait(panel.transform);
+            for (int i = 0; i < InventoryEquipCount; i++)
+            {
+                Rect slotPx = new(InventoryEquipStartXPx + i * InventoryEquipStepXPx, InventoryEquipTopPx,
+                    InventoryEquipWidthPx, InventoryEquipBottomPx - InventoryEquipTopPx);
+                BuildInventorySlot($"EquipSlot_{i}", panel.transform, slotPx);
+            }
+
+            var slotViews = new InventorySlotView[InventoryGridCols * InventoryGridRows];
+            int slotIndex = 0;
+            for (int row = 0; row < InventoryGridRows; row++)
+            for (int col = 0; col < InventoryGridCols; col++)
+            {
+                Rect cellPx = new(InventoryGridColStartPx + col * InventoryGridColStepPx,
+                    InventoryGridRowStartPx + row * InventoryGridRowStepPx,
+                    InventoryGridCellWidthPx, InventoryGridCellHeightPx);
+                slotViews[slotIndex++] = BuildInventorySlot($"Slot_{row}_{col}", panel.transform, cellPx);
+            }
+
+            var modelGO = new GameObject("InventoryModel", typeof(InventoryModel));
+            modelGO.transform.SetParent(build.Root.transform, false);
+            InventoryModel model = modelGO.GetComponent<InventoryModel>();
+            SetInventoryStartingStacks(model);
+
+            var refresherGO = new GameObject("InventoryGridRefresher", typeof(InventoryGridRefresher));
+            refresherGO.transform.SetParent(build.Root.transform, false);
+            InventoryGridRefresher refresher = refresherGO.GetComponent<InventoryGridRefresher>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(refresher, "model", model);
+            ClockworkTimekeeperEditorUtils.SetObjectReferenceArray(refresher, "slotViews", slotViews);
+
+            return Save(build.Root, spec.Path);
+        }
+
+        /// <summary>좌측에 미리 그려진 직사각형 자리에 플레이어 idle 애니메이션을 채워 넣는다.</summary>
+        private static void BuildInventoryPortrait(Transform panelTransform)
+        {
+            Image portrait = InventoryArtRect("Portrait", panelTransform, InventoryPortraitPx, Color.white);
+            portrait.preserveAspect = true;
+
+            List<Sprite> idleFrames = CardBattleSetup.LoadSpriteFolder(PlayerIdleFramesDir);
+            if (idleFrames.Count > 0)
+            {
+                SpriteFlipbook flipbook = portrait.gameObject.AddComponent<SpriteFlipbook>();
+                ClockworkTimekeeperEditorUtils.SetObjectReference(flipbook, "target", portrait);
+                ClockworkTimekeeperEditorUtils.SetObjectReferenceArray(flipbook, "frames", idleFrames.ToArray());
+                ClockworkTimekeeperEditorUtils.SetFloat(flipbook, "frameRate", PortraitFrameRate);
+            }
+            else
+            {
+                portrait.color = new Color(1f, 1f, 1f, 0f);
+                Debug.LogWarning($"[ProductionUIScreenBuilder] 플레이어 idle 프레임을 찾지 못했습니다: {PlayerIdleFramesDir}");
+            }
+        }
+
+        /// <summary>이미지 좌표(px, 왼쪽 위 기준) 사각형을 부모 RectTransform의 앵커 비율로 변환해
+        /// 배치한다 - 부모가 항상 아트와 같은 1536x1024 비율로 맞춰져 있으므로 그대로 나눗셈만 하면 됨.</summary>
+        private static Image InventoryArtRect(string name, Transform parent, Rect pixelRect, Color color)
+        {
+            Vector2 anchorMin = new(pixelRect.xMin / InventoryArtWidthPx, 1f - pixelRect.yMax / InventoryArtHeightPx);
+            Vector2 anchorMax = new(pixelRect.xMax / InventoryArtWidthPx, 1f - pixelRect.yMin / InventoryArtHeightPx);
+            return CardBattleSetup.CreatePanel(name, parent, anchorMin, anchorMax, color);
+        }
+
+        private static InventorySlotView BuildInventorySlot(string name, Transform parent, Rect pixelRect)
+        {
+            Image slotBg = InventoryArtRect(name, parent, pixelRect, Color.clear);
+
+            Image icon = CardBattleSetup.CreatePanel("Icon", slotBg.transform,
+                new Vector2(0.12f, 0.12f), new Vector2(0.88f, 0.88f), Color.white);
+            icon.preserveAspect = true;
+            icon.enabled = false;
+
+            Text countText = CardBattleSetup.CreateText("Count", slotBg.transform,
+                new Vector2(0f, 0f), new Vector2(1f, 0.4f), "", 16, TextAnchor.LowerRight, Color.white);
+
+            InventorySlotView slotView = slotBg.gameObject.AddComponent<InventorySlotView>();
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "icon", icon);
+            ClockworkTimekeeperEditorUtils.SetObjectReference(slotView, "countText", countText);
+            return slotView;
+        }
+
+        private static void SetInventoryStartingStacks(InventoryModel model)
+        {
+            var serializedObject = new SerializedObject(model);
+            SerializedProperty stacks = serializedObject.FindProperty("startingStacks");
+            stacks.arraySize = InventoryDummyStacks.Length;
+            for (int i = 0; i < InventoryDummyStacks.Length; i++)
+            {
+                ItemData item = AssetDatabase.LoadAssetAtPath<ItemData>($"Assets/Data/Items/{InventoryDummyStacks[i].id}.asset");
+                SerializedProperty element = stacks.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("item").objectReferenceValue = item;
+                element.FindPropertyRelative("count").intValue = InventoryDummyStacks[i].startCount;
+            }
+
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(model);
         }
 
         private static ScreenBuild CreateRoot(ScreenSpec spec)
