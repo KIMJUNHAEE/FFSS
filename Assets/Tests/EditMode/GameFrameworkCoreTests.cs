@@ -568,6 +568,15 @@ namespace FFSS.Framework.Tests
             Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
+            SceneFlowManager sceneFlow = prefab.GetComponentInChildren<SceneFlowManager>(true);
+            Assert.That(sceneFlow, Is.Not.Null);
+            SceneTransitionView transition = new SerializedObject(sceneFlow)
+                .FindProperty("transitionView").objectReferenceValue as SceneTransitionView;
+            Assert.That(transition, Is.Not.Null);
+            Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(transition.gameObject), Is.Not.Null);
+            Assert.That(transition.transform.Find("Curtain"), Is.Not.Null);
+            Assert.That(transition.transform.Find("Transition Banner"), Is.Not.Null);
+            Assert.That(transition.transform.Find("Message"), Is.Not.Null);
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
