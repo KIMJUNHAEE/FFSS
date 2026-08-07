@@ -417,7 +417,7 @@ namespace CardBattle.UI
                     string label = PokerCardPresentation.DisplayName(card.cardId);
                     string detail = $"카드 연마 +{card.enhancementLevel} → +{card.enhancementLevel + 1}";
                     SetAction(i, label, detail, true);
-                    SetActionArtwork(i, PokerCardPresentation.LoadArtwork(card.cardId), label,
+                    SetActionArtwork(i, PokerCardPresentation.LoadArtwork(card), label,
                         $"{detail}\n\n{PokerCardPresentation.Detail(card)}");
                 }
                 else
@@ -765,7 +765,7 @@ namespace CardBattle.UI
                     Show(UIScreenId.FieldMap);
                     break;
                 case 1:
-                    InventoryScreenController.Open();
+                    Show(UIScreenId.Equipment);
                     break;
                 case 2:
                     Show(UIScreenId.RunStatus);
@@ -1049,10 +1049,7 @@ namespace CardBattle.UI
 
         private static void SetText(Text target, string value)
         {
-            if (target != null)
-            {
-                target.text = value ?? string.Empty;
-            }
+            CardBattle.KeywordTooltipSource.Apply(target, value);
         }
 
         private static void SetGauge(Slider target, int current, int maximum)

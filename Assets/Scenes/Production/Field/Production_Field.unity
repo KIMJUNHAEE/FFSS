@@ -474,8 +474,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.QuarterViewCameraFollow
   target: {fileID: 503973407}
-  offset: {x: 0, y: 5.8, z: -9.5}
-  lookAtOffset: {x: 0, y: 0.8, z: 0}
+  offset: {x: 0, y: 5.15, z: -8.7}
+  lookAtOffset: {x: 0, y: 0.55, z: 0}
   positionDamping: 10
   rotationDamping: 12
   followTargetVertical: 0
@@ -567,7 +567,7 @@ Camera:
   far clip plane: 100
   field of view: 60
   orthographic: 1
-  orthographic size: 5.8
+  orthographic size: 5.25
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -591,13 +591,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1457999027}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23987682, y: 0, z: 0, w: 0.9708033}
-  m_LocalPosition: {x: 0, y: 5.8, z: -9.5}
+  m_LocalRotation: {x: 0.24076, y: 0, z: 0, w: 0.970585}
+  m_LocalPosition: {x: 0, y: 5.15, z: -8.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 27.758541, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 27.87, y: 0, z: 0}
 --- !u!114 &1562309198
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1427,6 +1427,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.HexTileMapGenerator
   tileResourceFolder: ClockworkTimekeeper/HexTiles
   plainRoadTextureName: hex_plain_road
+  cityTileResourceFolder: ClockworkTimekeeper/HexTiles/City
+  actOneRoadTextureNames:
+  - hex_city_01_basic
+  - hex_city_02_ruined_homes
+  - hex_city_07_rain
+  - hex_city_08_scorched
+  - hex_city_09_rubble
+  - hex_city_13_market
+  actTwoRoadTextureNames:
+  - hex_city_01_basic
+  - hex_city_07_rain
+  - hex_city_11_kintsugi
+  - hex_city_12_moss
+  - hex_city_13_market
+  - hex_city_15_workshop
+  actThreeRoadTextureNames:
+  - hex_city_08_scorched
+  - hex_city_09_rubble
+  - hex_city_10_time_crack
+  - hex_city_11_kintsugi
+  - hex_city_17_ash
+  - hex_city_18_blockade
+  actOneInteractionTextureNames:
+  - hex_city_03_heart
+  - hex_city_04_spade
+  - hex_city_05_diamond
+  - hex_city_06_club
+  actTwoInteractionTextureNames:
+  - hex_city_05_diamond
+  - hex_city_06_club
+  - hex_city_14_shrine
+  - hex_city_15_workshop
+  actThreeInteractionTextureNames:
+  - hex_city_10_time_crack
+  - hex_city_14_shrine
+  - hex_city_16_clock
+  - hex_city_18_blockade
   interactionTextureNames:
   - hex_heart_plaza
   - hex_spade_plaza
@@ -1436,8 +1473,8 @@ MonoBehaviour:
   tileY: -0.03
   plainRoadMeshScale: 1
   interactionMeshScale: 1
-  plainRoadUvPadding: 0.04
-  interactionUvPadding: 0.04
+  plainRoadUvPadding: 0
+  interactionUvPadding: 0
   tileMaterialTemplate: {fileID: 2100000, guid: 53b7053b7be35a840978e692168639dd, type: 2}
   randomSeed: 1701
   targetTileCount: 40
@@ -1493,6 +1530,34 @@ MonoBehaviour:
     displayName: "\uC7A5\uD130 \uC57D\uBC29"
     sprite: {fileID: 21300000, guid: 3e8042dabad4cca4f8389ddb9ddd9a92, type: 3}
     targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 0
+    variant: 3
+    displayName: "\uD68C\uBCF5 \uC57D\uBC29"
+    sprite: {fileID: 21300000, guid: 5478f6e319aa9724db6a245abf372283, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 0
+    variant: 4
+    displayName: "\uC2DC\uACC4 \uACE8\uBAA9"
+    sprite: {fileID: 21300000, guid: 78f3481b2936d6049a7e83cfa74c0b2b, type: 3}
+    targetHeight: 3.65
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 0
+    variant: 5
+    displayName: "\uB124\uBB34\uB2AC \uC2E0\uC0AC"
+    sprite: {fileID: 21300000, guid: aa2d850bf40bf09488ab850971a2be26, type: 3}
+    targetHeight: 3.55
+    localOffset: {x: 0, y: 0}
+  - act: 1
+    contentType: 0
+    variant: 6
+    displayName: "\uAC00\uBA74 \uB3C4\uBC15\uC7A5"
+    sprite: {fileID: 21300000, guid: 0ac0201c86f6a714ab97d48c3f8f07fc, type: 3}
+    targetHeight: 3.55
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 1
@@ -1577,6 +1642,34 @@ MonoBehaviour:
     displayName: "\uAD00\uC544 \uCC3D\uACE0"
     sprite: {fileID: 21300000, guid: 8752e20a236973c4585b83eb04642fca, type: 3}
     targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 3
+    displayName: "\uC2DC\uC7A5 \uC0C1\uC810"
+    sprite: {fileID: 21300000, guid: e96696f5a12cff24d86b7e9c276d230f, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 4
+    displayName: "\uAE08\uC18D \uACF5\uBC29"
+    sprite: {fileID: 21300000, guid: 5ea77e544e96e834eba5aecbf2aaf481, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 5
+    displayName: "\uB3C4\uC2DC \uCE58\uB8CC\uC18C"
+    sprite: {fileID: 21300000, guid: 11895cdf249b64948b4a9e3b8d748aef, type: 3}
+    targetHeight: 3.5
+    localOffset: {x: 0, y: 0}
+  - act: 2
+    contentType: 0
+    variant: 6
+    displayName: "\uAE08\uACE0 \uC740\uD589"
+    sprite: {fileID: 21300000, guid: bc6476536fa5d6946b6dd48fc461a5af, type: 3}
+    targetHeight: 3.6
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 1
@@ -1675,6 +1768,34 @@ MonoBehaviour:
     displayName: "\uC554\uD589\uC5B4\uC0AC \uAC80\uC740 \uAD00\uC544"
     sprite: {fileID: 21300000, guid: fb5715c8fca940f4cba2a1f977c3aabd, type: 3}
     targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 3
+    displayName: "\uD3EC\uCEE4 \uCE74\uC9C0\uB178"
+    sprite: {fileID: 21300000, guid: 5fa63dcafed003645914db965e822237, type: 3}
+    targetHeight: 3.55
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 4
+    displayName: "\uBD95\uAD34 \uC8FC\uD0DD"
+    sprite: {fileID: 21300000, guid: 4bfb7dcbb33421841a1aa8f4ac7a783f, type: 3}
+    targetHeight: 3.35
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 5
+    displayName: "\uD328\uC2DC\uACC4 \uC815\uAC70\uC7A5"
+    sprite: {fileID: 21300000, guid: 7149b41ee4ba4c54cbf0a38705af5ba4, type: 3}
+    targetHeight: 3.45
+    localOffset: {x: 0, y: 0}
+  - act: 3
+    contentType: 0
+    variant: 6
+    displayName: "\uBD89\uC740\uB2EC \uCCAD\uC0AC"
+    sprite: {fileID: 21300000, guid: a6876aacc2dce124a9d9097501f0ac43, type: 3}
+    targetHeight: 3.7
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 1

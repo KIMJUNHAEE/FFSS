@@ -42,7 +42,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec0f10f5ad197af4a8db6a21cfd360ca, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Combat.EnemyRuleManager
   initializationOrder: -150
 --- !u!1 &797056175282437661
@@ -56,6 +56,7 @@ GameObject:
   - component: {fileID: 1212280368425730850}
   - component: {fileID: 1043136626630917560}
   - component: {fileID: 6407072163723379285}
+  - component: {fileID: 3285896165985081974}
   m_Layer: 0
   m_Name: GameKernel
   m_TagString: Untagged
@@ -118,6 +119,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.LegacyCombatRuntimeAdapter
   battleMusicCue: bgm.battle
   musicFadeSeconds: 0.55
+--- !u!114 &3285896165985081974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 797056175282437661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7a3215e7c1821c4e8c27b7ffbe1b9d9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: FFSS.Framework::FFSS.Framework.Core.VisualQualityController
+  targetQualityLevel: 4
+  applyQualityLevelAtStartup: 1
+  preserveFullTextureResolution: 1
+  forceAnisotropicFiltering: 1
+  pixelPerfectScreenSpaceCanvases: 1
+  forceNativeRenderScale: 1
 --- !u!1 &816184471697589853
 GameObject:
   m_ObjectHideFlags: 0
@@ -1920,7 +1939,7 @@ Canvas:
   m_RenderMode: 0
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -2884,6 +2903,10 @@ PrefabInstance:
     - target: {fileID: 7786331528096969843, guid: b191c0569f384594e90f593425381846, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8783556474472540659, guid: b191c0569f384594e90f593425381846, type: 3}
+      propertyPath: m_PixelPerfect
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

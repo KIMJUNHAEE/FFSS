@@ -52,6 +52,38 @@ namespace CardBattle
             return Resources.Load<Sprite>($"Cards/AscendantPoker/{token}");
         }
 
+        public static Sprite LoadArtwork(RunCardState card)
+        {
+            if (card == null || !PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
+                return null;
+
+            string folder = "AscendantPoker";
+            string artworkToken = token;
+            if (card.growthPath == CardGrowthPath.TimeAwakened)
+            {
+                folder = "TimeAwakenedPoker";
+                artworkToken = token switch
+                {
+                    "X-R" => "X-R",
+                    "X-B" => "X-B",
+                    _ => token
+                };
+            }
+            else if (card.growthPath == CardGrowthPath.Reverse)
+            {
+                folder = "ReversePoker";
+                artworkToken = token switch
+                {
+                    "X-R" => "X-R",
+                    "X-B" => "X-B",
+                    _ => token
+                };
+            }
+
+            Sprite artwork = Resources.Load<Sprite>($"Cards/{folder}/{artworkToken}");
+            return artwork != null ? artwork : LoadArtwork(card.cardId);
+        }
+
         public static string Detail(RunCardState card)
         {
             if (card == null)
@@ -62,11 +94,11 @@ namespace CardBattle
                 : "검은 문양: 방어 수치에 기여";
             string growth = card.growthPath switch
             {
-                CardGrowthPath.TimeAwakened => "성장: 시간 각성",
-                CardGrowthPath.Reverse => "성장: 반전",
+                CardGrowthPath.TimeAwakened => "성장: 시간 각성 · 전용 원화 적용",
+                CardGrowthPath.Reverse => "성장: 반전 · 전용 원화 적용",
                 _ => "성장 방향 미선택"
             };
-            return $"{colorRule}\n연마 +{card.enhancementLevel}\n{growth}\n성장 후에도 카드 원화는 유지돼.";
+            return $"{colorRule}\n연마 +{card.enhancementLevel}\n{growth}";
         }
     }
 }

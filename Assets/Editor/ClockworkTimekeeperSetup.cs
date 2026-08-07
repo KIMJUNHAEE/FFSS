@@ -54,8 +54,8 @@ namespace CardBattle.EditorTools
         private const string WalkStateName = "Walk";
         private const float WalkSpeedThreshold = 0.05f;
         private const float TransitionDuration = 0.12f;
-        private static readonly Vector3 CameraOffset = new(0f, 5.8f, -9.5f);
-        private static readonly Vector3 CameraLookAtOffset = new(0f, 0.8f, 0f);
+        private static readonly Vector3 CameraOffset = new(0f, 5.15f, -8.7f);
+        private static readonly Vector3 CameraLookAtOffset = new(0f, 0.55f, 0f);
 
         // Production 인벤토리 화면(ProductionUIScreenBuilder)과 같은 ItemData 애셋을 공유한다 -
         // Resources 밑이라야 InventoryModel이 빌드된 플레이어에서도 ItemCatalog.Get()으로 찾을 수 있음.
@@ -618,7 +618,7 @@ namespace CardBattle.EditorTools
 
             Camera camera = cameraObject.GetComponent<Camera>();
             camera.orthographic = true;
-            camera.orthographicSize = 7f;
+            camera.orthographicSize = 5.25f;
             camera.nearClipPlane = 0.1f;
             camera.farClipPlane = 100f;
             camera.clearFlags = CameraClearFlags.SolidColor;

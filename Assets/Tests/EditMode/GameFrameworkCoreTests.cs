@@ -566,6 +566,7 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponent<VisualQualityController>(), Is.Not.Null);
             Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
@@ -598,6 +599,9 @@ namespace FFSS.Framework.Tests
 
             UnityEngine.UI.CanvasScaler scaler = prefab.GetComponentInChildren<UnityEngine.UI.CanvasScaler>(true);
             Assert.That(scaler, Is.Not.Null);
+            Canvas runtimeCanvas = scaler.GetComponent<Canvas>();
+            Assert.That(runtimeCanvas, Is.Not.Null);
+            Assert.That(runtimeCanvas.pixelPerfect, Is.True);
             Assert.That(scaler.uiScaleMode, Is.EqualTo(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize));
             Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1920f, 1080f)));
             Assert.That(scaler.screenMatchMode,
@@ -1156,6 +1160,13 @@ namespace FFSS.Framework.Tests
             try
             {
                 Assert.That(FindInScene(scene, "HexTileMapGenerator"), Is.Not.Null);
+                Component generator = FindInScene(scene, "HexTileMapGenerator");
+                var map = new SerializedObject(generator);
+                Assert.That(map.FindProperty("cityTileResourceFolder").stringValue,
+                    Is.EqualTo("ClockworkTimekeeper/HexTiles/City"));
+                Assert.That(map.FindProperty("actOneRoadTextureNames").arraySize, Is.GreaterThanOrEqualTo(6));
+                Assert.That(map.FindProperty("plainRoadUvPadding").floatValue, Is.Zero);
+                Assert.That(map.FindProperty("interactionUvPadding").floatValue, Is.Zero);
                 Component distributor = FindInScene(scene, "FieldEncounterDistributor");
                 Assert.That(distributor, Is.Not.Null);
                 var serialized = new SerializedObject(distributor);
@@ -1177,6 +1188,86 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/GameFlowDefinition.asset");
             Assert.That(flow.Allows(GameFlowState.Boot, GameFlowState.Field), Is.True);
             Assert.That(flow.Allows(GameFlowState.Reward, GameFlowState.ActTransition), Is.True);
+        }
+
+        [Test]
+        public void PokerGrowthPathsUseDedicatedCardArtwork()
+        {
+            Type presentation = Type.GetType("CardBattle.PokerCardPresentation, Assembly-CSharp");
+            Assert.That(presentation, Is.Not.Null);
+            MethodInfo loadBaseArtwork = presentation.GetMethod(
+                "LoadArtwork",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(string) },
+                null);
+            MethodInfo loadRunArtwork = presentation.GetMethod(
+                "LoadArtwork",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(RunCardState) },
+                null);
+            Assert.That(loadBaseArtwork, Is.Not.Null);
+            Assert.That(loadRunArtwork, Is.Not.Null);
+
+            string[] cardIds =
+            {
+                "poker.spade.01",
+                "poker.heart.13",
+                "poker.joker.red",
+                "poker.joker.black"
+            };
+            CardGrowthPath[] paths = { CardGrowthPath.TimeAwakened, CardGrowthPath.Reverse };
+
+            foreach (string cardId in cardIds)
+            {
+                Sprite baseArtwork = loadBaseArtwork.Invoke(null, new object[] { cardId }) as Sprite;
+                Assert.That(baseArtwork, Is.Not.Null, cardId);
+                foreach (CardGrowthPath path in paths)
+                {
+                    var card = new RunCardState($"test.{cardId}", cardId)
+                    {
+                        enhancementLevel = 1,
+                        growthPath = path
+                    };
+                    Sprite artwork = loadRunArtwork.Invoke(null, new object[] { card }) as Sprite;
+                    Assert.That(artwork, Is.Not.Null, $"{cardId} / {path}");
+                    Assert.That(artwork, Is.Not.SameAs(baseArtwork), $"{cardId} / {path}");
+                }
+            }
+
+            Assert.That(Resources.LoadAll<Sprite>("Cards/TimeAwakenedPoker"), Has.Length.EqualTo(54));
+            Assert.That(Resources.LoadAll<Sprite>("Cards/ReversePoker"), Has.Length.EqualTo(54));
+        }
+
+        [Test]
+        public void GameTermsUseReadableRichTextAndPrefabTooltip()
+        {
+            const string description = "약점 관통 뒤 카드를 예약하고, 다음 턴에 회수한다.";
+            Type glossary = Type.GetType("CardBattle.GameTermGlossary, Assembly-CSharp");
+            Type tooltipView = Type.GetType("CardBattle.KeywordTooltipView, Assembly-CSharp");
+            Assert.That(glossary, Is.Not.Null);
+            Assert.That(tooltipView, Is.Not.Null);
+
+            string decorated = glossary.GetMethod("Decorate", BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[] { description }) as string;
+            var terms = glossary.GetMethod("FindTerms", BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[] { description, 4 }) as System.Collections.IEnumerable;
+
+            Assert.That(decorated, Does.Contain("<color=#FFD35A><b>약점 관통</b></color>"));
+            Assert.That(decorated, Does.Contain("<color=#61D7FF><b>예약</b></color>"));
+            Assert.That(terms, Is.Not.Null);
+            var termNames = new List<string>();
+            foreach (object term in terms)
+            {
+                termNames.Add(term.GetType().GetProperty("Term")?.GetValue(term) as string);
+            }
+            Assert.That(termNames, Does.Contain("회수"));
+
+            GameObject tooltip = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Resources/UI/KeywordTooltip.prefab");
+            Assert.That(tooltip, Is.Not.Null);
+            Assert.That(tooltip.GetComponent(tooltipView), Is.Not.Null);
         }
 
         [Test]

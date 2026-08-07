@@ -58,6 +58,7 @@ namespace CardBattle
             title = string.Empty;
             valueLine = string.Empty;
             body = value;
+            ConfigureKeywordTooltip(value);
             RefreshVisibility();
         }
 
@@ -67,6 +68,7 @@ namespace CardBattle
             valueLine = valueLineValue;
             body = bodyValue;
             message = string.Join("\n", titleValue, valueLineValue, bodyValue);
+            ConfigureKeywordTooltip(message);
             RefreshVisibility();
         }
 
@@ -91,11 +93,19 @@ namespace CardBattle
 
         private void RefreshVisibility()
         {
-            if (titleText) titleText.text = title;
-            if (valueText) valueText.text = valueLine;
-            if (bodyText) bodyText.text = body;
-            if (tooltipText && tooltipText != bodyText) tooltipText.text = message;
+            if (titleText) titleText.text = GameTermGlossary.Decorate(title);
+            if (valueText) valueText.text = GameTermGlossary.Decorate(valueLine);
+            if (bodyText) bodyText.text = GameTermGlossary.Decorate(body);
+            if (tooltipText && tooltipText != bodyText) tooltipText.text = GameTermGlossary.Decorate(message);
             SetVisible((eventHovering || rectHovering) && !string.IsNullOrEmpty(message));
+        }
+
+        private void ConfigureKeywordTooltip(string text)
+        {
+            KeywordTooltipSource source = GetComponent<KeywordTooltipSource>();
+            if (source == null && GameTermGlossary.FindTerms(text).Count > 0)
+                source = gameObject.AddComponent<KeywordTooltipSource>();
+            source?.Configure(text);
         }
 
         private void SetVisible(bool visible)

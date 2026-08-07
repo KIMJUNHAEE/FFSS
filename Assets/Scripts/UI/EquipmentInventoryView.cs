@@ -61,6 +61,9 @@ namespace CardBattle
                 button.name = $"Equipment_{item.Id}";
                 if (button.image != null) button.image.sprite = item.Icon;
                 button.onClick.AddListener(() => Select(captured));
+                KeywordTooltipSource source = button.GetComponent<KeywordTooltipSource>();
+                if (source == null) source = button.gameObject.AddComponent<KeywordTooltipSource>();
+                source.Configure($"{item.Description}\n{item.EffectText}");
                 spawnedButtons.Add(button);
             }
         }
@@ -96,6 +99,9 @@ namespace CardBattle
                         var captured = item;
                         binding.button.onClick.RemoveAllListeners();
                         binding.button.onClick.AddListener(() => Select(captured));
+                        KeywordTooltipSource source = binding.button.GetComponent<KeywordTooltipSource>();
+                        if (source == null) source = binding.button.gameObject.AddComponent<KeywordTooltipSource>();
+                        source.Configure($"{item.Description}\n{item.EffectText}");
                     }
                 }
             }
@@ -114,7 +120,7 @@ namespace CardBattle
             if (detailName != null) detailName.text = selected.DisplayName;
             if (detailRarity != null) detailRarity.text = EquipmentCatalog.RarityLabel(selected.Rarity);
             if (detailDescription != null) detailDescription.text = selected.Description;
-            if (detailEffect != null) detailEffect.text = selected.EffectText;
+            KeywordTooltipSource.Apply(detailEffect, selected.EffectText);
             if (equipButton != null)
             {
                 bool equipped = loadout != null && loadout.GetEquipped(selected.Slot)?.Id == selected.Id;

@@ -134,6 +134,63 @@ namespace FFSS.Editor
             Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
         }
 
+        [MenuItem("FFSS/Production/Tune Run UI Text Clarity")]
+        public static void TuneTextClarity()
+        {
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { ScreenRoot });
+            for (int i = 0; i < prefabGuids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+                GameObject root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    Text[] texts = root.GetComponentsInChildren<Text>(true);
+                    for (int textIndex = 0; textIndex < texts.Length; textIndex++)
+                    {
+                        Text text = texts[textIndex];
+                        Outline outline = text.GetComponent<Outline>();
+                        if (outline != null)
+                            outline.effectDistance = new Vector2(1f, -1f);
+
+                        if (path.EndsWith("/FieldHudScreen.prefab", StringComparison.Ordinal))
+                            TuneFieldHudText(text);
+                    }
+
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public static void TuneTextClarityBatch()
+        {
+            TuneTextClarity();
+            EditorApplication.Exit(0);
+        }
+
+        private static void TuneFieldHudText(Text text)
+        {
+            int minimumSize = text.gameObject.name switch
+            {
+                "HP Text" => 16,
+                "Risk" => 15,
+                "Gold" => 20,
+                "Act" => 22,
+                "Region" => 19,
+                "Label" => 16,
+                _ => text.fontSize
+            };
+            text.fontSize = Mathf.Max(text.fontSize, minimumSize);
+            text.resizeTextMaxSize = Mathf.Max(text.resizeTextMaxSize, minimumSize);
+            text.resizeTextMinSize = Mathf.Max(text.resizeTextMinSize, Mathf.Min(13, minimumSize));
+        }
+
         [MenuItem("FFSS/Production/Build Reward Screen")]
         public static void BuildRewardScreen()
         {
@@ -334,7 +391,7 @@ namespace FFSS.Editor
                 "HP Text",
                 playerHud,
                 "HP 104 / 104",
-                13,
+                16,
                 TextAnchor.MiddleCenter,
                 Color.white,
                 new Vector2(226f, 22f),
@@ -355,7 +412,7 @@ namespace FFSS.Editor
                 "Gold",
                 goldPanel,
                 "30냥",
-                17,
+                20,
                 TextAnchor.MiddleCenter,
                 new Color(1f, 0.84f, 0.3f),
                 new Vector2(112f, 28f),
@@ -376,7 +433,7 @@ namespace FFSS.Editor
                 "Act",
                 regionPanel,
                 spec.Heading,
-                19,
+                22,
                 TextAnchor.MiddleLeft,
                 new Color(1f, 0.78f, 0.2f),
                 new Vector2(296f, 26f),
@@ -385,7 +442,7 @@ namespace FFSS.Editor
                 "Region",
                 regionPanel,
                 spec.Subtitle,
-                17,
+                19,
                 TextAnchor.MiddleLeft,
                 Color.white,
                 new Vector2(296f, 26f),
@@ -394,7 +451,7 @@ namespace FFSS.Editor
                 "Risk",
                 regionPanel,
                 string.Empty,
-                13,
+                15,
                 TextAnchor.MiddleLeft,
                 new Color(0.78f, 0.84f, 0.92f),
                 new Vector2(296f, 32f),
@@ -1147,7 +1204,7 @@ namespace FFSS.Editor
             text.raycastTarget = false;
             Outline outline = rect.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.92f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            outline.effectDistance = new Vector2(1f, -1f);
             return text;
         }
 

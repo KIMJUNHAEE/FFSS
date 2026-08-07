@@ -51,6 +51,13 @@ namespace CardBattle.Exploration
             if (!Application.isPlaying || player == null || string.IsNullOrWhiteSpace(nodeId))
                 return;
 
+            if (!GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) ||
+                !runs.HasActiveRun)
+            {
+                return;
+            }
+
             float distance = ExplorationGeometryUtility.PlanarDistance(player.position, transform.position);
             markerView?.SetFocused(distance <= focusRadius);
 
@@ -61,7 +68,7 @@ namespace CardBattle.Exploration
                 return;
             }
 
-            if (GameKernel.IsReady && distance <= focusRadius)
+            if (distance <= focusRadius)
                 GameKernel.Services.Get<RunProgressionManager>().DiscoverNode(nodeId);
 
             if (distance > activationRadius)
@@ -76,7 +83,7 @@ namespace CardBattle.Exploration
                 return;
             }
 
-            if (Time.unscaledTime - enteredAt < activationDelay || !GameKernel.IsReady)
+            if (Time.unscaledTime - enteredAt < activationDelay)
                 return;
 
             OpenContent();
