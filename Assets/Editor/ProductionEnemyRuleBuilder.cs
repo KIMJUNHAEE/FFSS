@@ -160,8 +160,80 @@ namespace FFSS.Editor
             encounter.ruleRuntime.heatAttackThreshold = 3;
             encounter.ruleRuntime.heatFlareThreshold = 4;
             encounter.ruleRuntime.heatFlareDamage = 4;
+            encounter.phases = BuildPhases(spec.EnemyId);
+            encounter.breakResponse = BuildBreakResponse(spec.EnemyId);
             EditorUtility.SetDirty(encounter);
         }
+
+        private static List<EnemyPhaseDefinition> BuildPhases(string enemyId)
+        {
+            return enemyId switch
+            {
+                "1땡" => Phases(Phase(2, 26, "굳힌 칼등", "격파 시 솔잎이 사라지고 다음 방어가 2 낮아진다.")),
+                "2땡" => Phases(Phase(2, 28, "끝까지 읽기", "읽힘이 한 행동 더 유지되지만 대응 행동과 수치는 전부 공개된다.")),
+                "3땡" => Phases(Phase(2, 34, "흩어진 꽃자국", "행동을 바꾸면 모든 자국이 지워지고 대표 기술 주기가 3턴이 된다.")),
+                "4땡" => Phases(Phase(2, 29, "흔들리는 안전선", "안전 교체 구간이 1~2장과 2~3장 사이에서 번갈아 바뀌며 미리 공개된다.")),
+                "5땡" => Phases(Phase(2, 30, "깊어진 물길", "물길 완성 보너스가 2턴 유지되고 적 공격이 1 증가한다.", 1)),
+                "6땡" => Phases(Phase(2, 32, "독의 수확", "새 독을 심지 않고 기존 독을 터뜨리는 행동을 우선한다.")),
+                "7땡" => Phases(Phase(2, 34, "가라앉는 진동", "진동이 턴마다 하나 줄고 대표 기술 주기가 3턴이 된다.")),
+                "8땡" => Phases(Phase(2, 36, "이중 봉인", "봉인 후보 두 장을 공개하고 플레이어가 실제 봉인 하나를 선택한다.")),
+                "9땡" => Phases(Phase(2, 38, "옅은 만취", "안개는 계속 남지만 수치 오차가 ±1로 줄어든다.")),
+                "10땡" => Phases(Phase(2, 40, "빨라진 시계", "카운트다운이 4에서 시작하고 격파할 때 시계를 3칸 늦춘다.")),
+                "땡잡이" => Phases(Phase(2, 50, "집요한 추적", "숫자별 추적 상한이 3으로 오른다.")),
+                "멍구사" => Phases(Phase(2, 47, "드러난 숫자", "카드 숫자는 보이지만 기술 설명 한 줄이 숨겨진다. 행동 종류와 위력은 공개된다.")),
+                "구사" => Phases(Phase(2, 63, "긴 판뒤집기", "족보 반전이 2턴 유지되고 두 번째 턴에는 적 방어가 4 낮아진다.")),
+                "암행어사" => Phases(Phase(2, 58, "좁혀진 장부", "최근 3개 행동만 기록하고 대표 기술 주기가 3턴이 된다.")),
+                "13" => Phases(Phase(2, 46, "쌍표적", "첫째와 셋째 칸을 동시에 겨눈다. 교체한 표적마다 적 방어가 2 낮아진다.")),
+                "18" => Phases(Phase(2, 49, "가속 금륜", "금륜이 두 칸씩 움직이고 봉인 무늬가 비어 있으면 적 얇은 게이지가 5 오른다.")),
+                "38" => Phases(
+                    Phase(2, 70, "광열 제2단계", "낮은 광열에서 격파하면 적 얇은 게이지가 추가로 2 오른다."),
+                    Phase(3, 35, "광열 제3단계", "결전기 주기가 3턴이 되고 다음 두 행동을 함께 공개한다.")),
+                _ => new List<EnemyPhaseDefinition>()
+            };
+        }
+
+        private static EnemyBreakResponseDefinition BuildBreakResponse(string enemyId)
+        {
+            if (enemyId == "38")
+            {
+                return new EnemyBreakResponseDefinition
+                {
+                    description = "광열 0~2에서 격파하면 2턴 스턴, 광열 3~6에서는 1턴 스턴. 이후 광열은 0으로 돌아간다.",
+                    resetRuleMeter = true,
+                    twoTurnStunMaximumMeter = 2
+                };
+            }
+
+            return new EnemyBreakResponseDefinition
+            {
+                description = enemyId switch
+                {
+                    "1땡" => "솔잎을 모두 지우고 다음 적 방어를 2 낮춘다.",
+                    "3땡" => "세 행동의 자국을 모두 지운다.",
+                    "6땡" => "손패에 남은 독과 독 미터를 모두 지운다.",
+                    "7땡" => "진동을 모두 지운다.",
+                    "10땡" => "열 번째 시계를 뒤로 밀어 최종기를 늦춘다.",
+                    _ => "한 턴 동안 스턴되고 다음 행동 전에 얇은 게이지가 비워진다."
+                },
+                resetRuleMeter = enemyId is "1땡" or "3땡" or "6땡" or "7땡",
+                twoTurnStunMaximumMeter = -1
+            };
+        }
+
+        private static EnemyPhaseDefinition Phase(int phase, int hp, string name, string description, int power = 0)
+        {
+            return new EnemyPhaseDefinition
+            {
+                phase = phase,
+                triggerHp = hp,
+                displayName = name,
+                description = description,
+                enemyPowerBonus = power
+            };
+        }
+
+        private static List<EnemyPhaseDefinition> Phases(params EnemyPhaseDefinition[] phases) =>
+            new List<EnemyPhaseDefinition>(phases);
 
         private static EnemyRuleBehaviorKind RuleKind(string enemyId)
         {

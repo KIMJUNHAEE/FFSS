@@ -274,6 +274,7 @@ namespace CardBattle
         private int enemyBreakCharge;
         private bool playerStunned;
         private bool enemyStunned;
+        private int enemyStunTurns;
         private bool gameOver;
         private bool combatLocked;
         private RpsAction? selectedAction;
@@ -299,6 +300,12 @@ namespace CardBattle
         public int EnemyMaxBreak => enemyMaxBreak;
         public CombatFlowPhase CurrentPhase { get; private set; } = CombatFlowPhase.Initializing;
 
+        public void SetEnemyStunTurns(int turns)
+        {
+            enemyStunTurns = Mathf.Max(enemyStunTurns, Mathf.Max(0, turns));
+            enemyStunned = enemyStunTurns > 0;
+        }
+
         private void Start()
         {
             Time.timeScale = 1f;
@@ -309,6 +316,7 @@ namespace CardBattle
             enemyHp = enemyMaxHp;
             playerBreakCharge = 0;
             enemyBreakCharge = 0;
+            enemyStunTurns = 0;
             enemyBreaksTriggered = 0;
             combatLocked = true;
 
@@ -710,7 +718,8 @@ namespace CardBattle
 
             if (enemyWasStunned)
             {
-                enemyStunned = false;
+                enemyStunTurns = Mathf.Max(0, enemyStunTurns - 1);
+                enemyStunned = enemyStunTurns > 0;
                 enemyBreakCharge = 0;
                 UpdateBreakUI(true);
             }
@@ -894,7 +903,7 @@ namespace CardBattle
                 enemyBreakCharge = Mathf.Min(enemyMaxBreak, enemyBreakCharge + outcome.BreakToEnemy);
                 if (enemyBreakCharge >= enemyMaxBreak && !enemyStunned)
                 {
-                    enemyStunned = true;
+                    SetEnemyStunTurns(1);
                     enemyBreaksTriggered++;
                     outcome.Message += "\n적 보조 게이지 최대: 다음 행동 스턴";
                 }

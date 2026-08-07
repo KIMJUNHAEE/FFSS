@@ -77,6 +77,8 @@ namespace FFSS.Framework.Combat
                 return;
             }
 
+            ApplyPhaseModifier(encounter, state, context);
+
             int meter = Clamp(
                 encounter.ruleMeter,
                 state.GetCounter(encounter.ruleMeter.stateKey, encounter.ruleMeter.initialValue));
@@ -250,12 +252,20 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.SuitWheel:
-                    int sealedSuitCards = context.CardsInSuitIndex(meter % 4);
+                    int sealedSuit = meter % 4;
+                    int sealedSuitCards = context.CardsInSuitIndex(sealedSuit);
+                    int favoredSuitCards = context.CardsInSuitIndex((sealedSuit + 2) % 4);
                     if (sealedSuitCards > 0)
                     {
-                        int bonus = Math.Min(3, sealedSuitCards);
-                        context.enemyPowerDelta += bonus;
-                        context.AddNote($"봉인 무늬 {sealedSuitCards}장 +{bonus}");
+                        int penalty = Math.Min(3, sealedSuitCards);
+                        context.playerPowerDelta -= penalty;
+                        context.AddNote($"봉인 무늬 {sealedSuitCards}장 -{penalty}");
+                    }
+                    if (favoredSuitCards > 0)
+                    {
+                        int bonus = Math.Min(3, favoredSuitCards);
+                        context.playerPowerDelta += bonus;
+                        context.AddNote($"금륜 반대 무늬 {favoredSuitCards}장 +{bonus}");
                     }
                     break;
 
@@ -315,6 +325,30 @@ namespace FFSS.Framework.Combat
                 EnemyRuleHandKind.ThreeKind => 3,
                 _ => 0
             };
+        }
+
+        private static void ApplyPhaseModifier(
+            EnemyEncounterDefinition encounter,
+            EnemyRuleState state,
+            EnemyRuleExchangeContext context)
+        {
+            if (encounter.phases == null || state.phase <= 1)
+                return;
+
+            EnemyPhaseDefinition active = null;
+            for (int i = 0; i < encounter.phases.Count; i++)
+            {
+                EnemyPhaseDefinition candidate = encounter.phases[i];
+                if (candidate != null && candidate.phase <= state.phase &&
+                    (active == null || candidate.phase > active.phase))
+                    active = candidate;
+            }
+
+            if (active == null || active.enemyPowerBonus == 0)
+                return;
+
+            context.enemyPowerDelta += active.enemyPowerBonus;
+            context.AddNote($"{active.displayName} +{active.enemyPowerBonus}");
         }
 
         private static void Validate(EnemyEncounterDefinition encounter, EnemyRuleState state)

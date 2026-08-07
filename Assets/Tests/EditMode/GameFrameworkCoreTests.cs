@@ -1840,6 +1840,63 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EnemyRuleManagerAppliesSuitWheelSealAndOppositeSuitBonus()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "18";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "rule.wheel",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition { kind = EnemyRuleBehaviorKind.SuitWheel };
+            var state = new EnemyRuleState();
+            state.SetCounter("rule.wheel", 0);
+            var context = new EnemyRuleExchangeContext
+            {
+                spadeCount = 2,
+                clubCount = 3,
+                playerAction = CombatActionType.Attack,
+                enemyAction = CombatActionType.Attack
+            };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, context);
+
+            Assert.That(context.playerPowerDelta, Is.EqualTo(1));
+            Assert.That(context.ruleNote, Does.Contain("봉인 무늬 2장 -2"));
+            Assert.That(context.ruleNote, Does.Contain("반대 무늬 3장 +3"));
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void ProductionEnemyPhasesUsePlannedAbsoluteHpThresholds()
+        {
+            var expected = new Dictionary<string, int[]>
+            {
+                ["1땡"] = new[] { 26 }, ["2땡"] = new[] { 28 }, ["3땡"] = new[] { 34 },
+                ["4땡"] = new[] { 29 }, ["5땡"] = new[] { 30 }, ["6땡"] = new[] { 32 },
+                ["7땡"] = new[] { 34 }, ["8땡"] = new[] { 36 }, ["9땡"] = new[] { 38 },
+                ["10땡"] = new[] { 40 }, ["땡잡이"] = new[] { 50 }, ["멍구사"] = new[] { 47 },
+                ["구사"] = new[] { 63 }, ["암행어사"] = new[] { 58 }, ["13"] = new[] { 46 },
+                ["18"] = new[] { 49 }, ["38"] = new[] { 70, 35 }
+            };
+
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            foreach (string guid in guids)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                Assert.That(encounter.phases.Select(phase => phase.triggerHp),
+                    Is.EqualTo(expected[encounter.enemyId]), encounter.enemyId);
+                Assert.That(encounter.breakResponse.description, Is.Not.Empty, encounter.enemyId);
+            }
+        }
+
+        [Test]
         public void ProductionCombatOverlaysExposeInspectableViewsForEveryEnemy()
         {
             string[] guids = AssetDatabase.FindAssets(

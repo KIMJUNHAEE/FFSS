@@ -194,7 +194,7 @@ namespace CardBattle
                     TrackReadAction(result.PlayerAction);
                     break;
                 case EnemyRuleBehaviorKind.RepeatActionTrace:
-                    TrackRepeatedAction(result.PlayerAction, resetOnStun: result.EnemyStunned);
+                    TrackActionTrace(result.PlayerAction, result.EnemyStunned);
                     break;
                 case EnemyRuleBehaviorKind.RedrawRisk:
                     SetMeter(0);
@@ -245,10 +245,10 @@ namespace CardBattle
                     TrackSuspicion(result);
                     break;
                 case EnemyRuleBehaviorKind.LowHandReversal:
-                    TrackLowHandStreak(result);
+                    TrackLowHandReversal();
                     break;
                 case EnemyRuleBehaviorKind.ActionHistoryCharge:
-                    TrackRepeatedAction(result.PlayerAction, resetOnStun: false);
+                    TrackActionHistory(result.PlayerAction);
                     break;
                 case EnemyRuleBehaviorKind.TargetAim:
                     SetMeter(ContainsMoveId(result, "piercing") || ContainsMoveId(result, "three_arrow")
@@ -289,6 +289,37 @@ namespace CardBattle
             int previous = state.GetCounter("history.lastAction", -1);
             SetMeter(previous == encoded ? GetMeter() + 1 : Mathf.Max(1, GetMeter() - 1));
             state.SetCounter("history.lastAction", encoded);
+        }
+
+        private void TrackActionTrace(RpsAction action, bool resetOnStun)
+        {
+            if (resetOnStun)
+            {
+                for (int i = 0; i < 3; i++)
+                    state.SetCounter($"rule.repeat.{i}", 0);
+                SetMeter(0);
+                return;
+            }
+
+            int encoded = EncodeAction(action);
+            int lastAction = state.GetCounter("history.lastAction", -1);
+            string key = $"rule.repeat.{encoded}";
+            if (lastAction == encoded)
+            {
+                state.AddCounter(key, 1, 0, encounter.ruleMeter.maximumValue);
+            }
+            else
+            {
+                int highestAction = Enumerable.Range(0, 3)
+                    .OrderByDescending(index => state.GetCounter($"rule.repeat.{index}"))
+                    .First();
+                string highestKey = $"rule.repeat.{highestAction}";
+                state.AddCounter(highestKey, -1, 0, encounter.ruleMeter.maximumValue);
+                state.SetCounter(key, Mathf.Max(1, state.GetCounter(key)));
+            }
+
+            state.SetCounter("history.lastAction", encoded);
+            SetMeter(Enumerable.Range(0, 3).Max(index => state.GetCounter($"rule.repeat.{index}")));
         }
 
         private void TrackActionCycle(RpsAction action)
@@ -578,8 +609,16 @@ namespace CardBattle
                 return;
             }
 
-            float ratio = source.EnemyHp / (float)source.EnemyMaxHp;
-            state.phase = ratio <= 0.33f ? 3 : ratio <= 0.66f ? 2 : 1;
+            int phase = 1;
+            if (encounter.phases != null)
+            {
+                foreach (EnemyPhaseDefinition definition in encounter.phases)
+                {
+                    if (definition != null && source.EnemyHp <= definition.triggerHp)
+                        phase = Mathf.Max(phase, definition.phase);
+                }
+            }
+            state.phase = phase;
         }
 
         private static string CardId(PokerCardView card)
@@ -607,16 +646,25 @@ namespace CardBattle
 
         private void TrackPairHunt(RpsCombatExchangeResult result)
         {
-            if (result.PlayerHandRank is (PokerHandRank.OnePair or PokerHandRank.TwoPair or
-                PokerHandRank.ThreeKind or PokerHandRank.FullHouse or PokerHandRank.FourKind))
+            if (result.PlayerHandRank is not (PokerHandRank.OnePair or PokerHandRank.TwoPair or
+                PokerHandRank.ThreeKind or PokerHandRank.FullHouse or PokerHandRank.FourKind) || pokerHand == null)
             {
-                AddMeter(encounter.ruleRuntime.meterGain);
+                return;
             }
-            else if (result.DamageToEnemy > 0 &&
-                     result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.Straight or PokerHandRank.Flush))
+
+            IEnumerable<int> pairedRanks = pokerHand.Cards
+                .Where(card => TryCardRank(card, out _))
+                .GroupBy(CardRank)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+            foreach (int rank in pairedRanks)
             {
-                AddMeter(-encounter.ruleRuntime.defenseDecay);
+                state.AddCounter($"rule.tracking.rank.{rank}", 1, 0, 2);
             }
+
+            int total = Enumerable.Range(1, 14)
+                .Sum(rank => state.GetCounter($"rule.tracking.rank.{rank}"));
+            SetMeter(Mathf.Min(encounter.ruleMeter.maximumValue, total));
         }
 
         private void TrackSuspicion(RpsCombatExchangeResult result)
@@ -631,18 +679,51 @@ namespace CardBattle
             }
         }
 
-        private void TrackLowHandStreak(RpsCombatExchangeResult result)
+        private void TrackLowHandReversal()
         {
-            bool lowHandHit = result.DamageToEnemy > 0 &&
-                              result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.OnePair);
-            SetMeter(lowHandHit ? GetMeter() + encounter.ruleRuntime.meterGain : 0);
+            if (GetMeter() >= encounter.ruleMeter.maximumValue)
+            {
+                SetMeter(0);
+                return;
+            }
+
+            SeotdaTableController table = source != null ? source.seotdaTable : null;
+            SeotdaHandResult hand = table != null ? table.LastResult : default;
+            int charge = 0;
+            if (hand.IsValid && hand.ContainsMonth(4)) charge++;
+            if (hand.IsValid && hand.ContainsMonth(9)) charge++;
+            if (charge > 0)
+                AddMeter(charge);
+        }
+
+        private void TrackActionHistory(RpsAction action)
+        {
+            int encoded = EncodeAction(action);
+            int packed = state.GetCounter("rule.history.packed");
+            int count = Mathf.Min(3, state.GetCounter("rule.history.count") + 1);
+            packed = ((packed << 2) | encoded) & 0b111111;
+            state.SetCounter("rule.history.packed", packed);
+            state.SetCounter("rule.history.count", count);
+
+            int repeated = 0;
+            int cursor = packed;
+            for (int i = 0; i < count; i++)
+            {
+                if ((cursor & 0b11) == encoded) repeated++;
+                cursor >>= 2;
+            }
+
+            if (repeated >= 3)
+                AddMeter(encounter.ruleRuntime.meterGain);
         }
 
         private void TrackHeat(RpsCombatExchangeResult result)
         {
             if (result.EnemyStunned)
             {
-                AddMeter(-encounter.ruleRuntime.breakDecay);
+                int heatAtBreak = GetMeter();
+                source?.SetEnemyStunTurns(heatAtBreak <= 2 ? 2 : 1);
+                SetMeter(0);
                 return;
             }
 
