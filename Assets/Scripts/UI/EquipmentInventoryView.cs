@@ -112,7 +112,7 @@ namespace CardBattle
                 detailIcon.enabled = selected.Icon != null;
             }
             if (detailName != null) detailName.text = selected.DisplayName;
-            if (detailRarity != null) detailRarity.text = RarityLabel(selected.Rarity);
+            if (detailRarity != null) detailRarity.text = EquipmentCatalog.RarityLabel(selected.Rarity);
             if (detailDescription != null) detailDescription.text = selected.Description;
             if (detailEffect != null) detailEffect.text = selected.EffectText;
             if (equipButton != null)
@@ -126,11 +126,5 @@ namespace CardBattle
             }
         }
 
-        private static string RarityLabel(EquipmentRarity rarity) => rarity switch
-        {
-            EquipmentRarity.Legendary => "전설",
-            EquipmentRarity.Rare => "희귀",
-            _ => "일반",
-        };
     }
 }
