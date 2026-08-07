@@ -450,6 +450,9 @@ namespace FFSS.Framework.Tests
             GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
             UIManager ui = GameKernel.Services.Get<UIManager>();
 
+            AssertFieldHudActLabel(1);
+            yield return SetResolutionAndCapture("flow_act_1_field_1280x720", 1280, 720);
+
             for (int act = 1; act <= progression.Campaign.Acts.Count; act++)
             {
                 Assert.That(runs.Current.act, Is.EqualTo(act));
@@ -506,6 +509,8 @@ namespace FFSS.Framework.Tests
                               !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
                         360,
                         $"act {act} did not continue to the next field.");
+                    AssertFieldHudActLabel(act + 1);
+                    yield return SetResolutionAndCapture($"flow_act_{act + 1}_field_1280x720", 1280, 720);
                 }
                 else
                 {
@@ -533,6 +538,16 @@ namespace FFSS.Framework.Tests
             }
 
             return null;
+        }
+
+        private static void AssertFieldHudActLabel(int act)
+        {
+            string expected = $"제{act}막";
+            bool found = Object.FindObjectsByType<TMPro.TMP_Text>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Any(text => text.text == expected && IsVisuallyActive(text.transform));
+            Assert.That(found, Is.True, $"Field HUD did not refresh its act label to {expected}.");
         }
 
         private static UIScreen FindVisibleScreen(UIScreenId id)

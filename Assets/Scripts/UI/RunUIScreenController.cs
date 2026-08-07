@@ -57,6 +57,7 @@ namespace CardBattle.UI
         private int selectedAction;
         private int page;
         private Coroutine refreshRoutine;
+        private IDisposable screenShownSubscription;
 
         public UIScreenId ScreenId => screen != null ? screen.Id : UIScreenId.Title;
         public string SourceId => sourceId;
@@ -111,6 +112,8 @@ namespace CardBattle.UI
             }
 
             actionCallbacks.Clear();
+            screenShownSubscription?.Dispose();
+            screenShownSubscription = null;
             if (refreshRoutine != null)
             {
                 StopCoroutine(refreshRoutine);
@@ -125,8 +128,18 @@ namespace CardBattle.UI
                 yield return null;
             }
 
+            screenShownSubscription?.Dispose();
+            screenShownSubscription = GameKernel.Events.Subscribe<UIScreenShownEvent>(HandleScreenShown);
             Refresh();
             refreshRoutine = null;
+        }
+
+        private void HandleScreenShown(UIScreenShownEvent message)
+        {
+            if (message.Screen == ScreenId && isActiveAndEnabled)
+            {
+                Refresh();
+            }
         }
 
         public void Refresh()
