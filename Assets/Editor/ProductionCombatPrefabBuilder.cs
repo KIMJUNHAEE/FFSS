@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -310,13 +313,13 @@ namespace FFSS.Editor
                 bodyRect.anchorMax = new Vector2(0.88f, 0.50f);
                 bodyRect.offsetMin = Vector2.zero;
                 bodyRect.offsetMax = Vector2.zero;
-                body.alignment = TextAnchor.UpperLeft;
+                body.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.UpperLeft);
                 body.fontStyle = FontStyle.Normal;
-                body.resizeTextForBestFit = true;
-                body.resizeTextMinSize = 14;
-                body.resizeTextMaxSize = 18;
-                body.horizontalOverflow = HorizontalWrapMode.Wrap;
-                body.verticalOverflow = VerticalWrapMode.Truncate;
+                body.enableAutoSizing = true;
+                body.fontSizeMin = 14;
+                body.fontSizeMax = 18;
+                body.enableWordWrapping = true;
+                body.overflowMode = TextOverflowModes.Truncate;
             }
 
             return detail;
@@ -346,9 +349,9 @@ namespace FFSS.Editor
             }
 
             text.color = new Color(1f, 0.82f, 0.36f, 1f);
-            text.alignment = TextAnchor.UpperLeft;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.UpperLeft);
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Truncate;
             text.raycastTarget = false;
             Outline outline = textObject.GetComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
@@ -528,12 +531,12 @@ namespace FFSS.Editor
 
             text.fontStyle = FontStyle.Bold;
             text.fontSize = fontSize;
-            text.alignment = alignment;
-            text.resizeTextForBestFit = bestFit;
-            text.resizeTextMinSize = minimumSize;
-            text.resizeTextMaxSize = maximumSize;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(alignment);
+            text.enableAutoSizing = bestFit;
+            text.fontSizeMin = minimumSize;
+            text.fontSizeMax = maximumSize;
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Truncate;
         }
 
         private static void SetAnchoredRect(

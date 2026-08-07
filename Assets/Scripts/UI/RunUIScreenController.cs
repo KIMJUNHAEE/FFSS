@@ -7,6 +7,7 @@ using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;

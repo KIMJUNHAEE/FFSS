@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using FFSS.Framework.Run;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;

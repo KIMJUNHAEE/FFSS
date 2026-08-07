@@ -1,3 +1,4 @@
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;

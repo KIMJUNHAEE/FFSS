@@ -16,6 +16,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using Text = TMPro.TMP_Text;
 using Object = UnityEngine.Object;
 
 namespace FFSS.Framework.Tests

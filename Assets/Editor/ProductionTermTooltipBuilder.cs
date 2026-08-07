@@ -1,8 +1,11 @@
 #if UNITY_EDITOR
 using CardBattle;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.EditorTools
 {
@@ -50,8 +53,8 @@ namespace FFSS.EditorTools
             SetRect(body.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 1f),
                 new Vector2(30f, 24f), new Vector2(-30f, -64f));
             body.color = new Color32(235, 239, 246, 255);
-            body.horizontalOverflow = HorizontalWrapMode.Wrap;
-            body.verticalOverflow = VerticalWrapMode.Truncate;
+            body.enableWordWrapping = true;
+            body.overflowMode = TextOverflowModes.Truncate;
             body.lineSpacing = 1.08f;
 
             SerializedObject serialized = new SerializedObject(root.GetComponent<KeywordTooltipView>());
@@ -78,11 +81,11 @@ namespace FFSS.EditorTools
             var gameObject = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
             gameObject.transform.SetParent(parent, false);
             Text text = gameObject.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSS.Editor.FFSSTmpEditorUtility.LoadDefaultFont();
             text.fontSize = size;
             text.fontStyle = FontStyle.Normal;
-            text.alignment = alignment;
-            text.supportRichText = true;
+            text.alignment = FFSS.Editor.FFSSTmpEditorUtility.ConvertAlignment(alignment);
+            text.richText = true;
             text.raycastTarget = false;
             return text;
         }

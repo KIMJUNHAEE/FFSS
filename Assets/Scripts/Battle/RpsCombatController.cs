@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Text = TMPro.TMP_Text;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
 using FFSS.Framework.Run;

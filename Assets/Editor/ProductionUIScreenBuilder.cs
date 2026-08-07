@@ -7,6 +7,7 @@ using CardBattle.Inventory;
 using CardBattle.UI;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -15,6 +16,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -233,7 +236,7 @@ namespace FFSS.Editor
                 "Act" => 24,
                 "Region" => 22,
                 "Label" => 20,
-                _ => text.fontSize
+                _ => Mathf.RoundToInt(text.fontSize)
             };
             float minimumHeight = text.gameObject.name switch
             {
@@ -246,10 +249,9 @@ namespace FFSS.Editor
                 text.rectTransform.sizeDelta.x,
                 Mathf.Max(text.rectTransform.sizeDelta.y, minimumHeight));
             text.fontSize = targetSize;
-            text.resizeTextForBestFit = false;
-            text.resizeTextMinSize = targetSize;
-            text.resizeTextMaxSize = targetSize;
-            text.alignByGeometry = true;
+            text.enableAutoSizing = false;
+            text.fontSizeMin = targetSize;
+            text.fontSizeMax = targetSize;
             text.fontStyle = FontStyle.Normal;
         }
 
@@ -263,12 +265,11 @@ namespace FFSS.Editor
                 shadow = text.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
             shadow.effectDistance = new Vector2(1f, -1f);
-            text.alignByGeometry = true;
             text.fontStyle = FontStyle.Normal;
-            if (text.resizeTextForBestFit)
+            if (text.enableAutoSizing)
             {
-                int readableMinimum = Mathf.Max(12, Mathf.RoundToInt(text.resizeTextMaxSize * 0.68f));
-                text.resizeTextMinSize = Mathf.Max(text.resizeTextMinSize, readableMinimum);
+                int readableMinimum = Mathf.Max(12, Mathf.RoundToInt(text.fontSizeMax * 0.68f));
+                text.fontSizeMin = Mathf.Max(text.fontSizeMin, readableMinimum);
             }
         }
 
@@ -395,8 +396,8 @@ namespace FFSS.Editor
                 new Color(1f, 0.78f, 0.2f), new Vector2(250f, 34f), new Vector2(440f, 198f));
             build.Body = CreateText("Body", frame, DefaultBody(spec.Id), 20, TextAnchor.MiddleCenter,
                 new Color(0.93f, 0.94f, 0.98f), new Vector2(980f, 58f), new Vector2(0f, 142f));
-            build.Body.horizontalOverflow = HorizontalWrapMode.Wrap;
-            build.Body.verticalOverflow = VerticalWrapMode.Truncate;
+            build.Body.enableWordWrapping = true;
+            build.Body.overflowMode = TextOverflowModes.Truncate;
             if (spec.Id == UIScreenId.Load)
             {
                 build.Body.fontSize = 18;
@@ -1004,8 +1005,8 @@ namespace FFSS.Editor
                     Color.white, new Vector2(textWidth, 30f), new Vector2(55f, 14f));
                 Text detail = CreateText("Detail", host, string.Empty, 14, TextAnchor.MiddleLeft,
                     new Color(0.75f, 0.82f, 0.92f), new Vector2(textWidth, 26f), new Vector2(55f, -15f));
-                detail.horizontalOverflow = HorizontalWrapMode.Wrap;
-                detail.verticalOverflow = VerticalWrapMode.Truncate;
+                detail.enableWordWrapping = true;
+                detail.overflowMode = TextOverflowModes.Truncate;
                 Image icon = CreateImage("Icon", host, ScreenActionIcon(screenId, i), Color.white);
                 icon.rectTransform.sizeDelta = reward ? new Vector2(64f, 78f) : new Vector2(44f, 44f);
                 icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : reward ? -210f : -214f, 0f);
@@ -1382,18 +1383,17 @@ namespace FFSS.Editor
         {
             RectTransform rect = CreateRect(name, parent, rectSize, position);
             Text text = rect.gameObject.AddComponent<Text>();
-            text.font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.text = value;
             text.fontSize = size;
             text.fontStyle = FontStyle.Normal;
-            text.alignment = anchor;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(anchor);
             text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            text.resizeTextForBestFit = false;
-            text.resizeTextMinSize = size;
-            text.resizeTextMaxSize = size;
-            text.alignByGeometry = true;
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Truncate;
+            text.enableAutoSizing = false;
+            text.fontSizeMin = size;
+            text.fontSizeMax = size;
             text.raycastTarget = false;
             Shadow shadow = rect.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);

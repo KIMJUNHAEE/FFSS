@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -47,7 +48,7 @@ namespace CardBattle
             if (target == null)
                 return;
 
-            target.supportRichText = true;
+            target.richText = true;
             target.text = GameTermGlossary.Decorate(rawText ?? string.Empty);
             List<GameTermDefinition> found = GameTermGlossary.FindTerms(rawText);
             KeywordTooltipSource source = target.GetComponent<KeywordTooltipSource>();

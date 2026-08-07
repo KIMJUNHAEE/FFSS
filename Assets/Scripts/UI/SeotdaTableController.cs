@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FFSS.Framework.Run;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.UI;
 

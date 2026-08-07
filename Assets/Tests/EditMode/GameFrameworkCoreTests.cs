@@ -19,6 +19,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TMP_Text;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Framework.Tests
 {
@@ -677,7 +679,6 @@ namespace FFSS.Framework.Tests
             {
                 Assert.That(text.fontStyle, Is.EqualTo(FontStyle.Normal),
                     $"Player HUD text is artificially bold: {text.name}");
-                Assert.That(text.alignByGeometry, Is.True, text.name);
                 Assert.That(text.GetComponent<Outline>(), Is.Null,
                     $"Player HUD text still uses a four-direction outline: {text.name}");
                 Shadow shadow = text.GetComponent<Shadow>();
@@ -1101,7 +1102,6 @@ namespace FFSS.Framework.Tests
                     $"Shop text still uses a blurred four-direction outline: {text.name}");
                 Assert.That(text.GetComponent<Shadow>(), Is.Not.Null,
                     $"Shop text has no contrast shadow: {text.name}");
-                Assert.That(text.alignByGeometry, Is.True, text.name);
                 Assert.That(text.fontStyle, Is.EqualTo(FontStyle.Normal),
                     $"Shop text applies synthetic bold over an already-bold typeface: {text.name}");
             }

@@ -8,9 +8,12 @@ using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -506,10 +509,10 @@ namespace FFSS.Editor
             rect.sizeDelta = size;
             rect.anchoredPosition = position;
             Text text = child.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.text = value;
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.MiddleCenter);
             text.raycastTarget = false;
             Outline outline = child.GetComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.9f);

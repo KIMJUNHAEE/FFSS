@@ -8,6 +8,7 @@ using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,6 +16,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -310,14 +313,14 @@ namespace FFSS.Editor
             rect.offsetMax = Vector2.zero;
 
             Text text = labelObject.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.text = defaultLabel;
             text.fontSize = 40;
             text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.MiddleCenter);
             text.color = new Color(0.96f, 0.93f, 0.82f, 1f);
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.enableWordWrapping = false;
+            text.overflowMode = TextOverflowModes.Overflow;
             text.raycastTarget = false;
 
             Outline outline = labelObject.GetComponent<Outline>();

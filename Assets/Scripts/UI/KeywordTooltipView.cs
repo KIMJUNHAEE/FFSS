@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,7 +41,7 @@ namespace CardBattle
 
             if (heading != null)
             {
-                heading.supportRichText = true;
+                heading.richText = true;
                 heading.text = "<b>용어 안내</b>";
             }
 
@@ -57,7 +58,7 @@ namespace CardBattle
                         .Append(term.Description);
                 }
 
-                body.supportRichText = true;
+                body.richText = true;
                 body.text = builder.ToString();
             }
 

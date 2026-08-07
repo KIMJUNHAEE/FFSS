@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -358,14 +361,14 @@ namespace FFSS.Editor
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             Text text = child.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.fontStyle = FontStyle.Bold;
-            text.alignment = alignment;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(alignment);
             text.color = Color.white;
             text.raycastTarget = false;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 9;
-            text.resizeTextMaxSize = 14;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 9;
+            text.fontSizeMax = 14;
             return text;
         }
     }

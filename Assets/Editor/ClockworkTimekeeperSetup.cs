@@ -13,6 +13,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
 
 namespace CardBattle.EditorTools
 {

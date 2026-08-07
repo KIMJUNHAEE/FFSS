@@ -4,6 +4,7 @@ using CardBattle.EditorTools;
 using FFSS.Framework.Flow;
 using FFSS.Framework.UI;
 using FFSS.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -11,6 +12,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -395,14 +398,14 @@ namespace FFSS.Editor
             var textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
             textObject.transform.SetParent(parent, false);
             Text text = textObject.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.text = value;
             text.fontSize = size;
             text.fontStyle = FontStyle.Bold;
             text.color = color;
-            text.alignment = alignment;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(alignment);
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Overflow;
             text.raycastTarget = false;
             return text;
         }

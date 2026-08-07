@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CardBattle;
+using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -10,6 +11,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 using Object = UnityEngine.Object;
 
 namespace CardBattle.EditorTools
@@ -1412,14 +1415,12 @@ namespace CardBattle.EditorTools
                 "공격", 22, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
             attackLabel.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackLabel.fontStyle = FontStyle.Normal;
-            attackLabel.alignByGeometry = true;
             EnableBestFit(attackLabel, 18, 22);
             AddTextShadow(attackLabel, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.49f, 0.50f), new Vector2(0.61f, 0.70f),
                 "0", 34, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
             attackValue.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackValue.fontStyle = FontStyle.Normal;
-            attackValue.alignByGeometry = true;
             EnableBestFit(attackValue, 28, 34);
             AddTextShadow(attackValue, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
 
@@ -1432,14 +1433,12 @@ namespace CardBattle.EditorTools
                 "방어", 22, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
             defenseLabel.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseLabel.fontStyle = FontStyle.Normal;
-            defenseLabel.alignByGeometry = true;
             EnableBestFit(defenseLabel, 18, 22);
             AddTextShadow(defenseLabel, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.80f, 0.50f), new Vector2(0.92f, 0.70f),
                 "0", 34, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
             defenseValue.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseValue.fontStyle = FontStyle.Normal;
-            defenseValue.alignByGeometry = true;
             EnableBestFit(defenseValue, 28, 34);
             AddTextShadow(defenseValue, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
 
@@ -1450,7 +1449,6 @@ namespace CardBattle.EditorTools
             var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 20, TextAnchor.MiddleCenter, Color.white);
             hpText.rectTransform.anchoredPosition = new Vector2(0f, 1.289002f);
             hpText.fontStyle = FontStyle.Normal;
-            hpText.alignByGeometry = true;
             EnableBestFit(hpText, 16, 20);
             AddTextShadow(hpText, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var pressureFill = CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
@@ -2603,15 +2601,15 @@ namespace CardBattle.EditorTools
             var rt = CreateUIObject(name, parent, anchorMin, anchorMax);
             var text = rt.gameObject.AddComponent<Text>();
             text.text = content;
-            text.font = AssetDatabase.LoadAssetAtPath<Font>(UiFontPath) ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = FFSS.Editor.FFSSTmpEditorUtility.LoadDefaultFont();
             text.fontSize = fontSize;
-            text.alignment = alignment;
+            text.alignment = FFSS.Editor.FFSSTmpEditorUtility.ConvertAlignment(alignment);
             text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.58f));
-            text.resizeTextMaxSize = fontSize;
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Truncate;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.58f));
+            text.fontSizeMax = fontSize;
             return text;
         }
 
@@ -2636,9 +2634,9 @@ namespace CardBattle.EditorTools
         private static void EnableBestFit(Text text, int minSize, int maxSize)
         {
             if (text == null) return;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = minSize;
-            text.resizeTextMaxSize = maxSize;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = minSize;
+            text.fontSizeMax = maxSize;
         }
 
         private static void ApplyRectLayout(RectTransform rect, Vector2 anchoredPosition, Vector2 sizeDelta)
@@ -2734,9 +2732,9 @@ namespace CardBattle.EditorTools
             iconImage.sprite = icon;
             iconImage.enabled = icon != null;
             labelText.text = label;
-            labelText.resizeTextForBestFit = true;
-            labelText.resizeTextMinSize = 17;
-            labelText.resizeTextMaxSize = 23;
+            labelText.enableAutoSizing = true;
+            labelText.fontSizeMin = 17;
+            labelText.fontSizeMax = 23;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             return button;
         }

@@ -1,4 +1,5 @@
 using System.Collections;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.UI;
 

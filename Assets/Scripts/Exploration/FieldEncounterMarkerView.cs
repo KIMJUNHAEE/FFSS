@@ -1,5 +1,6 @@
 using FFSS.Framework.Combat;
 using FFSS.Framework.Run;
+using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.UI;
 

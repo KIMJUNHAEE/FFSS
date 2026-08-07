@@ -5,11 +5,14 @@ using CardBattle;
 using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -460,11 +463,11 @@ namespace FFSS.Editor
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             Text text = target.GetComponent<Text>();
-            text.font = font;
+            text.font = FFSSTmpEditorUtility.LoadDefaultFont();
             text.fontSize = fontSize;
-            text.alignment = alignment;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.alignment = FFSSTmpEditorUtility.ConvertAlignment(alignment);
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Truncate;
             text.raycastTarget = false;
             Outline outline = target.GetComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.95f);

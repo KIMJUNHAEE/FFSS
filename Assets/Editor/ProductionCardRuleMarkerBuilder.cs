@@ -2,9 +2,12 @@ using System;
 using System.Linq;
 using CardBattle;
 using CardBattle.EditorTools;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Text = TMPro.TextMeshProUGUI;
+using FontStyle = TMPro.FontStyles;
 
 namespace FFSS.Editor
 {
@@ -92,13 +95,13 @@ namespace FFSS.Editor
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
             Text label = labelObject.GetComponent<Text>();
-            label.font = font;
+            label.font = FFSSTmpEditorUtility.LoadDefaultFont();
             label.fontStyle = FontStyle.Bold;
             label.fontSize = 14;
-            label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 9;
-            label.resizeTextMaxSize = 14;
-            label.alignment = TextAnchor.MiddleCenter;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 9;
+            label.fontSizeMax = 14;
+            label.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.MiddleCenter);
             label.color = Color.white;
             label.raycastTarget = false;
             Outline outline = labelObject.GetComponent<Outline>();
