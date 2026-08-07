@@ -193,6 +193,7 @@ namespace FFSS.Framework.Tests
             Assert.That(FindVisibleScreen(UIScreenId.Event), Is.Null,
                 "The event modal survived the combat scene transition.");
             AssertPlayerHudGeometry("PlayerHUD");
+            AssertCombatTextBindings();
             yield return SetResolutionAndCapture("flow_combat_1ddaeng_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("combat 1920x1080");
             yield return SetResolutionAndCapture("flow_combat_1ddaeng_2048x1152", 2048, 1152);
@@ -637,10 +638,10 @@ namespace FFSS.Framework.Tests
             Assert.That(hud.anchorMin, Is.EqualTo(new Vector2(0f, 1f)));
             Assert.That(hud.anchorMax, Is.EqualTo(new Vector2(0f, 1f)));
             Assert.That(hud.pivot, Is.EqualTo(new Vector2(0.5f, 0.5f)));
-            Assert.That(hud.anchoredPosition.x, Is.EqualTo(230f).Within(0.1f));
-            Assert.That(hud.anchoredPosition.y, Is.EqualTo(-89f).Within(0.1f));
-            Assert.That(hud.sizeDelta.x, Is.EqualTo(420f).Within(0.1f));
-            Assert.That(hud.sizeDelta.y, Is.EqualTo(138f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.x, Is.EqualTo(259.3225f).Within(0.1f));
+            Assert.That(hud.anchoredPosition.y, Is.EqualTo(-98.63452f).Within(0.1f));
+            Assert.That(hud.sizeDelta.x, Is.EqualTo(478.6448f).Within(0.1f));
+            Assert.That(hud.sizeDelta.y, Is.EqualTo(157.2691f).Within(0.1f));
 
             string[] commands = { "지도 Button", "장비 Button", "현황 Button" };
             for (int i = 0; i < commands.Length; i++)
@@ -691,6 +692,55 @@ namespace FFSS.Framework.Tests
                 BindingFlags.Public | BindingFlags.Instance);
             return attackButtonField?.GetValue(controllers[0]) is Button attackButton &&
                    attackButton.interactable;
+        }
+
+        private static void AssertCombatTextBindings()
+        {
+            Type controllerType = Type.GetType(
+                "CardBattle.RpsCombatController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+
+            Object[] controllers = Object.FindObjectsByType(
+                controllerType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(controllers, Has.Length.EqualTo(1));
+            object controller = controllers[0];
+
+            (string fieldName, string expectedLabel)[] commands =
+            {
+                ("attackButton", "\uACF5\uACA9"),
+                ("defendButton", "\uBC29\uC5B4"),
+                ("skillButton", "\uC2A4\uD0AC"),
+                ("redrawButton", "\uB2E4\uC2DC\uBF51\uAE30"),
+                ("endTurnButton", "\uD134 \uC885\uB8CC")
+            };
+            foreach ((string fieldName, string expectedLabel) in commands)
+            {
+                Button button = controllerType.GetField(fieldName)?.GetValue(controller) as Button;
+                Assert.That(button, Is.Not.Null, $"Combat command binding is missing: {fieldName}");
+                Text label = button.GetComponentInChildren<Text>(true);
+                Assert.That(label, Is.Not.Null, $"Combat command TMP label is missing: {fieldName}");
+                Assert.That(label.text, Does.StartWith(expectedLabel),
+                    $"Combat command label regressed: {fieldName}");
+                Assert.That(label.text, Is.Not.EqualTo("\uD589\uB3D9"),
+                    $"Combat command still shows the generic prefab label: {fieldName}");
+            }
+
+            string[] requiredRuntimeTextFields =
+            {
+                "playerHpText",
+                "enemyHpText",
+                "playerAttackValueText",
+                "playerDefenseValueText",
+                "enemyActionText"
+            };
+            foreach (string fieldName in requiredRuntimeTextFields)
+            {
+                Text text = controllerType.GetField(fieldName)?.GetValue(controller) as Text;
+                Assert.That(text, Is.Not.Null, $"Runtime TMP binding is missing: {fieldName}");
+                Assert.That(text.text, Is.Not.Empty, $"Runtime TMP value was not rendered: {fieldName}");
+            }
         }
 
         private static IEnumerator AssertPlannedRedrawFlow()
@@ -866,6 +916,9 @@ namespace FFSS.Framework.Tests
                 }
 
                 RectTransform rect = text.rectTransform;
+                string hierarchyPath = string.Join("/", text.GetComponentsInParent<Transform>(true)
+                    .Reverse()
+                    .Select(item => item.name));
                 rect.GetWorldCorners(corners);
                 Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay
                     ? null
@@ -874,9 +927,9 @@ namespace FFSS.Framework.Tests
                 {
                     Vector2 point = RectTransformUtility.WorldToScreenPoint(camera, corners[corner]);
                     Assert.That(point.x, Is.InRange(-1f, Screen.width + 1f),
-                        $"{stage}: {text.name} escaped the horizontal viewport ({point.x}).");
+                        $"{stage}: {hierarchyPath} escaped the horizontal viewport ({point.x}).");
                     Assert.That(point.y, Is.InRange(-1f, Screen.height + 1f),
-                        $"{stage}: {text.name} escaped the vertical viewport ({point.y}).");
+                        $"{stage}: {hierarchyPath} escaped the vertical viewport ({point.y}).");
                 }
             }
         }

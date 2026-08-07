@@ -119,6 +119,31 @@ function Get-CachedAsset {
     return $asset
 }
 
+function Get-StrippedComponentMetadata {
+    param([System.Text.RegularExpressions.Match]$SourceBlock)
+
+    $body = $SourceBlock.Groups['Body'].Value
+    $enabled = [regex]::Match($body, '(?m)^  m_Enabled: (?<Value>\d+)$').Groups['Value'].Value
+    $script = [regex]::Match($body, '(?m)^  m_Script: (?<Value>\{fileID: [^\r\n]+)$').Groups['Value'].Value
+    $editorClass = [regex]::Match($body, '(?m)^  m_EditorClassIdentifier: (?<Value>[^\r\n]*)$').Groups['Value'].Value
+    if (-not $script) {
+        throw "Source component $($SourceBlock.Groups['FileId'].Value) has no script metadata."
+    }
+
+    if (-not $enabled) {
+        $enabled = '1'
+    }
+
+    return @"
+  m_GameObject: {fileID: 0}
+  m_Enabled: $enabled
+  m_EditorHideFlags: 0
+  m_Script: $script
+  m_Name:
+  m_EditorClassIdentifier: $editorClass
+"@
+}
+
 function Resolve-TextReference {
     param(
         [pscustomobject]$Asset,
@@ -197,12 +222,15 @@ function Resolve-TextReference {
         throw "Cannot reuse occupied fileID $OldReferenceId in $($Asset.Path)"
     }
 
+    $metadata = Get-StrippedComponentMetadata $prefab.CurrentBlocks[$newSourceId]
+
     $block = @"
 --- !u!114 &$OldReferenceId stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: $newSourceId, guid: $guid, type: 3}
   m_PrefabInstance: {fileID: $prefabInstanceId}
   m_PrefabAsset: {fileID: 0}
+$metadata
 "@
     $PendingStrippedBlocks.Value[$OldReferenceId] = $block
     return $OldReferenceId
@@ -278,6 +306,41 @@ try {
             if (-not [string]::Equals($updatedOwnerText, $currentOwner.Value, [StringComparison]::Ordinal)) {
                 $currentContent = $currentContent.Replace($currentOwner.Value, $updatedOwnerText)
             }
+        }
+
+        foreach ($currentEntry in $asset.CurrentBlocks.GetEnumerator()) {
+            $strippedBlock = $currentEntry.Value
+            if ($strippedBlock.Groups['ClassId'].Value -ne '114' -or
+                -not $strippedBlock.Groups['Stripped'].Success -or
+                $strippedBlock.Groups['Body'].Value -match '(?m)^  m_Script: ') {
+                continue
+            }
+
+            $sourceMatch = [regex]::Match(
+                $strippedBlock.Groups['Body'].Value,
+                '(?m)^  m_CorrespondingSourceObject: \{fileID: (?<SourceId>-?\d+), guid: (?<Guid>[0-9a-f]+), type: 3\}'
+            )
+            if (-not $sourceMatch.Success) {
+                continue
+            }
+
+            $prefabPath = Get-AssetPathByGuid $sourceMatch.Groups['Guid'].Value
+            $prefab = Get-CachedAsset $prefabPath
+            $sourceId = $sourceMatch.Groups['SourceId'].Value
+            if (-not $prefab.CurrentBlocks.ContainsKey($sourceId)) {
+                continue
+            }
+
+            $sourceBlock = $prefab.CurrentBlocks[$sourceId]
+            if ($sourceBlock.Groups['Body'].Value -notmatch
+                'm_EditorClassIdentifier: Unity\.TextMeshPro::TMPro\.TextMeshProUGUI') {
+                continue
+            }
+
+            $metadata = Get-StrippedComponentMetadata $sourceBlock
+            $normalizedBlock = $strippedBlock.Value.TrimEnd("`r", "`n") + "`n" + $metadata.TrimEnd("`r", "`n") + "`n"
+            $currentContent = $currentContent.Replace($strippedBlock.Value, $normalizedBlock)
+            $assetRepairs++
         }
 
         $overridePattern = '(?m)^(?<Prefix>\s*- target: \{fileID: )(?<SourceId>-?\d+)(?<Middle>, guid: (?<Guid>[0-9a-f]+), type: 3\}\r?\n\s+propertyPath: )(?<Property>[^\r\n]+)(?<ValueLine>\r?\n\s+value: (?<Value>[^\r\n]*))(?<ObjectLine>\r?\n\s+objectReference: \{fileID: [^\r\n]+)$'
