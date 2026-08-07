@@ -575,7 +575,7 @@ namespace FFSS.Framework.Tests
             TrueTypeFontImporter fontImporter = AssetImporter.GetAtPath(
                 "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf") as TrueTypeFontImporter;
             Assert.That(fontImporter, Is.Not.Null);
-            Assert.That(fontImporter.fontRenderingMode, Is.EqualTo(FontRenderingMode.HintedSmooth));
+            Assert.That(fontImporter.fontRenderingMode, Is.EqualTo(FontRenderingMode.HintedRaster));
             Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
