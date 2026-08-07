@@ -213,11 +213,8 @@ namespace CardBattle.Exploration
             for (int i = 0; i < definition.shopCount; i++)
                 shopNodes.Enqueue(ContentNode(act, RunFieldContentType.Shop, i + 1, $"shop.act{act}.{i + 1}"));
 
-            var restNodes = new Queue<PlannedNode>();
-            for (int i = 0; i < definition.restCount; i++)
-                restNodes.Enqueue(ContentNode(act, RunFieldContentType.Rest, i + 1, $"rest.act{act}.{i + 1}"));
-
-            var nodes = WeaveFieldRoute(act, normalNodes, eventNodes, shopNodes, restNodes);
+            // Rest is an act-transition choice after 13/18, never a field landmark.
+            var nodes = WeaveFieldRoute(act, normalNodes, eventNodes, shopNodes);
 
             if (definition.midBossIds.Count > 0)
             {
@@ -235,8 +232,7 @@ namespace CardBattle.Exploration
             int act,
             Queue<PlannedNode> normalNodes,
             Queue<PlannedNode> eventNodes,
-            Queue<PlannedNode> shopNodes,
-            Queue<PlannedNode> restNodes)
+            Queue<PlannedNode> shopNodes)
         {
             var nodes = new List<PlannedNode>();
             RunFieldContentType[] cadence = act switch
@@ -265,14 +261,13 @@ namespace CardBattle.Exploration
             };
 
             for (int i = 0; i < cadence.Length; i++)
-                TryAddNext(nodes, cadence[i], normalNodes, eventNodes, shopNodes, restNodes);
+                TryAddNext(nodes, cadence[i], normalNodes, eventNodes, shopNodes);
 
-            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0 || restNodes.Count > 0)
+            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0)
             {
-                TryAddNext(nodes, RunFieldContentType.Combat, normalNodes, eventNodes, shopNodes, restNodes);
-                TryAddNext(nodes, RunFieldContentType.Event, normalNodes, eventNodes, shopNodes, restNodes);
-                TryAddNext(nodes, RunFieldContentType.Shop, normalNodes, eventNodes, shopNodes, restNodes);
-                TryAddNext(nodes, RunFieldContentType.Rest, normalNodes, eventNodes, shopNodes, restNodes);
+                TryAddNext(nodes, RunFieldContentType.Combat, normalNodes, eventNodes, shopNodes);
+                TryAddNext(nodes, RunFieldContentType.Event, normalNodes, eventNodes, shopNodes);
+                TryAddNext(nodes, RunFieldContentType.Shop, normalNodes, eventNodes, shopNodes);
             }
 
             return nodes;
@@ -283,15 +278,13 @@ namespace CardBattle.Exploration
             RunFieldContentType type,
             Queue<PlannedNode> normalNodes,
             Queue<PlannedNode> eventNodes,
-            Queue<PlannedNode> shopNodes,
-            Queue<PlannedNode> restNodes)
+            Queue<PlannedNode> shopNodes)
         {
             Queue<PlannedNode> source = type switch
             {
                 RunFieldContentType.Combat => normalNodes,
                 RunFieldContentType.Event => eventNodes,
                 RunFieldContentType.Shop => shopNodes,
-                RunFieldContentType.Rest => restNodes,
                 _ => null
             };
 
@@ -580,7 +573,6 @@ namespace CardBattle.Exploration
         private static int CountPlannedNodes(RunActDefinition definition)
         {
             return definition.requiredNormalVictories + definition.requiredEvents + definition.shopCount +
-                   definition.restCount +
                    (definition.midBossIds.Count > 0 ? 1 : 0) +
                    (!string.IsNullOrWhiteSpace(definition.bossId) ? 1 : 0);
         }

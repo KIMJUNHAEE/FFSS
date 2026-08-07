@@ -355,9 +355,17 @@ namespace FFSS.Framework.Tests
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.restCount, Is.Zero, $"act {act}");
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
-                                definition.shopCount + definition.restCount + 2;
+                                definition.shopCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
             }
+
+            string fieldBuilder = File.ReadAllText("Assets/Editor/ProductionFieldEncounterBuilder.cs");
+            Assert.That(fieldBuilder, Does.Not.Contain("RunFieldContentType.Rest"),
+                "Rest landmarks must not exist inside any act field.");
+
+            string distributor = File.ReadAllText("Assets/Scripts/Exploration/FieldEncounterDistributor.cs");
+            Assert.That(distributor, Does.Not.Contain("definition.restCount"),
+                "Field generation must ignore legacy restCount data.");
         }
 
         [Test]
