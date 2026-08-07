@@ -71,25 +71,24 @@ namespace CardBattle.Exploration
             if (nameText != null)
                 nameText.text = encounter.displayName;
 
-            SpriteRenderer target = actorRenderer != null ? actorRenderer : iconRenderer;
-            if (target != null)
-            {
-                target.gameObject.SetActive(encounter.fieldSprite != null);
-                if (encounter.fieldSprite != null)
-                {
-                    float scale = Mathf.Max(0.01f, encounter.fieldVisualScale);
-                    float visibleHeight = encounter.fieldSprite.bounds.size.y * scale;
-                    target.sprite = encounter.fieldSprite;
-                    target.transform.localScale = Vector3.one * scale;
-                    target.transform.localPosition = new Vector3(
-                        encounter.fieldVisualOffset.x,
-                        visibleHeight * 0.5f + encounter.fieldVisualOffset.y,
-                        -0.08f);
-                }
-            }
+            HideEncounterActor();
 
             if (auraRenderer != null)
                 auraRenderer.gameObject.SetActive(false);
+        }
+
+        public void ConfigureMarkerType(RunFieldContentType type)
+        {
+            idleColor = type switch
+            {
+                RunFieldContentType.Combat => new Color(1f, 0.72f, 0.68f, 1f),
+                RunFieldContentType.MidBoss => new Color(0.96f, 0.52f, 0.42f, 1f),
+                RunFieldContentType.BossDoor => new Color(0.9f, 0.34f, 0.3f, 1f),
+                _ => Color.white
+            };
+
+            HideEncounterActor();
+            ApplyFocusAppearance();
         }
 
         public void Configure(string displayName, Color accent)
@@ -117,6 +116,9 @@ namespace CardBattle.Exploration
             float visibleHeight = sourceHeight * scale;
 
             target.gameObject.SetActive(true);
+            target.enabled = true;
+            target.forceRenderingOff = false;
+            target.allowOcclusionWhenDynamic = false;
             target.sprite = sprite;
             target.transform.localScale = Vector3.one * scale;
             target.transform.localPosition = new Vector3(
@@ -180,11 +182,11 @@ namespace CardBattle.Exploration
                 ? Color.Lerp(idleColor, focusedColor, 0.58f)
                 : idleColor;
             if (iconRenderer != null)
-                iconRenderer.color = idleColor;
+                iconRenderer.color = markerColor;
             if (landmarkRenderer != null)
-                landmarkRenderer.color = idleColor;
+                landmarkRenderer.color = markerColor;
             if (actorRenderer != null)
-                actorRenderer.color = focused && tintCharacterWhenFocused ? focusedColor : idleColor;
+                actorRenderer.gameObject.SetActive(false);
 
             if (nameText != null)
             {

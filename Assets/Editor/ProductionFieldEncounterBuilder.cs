@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle.EditorTools;
 using CardBattle.Exploration;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
@@ -25,9 +26,10 @@ namespace FFSS.Editor
         private const string FlowDefinitionPath = "Assets/Data/Framework/GameFlowDefinition.asset";
         private const string KernelPrefabPath = "Assets/Prefabs/Framework/GameKernel.prefab";
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string FontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string BuildingRoot = "Assets/Art/Production/Field/Buildings";
         private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
+        private const string CityTileRoot = "Assets/Resources/ClockworkTimekeeper/HexTiles/City";
         private const string EncounterRoot = "Assets/Data/Production/Encounters";
         private const string EnemyArtRoot = "Assets/Enemy";
 
@@ -152,9 +154,42 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Normalize Field Enemy Artwork")]
         public static void NormalizeFieldEnemyArtwork()
         {
-            AssignFieldEncounterSprites();
+            string[] guids = AssetDatabase.FindAssets("t:EnemyEncounterDefinition", new[] { EncounterRoot });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guids[i]));
+                if (encounter == null || encounter.fieldSprite == null)
+                    continue;
+
+                float targetHeight = encounter.rank switch
+                {
+                    EnemyEncounterRank.Boss => 1.95f,
+                    EnemyEncounterRank.MidBoss => 1.75f,
+                    _ => 1.55f
+                };
+                Vector2 designerOffset = new(0.62f, 0.03f);
+                if (!ProductionSpriteGeometry.TryCalculateFieldPlacement(
+                        encounter.fieldSprite,
+                        targetHeight,
+                        designerOffset,
+                        out float scale,
+                        out Vector2 offset))
+                {
+                    scale = targetHeight / Mathf.Max(0.01f, encounter.fieldSprite.bounds.size.y);
+                    offset = designerOffset;
+                }
+
+                var serialized = new SerializedObject(encounter);
+                serialized.FindProperty("fieldVisualScale").floatValue = scale;
+                serialized.FindProperty("fieldVisualOffset").vector2Value = offset;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(encounter);
+            }
+
             AssetDatabase.SaveAssets();
-            Debug.Log("FFSS production field enemy artwork normalized for the active import platform.");
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS production field enemy artwork normalized from each sprite's visible alpha bounds.");
         }
 
         private static GameObject BuildMarkerPrefab(
@@ -177,8 +212,6 @@ namespace FFSS.Editor
             visual.transform.localScale = Vector3.one * visualScale;
 
             SpriteRenderer landmark = CreateSprite("Location Artwork", visual.transform, null, 26);
-            SpriteRenderer actor = CreateSprite("Encounter Character", visual.transform, null, 30);
-            actor.gameObject.SetActive(false);
 
             Canvas canvas = CreateLabelCanvas(visual.transform);
             Text label = CreateLabel(canvas.transform, font, defaultLabel);
@@ -186,9 +219,9 @@ namespace FFSS.Editor
             FieldEncounterMarkerView markerView = root.GetComponent<FieldEncounterMarkerView>();
             SerializedObject view = new SerializedObject(markerView);
             view.FindProperty("visualRoot").objectReferenceValue = visual.transform;
-            view.FindProperty("iconRenderer").objectReferenceValue = actor;
+            view.FindProperty("iconRenderer").objectReferenceValue = landmark;
             view.FindProperty("landmarkRenderer").objectReferenceValue = landmark;
-            view.FindProperty("actorRenderer").objectReferenceValue = actor;
+            view.FindProperty("actorRenderer").objectReferenceValue = null;
             view.FindProperty("nameText").objectReferenceValue = label;
             view.FindProperty("hideLabelUntilFocused").boolValue = true;
             view.FindProperty("tintCharacterWhenFocused").boolValue = false;

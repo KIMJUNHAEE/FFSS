@@ -112,6 +112,10 @@ namespace FFSS.Framework.Tests
             Assert.That(newRunButton, Is.Not.Null, "The title screen New Run button is missing.");
             yield return SetResolutionAndCapture("flow_title_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("title 1920x1080");
+            yield return SetResolutionAndCapture("flow_title_2048x1152", 2048, 1152);
+            AssertVisibleUiInsideViewport("title 2048x1152");
+            yield return SetResolutionAndCapture("flow_title_2560x1440", 2560, 1440);
+            AssertVisibleUiInsideViewport("title 2560x1440");
             yield return SetResolutionAndCapture("flow_title_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("title 1280x720");
             newRunButton.onClick.Invoke();
@@ -138,6 +142,10 @@ namespace FFSS.Framework.Tests
             AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_field_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("field 1920x1080");
+            yield return SetResolutionAndCapture("flow_field_2048x1152", 2048, 1152);
+            AssertVisibleUiInsideViewport("field 2048x1152");
+            yield return SetResolutionAndCapture("flow_field_2560x1440", 2560, 1440);
+            AssertVisibleUiInsideViewport("field 2560x1440");
             yield return SetResolutionAndCapture("flow_field_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("field 1280x720");
 
@@ -147,8 +155,14 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(2);
             Assert.That(ui.HasVisibleModal, Is.True, "The event screen is not registered as a visible modal.");
             Assert.That(IsFieldMovementBlocked(), Is.True, "The player can still move while an event is open.");
+            yield return SetResolutionAndCapture("flow_event_1920x1080", 1920, 1080);
+            AssertVisibleUiInsideViewport("event modal 1920x1080");
+            yield return SetResolutionAndCapture("flow_event_2048x1152", 2048, 1152);
+            AssertVisibleUiInsideViewport("event modal 2048x1152");
+            yield return SetResolutionAndCapture("flow_event_2560x1440", 2560, 1440);
+            AssertVisibleUiInsideViewport("event modal 2560x1440");
+            yield return SetResolutionAndCapture("flow_event_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("event modal 1280x720");
-            yield return CaptureScreenshot("flow_event_1280x720", 1280, 720);
 
             Button closeEvent = eventScreen.GetComponentsInChildren<Button>(true)
                 .FirstOrDefault(button => button.name == "Close");
@@ -180,6 +194,10 @@ namespace FFSS.Framework.Tests
             AssertPlayerHudGeometry("PlayerHUD");
             yield return SetResolutionAndCapture("flow_combat_1ddaeng_1920x1080", 1920, 1080);
             AssertVisibleUiInsideViewport("combat 1920x1080");
+            yield return SetResolutionAndCapture("flow_combat_1ddaeng_2048x1152", 2048, 1152);
+            AssertVisibleUiInsideViewport("combat 2048x1152");
+            yield return SetResolutionAndCapture("flow_combat_1ddaeng_2560x1440", 2560, 1440);
+            AssertVisibleUiInsideViewport("combat 2560x1440");
             yield return SetResolutionAndCapture("flow_combat_1ddaeng_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("combat 1280x720");
             yield return AssertPlannedRedrawFlow();

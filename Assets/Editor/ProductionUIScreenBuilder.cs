@@ -116,6 +116,30 @@ namespace FFSS.Editor
             Debug.Log("FFSS all 17 run UI screens are ready as inspectable prefabs.");
         }
 
+        [MenuItem("FFSS/Production/Repair Run UI Screen Catalog")]
+        public static void RepairScreenCatalog()
+        {
+            ScreenSpec[] specs = CreateSpecs();
+            for (int i = 0; i < specs.Length; i++)
+            {
+                ScreenSpec spec = specs[i];
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(spec.Path);
+                UIScreen screen = prefab != null ? prefab.GetComponent<UIScreen>() : null;
+                if (screen == null)
+                    throw new InvalidOperationException($"Run UI screen is missing: {spec.Path}");
+
+                var serialized = new SerializedObject(screen);
+                serialized.FindProperty("id").enumValueIndex = (int)spec.Id;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(screen);
+            }
+
+            ConfigureCatalog(specs, new Dictionary<UIScreenId, UIScreen>());
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS run UI screen catalog references are repaired without rebuilding screen prefabs.");
+        }
+
         [MenuItem("FFSS/Production/Build Field Command Screens")]
         public static void BuildFieldCommandScreens()
         {
