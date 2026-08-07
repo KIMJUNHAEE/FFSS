@@ -304,6 +304,7 @@ namespace CardBattle.UI
             sourceId = shopId;
             RunShopState shop = economy.GetOrCreateShop(shopId);
             SetText(currency, $"보유 {run.gold}냥");
+            SetText(body, string.Empty);
             for (int i = 0; i < actions.Count; i++)
             {
                 if (i >= shop.stockIds.Count)
@@ -314,7 +315,21 @@ namespace CardBattle.UI
 
                 RunShopOfferDefinition offer = economy.Catalog.GetOffer(shop.stockIds[i]);
                 bool sold = shop.purchasedIds.Contains(offer.offerId);
-                SetAction(i, sold ? $"{offer.displayName} · 판매 완료" : $"{offer.displayName} · {offer.price}냥", offer.description, !sold);
+                EquipmentDefinition equipment = EquipmentCatalog.Get(offer.contentId);
+                if (equipment == null)
+                {
+                    SetAction(i, string.Empty, string.Empty, false);
+                    continue;
+                }
+
+                SetVisualAction(i, !sold);
+                string availability = sold ? "판매 완료" : $"가격 {offer.price}냥";
+                string details =
+                    $"{EquipmentSlotLabel(equipment.Slot)} · {EquipmentCatalog.RarityLabel(equipment.Rarity)}\n" +
+                    $"{equipment.Description}\n\n{equipment.EffectText}\n\n{availability}";
+                SetActionArtwork(i, equipment.Icon, equipment.DisplayName, details);
+                if (actions[i].icon != null)
+                    actions[i].icon.color = sold ? new Color(0.42f, 0.42f, 0.42f, 0.74f) : Color.white;
             }
         }
 
@@ -1022,6 +1037,21 @@ namespace CardBattle.UI
                 SetActionArtwork(index, null, string.Empty, string.Empty);
         }
 
+        private void SetVisualAction(int index, bool interactable)
+        {
+            if (index < 0 || index >= actions.Count)
+                return;
+
+            RunScreenActionSlot slot = actions[index];
+            SetText(slot.label, string.Empty);
+            SetText(slot.detail, string.Empty);
+            if (slot.button != null)
+            {
+                slot.button.gameObject.SetActive(true);
+                slot.button.interactable = interactable;
+            }
+        }
+
         private void SetActionArtwork(int index, Sprite artwork, string title, string detail)
         {
             if (index < 0 || index >= actions.Count)
@@ -1082,6 +1112,18 @@ namespace CardBattle.UI
         {
             string[] names = { "무기", "의복", "부적", "기념품" };
             return index >= 0 && index < names.Length ? names[index] : "장비";
+        }
+
+        private static string EquipmentSlotLabel(EquipmentSlotType slot)
+        {
+            return slot switch
+            {
+                EquipmentSlotType.Weapon => "무기",
+                EquipmentSlotType.Garment => "의복",
+                EquipmentSlotType.Talisman => "부적",
+                EquipmentSlotType.Keepsake => "기념품",
+                _ => "장비"
+            };
         }
 
         private static string MapCountDetail(RunState run, int index)

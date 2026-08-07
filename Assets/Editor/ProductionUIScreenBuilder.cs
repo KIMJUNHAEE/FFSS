@@ -83,6 +83,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build All Run UI Screens")]
         public static void Build()
         {
+            ConfigureUiFontHinting();
             ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
             ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
             ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Scenes/Production/Frontend");
@@ -117,6 +118,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Field Command Screens")]
         public static void BuildFieldCommandScreens()
         {
+            ConfigureUiFontHinting();
             ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
             ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
             UIScreenId[] targets = { UIScreenId.FieldMap, UIScreenId.Equipment, UIScreenId.RunStatus };
@@ -134,9 +136,23 @@ namespace FFSS.Editor
             Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
         }
 
+        [MenuItem("FFSS/Production/Rebuild Equipment Shop Screen")]
+        public static void BuildShopScreen()
+        {
+            ConfigureUiFontHinting();
+            ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
+            ScreenSpec shop = CreateSpecs().First(spec => spec.Id == UIScreenId.Shop);
+            BuildStandardScreen(shop);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS equipment-only shop screen rebuilt with inspectable item artwork and hover details.");
+        }
+
         [MenuItem("FFSS/Production/Tune Run UI Text Clarity")]
         public static void TuneTextClarity()
         {
+            ConfigureUiFontHinting();
             string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { ScreenRoot });
             for (int i = 0; i < prefabGuids.Length; i++)
             {
@@ -149,15 +165,9 @@ namespace FFSS.Editor
                     {
                         Text text = texts[textIndex];
                         if (path.EndsWith("/FieldHudScreen.prefab", StringComparison.Ordinal))
-                        {
                             TuneFieldHudText(text);
-                        }
                         else
-                        {
-                            Outline outline = text.GetComponent<Outline>();
-                            if (outline != null)
-                                outline.effectDistance = new Vector2(1f, -1f);
-                        }
+                            TuneRunUiText(text);
                     }
 
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -175,6 +185,7 @@ namespace FFSS.Editor
         public static void TuneTextClarityBatch()
         {
             TuneTextClarity();
+            ProductionFoundationBuilder.ConfigureVisualQuality();
             EditorApplication.Exit(0);
         }
 
@@ -192,11 +203,11 @@ namespace FFSS.Editor
             int targetSize = text.gameObject.name switch
             {
                 "HP Text" => 18,
-                "Risk" => 16,
+                "Risk" => 20,
                 "Gold" => 22,
-                "Act" => 22,
-                "Region" => 19,
-                "Label" => 17,
+                "Act" => 24,
+                "Region" => 22,
+                "Label" => 20,
                 _ => text.fontSize
             };
             float minimumHeight = text.gameObject.name switch
@@ -213,6 +224,38 @@ namespace FFSS.Editor
             text.resizeTextForBestFit = false;
             text.resizeTextMinSize = targetSize;
             text.resizeTextMaxSize = targetSize;
+            text.alignByGeometry = true;
+            text.fontStyle = FontStyle.Normal;
+        }
+
+        private static void TuneRunUiText(Text text)
+        {
+            Outline outline = text.GetComponent<Outline>();
+            if (outline != null)
+                UnityEngine.Object.DestroyImmediate(outline, true);
+            Shadow shadow = text.GetComponent<Shadow>();
+            if (shadow == null)
+                shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
+            shadow.effectDistance = new Vector2(1f, -1f);
+            text.alignByGeometry = true;
+            text.fontStyle = FontStyle.Normal;
+            if (text.resizeTextForBestFit)
+            {
+                int readableMinimum = Mathf.Max(12, Mathf.RoundToInt(text.resizeTextMaxSize * 0.68f));
+                text.resizeTextMinSize = Mathf.Max(text.resizeTextMinSize, readableMinimum);
+            }
+        }
+
+        private static void ConfigureUiFontHinting()
+        {
+            TrueTypeFontImporter importer = AssetImporter.GetAtPath(CardBattleSetup.UiFontPath)
+                as TrueTypeFontImporter;
+            if (importer == null || importer.fontRenderingMode == FontRenderingMode.HintedSmooth)
+                return;
+
+            importer.fontRenderingMode = FontRenderingMode.HintedSmooth;
+            importer.SaveAndReimport();
         }
 
         [MenuItem("FFSS/Production/Build Reward Screen")]
@@ -380,6 +423,8 @@ namespace FFSS.Editor
             }
             if (spec.Id == UIScreenId.Reward)
                 AddCardHoverPreview(build.Root.transform);
+            else if (spec.Id == UIScreenId.Shop)
+                AddShopItemHoverPreview(build.Root.transform);
             ConfigureController(build);
             return Save(build.Root, spec.Path);
         }
@@ -902,6 +947,12 @@ namespace FFSS.Editor
 
         private static void CreateActionSlots(RectTransform frame, ScreenBuild build, UIScreenId screenId, int count)
         {
+            if (screenId == UIScreenId.Shop)
+            {
+                CreateShopActionSlots(frame, build, count);
+                return;
+            }
+
             bool reward = screenId == UIScreenId.Reward;
             for (int i = 0; i < count; i++)
             {
@@ -940,6 +991,39 @@ namespace FFSS.Editor
             }
         }
 
+        private static void CreateShopActionSlots(RectTransform frame, ScreenBuild build, int count)
+        {
+            Sprite slotFrame = SpriteAt(
+                "Assets/Art/Production/UI/Atlas/10_resources_relics/relic_slot_card.png");
+            for (int i = 0; i < count; i++)
+            {
+                float x = (i - (count - 1) * 0.5f) * 210f;
+                RectTransform host = CreateRect(
+                    $"Action {i + 1}",
+                    frame,
+                    new Vector2(174f, 174f),
+                    new Vector2(x, -24f));
+                Image frameImage = host.gameObject.AddComponent<Image>();
+                frameImage.sprite = slotFrame;
+                frameImage.preserveAspect = true;
+
+                Button button = host.gameObject.AddComponent<Button>();
+                button.targetGraphic = frameImage;
+                ColorBlock colors = button.colors;
+                colors.normalColor = new Color(0.9f, 0.92f, 1f, 1f);
+                colors.highlightedColor = new Color(1f, 0.88f, 0.44f, 1f);
+                colors.pressedColor = new Color(1f, 0.72f, 0.24f, 1f);
+                colors.disabledColor = new Color(0.34f, 0.34f, 0.38f, 0.74f);
+                button.colors = colors;
+
+                Image artwork = CreateImage("Equipment Artwork", host, null, Color.white);
+                artwork.rectTransform.sizeDelta = new Vector2(128f, 128f);
+                artwork.preserveAspect = true;
+                host.gameObject.AddComponent<CardBattle.CardHoverSource>();
+                build.Actions.Add(new RunScreenActionSlot { button = button, icon = artwork });
+            }
+        }
+
         [MenuItem("FFSS/Production/Repair Result Scene Input")]
         public static void RepairResultSceneInput()
         {
@@ -973,6 +1057,62 @@ namespace FFSS.Editor
                 throw new InvalidOperationException("Failed to instantiate reward card hover preview.");
             preview.name = "CardHoverPreview";
             preview.transform.SetAsLastSibling();
+        }
+
+        private static void AddShopItemHoverPreview(Transform parent)
+        {
+            RectTransform preview = CreateRect(
+                "Shop Item Preview",
+                parent,
+                new Vector2(520f, 650f),
+                Vector2.zero);
+            CardBattle.CardHoverPreview controller = preview.gameObject.AddComponent<CardBattle.CardHoverPreview>();
+            RectTransform visual = CreateRect(
+                "Visual",
+                preview,
+                new Vector2(520f, 650f),
+                Vector2.zero);
+            CanvasGroup pointerPassthrough = visual.gameObject.AddComponent<CanvasGroup>();
+            pointerPassthrough.interactable = false;
+            pointerPassthrough.blocksRaycasts = false;
+            Image panel = visual.gameObject.AddComponent<Image>();
+            panel.sprite = SpriteAt(
+                "Assets/Art/Production/UI/Atlas/03_panels_modals/shop_detail_panel.png");
+            panel.preserveAspect = false;
+            panel.raycastTarget = false;
+
+            Image artwork = CreateImage("Equipment Artwork", visual, null, Color.white);
+            artwork.rectTransform.sizeDelta = new Vector2(350f, 350f);
+            artwork.rectTransform.anchoredPosition = new Vector2(0f, 80f);
+            artwork.preserveAspect = true;
+            Text title = CreateText(
+                "Equipment Name",
+                visual,
+                string.Empty,
+                32,
+                TextAnchor.MiddleCenter,
+                new Color(1f, 0.84f, 0.38f),
+                new Vector2(430f, 46f),
+                new Vector2(0f, -135f));
+            Text detail = CreateText(
+                "Equipment Details",
+                visual,
+                string.Empty,
+                22,
+                TextAnchor.UpperLeft,
+                new Color(0.94f, 0.95f, 0.98f),
+                new Vector2(410f, 165f),
+                new Vector2(0f, -238f));
+            detail.lineSpacing = 1.08f;
+
+            SerializedObject serialized = new SerializedObject(controller);
+            serialized.FindProperty("visualRoot").objectReferenceValue = visual.gameObject;
+            serialized.FindProperty("artworkImage").objectReferenceValue = artwork;
+            serialized.FindProperty("titleText").objectReferenceValue = title;
+            serialized.FindProperty("bodyText").objectReferenceValue = detail;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            visual.gameObject.SetActive(false);
+            preview.SetAsLastSibling();
         }
 
         private static void ConfigureController(ScreenBuild build)
@@ -1220,18 +1360,19 @@ namespace FFSS.Editor
             text.font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             text.text = value;
             text.fontSize = size;
-            text.fontStyle = FontStyle.Bold;
+            text.fontStyle = FontStyle.Normal;
             text.alignment = anchor;
             text.color = color;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(size * 0.62f));
+            text.resizeTextForBestFit = false;
+            text.resizeTextMinSize = size;
             text.resizeTextMaxSize = size;
+            text.alignByGeometry = true;
             text.raycastTarget = false;
-            Outline outline = rect.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.92f);
-            outline.effectDistance = new Vector2(1f, -1f);
+            Shadow shadow = rect.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
+            shadow.effectDistance = new Vector2(1f, -1f);
             return text;
         }
 
@@ -1281,7 +1422,7 @@ namespace FFSS.Editor
                 UIScreenId.Load => "이어갈 기록을 고른다.",
                 UIScreenId.FieldMap => "지나온 길과 아직 남은 위험을 확인한다.",
                 UIScreenId.Equipment => "장비 네 부위가 기본 수치와 족보 효과를 바꾼다.",
-                UIScreenId.Shop => "장비, 카드 연마, 제거, 회복 중 이번 재고를 고른다.",
+                UIScreenId.Shop => string.Empty,
                 UIScreenId.CardWorkshop => "54장의 카드마다 연마와 성장 경로가 따로 저장된다.",
                 UIScreenId.Event => "상황을 읽고 비용과 결과가 다른 선택을 고른다.",
                 UIScreenId.Reward => "골드와 카드 연마, 장비 후보 중 다음 빌드를 정한다.",

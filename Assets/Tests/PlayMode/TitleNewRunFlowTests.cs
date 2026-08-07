@@ -252,6 +252,77 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator EquipmentShopRevealsTextOnlyWhileHoveringArtwork()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become ready for shop QA.");
+            yield return WaitFrames(3);
+
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+            UIScreen shop = ui.Show(UIScreenId.Shop, false);
+            Assert.That(shop, Is.Not.Null);
+            Component controller = shop.GetComponent("RunUIScreenController");
+            Assert.That(controller, Is.Not.Null);
+            MethodInfo configure = controller.GetType().GetMethod(
+                "Configure",
+                BindingFlags.Public | BindingFlags.Instance);
+            Assert.That(configure, Is.Not.Null);
+            configure.Invoke(controller, new object[] { "shop.visual.qa" });
+            yield return WaitFrames(3);
+
+            Transform preview = shop.transform.Find("Shop Item Preview/Visual");
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(preview.gameObject.activeSelf, Is.False,
+                "Shop details are visible before the pointer reaches an item.");
+
+            for (int i = 1; i <= 5; i++)
+            {
+                Transform action = shop.transform.Find($"Art Frame/Action {i}");
+                Assert.That(action, Is.Not.Null);
+                Assert.That(action.gameObject.activeSelf, Is.True);
+                Assert.That(action.GetComponentsInChildren<Text>(true), Is.Empty,
+                    $"Shop display {i} shows text without hover.");
+                Image artwork = action.Find("Equipment Artwork")?.GetComponent<Image>();
+                Assert.That(artwork, Is.Not.Null);
+                Assert.That(artwork.sprite, Is.Not.Null, $"Shop display {i} has no equipment artwork.");
+            }
+
+            yield return SetResolutionAndCapture("flow_shop_equipment_only_1280x720", 1280, 720);
+
+            Transform firstAction = shop.transform.Find("Art Frame/Action 1");
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                position = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    ((RectTransform)firstAction).position)
+            };
+            ExecuteEvents.Execute(firstAction.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+            yield return WaitFrames(2);
+
+            Assert.That(preview.gameObject.activeSelf, Is.True,
+                "Hovering equipment did not open its detail panel.");
+            Image previewArtwork = preview.Find("Equipment Artwork")?.GetComponent<Image>();
+            Text previewName = preview.Find("Equipment Name")?.GetComponent<Text>();
+            Text previewDetails = preview.Find("Equipment Details")?.GetComponent<Text>();
+            Assert.That(previewArtwork?.sprite, Is.Not.Null);
+            Assert.That(previewName?.text, Is.Not.Empty);
+            Assert.That(previewDetails?.text, Does.Contain("가격"));
+            AssertVisibleUiInsideViewport("shop equipment hover 1280x720");
+            yield return CaptureScreenshot("flow_shop_equipment_hover_1280x720", 1280, 720);
+
+            ExecuteEvents.Execute(firstAction.gameObject, pointer, ExecuteEvents.pointerExitHandler);
+            yield return WaitFrames(2);
+            Assert.That(preview.gameObject.activeSelf, Is.False,
+                "Equipment details stayed visible after the pointer left the item.");
+            ui.Hide(UIScreenId.Shop, false);
+        }
+
         private static IEnumerator CaptureKeywordTooltip(UIScreen equipmentScreen)
         {
             Text target = equipmentScreen.GetComponentsInChildren<Text>(true)

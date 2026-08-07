@@ -209,14 +209,18 @@ namespace FFSS.Editor
             var offers = new (string id, RunShopOfferType type, string name, string description, string content,
                 int price, int minAct, int maxAct)[]
             {
+                ("shop.weapon.red_moon", RunShopOfferType.Equipment, "홍월 환도", "붉은 패의 기세를 키우는 기본 무기", "weapon_red_moon_hwando", 28, 1, 2),
                 ("shop.weapon.plum", RunShopOfferType.Equipment, "매화 장창", "붉은 패 중심 공격 장비", "weapon_plum_spear", 34, 1, 2),
                 ("shop.weapon.ink", RunShopOfferType.Equipment, "먹빛 쌍검", "검은 패 중심 공격 장비", "weapon_ink_twin_blades", 42, 1, 3),
                 ("shop.weapon.hammer", RunShopOfferType.Equipment, "금강 철퇴", "격파 압력을 높이는 무기", "weapon_gold_war_hammer", 48, 2, 3),
+                ("shop.garment.tiger", RunShopOfferType.Equipment, "호피 도포", "체력과 방어를 보강하는 전투 도포", "garment_tiger_durumagi", 30, 1, 2),
                 ("shop.garment.plum", RunShopOfferType.Equipment, "매화 비단갑", "붉은 패 방어 장비", "garment_plum_silk_armor", 38, 1, 2),
                 ("shop.garment.black", RunShopOfferType.Equipment, "먹장군 철갑", "방어와 최대 격파 내구를 높인다", "garment_black_brigandine", 44, 2, 3),
-                ("shop.garment.crane", RunShopOfferType.Equipment, "백학 외투", "높은 족보의 힘을 증폭한다", "garment_white_crane_mantle", 68, 3, 3),
-                ("shop.talisman.thunder", RunShopOfferType.Equipment, "적뢰 검문", "붉은 카드 공격을 강화한다", "talisman_red_thunder", 40, 1, 3),
+                ("shop.garment.crane", RunShopOfferType.Equipment, "백학 전포", "높은 족보의 힘을 증폭한다", "garment_white_crane_mantle", 68, 3, 3),
+                ("shop.talisman.crimson", RunShopOfferType.Equipment, "쌍피 호부", "원페어 이상의 승부수를 밀어준다", "talisman_twin_crimson_cards", 30, 1, 2),
+                ("shop.talisman.thunder", RunShopOfferType.Equipment, "홍뢰 격문", "붉은 카드 공격을 강화한다", "talisman_red_thunder", 40, 1, 3),
                 ("shop.talisman.hunter", RunShopOfferType.Equipment, "약점 추적부", "보스의 격파 약점을 노린다", "talisman_hunters_eye", 64, 3, 3),
+                ("shop.keepsake.hourglass", RunShopOfferType.Equipment, "적사 모래시계", "첫 턴의 공방을 끌어올리는 기념품", "keepsake_red_sand_hourglass", 32, 1, 3),
                 ("shop.service.hone", RunShopOfferType.UpgradeCard, "카드 연마", "덱의 미연마 카드 한 장을 강화한다", "", 24, 1, 3),
                 ("shop.service.remove", RunShopOfferType.RemoveCard, "카드 폐기", "덱에서 조커가 아닌 카드 한 장을 제거한다", "", 30, 1, 3),
                 ("shop.service.heal", RunShopOfferType.Heal, "응급 정비", "최대 HP의 25%를 회복한다", "", 18, 1, 3)

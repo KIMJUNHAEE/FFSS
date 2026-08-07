@@ -31,23 +31,26 @@ namespace FFSS.Framework.Run
         {
             RunState run = RequireRun();
             RunShopState existing = run.shops.Find(value => value != null && value.shopId == shopId);
-            if (existing != null)
-            {
-                return existing;
-            }
-
             var candidates = new List<RunShopOfferDefinition>();
             for (int i = 0; i < catalog.ShopOffers.Count; i++)
             {
                 RunShopOfferDefinition offer = catalog.ShopOffers[i];
-                if (offer != null && run.act >= offer.minimumAct && run.act <= offer.maximumAct)
+                if (offer != null && offer.type == RunShopOfferType.Equipment &&
+                    run.act >= offer.minimumAct && run.act <= offer.maximumAct)
                 {
                     candidates.Add(offer);
                 }
             }
 
             var rng = run.CreateRng();
-            var state = new RunShopState { shopId = shopId, act = run.act };
+            RunShopState state = existing ?? new RunShopState { shopId = shopId, act = run.act };
+            state.stockIds.RemoveAll(id =>
+            {
+                RunShopOfferDefinition offer = FindOffer(id);
+                return offer == null || offer.type != RunShopOfferType.Equipment ||
+                       run.act < offer.minimumAct || run.act > offer.maximumAct;
+            });
+            candidates.RemoveAll(offer => state.stockIds.Contains(offer.offerId));
             while (candidates.Count > 0 && state.stockIds.Count < catalog.ShopStockSize)
             {
                 int index = rng.Range(0, candidates.Count);
@@ -56,8 +59,21 @@ namespace FFSS.Framework.Run
             }
 
             run.StoreRng(rng);
-            run.shops.Add(state);
+            if (existing == null)
+                run.shops.Add(state);
             return state;
+        }
+
+        private RunShopOfferDefinition FindOffer(string offerId)
+        {
+            for (int i = 0; i < catalog.ShopOffers.Count; i++)
+            {
+                RunShopOfferDefinition offer = catalog.ShopOffers[i];
+                if (offer != null && offer.offerId == offerId)
+                    return offer;
+            }
+
+            return null;
         }
 
         public bool TryPurchase(string shopId, string offerId)
