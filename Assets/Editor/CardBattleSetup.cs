@@ -40,7 +40,7 @@ namespace CardBattle.EditorTools
         private const string Boss38CombatPrefabDir = "Assets/Prefabs/CombatUI38";
         private const string BossProfileDir = "Assets/Data/BossProfiles";
         private const string CombatIconDir = "Assets/UI/CommonCombat/Icons";
-        private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        internal const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
         private const string SeotdaCardDir = "Assets/섰다패";

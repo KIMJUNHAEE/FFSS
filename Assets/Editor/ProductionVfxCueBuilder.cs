@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle.EditorTools;
 using FFSS.Framework.Presentation.Vfx;
 using UnityEditor;
 using UnityEngine;
@@ -142,8 +143,8 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Combat VFX Prefabs And Cues")]
         public static void BuildCombatVfxPrefabsAndCues()
         {
-            EnsureFolder(PrefabRoot);
-            EnsureFolder(CueRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(PrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(CueRoot);
 
             var cues = new List<VfxCueDefinition>(Seeds.Count);
             for (int i = 0; i < Seeds.Count; i++)
@@ -245,19 +246,6 @@ namespace FFSS.Editor
         private static Sprite LoadSprite(string path)
         {
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                current = next;
-            }
         }
     }
 }

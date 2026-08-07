@@ -542,5 +542,12 @@ namespace CardBattle
         {
             return All.Where(item => item.Slot == slot);
         }
+
+        public static string RarityLabel(EquipmentRarity rarity) => rarity switch
+        {
+            EquipmentRarity.Legendary => "전설",
+            EquipmentRarity.Rare => "희귀",
+            _ => "일반",
+        };
     }
 }

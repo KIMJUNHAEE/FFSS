@@ -22,7 +22,6 @@ namespace FFSS.Editor
         private const string TitlePrefabPath = ScreenRoot + "/TitleScreen.prefab";
         private const string ResultScenePath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
 
         private sealed class ScreenBuild
@@ -80,9 +79,9 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build All Run UI Screens")]
         public static void Build()
         {
-            EnsureFolder("Assets/Prefabs/UI");
-            EnsureFolder(ScreenRoot);
-            EnsureFolder("Assets/Scenes/Production/Frontend");
+            ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Scenes/Production/Frontend");
 
             ScreenSpec[] specs = CreateSpecs();
             var created = new Dictionary<UIScreenId, UIScreen>();
@@ -114,8 +113,8 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Field Command Screens")]
         public static void BuildFieldCommandScreens()
         {
-            EnsureFolder("Assets/Prefabs/UI");
-            EnsureFolder(ScreenRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
             UIScreenId[] targets = { UIScreenId.FieldMap, UIScreenId.Equipment, UIScreenId.RunStatus };
             ScreenSpec[] specs = CreateSpecs();
             for (int i = 0; i < specs.Length; i++)
@@ -914,7 +913,7 @@ namespace FFSS.Editor
         {
             RectTransform rect = CreateRect(name, parent, rectSize, position);
             Text text = rect.gameObject.AddComponent<Text>();
-            text.font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
+            text.font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             text.text = value;
             text.fontSize = size;
             text.fontStyle = FontStyle.Bold;
@@ -1093,21 +1092,6 @@ namespace FFSS.Editor
         private static void SetReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)
         {
             serialized.FindProperty(propertyName).objectReferenceValue = value;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] segments = path.Split('/');
-            string current = segments[0];
-            for (int i = 1; i < segments.Length; i++)
-            {
-                string next = current + "/" + segments[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, segments[i]);
-                }
-                current = next;
-            }
         }
 
         private static T FindInScene<T>(Scene scene) where T : Component

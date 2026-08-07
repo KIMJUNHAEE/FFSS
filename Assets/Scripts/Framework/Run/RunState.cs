@@ -32,8 +32,6 @@ namespace FFSS.Framework.Run
         public int currentPressure;
         [Obsolete("Use maxPressure.")]
         public int maxBalance;
-        [Obsolete("Use currentPressure.")]
-        public int currentBalance;
         public int baseAttack;
         public int baseDefense;
         public int baseBreakPower;

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CardBattle;
+using CardBattle.EditorTools;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +13,6 @@ namespace FFSS.Editor
         private const string PokerCardPath = "Assets/Prefabs/PokerCard.prefab";
         private const string BadgePath = "Assets/UI/38Battle/CombatSkin/poker_command_button.png";
         private const string SealPath = "Assets/Art/Production/Vfx/vfx-talisman-seal.png";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
 
         [MenuItem("FFSS/Production/Build Poker Card Rule Markers")]
         public static void BuildPokerCardRuleMarkers()
@@ -49,7 +49,7 @@ namespace FFSS.Editor
 
             Sprite seal = LoadSprite(SealPath);
             Sprite badge = LoadSprite(BadgePath);
-            Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
 
             Transform existing = visual.Find("RuleTint");
             GameObject tintObject = existing != null

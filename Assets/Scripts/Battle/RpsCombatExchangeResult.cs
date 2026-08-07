@@ -8,30 +8,6 @@ namespace CardBattle
             int pressureToPlayer,
             int pressureToEnemy,
             bool playerStunned,
-            bool enemyStunned)
-            : this(
-                damageToPlayer,
-                damageToEnemy,
-                pressureToPlayer,
-                pressureToEnemy,
-                playerStunned,
-                enemyStunned,
-                RpsAction.Stunned,
-                RpsAction.Stunned,
-                PokerHandRank.None,
-                0,
-                0,
-                0,
-                string.Empty)
-        {
-        }
-
-        public RpsCombatExchangeResult(
-            int damageToPlayer,
-            int damageToEnemy,
-            int pressureToPlayer,
-            int pressureToEnemy,
-            bool playerStunned,
             bool enemyStunned,
             RpsAction playerAction,
             RpsAction enemyAction,
@@ -69,7 +45,6 @@ namespace CardBattle
         public int PlayerRedCount { get; }
         public int PlayerBlackCount { get; }
         public string EnemyMoveId { get; }
-        public int HighestDamage => DamageToPlayer > DamageToEnemy ? DamageToPlayer : DamageToEnemy;
         public bool HasDamage => DamageToPlayer > 0 || DamageToEnemy > 0;
         public bool HasPressure => PressureToPlayer > 0 || PressureToEnemy > 0;
         public bool CausedStun => PlayerStunned || EnemyStunned;

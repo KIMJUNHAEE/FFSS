@@ -1250,7 +1250,6 @@ namespace FFSS.Framework.Tests
             };
 #pragma warning disable CS0618
             data.run.player.maxBalance = 36;
-            data.run.player.currentBalance = 20;
 #pragma warning restore CS0618
 
             SaveDataMigrations.Upgrade(data);

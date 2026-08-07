@@ -1,5 +1,6 @@
 using System;
 using CardBattle;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using UnityEditor;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Missing Combat Foundation")]
         public static void BuildMissingCombatFoundation()
         {
-            EnsureFolder(CombatDataRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(CombatDataRoot);
             CombatRulesDefinition rules = AssetDatabase.LoadAssetAtPath<CombatRulesDefinition>(RulesPath);
             if (rules == null)
             {
@@ -88,22 +89,6 @@ namespace FFSS.Editor
 
             property.intValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
     }
 }

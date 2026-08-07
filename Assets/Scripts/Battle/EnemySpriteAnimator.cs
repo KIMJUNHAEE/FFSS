@@ -294,16 +294,14 @@ namespace CardBattle
             Quaternion endRotation = baseLocalRotation * Quaternion.Euler(0f, 0f, destinationRotation);
             float safeDuration = Mathf.Max(0.01f, duration);
 
-            for (float elapsed = 0f; elapsed < safeDuration; elapsed += Time.unscaledDeltaTime)
+            yield return UiTween.Run(safeDuration, t =>
             {
-                float t = Smooth01(elapsed / safeDuration);
                 rt.localScale = Vector3.LerpUnclamped(startScale, destinationScale, t);
                 rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, destinationPosition, t);
                 rt.localRotation = Quaternion.SlerpUnclamped(startRotation, endRotation, t);
                 targetImage.color = new Color(baseColor.r, baseColor.g, baseColor.b,
                     Mathf.Lerp(startColor.a, destinationAlpha, t));
-                yield return null;
-            }
+            }, UiTween.SmoothStep, useUnscaledTime: true);
 
             rt.localScale = destinationScale;
             rt.anchoredPosition = destinationPosition;
@@ -321,16 +319,16 @@ namespace CardBattle
             Color startColor = targetImage.color;
             Vector3 startScale = rt.localScale;
             Vector2 startPosition = rt.anchoredPosition;
+            Vector3 fadeOutScale = startScale * 0.965f;
+            Vector2 fadeOutPosition = startPosition + new Vector2(0f, -8f);
 
-            for (float elapsed = 0f; elapsed < half; elapsed += Time.unscaledDeltaTime)
+            yield return UiTween.Run(half, t =>
             {
-                float t = Smooth01(elapsed / half);
                 targetImage.color = new Color(startColor.r, startColor.g, startColor.b,
                     Mathf.Lerp(startColor.a, 0.12f, t));
-                rt.localScale = Vector3.LerpUnclamped(startScale, startScale * 0.965f, t);
-                rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, startPosition + new Vector2(0f, -8f), t);
-                yield return null;
-            }
+                rt.localScale = Vector3.LerpUnclamped(startScale, fadeOutScale, t);
+                rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, fadeOutPosition, t);
+            }, UiTween.SmoothStep, useUnscaledTime: true);
 
             targetImage.sprite = nextSprite;
             Vector3 destinationScale = baseLocalScale * visualScale;
@@ -340,39 +338,16 @@ namespace CardBattle
             rt.localScale = revealScale;
             rt.anchoredPosition = revealPosition;
 
-            for (float elapsed = 0f; elapsed < half; elapsed += Time.unscaledDeltaTime)
+            yield return UiTween.Run(half, t =>
             {
-                float t = Smooth01(elapsed / half);
                 targetImage.color = new Color(baseColor.r, baseColor.g, baseColor.b,
                     Mathf.Lerp(0.12f, baseColor.a, t));
                 rt.localScale = Vector3.LerpUnclamped(revealScale, destinationScale, t);
                 rt.anchoredPosition = Vector2.LerpUnclamped(revealPosition, destinationPosition, t);
-                yield return null;
-            }
+            }, UiTween.SmoothStep, useUnscaledTime: true);
 
             targetImage.color = baseColor;
             ApplyVisualTransform(visualScale, visualOffset);
-        }
-
-        private IEnumerator TweenTransform(float visualScale, Vector2 destinationPosition, float duration)
-        {
-            EnsureVisualState();
-            var rt = targetImage.rectTransform;
-            Vector3 startScale = rt.localScale;
-            Vector2 startPosition = rt.anchoredPosition;
-            Vector3 destinationScale = baseLocalScale * visualScale;
-            float safeDuration = Mathf.Max(0.01f, duration);
-
-            for (float elapsed = 0f; elapsed < safeDuration; elapsed += Time.unscaledDeltaTime)
-            {
-                float t = Smooth01(elapsed / safeDuration);
-                rt.localScale = Vector3.LerpUnclamped(startScale, destinationScale, t);
-                rt.anchoredPosition = Vector2.LerpUnclamped(startPosition, destinationPosition, t);
-                yield return null;
-            }
-
-            rt.localScale = destinationScale;
-            rt.anchoredPosition = destinationPosition;
         }
 
         private float VisualScale(EnemyAnimState state) => state switch
@@ -407,12 +382,6 @@ namespace CardBattle
             rt.localScale = baseLocalScale * visualScale;
             rt.anchoredPosition = baseAnchoredPosition + visualOffset;
             rt.localRotation = baseLocalRotation;
-        }
-
-        private static float Smooth01(float value)
-        {
-            value = Mathf.Clamp01(value);
-            return value * value * (3f - 2f * value);
         }
     }
 }
