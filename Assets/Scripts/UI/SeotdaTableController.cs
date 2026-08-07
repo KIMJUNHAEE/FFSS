@@ -282,7 +282,7 @@ namespace CardBattle
             slot.gameObject.SetActive(false);
         }
 
-        private static void SetCardSprite(Image slot, Sprite sprite)
+        private void SetCardSprite(Image slot, Sprite sprite)
         {
             if (slot == null)
             {
@@ -296,6 +296,38 @@ namespace CardBattle
             slot.preserveAspect = true;
             slot.fillAmount = 1f;
             slot.color = Color.white;
+
+            CardHoverSource hover = slot.GetComponent<CardHoverSource>();
+            if (hover == null)
+                hover = slot.gameObject.AddComponent<CardHoverSource>();
+            if (sprite == null || sprite == backSprite)
+                hover.Clear();
+            else
+                hover.Configure(sprite, SeotdaCardTitle(sprite), SeotdaCardBody(sprite));
+        }
+
+        private string SeotdaCardTitle(Sprite sprite)
+        {
+            if (sprite == signatureSprite && signatureDefinition != null)
+                return signatureDefinition.DisplayName;
+            if (!SeotdaHandEvaluator.TryParse(sprite, out int month, out bool isGwang))
+                return sprite != null ? sprite.name : string.Empty;
+            return $"{month}월패{(isGwang ? " · 광" : string.Empty)}";
+        }
+
+        private string SeotdaCardBody(Sprite sprite)
+        {
+            if (sprite == signatureSprite && signatureDefinition != null)
+            {
+                return $"{profile?.displayName ?? "적"} 전용패\n{signatureDefinition.EffectText}";
+            }
+
+            if (!SeotdaHandEvaluator.TryParse(sprite, out int month, out bool isGwang))
+                return string.Empty;
+            string deckName = exclusiveDeckAsset != null && !string.IsNullOrWhiteSpace(exclusiveDeckAsset.displayName)
+                ? exclusiveDeckAsset.displayName
+                : "적 전용 섯다 덱";
+            return $"{deckName}\n{month}월 {(isGwang ? "광패" : "일반패")}\n두 장이 공개되면 섯다 족보와 기술 추가 효과가 결정돼.";
         }
 
         public void ConfigureBossProfile(BossCombatProfile combatProfile)

@@ -274,6 +274,7 @@ namespace CardBattle
         private int enemyBreakCharge;
         private bool playerStunned;
         private bool enemyStunned;
+        private int enemyStunTurns;
         private bool gameOver;
         private bool combatLocked;
         private RpsAction? selectedAction;
@@ -299,6 +300,12 @@ namespace CardBattle
         public int EnemyMaxBreak => enemyMaxBreak;
         public CombatFlowPhase CurrentPhase { get; private set; } = CombatFlowPhase.Initializing;
 
+        public void SetEnemyStunTurns(int turns)
+        {
+            enemyStunTurns = Mathf.Max(enemyStunTurns, Mathf.Max(0, turns));
+            enemyStunned = enemyStunTurns > 0;
+        }
+
         private void Start()
         {
             Time.timeScale = 1f;
@@ -309,6 +316,7 @@ namespace CardBattle
             enemyHp = enemyMaxHp;
             playerBreakCharge = 0;
             enemyBreakCharge = 0;
+            enemyStunTurns = 0;
             enemyBreaksTriggered = 0;
             combatLocked = true;
 
@@ -495,7 +503,6 @@ namespace CardBattle
             if (playerStatusText) playerStatusText.text = $"{ActionLabel(action)} 선택";
             if (action == RpsAction.Skill) ShowPlayerSkillDetail();
             else HidePlayerSkillDetail();
-            pokerHand?.PlayCombatAnimation(action);
             UpdateSelectionHighlight();
             RefreshButtons();
         }
@@ -711,7 +718,8 @@ namespace CardBattle
 
             if (enemyWasStunned)
             {
-                enemyStunned = false;
+                enemyStunTurns = Mathf.Max(0, enemyStunTurns - 1);
+                enemyStunned = enemyStunTurns > 0;
                 enemyBreakCharge = 0;
                 UpdateBreakUI(true);
             }
@@ -895,7 +903,7 @@ namespace CardBattle
                 enemyBreakCharge = Mathf.Min(enemyMaxBreak, enemyBreakCharge + outcome.BreakToEnemy);
                 if (enemyBreakCharge >= enemyMaxBreak && !enemyStunned)
                 {
-                    enemyStunned = true;
+                    SetEnemyStunTurns(1);
                     enemyBreaksTriggered++;
                     outcome.Message += "\n적 보조 게이지 최대: 다음 행동 스턴";
                 }
@@ -1367,13 +1375,14 @@ namespace CardBattle
                 ? $"\n<size=12><color=#F4C967>{seotdaTable.PreviewSummary}</color></size>"
                 : string.Empty;
 
+            string detailBody = $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}";
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
-            if (enemyStatText) enemyStatText.text = $"{telegraph}\n<size=12><color=#FFD989>{seotdaRule}</color></size>{preview}";
+            if (enemyStatText) enemyStatText.text = detailBody;
             if (enemyIntentTooltip)
                 enemyIntentTooltip.SetContent(
                     moveName,
                     $"{label} {power}",
-                    $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}");
+                    detailBody);
             UpdateEnemyActionIcon(pendingEnemyIntent, move);
 
             // 적 의도가 갱신되면 관통/격파강화 발동 여부가 바뀔 수 있어 플레이어 쪽 미리보기도 다시 계산
@@ -1862,7 +1871,8 @@ namespace CardBattle
         private void SetHighlight(Button button, bool selected)
         {
             if (!button) return;
-            button.transform.localScale = selected ? selectedButtonScale : Vector3.one;
+            button.transform.localScale = Vector3.one;
+            button.GetComponent<CombatCommandSelectionView>()?.SetSelected(selected);
         }
 
         private void UpdateHpUI()

@@ -20,6 +20,9 @@ namespace FFSS.Editor
         private const string AudioCueRoot = DataRoot + "/Audio/Cues";
         private const string PrefabRoot = "Assets/Prefabs/Framework";
         private const string KernelPrefabPath = PrefabRoot + "/GameKernel.prefab";
+        private const string TransitionPrefabPath = PrefabRoot + "/SceneTransitionView.prefab";
+        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string TransitionBannerPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/banner_shuffle.png";
 
         [MenuItem("FFSS/Production/Build Missing Foundation Assets")]
         public static void BuildMissingAssets()
@@ -42,10 +45,77 @@ namespace FFSS.Editor
                 screenCatalog,
                 audioCatalog,
                 vfxCatalog);
+            BuildSceneTransition();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS production foundation is ready. Existing assets were left unchanged.");
+        }
+
+        [MenuItem("FFSS/Production/Build Scene Transition")]
+        public static void BuildSceneTransition()
+        {
+            ClockworkTimekeeperEditorUtils.EnsureFolder(PrefabRoot);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
+            Sprite bannerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(TransitionBannerPath);
+
+            var root = new GameObject("Scene Transition", typeof(RectTransform), typeof(Canvas),
+                typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup), typeof(SceneTransitionView));
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+            Canvas canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 2000;
+            CanvasScaler scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            Image curtain = CreateStretchedImage("Curtain", root.transform, null,
+                new Color(0.012f, 0.014f, 0.024f, 1f));
+            curtain.raycastTarget = true;
+            Image banner = CreateFixedImage("Transition Banner", root.transform, bannerSprite,
+                new Vector2(760f, 150f), Vector2.zero);
+            banner.preserveAspect = false;
+            Text message = CreateFixedText("Message", root.transform, font, "다음 판을 준비하는 중",
+                30, new Vector2(620f, 54f), Vector2.zero);
+            message.color = new Color(1f, 0.86f, 0.48f, 1f);
+            message.fontStyle = FontStyle.Bold;
+
+            SceneTransitionView view = root.GetComponent<SceneTransitionView>();
+            SerializedObject serializedView = new(view);
+            serializedView.FindProperty("canvasGroup").objectReferenceValue = root.GetComponent<CanvasGroup>();
+            serializedView.FindProperty("messageText").objectReferenceValue = message;
+            serializedView.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(root, TransitionPrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+
+            GameObject kernel = PrefabUtility.LoadPrefabContents(KernelPrefabPath);
+            try
+            {
+                SceneFlowManager scenes = kernel.GetComponentInChildren<SceneFlowManager>(true);
+                if (scenes == null)
+                    throw new InvalidOperationException("GameKernel Scene Flow Manager is missing.");
+                Transform old = scenes.transform.Find("Scene Transition");
+                if (old != null)
+                    UnityEngine.Object.DestroyImmediate(old.gameObject);
+                GameObject transitionPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TransitionPrefabPath);
+                GameObject nested = PrefabUtility.InstantiatePrefab(transitionPrefab, scenes.transform) as GameObject;
+                nested.name = "Scene Transition";
+                SetReference(scenes, "transitionView", nested.GetComponent<SceneTransitionView>());
+                PrefabUtility.SaveAsPrefabAsset(kernel, KernelPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(kernel);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS inspectable scene transition prefab is connected to GameKernel.");
         }
 
         private static RunDefinition CreateRunDefinition()
@@ -338,6 +408,69 @@ namespace FFSS.Editor
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             return rect;
+        }
+
+        private static Image CreateStretchedImage(string name, Transform parent, Sprite sprite, Color color)
+        {
+            var child = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = child.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = child.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            return image;
+        }
+
+        private static Image CreateFixedImage(
+            string name,
+            Transform parent,
+            Sprite sprite,
+            Vector2 size,
+            Vector2 position)
+        {
+            var child = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = child.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+            Image image = child.GetComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Text CreateFixedText(
+            string name,
+            Transform parent,
+            Font font,
+            string value,
+            int fontSize,
+            Vector2 size,
+            Vector2 position)
+        {
+            var child = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(Outline));
+            RectTransform rect = child.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+            Text text = child.GetComponent<Text>();
+            text.font = font;
+            text.text = value;
+            text.fontSize = fontSize;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.raycastTarget = false;
+            Outline outline = child.GetComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            return text;
         }
 
         private static T CreateAssetIfMissing<T>(string path, Action<SerializedObject> initialize = null)

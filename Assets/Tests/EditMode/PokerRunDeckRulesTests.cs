@@ -89,6 +89,17 @@ namespace FFSS.Framework.Tests
             Assert.That(token, Is.EqualTo(expected));
         }
 
+        [TestCase("X-B.png")]
+        [TestCase("X-R.png")]
+        public void RuntimeJokersUseTheClassicBaseDeckArtwork(string fileName)
+        {
+            byte[] classic = System.IO.File.ReadAllBytes($"Assets/BasicCard/{fileName}");
+            byte[] runtime = System.IO.File.ReadAllBytes($"Assets/Resources/Cards/AscendantPoker/{fileName}");
+
+            CollectionAssert.AreEqual(classic, runtime,
+                $"Runtime joker {fileName} must stay on the classic base-deck artwork.");
+        }
+
         [Test]
         public void SpecialActionUnlocksAtOnePairButNotHighCard()
         {

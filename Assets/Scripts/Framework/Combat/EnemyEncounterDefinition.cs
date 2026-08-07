@@ -184,6 +184,27 @@ namespace FFSS.Framework.Combat
         public string Id => string.IsNullOrWhiteSpace(moveId) ? displayName : moveId;
     }
 
+    [Serializable]
+    public sealed class EnemyPhaseDefinition
+    {
+        [Min(2)] public int phase = 2;
+        [Min(1)] public int triggerHp = 1;
+        public string displayName;
+        [TextArea(2, 4)] public string description;
+        [Tooltip("Additional enemy power applied while this phase is active.")]
+        public int enemyPowerBonus;
+    }
+
+    [Serializable]
+    public sealed class EnemyBreakResponseDefinition
+    {
+        public string displayName = "격파 반응";
+        [TextArea(2, 4)] public string description;
+        public bool resetRuleMeter;
+        [Tooltip("At or below this meter value the enemy remains stunned for two turns. -1 disables it.")]
+        public int twoTurnStunMaximumMeter = -1;
+    }
+
     [CreateAssetMenu(
         fileName = "EnemyEncounterDefinition",
         menuName = "FFSS/Combat/Enemy Encounter Definition")]
@@ -234,5 +255,9 @@ namespace FFSS.Framework.Combat
         [Header("Enemy rule meter")]
         public EnemyRuleMeterDefinition ruleMeter = new EnemyRuleMeterDefinition();
         public EnemyRuleRuntimeDefinition ruleRuntime = new EnemyRuleRuntimeDefinition();
+
+        [Header("Phase and break rules")]
+        public List<EnemyPhaseDefinition> phases = new List<EnemyPhaseDefinition>();
+        public EnemyBreakResponseDefinition breakResponse = new EnemyBreakResponseDefinition();
     }
 }

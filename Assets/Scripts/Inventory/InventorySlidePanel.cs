@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using CardBattle;
+using FFSS.Framework.UI;
 using UnityEngine;
 
 namespace CardBattle.Inventory
@@ -16,6 +17,23 @@ namespace CardBattle.Inventory
         private Vector2 restPosition;
         private bool restCaptured;
         private Coroutine slideRoutine;
+        private UIScreen screen;
+        private bool wasVisible;
+
+        private void Awake()
+        {
+            screen = GetComponent<UIScreen>();
+            wasVisible = screen != null && screen.IsVisible;
+        }
+
+        private void Update()
+        {
+            bool visible = screen != null && screen.IsVisible;
+            if (visible && !wasVisible)
+                PlayEnterAnimation();
+
+            wasVisible = visible;
+        }
 
         public void PlayEnterAnimation()
         {
@@ -58,7 +76,7 @@ namespace CardBattle.Inventory
             yield return UiTween.Run(slideDuration, p =>
             {
                 panel.anchoredPosition = Vector2.Lerp(from, restPosition, p);
-            }, UiTween.EaseOutCubic);
+            }, UiTween.EaseOutCubic, true);
 
             panel.anchoredPosition = restPosition;
             slideRoutine = null;
@@ -73,7 +91,7 @@ namespace CardBattle.Inventory
             yield return UiTween.Run(slideDuration, p =>
             {
                 panel.anchoredPosition = Vector2.Lerp(from, to, p);
-            }, UiTween.EaseInOutCubic);
+            }, UiTween.EaseInOutCubic, true);
 
             panel.anchoredPosition = to;
             slideRoutine = null;

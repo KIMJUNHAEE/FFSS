@@ -84,6 +84,10 @@ namespace FFSS.Framework.Tests
                 () => FindVisibleScreen(UIScreenId.FieldHud) != null,
                 180,
                 "Production_Field did not show its HUD.");
+            yield return WaitUntil(
+                () => !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                180,
+                "The title-to-field transition did not release input.");
             yield return null;
 
             Assert.That(GameKernel.Services.Get<RunManager>().HasActiveRun, Is.True,
@@ -118,6 +122,10 @@ namespace FFSS.Framework.Tests
                 () => FindVisibleScreen(UIScreenId.FieldHud) != null,
                 180,
                 "Production_Field did not show its HUD.");
+            yield return WaitUntil(
+                () => !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                180,
+                "The title-to-field transition did not release input.");
             yield return WaitFrames(3);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
@@ -221,13 +229,16 @@ namespace FFSS.Framework.Tests
             {
                 (UIScreenId.FieldMap, "flow_map_1280x720"),
                 (UIScreenId.Equipment, "flow_equipment_1280x720"),
-                (UIScreenId.RunStatus, "flow_status_1280x720")
+                (UIScreenId.RunStatus, "flow_status_1280x720"),
+                (UIScreenId.Inventory, "flow_inventory_1280x720")
             };
 
             foreach ((UIScreenId id, string fileName) in overlays)
             {
                 UIScreen overlay = ui.Show(id, false);
                 yield return WaitFrames(2);
+                if (id == UIScreenId.Inventory)
+                    yield return new WaitForSecondsRealtime(0.5f);
                 Assert.That(overlay, Is.Not.Null);
                 Assert.That(ui.HasVisibleModal, Is.True, $"{id} did not block field input.");
                 AssertVisibleUiInsideViewport($"{id} 1280x720");
@@ -235,6 +246,88 @@ namespace FFSS.Framework.Tests
                 ui.Hide(id, false);
                 yield return WaitFrames(2);
                 Assert.That(ui.HasVisibleModal, Is.False, $"{id} stayed open after closing.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ThreeActBossFlowUsesOnlyIntermissionRestAndReachesResult()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(() => GameKernel.IsReady, 180, "GameKernel did not initialize.");
+
+            Button newRun = FindButton("New Run");
+            Assert.That(newRun, Is.Not.Null);
+            newRun.onClick.Invoke();
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == FieldScene &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                360,
+                "New Run did not reach the field.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            RunProgressionManager progression = GameKernel.Services.Get<RunProgressionManager>();
+            EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
+            GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+
+            for (int act = 1; act <= progression.Campaign.Acts.Count; act++)
+            {
+                Assert.That(runs.Current.act, Is.EqualTo(act));
+                string bossId = progression.Campaign.GetAct(act).bossId;
+                Assert.That(flow.TryChangeState(GameFlowState.Combat), Is.True, $"act {act} combat state");
+                ui.HideAll(false);
+                runs.BeginEncounter(bossId);
+                runs.Current.CurrentActProgress.bossDefeated = true;
+
+                encounters.CompleteVictory(
+                    runs.Current.player.currentHp,
+                    runs.Current.player.currentPressure);
+                Assert.That(encounters.OpenRewardScreen(), Is.True, $"act {act} reward");
+                yield return WaitFrames(2);
+                Assert.That(FindVisibleScreen(UIScreenId.Reward), Is.Not.Null);
+                Assert.That(encounters.ClaimRewardAndContinue(), Is.True, $"act {act} reward claim");
+                yield return WaitFrames(2);
+
+                UIScreen transition = FindVisibleScreen(UIScreenId.ActTransition);
+                Assert.That(transition, Is.Not.Null, $"act {act} transition");
+                Assert.That(FindVisibleScreen(UIScreenId.Rest), Is.Null,
+                    $"act {act} incorrectly opened a field rest screen.");
+                yield return SetResolutionAndCapture($"flow_act_{act}_transition_1280x720", 1280, 720);
+
+                if (act < progression.Campaign.Acts.Count)
+                {
+                    Button restChoice = transition.GetComponentsInChildren<Button>(true)
+                        .FirstOrDefault(button => button.name == "Action 1");
+                    Assert.That(restChoice, Is.Not.Null, $"act {act} intermission rest choice");
+                    restChoice.onClick.Invoke();
+                    yield return WaitFrames(2);
+                    Assert.That(runs.Current.consumedRestIds,
+                        Does.Contain(RunProgressionManager.IntermissionRestId(act)));
+                }
+
+                Button proceed = transition.GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name == "Primary");
+                Assert.That(proceed, Is.Not.Null, $"act {act} transition continue");
+                proceed.onClick.Invoke();
+
+                if (act < progression.Campaign.Acts.Count)
+                {
+                    yield return WaitUntil(
+                        () => SceneManager.GetActiveScene().name == FieldScene &&
+                              FindVisibleScreen(UIScreenId.FieldHud) != null &&
+                              runs.Current.act == act + 1,
+                        360,
+                        $"act {act} did not continue to the next field.");
+                }
+                else
+                {
+                    yield return WaitUntil(
+                        () => FindVisibleScreen(UIScreenId.Result) != null && runs.Current.isComplete,
+                        360,
+                        "The final boss did not reach the result screen.");
+                    Assert.That(runs.Current.outcome, Is.EqualTo(RunOutcome.Victory));
+                    yield return SetResolutionAndCapture("flow_result_victory_1280x720", 1280, 720);
+                }
             }
         }
 
@@ -414,12 +507,12 @@ namespace FFSS.Framework.Tests
 
         private static bool IsFieldMovementBlocked()
         {
-            Type controllerType = Type.GetType(
-                "CardBattle.Exploration.QuarterViewPlayerController, Assembly-CSharp");
-            Assert.That(controllerType, Is.Not.Null, "QuarterViewPlayerController type is unavailable.");
-            MethodInfo method = controllerType.GetMethod(
-                "IsMovementBlocked",
-                BindingFlags.NonPublic | BindingFlags.Static);
+            Type utilityType = Type.GetType(
+                "CardBattle.Exploration.ExplorationGeometryUtility, Assembly-CSharp");
+            Assert.That(utilityType, Is.Not.Null, "ExplorationGeometryUtility type is unavailable.");
+            MethodInfo method = utilityType.GetMethod(
+                "IsWorldPaused",
+                BindingFlags.Public | BindingFlags.Static);
             Assert.That(method, Is.Not.Null, "The field movement gate is unavailable.");
             return (bool)method.Invoke(null, null);
         }

@@ -16,7 +16,9 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace FFSS.Framework.Tests
 {
@@ -355,9 +357,17 @@ namespace FFSS.Framework.Tests
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.restCount, Is.Zero, $"act {act}");
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
-                                definition.shopCount + definition.restCount + 2;
+                                definition.shopCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
             }
+
+            string fieldBuilder = File.ReadAllText("Assets/Editor/ProductionFieldEncounterBuilder.cs");
+            Assert.That(fieldBuilder, Does.Not.Contain("RunFieldContentType.Rest"),
+                "Rest landmarks must not exist inside any act field.");
+
+            string distributor = File.ReadAllText("Assets/Scripts/Exploration/FieldEncounterDistributor.cs");
+            Assert.That(distributor, Does.Not.Contain("definition.restCount"),
+                "Field generation must ignore legacy restCount data.");
         }
 
         [Test]
@@ -559,6 +569,15 @@ namespace FFSS.Framework.Tests
             Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
+            SceneFlowManager sceneFlow = prefab.GetComponentInChildren<SceneFlowManager>(true);
+            Assert.That(sceneFlow, Is.Not.Null);
+            SceneTransitionView transition = new SerializedObject(sceneFlow)
+                .FindProperty("transitionView").objectReferenceValue as SceneTransitionView;
+            Assert.That(transition, Is.Not.Null);
+            Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(transition.gameObject), Is.Not.Null);
+            Assert.That(transition.transform.Find("Curtain"), Is.Not.Null);
+            Assert.That(transition.transform.Find("Transition Banner"), Is.Not.Null);
+            Assert.That(transition.transform.Find("Message"), Is.Not.Null);
             CombatManager combat = prefab.GetComponentInChildren<CombatManager>(true);
             Assert.That(combat, Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<EnemyRuleManager>(true), Is.Not.Null);
@@ -850,20 +869,29 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void ProductionScreenCatalogContainsAllSeventeenInspectableScreens()
+        public void ProductionScreenCatalogContainsAllEighteenInspectableScreens()
         {
             UIScreenCatalog catalog = AssetDatabase.LoadAssetAtPath<UIScreenCatalog>(
                 "Assets/Data/Framework/UIScreenCatalog.asset");
 
             Assert.That(catalog, Is.Not.Null);
-            Assert.That(catalog.Screens, Has.Count.EqualTo(17));
+            Assert.That(catalog.Screens, Has.Count.EqualTo(18));
             var ids = new HashSet<UIScreenId>();
             foreach (UIScreenCatalogEntry entry in catalog.Screens)
             {
                 Assert.That(ids.Add(entry.id), Is.True, entry.id.ToString());
                 Assert.That(entry.prefab, Is.Not.Null, entry.id.ToString());
                 Assert.That(entry.prefab.Id, Is.EqualTo(entry.id));
-                if (entry.id != UIScreenId.Title)
+                if (entry.id == UIScreenId.Inventory)
+                {
+                    Assert.That(
+                        entry.prefab.GetComponentsInChildren<Component>(true)
+                            .Any(component => component.GetType().Name == "InventoryGridRefresher"),
+                        Is.True,
+                        entry.id.ToString());
+                    Assert.That(PrefabUtility.IsPartOfPrefabAsset(entry.prefab), Is.True, entry.id.ToString());
+                }
+                else if (entry.id != UIScreenId.Title)
                 {
                     Assert.That(entry.prefab.GetComponent("RunUIScreenController"), Is.Not.Null, entry.id.ToString());
                     Assert.That(PrefabUtility.IsPartOfPrefabAsset(entry.prefab), Is.True, entry.id.ToString());
@@ -918,6 +946,31 @@ namespace FFSS.Framework.Tests
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/Screens/RewardScreen.prefab")
                     .transform.Find("Art Frame/Screen Banner"),
                 Is.Not.Null);
+        }
+
+        [Test]
+        public void RewardScreenExposesArtworkSlotsAndLargeHoverPreview()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/RewardScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Text heading = prefab.transform.Find("Art Frame/Heading")?.GetComponent<Text>();
+            Assert.That(heading, Is.Not.Null);
+            Assert.That(heading.text, Is.EqualTo("승전 보상"));
+
+            Transform preview = prefab.transform.Find("CardHoverPreview");
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(preview.gameObject), Is.Not.Null);
+            for (int i = 1; i <= 5; i++)
+            {
+                Transform action = prefab.transform.Find($"Art Frame/Action {i}");
+                Assert.That(action, Is.Not.Null);
+                Assert.That(action.GetComponent("CardHoverSource"), Is.Not.Null);
+                RectTransform icon = action.Find("Icon") as RectTransform;
+                Assert.That(icon, Is.Not.Null);
+                Assert.That(icon.sizeDelta, Is.EqualTo(new Vector2(64f, 78f)));
+            }
         }
 
         [Test]
@@ -1073,13 +1126,14 @@ namespace FFSS.Framework.Tests
                 Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldEncounterNode"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+                Assert.That(prefab.transform.Find("Billboard/Encounter Character"), Is.Null,
+                    $"Field combat landmarks must not display enemy character sprites: {path}");
             }
 
             string[] contentPrefabPaths =
             {
                 "Assets/Prefabs/Production/Field/FieldContent_Event.prefab",
                 "Assets/Prefabs/Production/Field/FieldContent_Shop.prefab",
-                "Assets/Prefabs/Production/Field/FieldContent_Rest.prefab",
                 "Assets/Prefabs/Production/Field/FieldContent_BossDoor.prefab"
             };
 
@@ -1090,6 +1144,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldRunContentNode"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+                Assert.That(prefab.transform.Find("Billboard/Encounter Character"), Is.Null, path);
             }
         }
 
@@ -1109,7 +1164,6 @@ namespace FFSS.Framework.Tests
                 Assert.That(serialized.FindProperty("midBossMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("eventMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("shopMarkerPrefab").objectReferenceValue, Is.Not.Null);
-                Assert.That(serialized.FindProperty("restMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("bossDoorMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(FindInScene<GameKernel>(scene), Is.Not.Null);
                 Assert.That(FindInScene<SceneEntryPoint>(scene), Is.Not.Null);
@@ -1341,7 +1395,8 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter, Is.Not.Null);
                 Assert.That(encounter.enemyId, Is.Not.Empty);
                 Assert.That(enemyIds.Add(encounter.enemyId), Is.True, encounter.enemyId);
-                Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
+                int expectedMoveCount = encounter.enemyId == "38" ? 4 : 3;
+                Assert.That(encounter.moves, Has.Count.EqualTo(expectedMoveCount), encounter.enemyId);
                 Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.exclusiveSeotdaDeck, Is.Not.Null, encounter.enemyId);
@@ -1370,7 +1425,8 @@ namespace FFSS.Framework.Tests
                 }
 
                 Assert.That(hasOffense, Is.True, encounter.enemyId);
-                Assert.That(hasDefense, Is.True, encounter.enemyId);
+                if (encounter.enemyId != "13")
+                    Assert.That(hasDefense, Is.True, encounter.enemyId);
                 Assert.That(hasSpecialTiming, Is.True, encounter.enemyId);
 
                 switch (encounter.rank)
@@ -1555,10 +1611,11 @@ namespace FFSS.Framework.Tests
                     .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
                     .FirstOrDefault(type => type != null);
                 Assert.That(controllerType, Is.Not.Null);
+                Component controller = root.AddComponent(controllerType);
                 MethodInfo method = controllerType.GetMethod("SetCardSprite",
-                    BindingFlags.NonPublic | BindingFlags.Static);
+                    BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.That(method, Is.Not.Null);
-                method.Invoke(null, new object[] { image, expected });
+                method.Invoke(controller, new object[] { image, expected });
 
                 Assert.That(image.enabled, Is.True);
                 Assert.That(image.sprite, Is.SameAs(expected));
@@ -1666,23 +1723,23 @@ namespace FFSS.Framework.Tests
         {
             var expected = new Dictionary<string, (int hp, int pressure, EnemyRuleBehaviorKind rule)>
             {
-                ["1땡"] = (52, 24, EnemyRuleBehaviorKind.PineRedraw),
-                ["2땡"] = (55, 25, EnemyRuleBehaviorKind.ReadRepeatedAction),
-                ["3땡"] = (68, 28, EnemyRuleBehaviorKind.RepeatActionTrace),
-                ["4땡"] = (58, 26, EnemyRuleBehaviorKind.RedrawRisk),
-                ["5땡"] = (61, 27, EnemyRuleBehaviorKind.UniqueActionCycle),
-                ["6땡"] = (64, 28, EnemyRuleBehaviorKind.CardPoison),
-                ["7땡"] = (68, 30, EnemyRuleBehaviorKind.BalanceTremor),
-                ["8땡"] = (72, 32, EnemyRuleBehaviorKind.CardSeal),
-                ["9땡"] = (76, 34, EnemyRuleBehaviorKind.Intoxication),
-                ["10땡"] = (80, 36, EnemyRuleBehaviorKind.FinalCountdown),
-                ["땡잡이"] = (101, 39, EnemyRuleBehaviorKind.PairTracking),
-                ["멍구사"] = (94, 36, EnemyRuleBehaviorKind.Suspicion),
-                ["구사"] = (126, 48, EnemyRuleBehaviorKind.LowHandReversal),
-                ["암행어사"] = (116, 44, EnemyRuleBehaviorKind.ActionHistoryCharge),
-                ["13"] = (92, 35, EnemyRuleBehaviorKind.TargetAim),
-                ["18"] = (98, 38, EnemyRuleBehaviorKind.SuitWheel),
-                ["38"] = (105, 42, EnemyRuleBehaviorKind.GwangHeat)
+                ["1땡"] = (92, 36, EnemyRuleBehaviorKind.PineRedraw),
+                ["2땡"] = (96, 38, EnemyRuleBehaviorKind.ReadRepeatedAction),
+                ["3땡"] = (108, 40, EnemyRuleBehaviorKind.RepeatActionTrace),
+                ["4땡"] = (102, 40, EnemyRuleBehaviorKind.RedrawRisk),
+                ["5땡"] = (116, 42, EnemyRuleBehaviorKind.UniqueActionCycle),
+                ["6땡"] = (120, 44, EnemyRuleBehaviorKind.CardPoison),
+                ["7땡"] = (132, 46, EnemyRuleBehaviorKind.BalanceTremor),
+                ["8땡"] = (138, 48, EnemyRuleBehaviorKind.CardSeal),
+                ["9땡"] = (148, 50, EnemyRuleBehaviorKind.Intoxication),
+                ["10땡"] = (156, 52, EnemyRuleBehaviorKind.FinalCountdown),
+                ["땡잡이"] = (178, 60, EnemyRuleBehaviorKind.PairTracking),
+                ["멍구사"] = (170, 58, EnemyRuleBehaviorKind.Suspicion),
+                ["구사"] = (205, 66, EnemyRuleBehaviorKind.LowHandReversal),
+                ["암행어사"] = (198, 64, EnemyRuleBehaviorKind.ActionHistoryCharge),
+                ["13"] = (210, 68, EnemyRuleBehaviorKind.TargetAim),
+                ["18"] = (240, 74, EnemyRuleBehaviorKind.SuitWheel),
+                ["38"] = (320, 88, EnemyRuleBehaviorKind.GwangHeat)
             };
 
             string[] guids = AssetDatabase.FindAssets(
@@ -1792,6 +1849,125 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EnemyRuleManagerAppliesSuitWheelSealAndOppositeSuitBonus()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "18";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "rule.wheel",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition { kind = EnemyRuleBehaviorKind.SuitWheel };
+            var state = new EnemyRuleState();
+            state.SetCounter("rule.wheel", 0);
+            var context = new EnemyRuleExchangeContext
+            {
+                spadeCount = 2,
+                clubCount = 3,
+                playerAction = CombatActionType.Attack,
+                enemyAction = CombatActionType.Attack
+            };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, context);
+
+            Assert.That(context.playerPowerDelta, Is.EqualTo(1));
+            Assert.That(context.ruleNote, Does.Contain("봉인 무늬 2장 -2"));
+            Assert.That(context.ruleNote, Does.Contain("반대 무늬 3장 +3"));
+
+            state.phase = 2;
+            var emptySealedSuit = new EnemyRuleExchangeContext
+            {
+                clubCount = 2,
+                playerAction = CombatActionType.Defend,
+                enemyAction = CombatActionType.Attack
+            };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, emptySealedSuit);
+            Assert.That(emptySealedSuit.directPressureToEnemy, Is.EqualTo(5));
+            Assert.That(emptySealedSuit.ruleNote, Does.Contain("빈 봉인 무늬"));
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyRuleManagerAppliesSecondPhaseRuleVariants()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "phase-test";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "rule.phase",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition
+            {
+                kind = EnemyRuleBehaviorKind.PineRedraw,
+                triggerPowerBonus = 3,
+                hiddenPowerRange = 2
+            };
+            var state = new EnemyRuleState { phase = 2 };
+            state.SetFlag("rule.pine.breakDefense", true);
+            var brokenDefense = new EnemyRuleExchangeContext
+            {
+                playerAction = CombatActionType.Attack,
+                enemyAction = CombatActionType.Defend
+            };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, brokenDefense);
+
+            Assert.That(brokenDefense.enemyPowerDelta, Is.EqualTo(-2));
+            Assert.That(state.GetFlag("rule.pine.breakDefense"), Is.False);
+
+            encounter.ruleRuntime.kind = EnemyRuleBehaviorKind.Intoxication;
+            state.SetCounter("rule.phase", 3);
+            var intoxicated = new EnemyRuleExchangeContext { enemyAction = CombatActionType.Attack };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, intoxicated);
+            Assert.That(intoxicated.enemyPowerVisibilityRange, Is.EqualTo(1));
+
+            encounter.ruleRuntime.kind = EnemyRuleBehaviorKind.LowHandReversal;
+            state.SetCounter("rule.reversal.turns", 1);
+            var reversal = new EnemyRuleExchangeContext
+            {
+                playerHand = EnemyRuleHandKind.OnePair,
+                enemyAction = CombatActionType.Defend
+            };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, reversal);
+            Assert.That(reversal.playerPowerDelta, Is.EqualTo(5));
+            Assert.That(reversal.enemyPowerDelta, Is.EqualTo(-4));
+
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void ProductionEnemyPhasesUsePlannedAbsoluteHpThresholds()
+        {
+            var expected = new Dictionary<string, int[]>
+            {
+                ["1땡"] = new[] { 26 }, ["2땡"] = new[] { 28 }, ["3땡"] = new[] { 34 },
+                ["4땡"] = new[] { 29 }, ["5땡"] = new[] { 30 }, ["6땡"] = new[] { 32 },
+                ["7땡"] = new[] { 34 }, ["8땡"] = new[] { 36 }, ["9땡"] = new[] { 38 },
+                ["10땡"] = new[] { 40 }, ["땡잡이"] = new[] { 50 }, ["멍구사"] = new[] { 47 },
+                ["구사"] = new[] { 63 }, ["암행어사"] = new[] { 58 }, ["13"] = new[] { 46 },
+                ["18"] = new[] { 49 }, ["38"] = new[] { 70, 35 }
+            };
+
+            string[] guids = AssetDatabase.FindAssets(
+                "t:EnemyEncounterDefinition",
+                new[] { "Assets/Data/Production/Encounters" });
+            foreach (string guid in guids)
+            {
+                EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                Assert.That(encounter.phases.Select(phase => phase.triggerHp),
+                    Is.EqualTo(expected[encounter.enemyId]), encounter.enemyId);
+                Assert.That(encounter.breakResponse.description, Is.Not.Empty, encounter.enemyId);
+            }
+        }
+
+        [Test]
         public void ProductionCombatOverlaysExposeInspectableViewsForEveryEnemy()
         {
             string[] guids = AssetDatabase.FindAssets(
@@ -1882,6 +2058,37 @@ namespace FFSS.Framework.Tests
                     EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
                     Assert.That(meter, Is.Not.Null, path);
                     Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(meter.gameObject), Is.Not.Null, path);
+                    RectTransform meterRect = meter.GetComponent<RectTransform>();
+                    Assert.That(meterRect.anchoredPosition, Is.EqualTo(new Vector2(-24f, -250f)), path);
+
+                    Component cardPreview = FindInScene(scene, "CardHoverPreview");
+                    Assert.That(cardPreview, Is.Not.Null, path);
+                    Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(cardPreview.gameObject), Is.Not.Null, path);
+                    Assert.That(scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+                        .Any(transform => transform.name == "EnemyWeaknessText"), Is.False, path);
+
+                    Component combat = FindInScene(scene, "RpsCombatController");
+                    Assert.That(combat, Is.Not.Null, path);
+                    SerializedObject serializedCombat = new(combat);
+                    foreach (string propertyName in new[] { "attackButton", "defendButton", "skillButton" })
+                    {
+                        Button button = serializedCombat.FindProperty(propertyName).objectReferenceValue as Button;
+                        Assert.That(button, Is.Not.Null, $"{path}: {propertyName}");
+                        Assert.That(button.GetComponent("CombatCommandSelectionView"), Is.Not.Null,
+                            $"{path}: {propertyName}");
+                    }
+
+                    Component seotda = serializedCombat.FindProperty("seotdaTable").objectReferenceValue as Component;
+                    Assert.That(seotda, Is.Not.Null, path);
+                    SerializedObject serializedSeotda = new(seotda);
+                    foreach (string propertyName in new[] { "cardSlotA", "cardSlotB" })
+                    {
+                        Image card = serializedSeotda.FindProperty(propertyName).objectReferenceValue as Image;
+                        Assert.That(card, Is.Not.Null, $"{path}: {propertyName}");
+                        Assert.That(card.GetComponent("CardHoverSource"), Is.Not.Null,
+                            $"{path}: {propertyName}");
+                    }
                     Component feedback = FindInScene(scene, "LegacyCombatFeedbackBridge");
                     Assert.That(feedback, Is.Not.Null, path);
                     Assert.That(new SerializedObject(feedback).FindProperty("encounter").objectReferenceValue,
@@ -1895,6 +2102,33 @@ namespace FFSS.Framework.Tests
                     Assert.That(serialized.FindProperty("pokerHand").objectReferenceValue, Is.Not.Null, path);
                     Assert.That(serialized.FindProperty("encounter").objectReferenceValue, Is.Not.Null, path);
                     Assert.That(serialized.FindProperty("meterView").objectReferenceValue, Is.SameAs(meter), path);
+                }
+                finally
+                {
+                    EditorSceneManager.CloseScene(scene, true);
+                }
+            }
+        }
+
+        [Test]
+        public void ProductionScenesUseOnlyTheInputSystemUiModule()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes/Production" });
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                try
+                {
+                    StandaloneInputModule[] legacy = scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<StandaloneInputModule>(true))
+                        .ToArray();
+                    Assert.That(legacy, Is.Empty, path);
+
+                    EventSystem eventSystem = FindInScene<EventSystem>(scene);
+                    Assert.That(eventSystem, Is.Not.Null, path);
+                    Assert.That(eventSystem.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>(),
+                        Is.Not.Null, path);
                 }
                 finally
                 {

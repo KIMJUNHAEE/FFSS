@@ -18,6 +18,11 @@ namespace FFSS.Editor
         private const string ProductionRelativeRoot = "Production/Battles";
         private const string BackgroundArtRoot = "Assets/Art/Production/Battle/Backgrounds";
         private const string BackgroundPrefabRoot = "Assets/Prefabs/Production/Combat/Backgrounds";
+        private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
+        private const string CommandButtonPrefabPath = "Assets/Prefabs/CombatUI38/PokerCommandButton.prefab";
+        private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
+        private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
 
         private readonly struct BattleSeed
         {
@@ -73,6 +78,8 @@ namespace FFSS.Editor
             string outputDirectory = Path.Combine("Assets/Scenes", ProductionRelativeRoot);
             Directory.CreateDirectory(outputDirectory);
             PrepareActBattleBackgroundPrefabs();
+            PrepareCardHoverPreviewPrefab();
+            PrepareCommandButtonSelectionPrefab();
             try
             {
                 CardBattleSetup.BeginBattleSceneBuildBatch();
@@ -112,6 +119,8 @@ namespace FFSS.Editor
             try
             {
                 PrepareActBattleBackgroundPrefabs();
+                PrepareCardHoverPreviewPrefab();
+                PrepareCommandButtonSelectionPrefab();
                 for (int i = 0; i < Seeds.Count; i++)
                 {
                     BattleSeed seed = Seeds[i];
@@ -159,6 +168,7 @@ namespace FFSS.Editor
 
             EnsureActBattleBackground(seed, canvas);
             EnsureCompletePokerDeck(combat.pokerHand);
+            EnsureSeotdaTable(combat, canvas);
 
             EnemyRuleMeterView meterView = FindInScene<EnemyRuleMeterView>(scene);
             GameObject meterObject = meterView != null ? meterView.gameObject : null;
@@ -176,13 +186,16 @@ namespace FFSS.Editor
             meterRect.anchorMin = Vector2.one;
             meterRect.anchorMax = Vector2.one;
             meterRect.pivot = Vector2.one;
-            meterRect.anchoredPosition = new Vector2(-48f, -320f);
+            meterRect.anchoredPosition = new Vector2(-24f, -250f);
             meterRect.sizeDelta = new Vector2(300f, 60f);
             meterRect.localScale = Vector3.one;
             meterObject.transform.SetAsLastSibling();
 
             meterView = meterObject.GetComponent<EnemyRuleMeterView>();
             meterView.Bind(encounter, null);
+
+            EnsureCardHoverPreview(canvas, combat);
+            EnsureWeaknessSubtitle(canvas, seed.Weakness);
 
             LegacyCombatFeedbackBridge feedback = combat.GetComponent<LegacyCombatFeedbackBridge>();
             if (feedback == null)
@@ -209,6 +222,293 @@ namespace FFSS.Editor
             EditorUtility.SetDirty(meterObject);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+        }
+
+        private static void PrepareCardHoverPreviewPrefab()
+        {
+            ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/Production/Combat");
+            Sprite frame = AssetDatabase.LoadAssetAtPath<Sprite>(TallTooltipPath);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(UiFontPath);
+            if (frame == null || font == null)
+                throw new InvalidOperationException("Card hover preview assets are missing.");
+
+            var root = new GameObject("CardHoverPreview", typeof(RectTransform), typeof(CardHoverPreview));
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            SetCenteredRect(rootRect, new Vector2(0.5f, 0.52f), new Vector2(430f, 650f));
+
+            var visual = new GameObject("Visual", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+            RectTransform visualRect = visual.GetComponent<RectTransform>();
+            visualRect.SetParent(rootRect, false);
+            Stretch(visualRect);
+            Image background = visual.GetComponent<Image>();
+            background.sprite = frame;
+            background.type = Image.Type.Sliced;
+            background.raycastTarget = false;
+            visual.GetComponent<CanvasGroup>().blocksRaycasts = false;
+
+            Image artwork = CreatePreviewImage("Artwork", visualRect, new Vector2(0.18f, 0.35f), new Vector2(0.82f, 0.91f));
+            Text title = CreatePreviewText("Title", visualRect, new Vector2(0.10f, 0.255f), new Vector2(0.90f, 0.34f), font, 28, TextAnchor.MiddleCenter);
+            title.fontStyle = FontStyle.Bold;
+            title.color = new Color(1f, 0.86f, 0.38f, 1f);
+            Text body = CreatePreviewText("Body", visualRect, new Vector2(0.11f, 0.065f), new Vector2(0.89f, 0.25f), font, 17, TextAnchor.UpperLeft);
+            body.color = new Color(0.95f, 0.95f, 0.98f, 1f);
+
+            SerializedObject serialized = new(root.GetComponent<CardHoverPreview>());
+            serialized.FindProperty("visualRoot").objectReferenceValue = visual;
+            serialized.FindProperty("artworkImage").objectReferenceValue = artwork;
+            serialized.FindProperty("titleText").objectReferenceValue = title;
+            serialized.FindProperty("bodyText").objectReferenceValue = body;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            PrefabUtility.SaveAsPrefabAsset(root, CardHoverPreviewPrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+
+        private static void PrepareCommandButtonSelectionPrefab()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(CommandButtonPrefabPath);
+            if (root == null)
+                throw new InvalidOperationException($"Command button prefab is missing: {CommandButtonPrefabPath}");
+            try
+            {
+                CombatCommandSelectionView view = root.GetComponent<CombatCommandSelectionView>();
+                if (view == null)
+                    view = root.AddComponent<CombatCommandSelectionView>();
+
+                Transform old = root.transform.Find("SelectionVfx");
+                if (old != null)
+                    UnityEngine.Object.DestroyImmediate(old.gameObject);
+
+                var effect = new GameObject("SelectionVfx", typeof(RectTransform), typeof(CanvasGroup));
+                RectTransform effectRect = effect.GetComponent<RectTransform>();
+                effectRect.SetParent(root.transform, false);
+                Stretch(effectRect, new Vector2(-8f, -8f), new Vector2(8f, 8f));
+                CanvasGroup group = effect.GetComponent<CanvasGroup>();
+                group.blocksRaycasts = false;
+                group.interactable = false;
+
+                Image frame = effect.AddComponent<Image>();
+                frame.sprite = root.GetComponent<Image>()?.sprite;
+                frame.color = new Color(1f, 0.78f, 0.24f, 0.65f);
+                frame.raycastTarget = false;
+
+                Sprite sparkSprite = AssetDatabase.LoadAssetAtPath<Sprite>(SelectionSparkPath);
+                var sparkRects = new List<RectTransform>();
+                Vector2[] positions =
+                {
+                    new(-126f, 0f), new(126f, 0f), new(-72f, 42f), new(72f, -42f)
+                };
+                for (int i = 0; i < positions.Length; i++)
+                {
+                    Image spark = CreateFixedImage($"Spark {i + 1}", effectRect, sparkSprite, positions[i], new Vector2(18f, 18f));
+                    spark.color = new Color(1f, 0.86f, 0.36f, 0.9f);
+                    sparkRects.Add(spark.rectTransform);
+                }
+                Image sweep = CreateFixedImage("Sweep", effectRect, sparkSprite, new Vector2(-126f, 0f), new Vector2(23f, 23f));
+
+                SerializedObject serialized = new(view);
+                serialized.FindProperty("effectGroup").objectReferenceValue = group;
+                serialized.FindProperty("sweep").objectReferenceValue = sweep.rectTransform;
+                SerializedProperty sparks = serialized.FindProperty("sparks");
+                sparks.arraySize = sparkRects.Count;
+                for (int i = 0; i < sparkRects.Count; i++)
+                    sparks.GetArrayElementAtIndex(i).objectReferenceValue = sparkRects[i];
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                effect.SetActive(false);
+
+                PrefabUtility.SaveAsPrefabAsset(root, CommandButtonPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void EnsureCardHoverPreview(Canvas canvas, RpsCombatController combat)
+        {
+            Transform existing = canvas.transform.Find("CardHoverPreview");
+            if (existing == null)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CardHoverPreviewPrefabPath);
+                existing = (PrefabUtility.InstantiatePrefab(prefab, canvas.transform) as GameObject)?.transform;
+                if (existing == null)
+                    throw new InvalidOperationException("Failed to instantiate CardHoverPreview.");
+                existing.name = "CardHoverPreview";
+            }
+            existing.SetAsLastSibling();
+
+            EnsureHoverSource(combat.seotdaTable != null ? combat.seotdaTable.cardSlotA : null);
+            EnsureHoverSource(combat.seotdaTable != null ? combat.seotdaTable.cardSlotB : null);
+        }
+
+        private static void EnsureSeotdaTable(RpsCombatController combat, Canvas canvas)
+        {
+            if (combat.seotdaTable != null)
+                return;
+
+            Transform table = FindNamedComponent<Transform>(canvas.transform, "HwatuTableV2");
+            if (table == null)
+                throw new InvalidOperationException($"{combat.gameObject.scene.path}: HwatuTableV2 is missing.");
+
+            Image slotB = FindNamedComponent<Image>(table, "SeotdaCardB");
+            Image slotA = FindNamedComponent<Image>(table, "SeotdaCardA");
+            if (slotA == null)
+            {
+                Transform legacySlot = table.Find("RedrawGuideText");
+                Text staleText = legacySlot != null ? legacySlot.GetComponent<Text>() : null;
+                if (legacySlot != null && staleText != null && slotB != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(staleText);
+                    legacySlot.name = "SeotdaCardA";
+                    slotA = legacySlot.gameObject.AddComponent<Image>();
+                    slotA.preserveAspect = true;
+                    slotA.raycastTarget = true;
+                }
+            }
+
+            Image deckPile = FindNamedComponent<Image>(table, "SeotdaDeckPile");
+            Text rankText = FindNamedComponent<Text>(table, "SeotdaRankText");
+            if (slotA == null || slotB == null || deckPile == null || rankText == null)
+            {
+                throw new InvalidOperationException(
+                    $"{combat.gameObject.scene.path}: the inspectable Seotda table is incomplete.");
+            }
+
+            SeotdaTableController controller = table.GetComponent<SeotdaTableController>();
+            if (controller == null)
+                controller = table.gameObject.AddComponent<SeotdaTableController>();
+            controller.cardSlotA = slotA;
+            controller.cardSlotB = slotB;
+            controller.rankText = rankText;
+            controller.drawOrigin = deckPile.rectTransform;
+            controller.backSprite = deckPile.sprite;
+            if (combat.bossProfile != null)
+                controller.ConfigureBossProfile(combat.bossProfile);
+
+            combat.seotdaTable = controller;
+            EditorUtility.SetDirty(table.gameObject);
+            EditorUtility.SetDirty(combat);
+        }
+
+        private static void EnsureHoverSource(Image card)
+        {
+            if (card != null && card.GetComponent<CardHoverSource>() == null)
+                card.gameObject.AddComponent<CardHoverSource>();
+        }
+
+        private static void EnsureWeaknessSubtitle(Canvas canvas, CardSuit weakness)
+        {
+            GameObject[] sceneRoots = canvas.gameObject.scene.GetRootGameObjects();
+            for (int rootIndex = 0; rootIndex < sceneRoots.Length; rootIndex++)
+            {
+                Transform[] transforms = sceneRoots[rootIndex].GetComponentsInChildren<Transform>(true);
+                for (int childIndex = transforms.Length - 1; childIndex >= 0; childIndex--)
+                {
+                    if (transforms[childIndex].name == "EnemyWeaknessText")
+                        UnityEngine.Object.DestroyImmediate(transforms[childIndex].gameObject);
+                }
+            }
+
+            Transform enemyHud = canvas.transform.Find("EnemyHUD");
+            Text title = FindNamedComponent<Text>(enemyHud, "TitleText");
+            if (title == null)
+                return;
+
+            string baseTitle = title.text;
+            int separator = baseTitle.IndexOf("  ·  약점", System.StringComparison.Ordinal);
+            if (separator >= 0)
+                baseTitle = baseTitle.Substring(0, separator);
+            title.text = $"{baseTitle}  ·  약점 {weakness.ToSymbol()}";
+        }
+
+        private static T FindNamedComponent<T>(Transform root, string objectName) where T : Component
+        {
+            if (root == null)
+                return null;
+            T[] components = root.GetComponentsInChildren<T>(true);
+            for (int i = 0; i < components.Length; i++)
+            {
+                if (components[i].name == objectName)
+                    return components[i];
+            }
+            return null;
+        }
+
+        private static Image CreatePreviewImage(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = target.GetComponent<Image>();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Text CreatePreviewText(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax,
+            Font font, int fontSize, TextAnchor alignment)
+        {
+            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(Outline));
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Text text = target.GetComponent<Text>();
+            text.font = font;
+            text.fontSize = fontSize;
+            text.alignment = alignment;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false;
+            Outline outline = target.GetComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.95f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            return text;
+        }
+
+        private static Image CreateFixedImage(string name, Transform parent, Sprite sprite, Vector2 position, Vector2 size)
+        {
+            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            SetCenteredRect(rect, new Vector2(0.5f, 0.5f), size);
+            rect.anchoredPosition = position;
+            Image image = target.GetComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static void SetCenteredRect(RectTransform rect, Vector2 anchor, Vector2 size)
+        {
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = Vector2.zero;
+            rect.localScale = Vector3.one;
+        }
+
+        private static void Stretch(RectTransform rect)
+        {
+            Stretch(rect, Vector2.zero, Vector2.zero);
+        }
+
+        private static void Stretch(RectTransform rect, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.offsetMin = offsetMin;
+            rect.offsetMax = offsetMax;
+            rect.localScale = Vector3.one;
         }
 
         private static void EnsureCompletePokerDeck(PokerHandController hand)

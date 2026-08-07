@@ -300,6 +300,7 @@ namespace CardBattle
                     view.PlayRedrawAnimation(deckPileTransform, card.Sprite, dealAnimationDuration, dealAnimationDuration);
                 else
                     view.Bind(card.Sprite);
+                view.SetHoverDetail(PokerCardPresentation.DisplayName(card.Sprite), CardBody(card.InstanceId));
                 CardRedrawn?.Invoke();
                 yield return new WaitForSeconds(dealStagger);
             }
@@ -322,10 +323,20 @@ namespace CardBattle
             var view = Instantiate(cardPrefab, handContainer);
             view.Configure(backSprite, arcAnchor);
             view.Bind(card.Sprite);
+            view.SetHoverDetail(PokerCardPresentation.DisplayName(card.Sprite), CardBody(card.InstanceId));
             view.SelectionChanged += HandleSelectionChanged;
             spawnedCards.Add(view);
             spawnedCardInstanceIds.Add(card.InstanceId);
             return view;
+        }
+
+        private static string CardBody(string instanceId)
+        {
+            if (!TryGetCurrentRun(out RunState run) || string.IsNullOrWhiteSpace(instanceId))
+                return string.Empty;
+
+            RunCardState card = run.pokerDeck.FindCard(instanceId);
+            return PokerCardPresentation.Detail(card);
         }
 
         private void HandleSelectionChanged(PokerCardView view)

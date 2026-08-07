@@ -30,6 +30,8 @@ namespace CardBattle
         private Coroutine feedbackRoutine;
         private bool selectionContextActive;
         private bool pointerInside;
+        private string hoverTitle;
+        private string hoverBody;
 
         public event Action<PokerCardView> SelectionChanged;
 
@@ -62,6 +64,12 @@ namespace CardBattle
             SetSelected(false);
             SetSelectionContext(false);
             SetRuleMark(EnemyCardRuleMark.None);
+        }
+
+        public void SetHoverDetail(string title, string body)
+        {
+            hoverTitle = title ?? string.Empty;
+            hoverBody = body ?? string.Empty;
         }
 
         public void SetRuleMark(EnemyCardRuleMark mark, int value = 0)
@@ -124,12 +132,14 @@ namespace CardBattle
         {
             pointerInside = true;
             ApplyRestScale();
+            CardHoverPreview.Current?.Show(CardSprite, hoverTitle, hoverBody);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             pointerInside = false;
             ApplyRestScale();
+            CardHoverPreview.Current?.Hide();
         }
 
         public void PlayKeepConfirmAnimation(Action onComplete = null)
@@ -324,7 +334,7 @@ namespace CardBattle
         {
             var rootRt = (RectTransform)transform;
             float centerIndex = index - (cardCount - 1) * 0.5f;
-            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, Mathf.Abs(centerIndex) * 2f);
+            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, 0f);
             float gatherAngle = centerIndex * -2.5f;
 
             yield return TweenTransform(visual.anchoredPosition, gatherOffset,

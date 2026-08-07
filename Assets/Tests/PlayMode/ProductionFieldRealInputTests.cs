@@ -182,6 +182,27 @@ namespace FFSS.Framework.Tests
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
+            Vector3 inventoryStart = player.transform.position;
+            yield return TapKey(Key.I);
+            yield return WaitUntil(
+                () => FindVisibleScreen(UIScreenId.Inventory) != null,
+                120,
+                "The inventory hotkey did not open its modal.");
+            Assert.That(ui.HasVisibleModal, Is.True,
+                "The inventory did not register as a field-blocking modal.");
+            yield return HoldKey(Key.W, 0.25f);
+            Assert.That(
+                Vector3.ProjectOnPlane(player.transform.position - inventoryStart, Vector3.up).magnitude,
+                Is.LessThan(0.03f),
+                "The player kept moving while the inventory was open.");
+            yield return TapKey(Key.I);
+            yield return WaitUntilSeconds(
+                () => FindVisibleScreen(UIScreenId.Inventory) == null,
+                2f,
+                "The inventory hotkey did not close its modal.");
+            Assert.That(ui.HasVisibleModal, Is.False,
+                "Closing the inventory left field movement blocked.");
+
             GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
             Assert.That(flow.TryChangeState(GameFlowState.Event), Is.True);
             UIScreen eventScreen = ui.Show(UIScreenId.Event, false);
@@ -410,6 +431,16 @@ namespace FFSS.Framework.Tests
             yield return null;
         }
 
+        private IEnumerator TapKey(Key key)
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
+            InputSystem.Update();
+            yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.Update();
+            yield return null;
+        }
+
         private IEnumerator Click(Button button)
         {
             Assert.That(button.interactable, Is.True, $"Button is disabled: {button.name}");
@@ -423,6 +454,14 @@ namespace FFSS.Framework.Tests
             Vector2 position = RectTransformUtility.WorldToScreenPoint(
                 camera,
                 rect.TransformPoint(rect.rect.center));
+
+            var pointer = new PointerEventData(EventSystem.current) { position = position };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits.Count, Is.GreaterThan(0), $"Pointer cannot reach {button.name}.");
+            Assert.That(hits[0].gameObject == button.gameObject ||
+                        hits[0].gameObject.transform.IsChildOf(button.transform), Is.True,
+                $"Pointer cannot reach {button.name}. Top hit: {(hits.Count > 0 ? hits[0].gameObject.name : "none")}");
 
             InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
             InputSystem.Update();
@@ -524,6 +563,8 @@ namespace FFSS.Framework.Tests
             Vector3 playerPosition = player.transform.position;
             while (!completed() && elapsed < timeLimit && frames < 30000)
             {
+                if (player == null)
+                    break;
                 playerPosition = player.transform.position;
                 Key[] heldKeys = DirectionKeys(playerPosition, targetPosition);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKeys));
@@ -590,7 +631,15 @@ namespace FFSS.Framework.Tests
                     yield break;
                 yield return null;
             }
-            Assert.Fail(message);
+            string diagnostics = $"ActiveScene={SceneManager.GetActiveScene().name}, Kernel={GameKernel.IsReady}";
+            if (GameKernel.IsReady)
+            {
+                diagnostics += $", Run={GameKernel.Services.Get<RunManager>().HasActiveRun}";
+                diagnostics += $", Flow={GameKernel.Services.Get<GameFlowManager>().Current}";
+                diagnostics += $", Loading={GameKernel.Services.Get<SceneFlowManager>().IsLoading}";
+                diagnostics += $", FieldHud={FindVisibleScreen(UIScreenId.FieldHud) != null}";
+            }
+            Assert.Fail($"{message} {diagnostics}");
         }
 
         private static IEnumerator WaitUntilSeconds(Func<bool> predicate, float timeoutSeconds, string message)

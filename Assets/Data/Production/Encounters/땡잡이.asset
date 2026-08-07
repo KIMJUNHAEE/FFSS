@@ -15,14 +15,14 @@ MonoBehaviour:
   enemyId: "\uB561\uC7A1\uC774"
   displayName: "\uB561\uC7A1\uC774"
   rank: 1
-  maximumHp: 101
-  maximumPressure: 39
+  maximumHp: 178
+  maximumPressure: 60
   combatTitle: "\uB561\uC744 \uC0AC\uB0E5\uD558\uB294 \uD478\uB978 \uC0AC\uC2AC"
   primaryColor: {r: 0.2, g: 0.66, b: 0.92, a: 1}
   secondaryColor: {r: 0.25, g: 0.9, b: 1, a: 1}
-  fieldSprite: {fileID: 7142821293987740698, guid: fc6f1ce9e5cf91447af98d03ba8943ee, type: 3}
-  fieldVisualScale: 0.14830509
-  fieldVisualOffset: {x: 0.62, y: 0.028516997}
+  fieldSprite: {fileID: 21300000, guid: 2d350fa0b932417fb7f2c817ce7bae5b, type: 3}
+  fieldVisualScale: 0.15607582
+  fieldVisualOffset: {x: 0.6229264, y: -0.5962541}
   exclusiveSeotdaDeck: {fileID: 11400000, guid: f4418103780e30448b57e0443dea3a14, type: 2}
   exclusiveSeotdaCard: {fileID: 11400000, guid: 0b21dcc8087e2f046b980d635d578ddb, type: 2}
   signatureCardA: {fileID: -6894402780853681277, guid: 9a610c34a0a524748abf12a1b6f75634, type: 3}
@@ -42,13 +42,13 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: ddengjabi_chain
-    displayName: "\uC0BC\uC6D4\uCD94\uC801"
+    displayName: "\uAC19\uC740 \uC22B\uC790 \uCAD3\uAE30"
     action: 0
     stance: 0
-    telegraph: "\uC0BC\uC6D4\uD328\uC758 \uD754\uC801\uC744 \uD478\uB978 \uC0AC\uC2AC\uC774
-      \uB05D\uAE4C\uC9C0 \uCAD3\uC544\uC640."
-    description: "\uBE60\uB978 \uACAC\uC778 \uB4A4 \uD55C \uBC88 \uB354 \uBCA0\uC5B4
-      HP\uB97C \uB178\uB9AC\uB294 \uAE30\uBCF8 \uC0AC\uB0E5\uAE30\uC57C."
+    telegraph: "\uC774\uBBF8 \uBCF8 \uC9DD \uC22B\uC790\uB97C \uD478\uB978 \uC0AC\uC2AC\uC774
+      \uB2E4\uC2DC \uCD94\uC801\uD574."
+    description: "\uCD94\uC801 \uC911\uC778 \uC22B\uC790\uAC00 \uB2E4\uC2DC \uC9DD\uC744
+      \uC774\uB8E8\uBA74 \uC911\uCCA9\uB9C8\uB2E4 \uACF5\uACA9\uC774 \uAC15\uD574\uC838."
     basePower: 13
     pressurePower: 6
     weight: 4.2
@@ -65,7 +65,7 @@ MonoBehaviour:
     seotdaFailurePowerDelta: 0
     bonusTrigger: 0
     seotdaRule: "3\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
-      HP \uCD94\uAC00 2"
+      HP \uCD94\uAC00 2 / \uCD94\uC801 \uC911\uCCA9\uB9C8\uB2E4 \uACF5\uACA9 +3"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -82,7 +82,7 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: ddengjabi_break
-    displayName: "\uB561\uB04A\uAE30"
+    displayName: "\uC9DD \uB04A\uAE30"
     action: 1
     stance: 1
     telegraph: "\uAC19\uC740 \uC6D4 \uB450 \uC7A5\uC774 \uBCF4\uC774\uBA74 \uC0AC\uC2AC
@@ -122,54 +122,15 @@ MonoBehaviour:
     tailAudioCue: sfx.enemy.ddaengjabi.tail
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
-  - moveId: ddengjabi_bait
-    displayName: "\uD5C8\uD328\uC720\uC778"
-    action: 1
-    stance: 1
-    telegraph: "\uB0AE\uC740 \uD328\uB97C \uC77C\uBD80\uB7EC \uD758\uB824 \uACF5\uACA9\uC744
-      \uC0AC\uC2AC \uC548\uCABD\uC73C\uB85C \uC720\uC778\uD574."
-    description: "\uD328\uAC00 \uC57D\uD560\uC218\uB85D \uD568\uC815\uC774 \uB2EB\uD788\uB294
-      \uC5ED\uBC1C\uC0C1 \uBC29\uC5B4\uC57C."
-    basePower: 11
-    pressurePower: 7
-    weight: 2.6
-    minimumRound: 1
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 3
-    conditionValueA: 3
-    conditionValueB: 0
-    seotdaPowerBonus: 3
-    seotdaHpDamage: 0
-    seotdaPressureDamage: 3
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "\uAC11\uC624 \uC774\uD558: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 0}
-    actionPoseSeconds: 0.48
-    actionVisualScale: 1
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 0
-    actionMotionIntensity: 1
-    actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.enemy.ddaengjabi.prepare
-    anticipationVfxCue: vfx.enemy.ddaengjabi
-    impactAudioCue: sfx.enemy.ddaengjabi.impact
-    impactVfxCue: vfx.combat.guard
-    tailAudioCue: sfx.enemy.ddaengjabi.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
   - moveId: ddengjabi_hunt
-    displayName: "\uC0BC\uCE60\uD3EC\uD68D"
+    displayName: "3\xB77 \uD55C\uAEBC\uBC88\uC5D0 \uC7A1\uAE30"
     action: 2
     stance: 0
     telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
       \uC0BC\uC6D4\uACFC \uCE60\uC6D4\uC758 \uC0AC\uC2AC\uC9C4\uC744 \uD3BC\uCCD0."
     description: "\uC815\uD655\uD55C \uC0BC\uCE60\uC740 HP\uBCF4\uB2E4 \uC790\uC138\uB97C
-      \uBA3C\uC800 \uC0AC\uB0E5\uD574 \uB2E4\uC74C \uC2A4\uD134\uC744 \uC55E\uB2F9\uACA8."
+      \uBA3C\uC800 \uC0AC\uB0E5\uD558\uACE0, \uCD94\uC801\uC774 \uAC00\uB4DD\uD558\uBA74
+      \uC704\uB825\uC774 \uB354 \uC62C\uB77C\uAC00."
     basePower: 17
     pressurePower: 8
     weight: 1
@@ -187,7 +148,7 @@ MonoBehaviour:
     bonusTrigger: 0
     seotdaRule: "\uC815\uD655\uD788 3\uC6D4+7\uC6D4: \uC2A4\uD0AC +4, \uBA85\uC911
       \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 5
-      / \uBD88\uBC1C: \uC2A4\uD0AC -3"
+      / \uCD94\uC801 4: \uACF5\uACA9 +3 / \uBD88\uBC1C: \uC2A4\uD0AC -3"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -237,3 +198,16 @@ MonoBehaviour:
     heatAttackThreshold: 3
     heatFlareThreshold: 4
     heatFlareDamage: 4
+  phases:
+  - phase: 2
+    triggerHp: 50
+    displayName: "\uC9D1\uC694\uD55C \uCD94\uC801"
+    description: "\uC22B\uC790\uBCC4 \uCD94\uC801 \uC0C1\uD55C\uC774 3\uC73C\uB85C
+      \uC624\uB978\uB2E4."
+    enemyPowerBonus: 0
+  breakResponse:
+    displayName: "\uACA9\uD30C \uBC18\uC751"
+    description: "\uD55C \uD134 \uB3D9\uC548 \uC2A4\uD134\uB418\uACE0 \uB2E4\uC74C
+      \uD589\uB3D9 \uC804\uC5D0 \uC587\uC740 \uAC8C\uC774\uC9C0\uAC00 \uBE44\uC6CC\uC9C4\uB2E4."
+    resetRuleMeter: 0
+    twoTurnStunMaximumMeter: -1

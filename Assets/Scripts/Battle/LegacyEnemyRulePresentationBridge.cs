@@ -181,6 +181,7 @@ namespace CardBattle
 
             state.turnNumber++;
             state.lastMoveId = result.EnemyMoveId;
+            int previousPhase = state.phase;
             UpdateEncounterPhase();
             switch (encounter.ruleRuntime.kind)
             {
@@ -189,25 +190,31 @@ namespace CardBattle
                     {
                         SetMeter(0);
                     }
+                    if (result.EnemyStunned)
+                        state.SetFlag("rule.pine.breakDefense", true);
                     break;
                 case EnemyRuleBehaviorKind.ReadRepeatedAction:
                     TrackReadAction(result.PlayerAction);
                     break;
                 case EnemyRuleBehaviorKind.RepeatActionTrace:
-                    TrackRepeatedAction(result.PlayerAction, resetOnStun: result.EnemyStunned);
+                    TrackActionTrace(result.PlayerAction, result.EnemyStunned);
                     break;
                 case EnemyRuleBehaviorKind.RedrawRisk:
                     SetMeter(0);
                     break;
                 case EnemyRuleBehaviorKind.UniqueActionCycle:
+                    int rewardTurns = state.GetCounter("rule.cycle.reward.turns");
                     TrackActionCycle(result.PlayerAction);
+                    if (rewardTurns > 0)
+                        state.SetCounter("rule.cycle.reward.turns", rewardTurns - 1);
                     break;
                 case EnemyRuleBehaviorKind.CardPoison:
                     if (ContainsMoveId(result, "poison") || ContainsMoveId(result, "bloom"))
                     {
                         AddMeter(encounter.ruleRuntime.meterGain);
                         state.SetCounter("rule.poison.held", 1);
-                        state.AddCounter("rule.poison.pending", 1, 0, 4);
+                        if (state.phase < 2)
+                            state.AddCounter("rule.poison.pending", 1, 0, 4);
                     }
                     if (result.EnemyStunned)
                     {
@@ -225,6 +232,10 @@ namespace CardBattle
                     if (result.EnemyStunned)
                     {
                         SetMeter(0);
+                    }
+                    else if (state.phase >= 2)
+                    {
+                        AddMeter(-1);
                     }
                     break;
                 case EnemyRuleBehaviorKind.CardSeal:
@@ -245,10 +256,10 @@ namespace CardBattle
                     TrackSuspicion(result);
                     break;
                 case EnemyRuleBehaviorKind.LowHandReversal:
-                    TrackLowHandStreak(result);
+                    TrackLowHandReversal();
                     break;
                 case EnemyRuleBehaviorKind.ActionHistoryCharge:
-                    TrackRepeatedAction(result.PlayerAction, resetOnStun: false);
+                    TrackActionHistory(result.PlayerAction);
                     break;
                 case EnemyRuleBehaviorKind.TargetAim:
                     SetMeter(ContainsMoveId(result, "piercing") || ContainsMoveId(result, "three_arrow")
@@ -256,12 +267,16 @@ namespace CardBattle
                         : Mathf.Max(0, GetMeter() - 1));
                     break;
                 case EnemyRuleBehaviorKind.SuitWheel:
-                    SetMeter((GetMeter() + 1) % (encounter.ruleMeter.maximumValue + 1));
+                    SetMeter((GetMeter() + (state.phase >= 2 ? 2 : 1)) %
+                             (encounter.ruleMeter.maximumValue + 1));
                     break;
                 case EnemyRuleBehaviorKind.GwangHeat:
                     TrackHeat(result);
                     break;
             }
+
+            ApplyPhaseTransition(previousPhase);
+            ApplyBreakResponse(result);
 
             TickCardRuleDurations();
         }
@@ -291,6 +306,37 @@ namespace CardBattle
             state.SetCounter("history.lastAction", encoded);
         }
 
+        private void TrackActionTrace(RpsAction action, bool resetOnStun)
+        {
+            if (resetOnStun)
+            {
+                for (int i = 0; i < 3; i++)
+                    state.SetCounter($"rule.repeat.{i}", 0);
+                SetMeter(0);
+                return;
+            }
+
+            int encoded = EncodeAction(action);
+            int lastAction = state.GetCounter("history.lastAction", -1);
+            string key = $"rule.repeat.{encoded}";
+            if (lastAction == encoded)
+            {
+                state.AddCounter(key, 1, 0, encounter.ruleMeter.maximumValue);
+            }
+            else
+            {
+                int highestAction = Enumerable.Range(0, 3)
+                    .OrderByDescending(index => state.GetCounter($"rule.repeat.{index}"))
+                    .First();
+                string highestKey = $"rule.repeat.{highestAction}";
+                state.AddCounter(highestKey, -1, 0, encounter.ruleMeter.maximumValue);
+                state.SetCounter(key, Mathf.Max(1, state.GetCounter(key)));
+            }
+
+            state.SetCounter("history.lastAction", encoded);
+            SetMeter(Enumerable.Range(0, 3).Max(index => state.GetCounter($"rule.repeat.{index}")));
+        }
+
         private void TrackActionCycle(RpsAction action)
         {
             int encoded = EncodeAction(action);
@@ -313,7 +359,15 @@ namespace CardBattle
             SetMeter(completed);
             if (completed >= encounter.ruleMeter.maximumValue)
             {
-                state.SetFlag("rule.cycle.reward.ready", true);
+                if (state.phase >= 2)
+                {
+                    state.SetFlag("rule.cycle.reward.ready", false);
+                    state.SetCounter("rule.cycle.reward.turns", 2);
+                }
+                else
+                {
+                    state.SetFlag("rule.cycle.reward.ready", true);
+                }
                 state.SetCounter("history.actionMask", 0);
                 SetMeter(0);
             }
@@ -346,7 +400,7 @@ namespace CardBattle
             int value = GetMeter();
             if (result.EnemyStunned)
             {
-                value += 2;
+                value += state.phase >= 2 ? 3 : 2;
             }
             else if (result.EnemyAction != RpsAction.Stunned)
             {
@@ -379,7 +433,8 @@ namespace CardBattle
             }
 
             if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.UniqueActionCycle &&
-                state.GetFlag("rule.cycle.reward.ready"))
+                state.GetFlag("rule.cycle.reward.ready") &&
+                state.phase < 2)
             {
                 state.SetFlag("rule.cycle.reward.ready", false);
             }
@@ -578,8 +633,16 @@ namespace CardBattle
                 return;
             }
 
-            float ratio = source.EnemyHp / (float)source.EnemyMaxHp;
-            state.phase = ratio <= 0.33f ? 3 : ratio <= 0.66f ? 2 : 1;
+            int phase = 1;
+            if (encounter.phases != null)
+            {
+                foreach (EnemyPhaseDefinition definition in encounter.phases)
+                {
+                    if (definition != null && source.EnemyHp <= definition.triggerHp)
+                        phase = Mathf.Max(phase, definition.phase);
+                }
+            }
+            state.phase = phase;
         }
 
         private static string CardId(PokerCardView card)
@@ -607,16 +670,25 @@ namespace CardBattle
 
         private void TrackPairHunt(RpsCombatExchangeResult result)
         {
-            if (result.PlayerHandRank is (PokerHandRank.OnePair or PokerHandRank.TwoPair or
-                PokerHandRank.ThreeKind or PokerHandRank.FullHouse or PokerHandRank.FourKind))
+            if (result.PlayerHandRank is not (PokerHandRank.OnePair or PokerHandRank.TwoPair or
+                PokerHandRank.ThreeKind or PokerHandRank.FullHouse or PokerHandRank.FourKind) || pokerHand == null)
             {
-                AddMeter(encounter.ruleRuntime.meterGain);
+                return;
             }
-            else if (result.DamageToEnemy > 0 &&
-                     result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.Straight or PokerHandRank.Flush))
+
+            IEnumerable<int> pairedRanks = pokerHand.Cards
+                .Where(card => TryCardRank(card, out _))
+                .GroupBy(CardRank)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+            foreach (int rank in pairedRanks)
             {
-                AddMeter(-encounter.ruleRuntime.defenseDecay);
+                state.AddCounter($"rule.tracking.rank.{rank}", 1, 0, state.phase >= 2 ? 3 : 2);
             }
+
+            int total = Enumerable.Range(1, 14)
+                .Sum(rank => state.GetCounter($"rule.tracking.rank.{rank}"));
+            SetMeter(Mathf.Min(encounter.ruleMeter.maximumValue, total));
         }
 
         private void TrackSuspicion(RpsCombatExchangeResult result)
@@ -631,18 +703,57 @@ namespace CardBattle
             }
         }
 
-        private void TrackLowHandStreak(RpsCombatExchangeResult result)
+        private void TrackLowHandReversal()
         {
-            bool lowHandHit = result.DamageToEnemy > 0 &&
-                              result.PlayerHandRank is (PokerHandRank.HighCard or PokerHandRank.OnePair);
-            SetMeter(lowHandHit ? GetMeter() + encounter.ruleRuntime.meterGain : 0);
+            int activeTurns = state.GetCounter("rule.reversal.turns");
+            if (activeTurns > 0)
+            {
+                state.SetCounter("rule.reversal.turns", activeTurns - 1);
+                return;
+            }
+
+            if (GetMeter() >= encounter.ruleMeter.maximumValue)
+            {
+                SetMeter(0);
+                if (state.phase >= 2)
+                    state.SetCounter("rule.reversal.turns", 1);
+                return;
+            }
+
+            SeotdaTableController table = source != null ? source.seotdaTable : null;
+            SeotdaHandResult hand = table != null ? table.LastResult : default;
+            int charge = 0;
+            if (hand.IsValid && hand.ContainsMonth(4)) charge++;
+            if (hand.IsValid && hand.ContainsMonth(9)) charge++;
+            if (charge > 0)
+                AddMeter(charge);
+        }
+
+        private void TrackActionHistory(RpsAction action)
+        {
+            int encoded = EncodeAction(action);
+            int packed = state.GetCounter("rule.history.packed");
+            int count = Mathf.Min(3, state.GetCounter("rule.history.count") + 1);
+            packed = ((packed << 2) | encoded) & 0b111111;
+            state.SetCounter("rule.history.packed", packed);
+            state.SetCounter("rule.history.count", count);
+
+            int repeated = 0;
+            int cursor = packed;
+            for (int i = 0; i < count; i++)
+            {
+                if ((cursor & 0b11) == encoded) repeated++;
+                cursor >>= 2;
+            }
+
+            if (repeated >= 3)
+                AddMeter(encounter.ruleRuntime.meterGain);
         }
 
         private void TrackHeat(RpsCombatExchangeResult result)
         {
             if (result.EnemyStunned)
             {
-                AddMeter(-encounter.ruleRuntime.breakDecay);
                 return;
             }
 
@@ -661,6 +772,31 @@ namespace CardBattle
             {
                 AddMeter(-encounter.ruleRuntime.defenseDecay);
             }
+        }
+
+        private void ApplyPhaseTransition(int previousPhase)
+        {
+            if (state == null || state.phase <= previousPhase)
+                return;
+
+            if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.FinalCountdown && state.phase >= 2)
+                SetMeter(Mathf.Min(4, GetMeter()));
+        }
+
+        private void ApplyBreakResponse(RpsCombatExchangeResult result)
+        {
+            if (!result.EnemyStunned || encounter?.breakResponse == null)
+                return;
+
+            EnemyBreakResponseDefinition response = encounter.breakResponse;
+            int meterAtBreak = GetMeter();
+            int stunTurns = response.twoTurnStunMaximumMeter >= 0 &&
+                            meterAtBreak <= response.twoTurnStunMaximumMeter
+                ? 2
+                : 1;
+            source?.SetEnemyStunTurns(stunTurns);
+            if (response.resetRuleMeter)
+                SetMeter(encounter.ruleMeter.initialValue);
         }
 
         private bool Ready()

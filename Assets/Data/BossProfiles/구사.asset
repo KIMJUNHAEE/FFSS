@@ -15,8 +15,8 @@ MonoBehaviour:
   bossId: "\uAD6C\uC0AC"
   displayName: "\uAD6C\uC0AC"
   encounterRank: 1
-  maxHp: 126
-  maxPressure: 48
+  maxHp: 205
+  maxPressure: 66
   accentColor: {r: 0.48, g: 0.76, b: 0.58, a: 1}
   combatTitle: "\uD310\uC744 \uB418\uB3CC\uB9AC\uB294 \uAD6C\uC0AC"
   secondaryAccentColor: {r: 0.72, g: 0.96, b: 0.58, a: 1}
@@ -34,12 +34,13 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: gusa_charge
-    displayName: "\uB0AE\uC740\uD310\uC1C4\uB3C4"
+    displayName: "\uB0AE\uC740 \uD310 \uBAB0\uAE30"
     moveType: 0
     telegraph: "\uB0AE\uC740 \uD328\uAC00 \uAE54\uB9AC\uBA74 \uAC70\uB300\uD55C \uBB34\uAE30\uB85C
       \uD310\uC9F8 \uBC00\uACE0 \uB4E4\uC5B4\uC640."
-    description: "\uAC15\uD55C \uC871\uBCF4\uBCF4\uB2E4 \uB0AE\uC740 \uD328\uC5D0\uC11C
-      \uD798\uC744 \uC5BB\uB294 \uAD6C\uC0AC\uC758 \uAE30\uBCF8 \uC555\uBC15\uC774\uC57C."
+    description: "\uAC11\uC624 \uC774\uD558\uC5D0\uC11C \uD798\uC744 \uC5BB\uACE0,
+      \uC871\uBCF4 \uBC18\uC804 \uC911\uC5D0\uB294 \uD558\uC774\uCE74\uB4DC\uAC00
+      \uAC00\uC7A5 \uAC15\uD574\uC838."
     power: 16
     breakPower: 7
     weight: 4
@@ -55,7 +56,8 @@ MonoBehaviour:
     seotdaBreakDamage: 2
     seotdaFailurePowerDelta: 0
     seotdaRule: "\uAC11\uC624 \uC774\uD558: \uACF5\uACA9 +3, \uBA85\uC911 \uC2DC
-      HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+      HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2 / \uBC18\uC804
+      \uD558\uC774\uCE74\uB4DC: \uACF5\uACA9 +6"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -65,7 +67,7 @@ MonoBehaviour:
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
   - moveId: gusa_great_guard
-    displayName: "\uCCA0\uBCBD\uAC70\uAC80"
+    displayName: "\uD070 \uCE7C\uB85C \uBC84\uD2F0\uAE30"
     moveType: 1
     telegraph: "\uC774\uB984 \uC5C6\uB294 \uD328\uAC00 \uB098\uC624\uBA74 \uB300\uAC80\uC744
       \uB545\uC5D0 \uBC15\uC544 \uD310\uC744 \uACE0\uC815\uD574."
@@ -95,53 +97,20 @@ MonoBehaviour:
     actionMotion: 0
     actionMotionIntensity: 1
     actionMotionRepetitions: 1
-  - moveId: gusa_declaration
-    displayName: "\uAD6C\uC0AC\uC120\uC5B8"
-    moveType: 1
-    telegraph: "\uC0AC\uC6D4\uACFC \uAD6C\uC6D4\uC774 \uB9DE\uC73C\uBA74 \uD328\uBC30\uD560
-      \uD310\uC744 \uBB34\uD6A8\uB85C \uB3CC\uB9AC\uB4EF \uBC84\uD168."
-    description: "\uC815\uD655\uD55C \uC0AC\uAD6C\uC5D0\uC11C \uBC29\uC5B4\uAC00
-      \uD06C\uAC8C \uC19F\uACE0 \uC0C1\uB300 \uC790\uC138\uB97C \uD55C \uBC88\uC5D0
-      \uBB34\uB108\uB728\uB824."
-    power: 13
-    breakPower: 8
-    weight: 2.4
-    minimumTurn: 2
-    cooldownTurns: 1
-    cadenceTurns: 0
-    cadenceOffset: 0
-    seotdaCondition: 7
-    conditionValueA: 4
-    conditionValueB: 9
-    seotdaPowerBonus: 5
-    seotdaHpDamage: 0
-    seotdaBreakDamage: 6
-    seotdaFailurePowerDelta: -1
-    seotdaRule: "\uC815\uD655\uD788 4\uC6D4+9\uC6D4: \uBC29\uC5B4 +5, \uBC29\uC5B4
-      \uC131\uACF5 \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 6 / \uBD88\uBC1C:
-      \uBC29\uC5B4 -1"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 0}
-    actionPoseSeconds: 0.48
-    actionVisualScale: 1
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 0
-    actionMotionIntensity: 1
-    actionMotionRepetitions: 1
   - moveId: gusa_overturn
     displayName: "\uD310\uB4A4\uC9D1\uAE30"
     moveType: 2
-    telegraph: "\uB124 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB2E4\uC12F \uD134\uB9C8\uB2E4
-      \uBB34\uAE30\uC640 \uD310\uC744 \uD568\uAED8 \uB4E4\uC5B4 \uC62C\uB824."
-    description: "\uC0AC\uAD6C\uAC00 \uC644\uC131\uB418\uBA74 \uC804\uC7A5\uC744
-      \uB4A4\uC5CE\uB294 \uCD5C\uB300 \uC77C\uACA9, \uC2E4\uD328\uD558\uBA74 \uBB34\uAC8C\uB97C
-      \uBC84\uD2F0\uC9C0 \uBABB\uD558\uACE0 \uD06C\uAC8C \uC57D\uD574\uC838."
+    telegraph: "\uC0AC\uC6D4\uACFC \uAD6C\uC6D4\uC774 \uCDA9\uC804\uB418\uBA74 \uB2E4\uC74C
+      \uD134 \uC871\uBCF4 \uBCF4\uB108\uC2A4\uB97C \uB4A4\uC9D1\uC5B4."
+    description: "\uC815\uD655\uD55C \uC0AC\uAD6C\uAC00 \uC644\uC131\uB418\uBA74
+      \uC804\uC7A5\uC744 \uB4A4\uC5CE\uACE0, \uC2E4\uD328\uD558\uBA74 \uBB34\uAC8C\uB97C
+      \uBC84\uD2F0\uC9C0 \uBABB\uD574 \uD06C\uAC8C \uC57D\uD574\uC838."
     power: 20
     breakPower: 10
     weight: 1
     minimumTurn: 4
     cooldownTurns: 3
-    cadenceTurns: 5
+    cadenceTurns: 4
     cadenceOffset: 4
     seotdaCondition: 7
     conditionValueA: 4

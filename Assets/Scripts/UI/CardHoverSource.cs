@@ -1,0 +1,39 @@
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace CardBattle
+{
+    [DisallowMultipleComponent]
+    public sealed class CardHoverSource : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        [SerializeField] private Sprite artwork;
+        [SerializeField] private string title;
+        [SerializeField, TextArea(2, 7)] private string body;
+
+        public void Configure(Sprite cardArtwork, string cardTitle, string cardBody)
+        {
+            artwork = cardArtwork;
+            title = cardTitle ?? string.Empty;
+            body = cardBody ?? string.Empty;
+        }
+
+        public void Clear()
+        {
+            artwork = null;
+            title = string.Empty;
+            body = string.Empty;
+            CardHoverPreview.Current?.Hide();
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (artwork != null)
+                CardHoverPreview.Current?.Show(artwork, title, body);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            CardHoverPreview.Current?.Hide();
+        }
+    }
+}

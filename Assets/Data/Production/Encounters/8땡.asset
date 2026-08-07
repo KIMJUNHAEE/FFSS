@@ -15,8 +15,8 @@ MonoBehaviour:
   enemyId: "8\uB561"
   displayName: "8\uB561"
   rank: 0
-  maximumHp: 72
-  maximumPressure: 32
+  maximumHp: 138
+  maximumPressure: 48
   combatTitle: "\uACF5\uC0B0 \uC220\uBC95\uC758 \uD314\uB561 \uD328\uAC1D"
   primaryColor: {r: 0.54, g: 0.68, b: 0.3, a: 1}
   secondaryColor: {r: 0.84, g: 0.92, b: 0.48, a: 1}
@@ -42,7 +42,7 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: eight_ddeng_goose
-    displayName: "\uAE30\uB7EC\uAE30 \uC8FC\uBB38\uD0C4"
+    displayName: "\uBD80\uC801 \uB358\uC9C0\uAE30"
     action: 0
     stance: 0
     telegraph: "\uBD80\uC801\uC744 \uC811\uC5B4 \uAE30\uB7EC\uAE30 \uBAA8\uC591\uC758
@@ -82,7 +82,7 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: eight_ddeng_curtain
-    displayName: "\uACF5\uC0B0 \uC7A5\uB9C9"
+    displayName: "\uC7A5\uB9C9 \uD3B4\uAE30"
     action: 1
     stance: 1
     telegraph: "\uB450\uB8E8\uB9C8\uB9AC\uB97C \uD3BC\uCCD0 \uACF5\uACA9 \uC55E\uC5D0
@@ -121,102 +121,21 @@ MonoBehaviour:
     tailAudioCue: sfx.enemy.8ddaeng.tail
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
-  - moveId: eight_ddeng_reed
-    displayName: "\uC5B5\uC0C8 \uC9C0\uBA74\uD48D"
-    action: 1
-    stance: 1
-    telegraph: "\uC9C0\uBA74\uC758 \uC5B5\uC0C8 \uBC14\uB78C\uC744 \uAC10\uC544 \uACF5\uACA9\uC744
-      \uC606\uC73C\uB85C \uD758\uB824."
-    description: "\uD314\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBC14\uB78C\uBCBD\uC774
-      \uB450\uAEBC\uC6CC\uC838 \uB9C9\uC544\uB0B8 \uB4A4 \uC790\uC138\uB97C \uB354
-      \uD06C\uAC8C \uD754\uB4E4\uC5B4."
-    basePower: 11
-    pressurePower: 7
-    weight: 2.7
-    minimumRound: 1
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 6
-    conditionValueA: 8
-    conditionValueB: 0
-    seotdaPowerBonus: 2
-    seotdaHpDamage: 0
-    seotdaPressureDamage: 3
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 21300000, guid: 20304d0ec64458d49bfdee29d66da9f2, type: 3}
-    actionPoseSeconds: 0.54
-    actionVisualScale: 1.05
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 7
-    actionMotionIntensity: 1.16
-    actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.enemy.8ddaeng.prepare
-    anticipationVfxCue: vfx.enemy.8ddaeng
-    impactAudioCue: sfx.enemy.8ddaeng.impact
-    impactVfxCue: vfx.combat.guard
-    tailAudioCue: sfx.enemy.8ddaeng.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
   - moveId: eight_ddeng_seal
-    displayName: "\uD314\uC5FD \uBD09\uC778\uC11C"
-    action: 0
-    stance: 0
-    telegraph: "\uC5EC\uB35F \uC7A5\uC758 \uBD80\uC801\uC744 \uC6D0\uD615\uC73C\uB85C
-      \uC138\uC6CC \uD55C\uAEBC\uBC88\uC5D0 \uB2EB\uC544."
-    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uBD09\uC778\uC11C\uAC00 \uC644\uC131\uB3FC
-      HP\uC640 \uC790\uC138\uC5D0 \uD568\uAED8 \uC555\uBC15\uC744 \uC918."
-    basePower: 12
-    pressurePower: 6
-    weight: 2.2
-    minimumRound: 2
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 4
-    conditionValueA: 0
-    conditionValueB: 0
-    seotdaPowerBonus: 2
-    seotdaHpDamage: 2
-    seotdaPressureDamage: 2
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "\uB561: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740
-      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 21300000, guid: 6281e59a28d622c428cc1456f1fbffdf, type: 3}
-    actionPoseSeconds: 0.6
-    actionVisualScale: 1
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 10
-    actionMotionIntensity: 1.05
-    actionMotionRepetitions: 2
-    anticipationAudioCue: sfx.enemy.8ddaeng.prepare
-    anticipationVfxCue: vfx.enemy.8ddaeng
-    impactAudioCue: sfx.enemy.8ddaeng.impact
-    impactVfxCue: vfx.enemy.8ddaeng
-    tailAudioCue: sfx.enemy.8ddaeng.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
-  - moveId: eight_ddeng_chant
-    displayName: "\uD314\uB561 \uACF5\uC0B0\uC601\uCC3D"
+    displayName: "\uC190\uD328 \uB450 \uC7A5 \uBB36\uAE30"
     action: 2
     stance: 0
-    telegraph: "\uACF5\uC0B0\uC758 \uBD80\uC801\uC744 \uBAA8\uB450 \uB744\uC6CC \uD314\uB561
-      \uC8FC\uBB38\uC744 \uC644\uC131\uD574."
+    telegraph: "\uB124 \uBC88\uC9F8 \uC8FC\uAE30\uB9C8\uB2E4 \uAC00\uC7A5 \uB192\uC740
+      \uC5F0\uB9C8 \uCE74\uB4DC\uBD80\uD130 \uBD09\uC778 \uD45C\uC2DD\uC744 \uAC78\uC5B4."
     description: "\uC815\uD655\uD55C 8\uB561\uC774\uBA74 \uC8FC\uBB38\uC9C4\uC774
-      \uB2EB\uD600 \uD070 \uD53C\uD574\uAC00 \uB4E4\uC5B4\uC640. \uC2E4\uD328\uD558\uBA74
-      \uC601\uCC3D\uC774 \uB04A\uACA8."
+      \uB2EB\uD788\uACE0, \uBD09\uC778 \uCE74\uB4DC\uAC00 \uC190\uC5D0 \uB0A8\uC73C\uBA74
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uD53C\uD574\uAC00 \uB354 \uCEE4\uC838."
     basePower: 17
     pressurePower: 9
     weight: 1
     minimumRound: 4
     cooldownRounds: 3
-    cadenceRounds: 5
+    cadenceRounds: 4
     cadenceOffset: 4
     seotdaCondition: 7
     conditionValueA: 8
@@ -228,15 +147,16 @@ MonoBehaviour:
     bonusTrigger: 0
     seotdaRule: "\uC815\uD655\uD788 8\uC6D4+8\uC6D4: \uC2A4\uD0AC +4, \uBA85\uC911
       \uC2DC HP \uCD94\uAC00 4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4
-      / \uBD88\uBC1C: \uC2A4\uD0AC -3"
+      / \uBD09\uC778 \uCE74\uB4DC \uBCF4\uC720: \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00
+      3 / \uBD88\uBC1C: \uC2A4\uD0AC -3"
     icon: {fileID: 0}
-    actionSprite: {fileID: 21300000, guid: c0eb81ab3cc920344b5d91d860c876cd, type: 3}
-    actionPoseSeconds: 0.72
-    actionVisualScale: 1.35
+    actionSprite: {fileID: 21300000, guid: 6281e59a28d622c428cc1456f1fbffdf, type: 3}
+    actionPoseSeconds: 0.6
+    actionVisualScale: 1
     actionVisualOffset: {x: 0, y: 0}
     actionMotion: 10
-    actionMotionIntensity: 1.42
-    actionMotionRepetitions: 3
+    actionMotionIntensity: 1.05
+    actionMotionRepetitions: 2
     anticipationAudioCue: sfx.enemy.8ddaeng.prepare
     anticipationVfxCue: vfx.card.reveal
     impactAudioCue: sfx.enemy.8ddaeng.impact
@@ -278,3 +198,17 @@ MonoBehaviour:
     heatAttackThreshold: 3
     heatFlareThreshold: 4
     heatFlareDamage: 4
+  phases:
+  - phase: 2
+    triggerHp: 36
+    displayName: "\uC774\uC911 \uBD09\uC778"
+    description: "\uBD09\uC778 \uD6C4\uBCF4 \uB450 \uC7A5\uC744 \uACF5\uAC1C\uD558\uACE0
+      \uD50C\uB808\uC774\uC5B4\uAC00 \uC2E4\uC81C \uBD09\uC778 \uD558\uB098\uB97C
+      \uC120\uD0DD\uD55C\uB2E4."
+    enemyPowerBonus: 0
+  breakResponse:
+    displayName: "\uACA9\uD30C \uBC18\uC751"
+    description: "\uD55C \uD134 \uB3D9\uC548 \uC2A4\uD134\uB418\uACE0 \uB2E4\uC74C
+      \uD589\uB3D9 \uC804\uC5D0 \uC587\uC740 \uAC8C\uC774\uC9C0\uAC00 \uBE44\uC6CC\uC9C4\uB2E4."
+    resetRuleMeter: 0
+    twoTurnStunMaximumMeter: -1
