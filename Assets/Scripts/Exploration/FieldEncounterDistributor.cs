@@ -42,7 +42,6 @@ namespace CardBattle.Exploration
         [SerializeField] private GameObject midBossMarkerPrefab;
         [SerializeField] private GameObject eventMarkerPrefab;
         [SerializeField] private GameObject shopMarkerPrefab;
-        [SerializeField] private GameObject restMarkerPrefab;
         [SerializeField] private GameObject bossDoorMarkerPrefab;
         [SerializeField] private GameObject ambientLandmarkPrefab;
         [SerializeField, Min(0.2f)] private float activationRadius = 0.85f;
@@ -360,6 +359,7 @@ namespace CardBattle.Exploration
                     landmark.targetHeight,
                     landmark.localOffset);
             }
+            view?.ConfigureMarkerType(planned.type);
             if (planned.encounter != null && planned.type != RunFieldContentType.BossDoor)
                 view?.Configure(planned.encounter.encounter);
 
@@ -516,7 +516,6 @@ namespace CardBattle.Exploration
             return type switch
             {
                 RunFieldContentType.Shop => 2.25f,
-                RunFieldContentType.Rest => 2.25f,
                 RunFieldContentType.BossDoor => 2.5f,
                 RunFieldContentType.MidBoss => 2.1f,
                 RunFieldContentType.Event => 1.75f,
@@ -532,7 +531,6 @@ namespace CardBattle.Exploration
                 RunFieldContentType.MidBoss => midBossMarkerPrefab,
                 RunFieldContentType.Event => eventMarkerPrefab,
                 RunFieldContentType.Shop => shopMarkerPrefab,
-                RunFieldContentType.Rest => restMarkerPrefab,
                 RunFieldContentType.BossDoor => bossDoorMarkerPrefab,
                 _ => normalMarkerPrefab
             };

@@ -104,10 +104,6 @@ namespace CardBattle.Exploration
                     flowState = GameFlowState.Event;
                     GameKernel.Services.Get<RunProgressionManager>().ResolveNode(nodeId);
                     break;
-                case RunFieldContentType.Rest:
-                    screenId = UIScreenId.Rest;
-                    flowState = GameFlowState.Rest;
-                    break;
                 case RunFieldContentType.BossDoor:
                     screenId = UIScreenId.BossDoor;
                     break;
@@ -129,7 +125,6 @@ namespace CardBattle.Exploration
             {
                 RunFieldContentType.Event => "갈림길",
                 RunFieldContentType.Shop => "유돌이의 행상",
-                RunFieldContentType.Rest => "쉼터",
                 RunFieldContentType.BossDoor => "보스문",
                 _ => type.ToString()
             };
@@ -141,7 +136,6 @@ namespace CardBattle.Exploration
             {
                 RunFieldContentType.Event => new Color(0.67f, 0.28f, 0.78f, 1f),
                 RunFieldContentType.Shop => new Color(0.2f, 0.72f, 0.48f, 1f),
-                RunFieldContentType.Rest => new Color(0.2f, 0.58f, 0.92f, 1f),
                 RunFieldContentType.BossDoor => new Color(0.92f, 0.2f, 0.16f, 1f),
                 _ => Color.white
             };

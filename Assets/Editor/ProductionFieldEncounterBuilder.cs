@@ -130,11 +130,6 @@ namespace FFSS.Editor
                 0.92f,
                 true,
                 "유돌이의 행상");
-            GameObject restNode = BuildMarkerPrefab(
-                "FieldContent_Rest",
-                0.92f,
-                true,
-                "쉼터");
             GameObject bossDoor = BuildMarkerPrefab(
                 "FieldContent_BossDoor",
                 1.06f,
@@ -143,7 +138,7 @@ namespace FFSS.Editor
             GameObject ambientLandmark = BuildAmbientLandmarkPrefab();
 
             ConfigureFlowDefinition();
-            ConfigureFieldScene(normal, midBoss, eventNode, shopNode, restNode, bossDoor, ambientLandmark);
+            ConfigureFieldScene(normal, midBoss, eventNode, shopNode, bossDoor, ambientLandmark);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS production field encounters are configured as direct world interactions.");
@@ -177,8 +172,6 @@ namespace FFSS.Editor
             visual.transform.localScale = Vector3.one * visualScale;
 
             SpriteRenderer landmark = CreateSprite("Location Artwork", visual.transform, null, 26);
-            SpriteRenderer actor = CreateSprite("Encounter Character", visual.transform, null, 30);
-            actor.gameObject.SetActive(false);
 
             Canvas canvas = CreateLabelCanvas(visual.transform);
             Text label = CreateLabel(canvas.transform, font, defaultLabel);
@@ -186,9 +179,9 @@ namespace FFSS.Editor
             FieldEncounterMarkerView markerView = root.GetComponent<FieldEncounterMarkerView>();
             SerializedObject view = new SerializedObject(markerView);
             view.FindProperty("visualRoot").objectReferenceValue = visual.transform;
-            view.FindProperty("iconRenderer").objectReferenceValue = actor;
+            view.FindProperty("iconRenderer").objectReferenceValue = landmark;
             view.FindProperty("landmarkRenderer").objectReferenceValue = landmark;
-            view.FindProperty("actorRenderer").objectReferenceValue = actor;
+            view.FindProperty("actorRenderer").objectReferenceValue = null;
             view.FindProperty("nameText").objectReferenceValue = label;
             view.FindProperty("hideLabelUntilFocused").boolValue = true;
             view.FindProperty("tintCharacterWhenFocused").boolValue = false;
@@ -296,7 +289,6 @@ namespace FFSS.Editor
             GameObject midBoss,
             GameObject eventNode,
             GameObject shopNode,
-            GameObject restNode,
             GameObject bossDoor,
             GameObject ambientLandmark)
         {
@@ -321,7 +313,6 @@ namespace FFSS.Editor
             field.FindProperty("midBossMarkerPrefab").objectReferenceValue = midBoss;
             field.FindProperty("eventMarkerPrefab").objectReferenceValue = eventNode;
             field.FindProperty("shopMarkerPrefab").objectReferenceValue = shopNode;
-            field.FindProperty("restMarkerPrefab").objectReferenceValue = restNode;
             field.FindProperty("bossDoorMarkerPrefab").objectReferenceValue = bossDoor;
             field.FindProperty("ambientLandmarkPrefab").objectReferenceValue = ambientLandmark;
             ConfigureLandmarkVisuals(field.FindProperty("landmarkVisuals"));

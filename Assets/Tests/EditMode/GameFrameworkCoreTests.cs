@@ -1081,13 +1081,14 @@ namespace FFSS.Framework.Tests
                 Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldEncounterNode"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+                Assert.That(prefab.transform.Find("Billboard/Encounter Character"), Is.Null,
+                    $"Field combat landmarks must not display enemy character sprites: {path}");
             }
 
             string[] contentPrefabPaths =
             {
                 "Assets/Prefabs/Production/Field/FieldContent_Event.prefab",
                 "Assets/Prefabs/Production/Field/FieldContent_Shop.prefab",
-                "Assets/Prefabs/Production/Field/FieldContent_Rest.prefab",
                 "Assets/Prefabs/Production/Field/FieldContent_BossDoor.prefab"
             };
 
@@ -1098,6 +1099,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(prefab.GetComponent("FieldEncounterMarkerView"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponent("FieldRunContentNode"), Is.Not.Null, path);
                 Assert.That(prefab.GetComponentInChildren<Canvas>(true), Is.Not.Null, path);
+                Assert.That(prefab.transform.Find("Billboard/Encounter Character"), Is.Null, path);
             }
         }
 
@@ -1117,7 +1119,6 @@ namespace FFSS.Framework.Tests
                 Assert.That(serialized.FindProperty("midBossMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("eventMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("shopMarkerPrefab").objectReferenceValue, Is.Not.Null);
-                Assert.That(serialized.FindProperty("restMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(serialized.FindProperty("bossDoorMarkerPrefab").objectReferenceValue, Is.Not.Null);
                 Assert.That(FindInScene<GameKernel>(scene), Is.Not.Null);
                 Assert.That(FindInScene<SceneEntryPoint>(scene), Is.Not.Null);
