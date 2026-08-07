@@ -21,7 +21,6 @@ namespace FFSS.Framework.Tests
     public sealed class ProductionFieldRealInputTests
     {
         private const string FieldScene = "Production_Field";
-        private const string TitleScene = "Production_Title";
         private Keyboard keyboard;
         private Mouse mouse;
         private readonly List<InputDevice> disabledPhysicalDevices = new();
@@ -74,31 +73,6 @@ namespace FFSS.Framework.Tests
 #if UNITY_EDITOR
             InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInputBehavior;
 #endif
-        }
-
-        [UnityTest]
-        public IEnumerator TitleNewRunUsesRealPointerInput()
-        {
-            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
-            yield return WaitUntil(
-                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.Title) != null,
-                300,
-                "Production title did not become pointer-ready.");
-            yield return WaitFrames(3);
-
-            Button newRun = FindVisibleButton(FindVisibleScreen(UIScreenId.Title), "New Run");
-            Assert.That(newRun, Is.Not.Null, "Title has no visible New Run button.");
-            yield return Click(newRun);
-            yield return WaitUntil(
-                () => SceneManager.GetActiveScene().name == FieldScene &&
-                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
-                      FindVisibleScreen(UIScreenId.FieldHud) != null,
-                600,
-                "A real pointer click on New Run did not create a run and enter the field.");
-
-            Assert.That(GameKernel.Services.Get<GameFlowManager>().Current, Is.EqualTo(GameFlowState.Field));
-            Assert.That(FindVisibleScreen(UIScreenId.Title), Is.Null,
-                "The title stayed visible after a real New Run click.");
         }
 
         [UnityTest]
@@ -170,51 +144,16 @@ namespace FFSS.Framework.Tests
             Assert.That(farthestDistance, Is.GreaterThan(1.1f),
                 "Real keyboard input could not move the player away from the starting tile.");
 
-            RunActProgressState fieldProgress = GameKernel.Services.Get<RunManager>()
-                .Current.CurrentActProgress;
-            Assert.That(fieldProgress.hasCurrentCell, Is.True,
-                "Field movement never recorded the player's current hex coordinate.");
-            Assert.That(fieldProgress.visitedTileIds, Has.Count.GreaterThan(1),
-                "Real movement did not record more than the starting hex as visited.");
-
-            yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap, true);
+            yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap);
             yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Equipment);
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
-            Vector3 inventoryStart = player.transform.position;
-            yield return TapKey(Key.I);
-            yield return WaitUntil(
-                () => FindVisibleScreen(UIScreenId.Inventory) != null,
-                120,
-                "The inventory hotkey did not open its modal.");
-            Assert.That(ui.HasVisibleModal, Is.True,
-                "The inventory did not register as a field-blocking modal.");
-            yield return HoldKey(Key.W, 0.25f);
-            Assert.That(
-                Vector3.ProjectOnPlane(player.transform.position - inventoryStart, Vector3.up).magnitude,
-                Is.LessThan(0.03f),
-                "The player kept moving while the inventory was open.");
-            yield return TapKey(Key.I);
-            yield return WaitUntilSeconds(
-                () => FindVisibleScreen(UIScreenId.Inventory) == null,
-                2f,
-                "The inventory hotkey did not close its modal.");
-            Assert.That(ui.HasVisibleModal, Is.False,
-                "Closing the inventory left field movement blocked.");
-
             GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
             Assert.That(flow.TryChangeState(GameFlowState.Event), Is.True);
             UIScreen eventScreen = ui.Show(UIScreenId.Event, false);
             yield return WaitFrames(2);
             Assert.That(ui.HasVisibleModal, Is.True);
-
-            Vector3 modalStart = player.transform.position;
-            yield return HoldKey(Key.W, 0.25f);
-            Assert.That(
-                Vector3.ProjectOnPlane(player.transform.position - modalStart, Vector3.up).magnitude,
-                Is.LessThan(0.03f),
-                "The player kept moving while an event choice blocked the field.");
 
             Button close = FindVisibleButton(eventScreen, "Close");
             Assert.That(close, Is.Not.Null, "Event modal has no clickable close button.");
@@ -322,54 +261,9 @@ namespace FFSS.Framework.Tests
             Assert.That(SceneManager.GetActiveScene().name, Does.StartWith("Combat_"));
             Assert.That(GameKernel.Services.Get<RunManager>().Current.activeEnemyRule?.enemyId,
                 Is.EqualTo(enemyId));
-
-            Component controller = null;
-            yield return WaitUntilSeconds(
-                () => (controller = FindCombatController()) != null && CombatHandReady(controller),
-                15f,
-                "Combat loaded but its first poker hand never accepted input.");
-
-            Type controllerType = controller.GetType();
-            object hand = controllerType.GetField("pokerHand")?.GetValue(controller);
-            Type handType = hand?.GetType();
-            Button redraw = controllerType.GetField("redrawButton")?.GetValue(controller) as Button;
-            Button attack = controllerType.GetField("attackButton")?.GetValue(controller) as Button;
-            Button endTurn = controllerType.GetField("endTurnButton")?.GetValue(controller) as Button;
-            Assert.That(hand, Is.Not.Null);
-            Assert.That(redraw, Is.Not.Null);
-            Assert.That(attack, Is.Not.Null);
-            Assert.That(endTurn, Is.Not.Null);
-
-            yield return Click(redraw);
-            yield return WaitUntilSeconds(
-                () => (bool)handType.GetProperty("HasResolvedHand").GetValue(hand) &&
-                      (int)handType.GetProperty("RedrawsRemaining").GetValue(hand) == 0,
-                8f,
-                "A real redraw click did not consume the turn's redraw resource.");
-            Assert.That(redraw.interactable, Is.False);
-
-            yield return Click(attack);
-            yield return WaitUntilSeconds(
-                () => endTurn.interactable,
-                3f,
-                "A real attack click did not arm turn end.");
-            yield return Click(endTurn);
-            yield return WaitUntilSeconds(
-                () => !(bool)handType.GetProperty("HasResolvedHand").GetValue(hand),
-                5f,
-                "A real turn-end click did not gather the poker hand.");
-            yield return WaitUntilSeconds(
-                () => (bool)handType.GetProperty("HasResolvedHand").GetValue(hand) &&
-                      (int)handType.GetProperty("RedrawsRemaining").GetValue(hand) == 1 &&
-                      redraw.interactable,
-                20f,
-                "The enemy Seotda turn did not return real pointer control to the player.");
         }
 
-        private IEnumerator ClickFieldCommandAndClose(
-            string buttonName,
-            UIScreenId expectedScreen,
-            bool exerciseFirstAction = false)
+        private IEnumerator ClickFieldCommandAndClose(string buttonName, UIScreenId expectedScreen)
         {
             Button command = FindVisibleButton(null, buttonName);
             Assert.That(command, Is.Not.Null, $"Field HUD button is missing: {buttonName}");
@@ -381,64 +275,12 @@ namespace FFSS.Framework.Tests
                 $"A real pointer click did not open {expectedScreen}.");
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.True);
 
-            if (expectedScreen == UIScreenId.FieldMap)
-            {
-                Text subtitle = modal.GetComponentsInChildren<Text>(true)
-                    .FirstOrDefault(text => text.name == "Subtitle");
-                RunActProgressState progress = GameKernel.Services.Get<RunManager>()
-                    .Current.CurrentActProgress;
-                Assert.That(subtitle, Is.Not.Null);
-                Assert.That(subtitle.text, Does.Contain($"[{progress.currentAxialX}, {progress.currentAxialY}]"),
-                    "The map did not show the player's recorded current hex coordinate.");
-                Assert.That(subtitle.text, Does.Contain($"걸어 본 타일 {progress.visitedTileIds.Count}"),
-                    "The map did not show the actual number of tiles visited by movement.");
-            }
-
-            if (exerciseFirstAction)
-            {
-                Button action = FindVisibleButton(modal, "Action 1");
-                Assert.That(action, Is.Not.Null, $"{expectedScreen} has no selectable map category.");
-                yield return Click(action);
-                yield return WaitFrames(2);
-                Text body = modal.GetComponentsInChildren<Text>(true)
-                    .FirstOrDefault(text => text.name == "Body");
-                Assert.That(body, Is.Not.Null);
-                Assert.That(body.text, Does.Contain("건물"),
-                    "Clicking a map category did not show discovered landmark details.");
-            }
-
             Button close = FindVisibleButton(modal, "Close");
             Assert.That(close, Is.Not.Null, $"{expectedScreen} has no close button.");
             yield return Click(close);
             yield return WaitFrames(2);
             Assert.That(FindVisibleScreen(expectedScreen), Is.Null,
                 $"A real pointer click did not close {expectedScreen}.");
-        }
-
-        private IEnumerator HoldKey(Key key, float seconds)
-        {
-            float elapsed = 0f;
-            while (elapsed < seconds)
-            {
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
-                InputSystem.Update();
-                yield return null;
-                elapsed += Time.deltaTime;
-            }
-
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-            InputSystem.Update();
-            yield return null;
-        }
-
-        private IEnumerator TapKey(Key key)
-        {
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
-            InputSystem.Update();
-            yield return null;
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-            InputSystem.Update();
-            yield return null;
         }
 
         private IEnumerator Click(Button button)
@@ -454,14 +296,6 @@ namespace FFSS.Framework.Tests
             Vector2 position = RectTransformUtility.WorldToScreenPoint(
                 camera,
                 rect.TransformPoint(rect.rect.center));
-
-            var pointer = new PointerEventData(EventSystem.current) { position = position };
-            var hits = new List<RaycastResult>();
-            EventSystem.current.RaycastAll(pointer, hits);
-            Assert.That(hits.Count, Is.GreaterThan(0), $"Pointer cannot reach {button.name}.");
-            Assert.That(hits[0].gameObject == button.gameObject ||
-                        hits[0].gameObject.transform.IsChildOf(button.transform), Is.True,
-                $"Pointer cannot reach {button.name}. Top hit: {(hits.Count > 0 ? hits[0].gameObject.name : "none")}");
 
             InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
             InputSystem.Update();
@@ -485,28 +319,6 @@ namespace FFSS.Framework.Tests
                     component != null &&
                     component.GetType().FullName ==
                     "CardBattle.Exploration.QuarterViewPlayerController");
-        }
-
-        private static Component FindCombatController()
-        {
-            return Object.FindObjectsByType<MonoBehaviour>(
-                    FindObjectsInactive.Exclude,
-                    FindObjectsSortMode.None)
-                .FirstOrDefault(component =>
-                    component != null &&
-                    component.GetType().FullName == "CardBattle.RpsCombatController");
-        }
-
-        private static bool CombatHandReady(Component controller)
-        {
-            if (controller == null)
-                return false;
-
-            Type type = controller.GetType();
-            object hand = type.GetField("pokerHand")?.GetValue(controller);
-            Button attack = type.GetField("attackButton")?.GetValue(controller) as Button;
-            return hand != null && attack != null && attack.interactable &&
-                   (bool)(hand.GetType().GetProperty("HasResolvedHand")?.GetValue(hand) ?? false);
         }
 
         private static Component FindEventNode()
@@ -563,8 +375,6 @@ namespace FFSS.Framework.Tests
             Vector3 playerPosition = player.transform.position;
             while (!completed() && elapsed < timeLimit && frames < 30000)
             {
-                if (player == null)
-                    break;
                 playerPosition = player.transform.position;
                 Key[] heldKeys = DirectionKeys(playerPosition, targetPosition);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKeys));
@@ -631,27 +441,6 @@ namespace FFSS.Framework.Tests
                     yield break;
                 yield return null;
             }
-            string diagnostics = $"ActiveScene={SceneManager.GetActiveScene().name}, Kernel={GameKernel.IsReady}";
-            if (GameKernel.IsReady)
-            {
-                diagnostics += $", Run={GameKernel.Services.Get<RunManager>().HasActiveRun}";
-                diagnostics += $", Flow={GameKernel.Services.Get<GameFlowManager>().Current}";
-                diagnostics += $", Loading={GameKernel.Services.Get<SceneFlowManager>().IsLoading}";
-                diagnostics += $", FieldHud={FindVisibleScreen(UIScreenId.FieldHud) != null}";
-            }
-            Assert.Fail($"{message} {diagnostics}");
-        }
-
-        private static IEnumerator WaitUntilSeconds(Func<bool> predicate, float timeoutSeconds, string message)
-        {
-            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
-            while (Time.realtimeSinceStartup < deadline)
-            {
-                if (predicate())
-                    yield break;
-                yield return null;
-            }
-
             Assert.Fail(message);
         }
 

@@ -25,6 +25,7 @@ namespace FFSS.Editor
         private const string TitlePrefabPath = ScreenRoot + "/TitleScreen.prefab";
         private const string ResultScenePath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
+        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
         private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
 
@@ -460,10 +461,10 @@ namespace FFSS.Editor
                 "HP Text",
                 playerHud,
                 "HP 104 / 104",
-                18,
+                13,
                 TextAnchor.MiddleCenter,
                 Color.white,
-                new Vector2(226f, 24f),
+                new Vector2(226f, 22f),
                 new Vector2(56f, 16f));
 
             RectTransform goldPanel = CreateRect(
@@ -481,7 +482,7 @@ namespace FFSS.Editor
                 "Gold",
                 goldPanel,
                 "30냥",
-                22,
+                17,
                 TextAnchor.MiddleCenter,
                 new Color(1f, 0.84f, 0.3f),
                 new Vector2(112f, 28f),
@@ -502,25 +503,25 @@ namespace FFSS.Editor
                 "Act",
                 regionPanel,
                 spec.Heading,
-                22,
+                19,
                 TextAnchor.MiddleLeft,
                 new Color(1f, 0.78f, 0.2f),
-                new Vector2(296f, 28f),
+                new Vector2(296f, 26f),
                 new Vector2(10f, 28f));
             build.Subtitle = CreateText(
                 "Region",
                 regionPanel,
                 spec.Subtitle,
-                19,
+                17,
                 TextAnchor.MiddleLeft,
                 Color.white,
-                new Vector2(296f, 28f),
+                new Vector2(296f, 26f),
                 new Vector2(10f, 0f));
             build.Status = CreateText(
                 "Risk",
                 regionPanel,
                 string.Empty,
-                16,
+                13,
                 TextAnchor.MiddleLeft,
                 new Color(0.78f, 0.84f, 0.92f),
                 new Vector2(296f, 32f),
@@ -543,7 +544,7 @@ namespace FFSS.Editor
                 image.preserveAspect = true;
                 Button button = host.gameObject.AddComponent<Button>();
                 button.targetGraphic = hitArea;
-                Text label = CreateText("Label", host, labels[i], 17, TextAnchor.MiddleCenter, Color.white,
+                Text label = CreateText("Label", host, labels[i], 14, TextAnchor.MiddleCenter, Color.white,
                     new Vector2(72f, 22f), new Vector2(0f, -31f));
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });
             }

@@ -123,17 +123,10 @@ namespace FFSS.Editor
                 return;
 
             encounter.fieldSprite = sprite;
-            float targetHeight = encounter.rank switch
-            {
-                FFSS.Framework.Combat.EnemyEncounterRank.Boss => 1.95f,
-                FFSS.Framework.Combat.EnemyEncounterRank.MidBoss => 1.75f,
-                _ => 1.55f
-            };
-            Vector2 designerOffset = new Vector2(0.62f, 0.03f);
             if (!ProductionSpriteGeometry.TryCalculateFieldPlacement(
                     sprite,
-                    targetHeight,
-                    designerOffset,
+                    2.8f,
+                    Vector2.zero,
                     out float scale,
                     out Vector2 offset))
             {

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CardBattle.EditorTools;
 using CardBattle.Exploration;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
@@ -26,9 +25,9 @@ namespace FFSS.Editor
         private const string FlowDefinitionPath = "Assets/Data/Framework/GameFlowDefinition.asset";
         private const string KernelPrefabPath = "Assets/Prefabs/Framework/GameKernel.prefab";
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
+        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BuildingRoot = "Assets/Art/Production/Field/Buildings";
         private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
-        private const string CityTileRoot = "Assets/Resources/ClockworkTimekeeper/HexTiles/City";
         private const string EncounterRoot = "Assets/Data/Production/Encounters";
         private const string EnemyArtRoot = "Assets/Enemy";
 
@@ -62,10 +61,6 @@ namespace FFSS.Editor
         {
             new LandmarkSeed(1, RunFieldContentType.Road, 1, 1, "북문 진입문", 3.8f),
             new LandmarkSeed(1, RunFieldContentType.Road, 2, 2, "장터 약방", 3.35f),
-            new LandmarkSeed(1, RunFieldContentType.Road, 3, 3, "회복 약방", 3.45f),
-            new LandmarkSeed(1, RunFieldContentType.Road, 4, 4, "시계 골목", 3.65f),
-            new LandmarkSeed(1, RunFieldContentType.Road, 5, 5, "네무늬 신사", 3.55f),
-            new LandmarkSeed(1, RunFieldContentType.Road, 6, 6, "가면 도박장", 3.55f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 1, 1, "소나무 검문소", 3.15f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 2, 2, "매화 패거리 주둔지", 3.15f),
             new LandmarkSeed(1, RunFieldContentType.Combat, 3, 3, "벚꽃 패거리 주둔지", 3.15f),
@@ -79,10 +74,6 @@ namespace FFSS.Editor
 
             new LandmarkSeed(2, RunFieldContentType.Road, 1, 7, "수로 진료소", 3.45f),
             new LandmarkSeed(2, RunFieldContentType.Road, 2, 9, "관아 창고", 3.35f),
-            new LandmarkSeed(2, RunFieldContentType.Road, 3, 8, "시장 상점", 3.45f),
-            new LandmarkSeed(2, RunFieldContentType.Road, 4, 10, "금속 공방", 3.35f),
-            new LandmarkSeed(2, RunFieldContentType.Road, 5, 11, "도시 치료소", 3.5f),
-            new LandmarkSeed(2, RunFieldContentType.Road, 6, 12, "금고 은행", 3.6f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 1, 7, "오동 패거리 진료소", 3.2f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 2, 8, "모란 패거리 대장간", 3.2f),
             new LandmarkSeed(2, RunFieldContentType.Combat, 3, 9, "싸리 패거리 창고", 3.2f),
@@ -98,10 +89,6 @@ namespace FFSS.Editor
 
             new LandmarkSeed(3, RunFieldContentType.Road, 1, 13, "구사 붉은 궁문", 3.8f),
             new LandmarkSeed(3, RunFieldContentType.Road, 2, 14, "암행어사 검은 관아", 3.45f),
-            new LandmarkSeed(3, RunFieldContentType.Road, 3, 15, "포커 카지노", 3.55f),
-            new LandmarkSeed(3, RunFieldContentType.Road, 4, 16, "붕괴 주택", 3.35f),
-            new LandmarkSeed(3, RunFieldContentType.Road, 5, 17, "패시계 정거장", 3.45f),
-            new LandmarkSeed(3, RunFieldContentType.Road, 6, 18, "붉은달 청사", 3.7f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 1, 13, "국화 패거리 궁문", 3.2f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 2, 14, "단풍 패거리 관아", 3.2f),
             new LandmarkSeed(3, RunFieldContentType.Combat, 3, 15, "폐궁 동쪽 회랑", 3.2f),
@@ -122,6 +109,7 @@ namespace FFSS.Editor
         {
             ClockworkTimekeeperEditorUtils.EnsureFolder(MarkerRoot);
             PrepareFieldArt();
+            AssignFieldEncounterSprites();
             GameObject normal = BuildMarkerPrefab(
                 "FieldEncounter_Normal",
                 0.92f,
@@ -142,6 +130,11 @@ namespace FFSS.Editor
                 0.92f,
                 true,
                 "유돌이의 행상");
+            GameObject restNode = BuildMarkerPrefab(
+                "FieldContent_Rest",
+                0.92f,
+                true,
+                "쉼터");
             GameObject bossDoor = BuildMarkerPrefab(
                 "FieldContent_BossDoor",
                 1.06f,
@@ -170,9 +163,9 @@ namespace FFSS.Editor
             bool runContent,
             string defaultLabel)
         {
-            Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             if (font == null)
-                throw new InvalidOperationException($"Field marker font is missing: {CardBattleSetup.UiFontPath}");
+                throw new InvalidOperationException($"Field marker font is missing: {FontPath}");
 
             Type nodeType = runContent ? typeof(FieldRunContentNode) : typeof(FieldEncounterNode);
             GameObject root = new(prefabName, typeof(FieldEncounterMarkerView), nodeType, typeof(BoxCollider));
@@ -184,6 +177,8 @@ namespace FFSS.Editor
             visual.transform.localScale = Vector3.one * visualScale;
 
             SpriteRenderer landmark = CreateSprite("Location Artwork", visual.transform, null, 26);
+            SpriteRenderer actor = CreateSprite("Encounter Character", visual.transform, null, 30);
+            actor.gameObject.SetActive(false);
 
             Canvas canvas = CreateLabelCanvas(visual.transform);
             Text label = CreateLabel(canvas.transform, font, defaultLabel);
@@ -191,9 +186,9 @@ namespace FFSS.Editor
             FieldEncounterMarkerView markerView = root.GetComponent<FieldEncounterMarkerView>();
             SerializedObject view = new SerializedObject(markerView);
             view.FindProperty("visualRoot").objectReferenceValue = visual.transform;
-            view.FindProperty("iconRenderer").objectReferenceValue = landmark;
+            view.FindProperty("iconRenderer").objectReferenceValue = actor;
             view.FindProperty("landmarkRenderer").objectReferenceValue = landmark;
-            view.FindProperty("actorRenderer").objectReferenceValue = null;
+            view.FindProperty("actorRenderer").objectReferenceValue = actor;
             view.FindProperty("nameText").objectReferenceValue = label;
             view.FindProperty("hideLabelUntilFocused").boolValue = true;
             view.FindProperty("tintCharacterWhenFocused").boolValue = false;
