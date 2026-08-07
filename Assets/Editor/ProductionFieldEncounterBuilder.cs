@@ -250,6 +250,8 @@ namespace FFSS.Editor
             SpriteRenderer renderer = spriteObject.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             renderer.sortingOrder = sortingOrder;
+            renderer.forceRenderingOff = false;
+            renderer.allowOcclusionWhenDynamic = false;
             return renderer;
         }
 
@@ -337,8 +339,12 @@ namespace FFSS.Editor
             map.ApplyModifiedPropertiesWithoutUndo();
 
             Camera fieldCamera = UnityEngine.Object.FindAnyObjectByType<Camera>();
-            if (fieldCamera != null && fieldCamera.orthographic)
-                fieldCamera.orthographicSize = 5.25f;
+            if (fieldCamera != null)
+            {
+                fieldCamera.useOcclusionCulling = false;
+                if (fieldCamera.orthographic)
+                    fieldCamera.orthographicSize = 5.25f;
+            }
 
             QuarterViewCameraFollow cameraFollow = UnityEngine.Object.FindAnyObjectByType<QuarterViewCameraFollow>();
             if (cameraFollow != null)

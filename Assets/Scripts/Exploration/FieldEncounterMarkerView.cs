@@ -116,6 +116,9 @@ namespace CardBattle.Exploration
             float visibleHeight = sourceHeight * scale;
 
             target.gameObject.SetActive(true);
+            target.enabled = true;
+            target.forceRenderingOff = false;
+            target.allowOcclusionWhenDynamic = false;
             target.sprite = sprite;
             target.transform.localScale = Vector3.one * scale;
             target.transform.localPosition = new Vector3(
