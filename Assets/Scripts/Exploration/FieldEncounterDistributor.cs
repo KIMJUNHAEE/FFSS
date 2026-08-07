@@ -437,7 +437,7 @@ namespace CardBattle.Exploration
                     continue;
 
                 Vector3 position = tile.Tile.transform.position;
-                if (player != null && PlanarSqrDistance(position, player.position) < actorClearance * actorClearance)
+                if (player != null && ExplorationGeometryUtility.PlanarSqrDistance(position, player.position) < actorClearance * actorClearance)
                     continue;
 
                 if (IsClearOfOccupied(position, landmarkFootprint))
@@ -466,16 +466,9 @@ namespace CardBattle.Exploration
                 Vector3 landmarkPosition = tile.Tile.transform.position;
                 candidates.RemoveAll(candidate =>
                     candidate.Tile == null ||
-                    PlanarSqrDistance(candidate.Tile.transform.position, landmarkPosition) <
+                    ExplorationGeometryUtility.PlanarSqrDistance(candidate.Tile.transform.position, landmarkPosition) <
                     landmarkClearance * landmarkClearance);
             }
-        }
-
-        private static float PlanarSqrDistance(Vector3 left, Vector3 right)
-        {
-            float x = left.x - right.x;
-            float z = left.z - right.z;
-            return x * x + z * z;
         }
 
         private int FindClearTileIndex(
@@ -511,7 +504,7 @@ namespace CardBattle.Exploration
                     continue;
 
                 float clearance = footprint + occupied.Value;
-                if (PlanarSqrDistance(position, occupied.Key.position) < clearance * clearance)
+                if (ExplorationGeometryUtility.PlanarSqrDistance(position, occupied.Key.position) < clearance * clearance)
                     return false;
             }
 
