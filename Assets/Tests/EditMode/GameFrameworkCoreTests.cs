@@ -614,7 +614,7 @@ namespace FFSS.Framework.Tests
             Assert.That(runtimeCanvas, Is.Not.Null);
             Assert.That(runtimeCanvas.pixelPerfect, Is.True);
             Assert.That(scaler.uiScaleMode, Is.EqualTo(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize));
-            Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1920f, 1080f)));
+            Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1600f, 900f)));
             Assert.That(scaler.screenMatchMode,
                 Is.EqualTo(UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight));
             Assert.That(scaler.matchWidthOrHeight, Is.EqualTo(0.5f).Within(0.001f));
