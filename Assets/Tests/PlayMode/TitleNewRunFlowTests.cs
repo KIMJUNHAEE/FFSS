@@ -84,6 +84,10 @@ namespace FFSS.Framework.Tests
                 () => FindVisibleScreen(UIScreenId.FieldHud) != null,
                 180,
                 "Production_Field did not show its HUD.");
+            yield return WaitUntil(
+                () => !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                180,
+                "The title-to-field transition did not release input.");
             yield return null;
 
             Assert.That(GameKernel.Services.Get<RunManager>().HasActiveRun, Is.True,
@@ -118,6 +122,10 @@ namespace FFSS.Framework.Tests
                 () => FindVisibleScreen(UIScreenId.FieldHud) != null,
                 180,
                 "Production_Field did not show its HUD.");
+            yield return WaitUntil(
+                () => !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                180,
+                "The title-to-field transition did not release input.");
             yield return WaitFrames(3);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();

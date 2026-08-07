@@ -31,6 +31,11 @@ namespace FFSS.Framework.Flow
             yield return Fade(1f, 0f, revealDuration, false);
         }
 
+        public void HideImmediate()
+        {
+            SetVisible(false, 0f);
+        }
+
         private IEnumerator Fade(float from, float to, float duration, bool keepBlocking)
         {
             if (canvasGroup == null)
@@ -40,10 +45,13 @@ namespace FFSS.Framework.Flow
             canvasGroup.blocksRaycasts = true;
             canvasGroup.interactable = true;
             float elapsed = 0f;
+            int frames = 0;
+            int maximumFrames = Mathf.Max(2, Mathf.CeilToInt(duration * 75f));
             canvasGroup.alpha = from;
-            while (elapsed < duration)
+            while (elapsed < duration && frames < maximumFrames)
             {
                 elapsed += Time.unscaledDeltaTime;
+                frames++;
                 canvasGroup.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
                 yield return null;
             }

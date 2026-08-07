@@ -32,6 +32,8 @@ namespace FFSS.Framework.Flow
         [SerializeField] private SceneTransitionView transitionView;
 
         private GameEventBus events;
+        private string pendingSceneName;
+        private bool pendingSceneActivated;
 
         public bool IsLoading { get; private set; }
         public float Progress { get; private set; }
@@ -77,13 +79,18 @@ namespace FFSS.Framework.Flow
         protected override void OnInitialize(GameServiceContext context)
         {
             events = context.Events;
+            SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 
         protected override void OnShutdown()
         {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
             StopAllCoroutines();
             IsLoading = false;
             Progress = 0f;
+            pendingSceneName = string.Empty;
+            pendingSceneActivated = false;
+            transitionView?.HideImmediate();
             events = null;
         }
 
@@ -96,6 +103,8 @@ namespace FFSS.Framework.Flow
 
             IsLoading = true;
             Progress = 0f;
+            pendingSceneName = sceneName;
+            pendingSceneActivated = false;
             if (transitionView != null)
                 yield return transitionView.Cover(TransitionMessage(scene));
             if (scene.HasValue)
@@ -122,10 +131,32 @@ namespace FFSS.Framework.Flow
             if (transitionView != null)
                 yield return transitionView.Reveal();
             IsLoading = false;
+            pendingSceneName = string.Empty;
+            pendingSceneActivated = false;
             if (scene.HasValue)
             {
                 events.Publish(new SceneLoadCompletedEvent(scene.Value));
             }
+        }
+
+        private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode mode)
+        {
+            if (!IsLoading)
+                return;
+
+            if (!pendingSceneActivated &&
+                string.Equals(loadedScene.name, pendingSceneName, System.StringComparison.Ordinal))
+            {
+                pendingSceneActivated = true;
+                return;
+            }
+
+            StopAllCoroutines();
+            IsLoading = false;
+            Progress = 0f;
+            pendingSceneName = string.Empty;
+            pendingSceneActivated = false;
+            transitionView?.HideImmediate();
         }
 
         private static string TransitionMessage(GameSceneId? scene)

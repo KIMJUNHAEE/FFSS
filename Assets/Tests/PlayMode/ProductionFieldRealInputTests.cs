@@ -424,6 +424,14 @@ namespace FFSS.Framework.Tests
                 camera,
                 rect.TransformPoint(rect.rect.center));
 
+            var pointer = new PointerEventData(EventSystem.current) { position = position };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits.Count, Is.GreaterThan(0), $"Pointer cannot reach {button.name}.");
+            Assert.That(hits[0].gameObject == button.gameObject ||
+                        hits[0].gameObject.transform.IsChildOf(button.transform), Is.True,
+                $"Pointer cannot reach {button.name}. Top hit: {(hits.Count > 0 ? hits[0].gameObject.name : "none")}");
+
             InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
             InputSystem.Update();
             yield return null;
@@ -524,6 +532,8 @@ namespace FFSS.Framework.Tests
             Vector3 playerPosition = player.transform.position;
             while (!completed() && elapsed < timeLimit && frames < 30000)
             {
+                if (player == null)
+                    break;
                 playerPosition = player.transform.position;
                 Key[] heldKeys = DirectionKeys(playerPosition, targetPosition);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(heldKeys));
@@ -590,7 +600,15 @@ namespace FFSS.Framework.Tests
                     yield break;
                 yield return null;
             }
-            Assert.Fail(message);
+            string diagnostics = $"ActiveScene={SceneManager.GetActiveScene().name}, Kernel={GameKernel.IsReady}";
+            if (GameKernel.IsReady)
+            {
+                diagnostics += $", Run={GameKernel.Services.Get<RunManager>().HasActiveRun}";
+                diagnostics += $", Flow={GameKernel.Services.Get<GameFlowManager>().Current}";
+                diagnostics += $", Loading={GameKernel.Services.Get<SceneFlowManager>().IsLoading}";
+                diagnostics += $", FieldHud={FindVisibleScreen(UIScreenId.FieldHud) != null}";
+            }
+            Assert.Fail($"{message} {diagnostics}");
         }
 
         private static IEnumerator WaitUntilSeconds(Func<bool> predicate, float timeoutSeconds, string message)
