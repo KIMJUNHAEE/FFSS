@@ -289,6 +289,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(transition, Is.Not.Null, $"act {act} transition");
                 Assert.That(FindVisibleScreen(UIScreenId.Rest), Is.Null,
                     $"act {act} incorrectly opened a field rest screen.");
+                yield return SetResolutionAndCapture($"flow_act_{act}_transition_1280x720", 1280, 720);
 
                 if (act < progression.Campaign.Acts.Count)
                 {
@@ -322,6 +323,7 @@ namespace FFSS.Framework.Tests
                         360,
                         "The final boss did not reach the result screen.");
                     Assert.That(runs.Current.outcome, Is.EqualTo(RunOutcome.Victory));
+                    yield return SetResolutionAndCapture("flow_result_victory_1280x720", 1280, 720);
                 }
             }
         }

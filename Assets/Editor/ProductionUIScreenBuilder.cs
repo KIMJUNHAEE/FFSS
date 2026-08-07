@@ -535,6 +535,10 @@ namespace FFSS.Editor
         public static void RepairResultSceneInput()
         {
             Scene scene = EditorSceneManager.OpenScene(ResultScenePath, OpenSceneMode.Single);
+            Camera camera = FindInScene<Camera>(scene);
+            if (camera != null)
+                camera.gameObject.tag = "MainCamera";
+
             EventSystem eventSystem = FindInScene<EventSystem>(scene);
             if (eventSystem == null)
                 eventSystem = new GameObject("Event System", typeof(EventSystem)).GetComponent<EventSystem>();
@@ -693,6 +697,7 @@ namespace FFSS.Editor
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var cameraObject = new GameObject("Result Camera", typeof(Camera));
+            cameraObject.tag = "MainCamera";
             Camera camera = cameraObject.GetComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.01f, 0.015f, 0.025f);
