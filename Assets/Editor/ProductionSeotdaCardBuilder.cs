@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using CardBattle;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using UnityEditor;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Enemy Exclusive Seotda Cards")]
         public static void BuildEnemyExclusiveSeotdaCards()
         {
-            EnsureFolder(CardRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(CardRoot);
             string[] profileGuids = AssetDatabase.FindAssets("t:BossCombatProfile", new[] { ProfileRoot });
             Array.Sort(profileGuids, (left, right) => string.CompareOrdinal(
                 AssetDatabase.GUIDToAssetPath(left), AssetDatabase.GUIDToAssetPath(right)));
@@ -76,21 +77,6 @@ namespace FFSS.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"Configured {configured} enemy-exclusive Seotda card assets without rebuilding scenes.");
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = $"{current}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-                current = next;
-            }
         }
     }
 }

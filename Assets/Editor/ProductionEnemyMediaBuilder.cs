@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Presentation.Audio;
 using UnityEditor;
@@ -19,7 +20,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Enemy Audio And Media Assignments")]
         public static void BuildEnemyAudioAndMediaAssignments()
         {
-            EnsureFolder(CueRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(CueRoot);
             IReadOnlyList<EnemyEncounterDefinition> encounters = LoadEncounters();
             var generated = new List<AudioCueDefinition>();
 
@@ -196,21 +197,6 @@ namespace FFSS.Editor
                 return "bgm.battle.act2";
             }
             return "bgm.battle.act3";
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-                current = next;
-            }
         }
     }
 }

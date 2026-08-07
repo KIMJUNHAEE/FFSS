@@ -250,7 +250,7 @@ namespace FFSS.Editor
 
         private static void PrepareActBattleBackgroundPrefabs()
         {
-            EnsureFolder(BackgroundPrefabRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(BackgroundPrefabRoot);
             for (int act = 1; act <= 3; act++)
             {
                 string artPath = $"{BackgroundArtRoot}/act_{act}_battle.png";
@@ -322,21 +322,6 @@ namespace FFSS.Editor
             rect.offsetMax = Vector2.zero;
             rect.localScale = Vector3.one;
             existing.SetAsFirstSibling();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] segments = path.Split('/');
-            string current = segments[0];
-            for (int i = 1; i < segments.Length; i++)
-            {
-                string next = $"{current}/{segments[i]}";
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, segments[i]);
-                }
-                current = next;
-            }
         }
 
         private static T FindInScene<T>(Scene scene) where T : Component

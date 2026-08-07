@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Combat.Presentation;
 using UnityEditor;
@@ -19,10 +20,10 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Missing Combat Prefabs")]
         public static void BuildMissingCombatPrefabs()
         {
-            EnsureFolder(ProductionRoot + "/Shared");
-            EnsureFolder(ProductionRoot + "/EnemyHUD");
-            EnsureFolder(ProductionRoot + "/Intent");
-            EnsureFolder(ProductionRoot + "/Overlays");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/Shared");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/EnemyHUD");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/Intent");
+            ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/Overlays");
 
             BuildPlayerHud();
             IReadOnlyList<EnemyEncounterDefinition> encounters = LoadEncounters();
@@ -551,22 +552,6 @@ namespace FFSS.Editor
             rect.anchorMax = new Vector2(maximumX, maximumY);
             rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = Vector2.zero;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
     }
 }

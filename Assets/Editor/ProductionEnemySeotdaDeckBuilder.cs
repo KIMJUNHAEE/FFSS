@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CardBattle;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using UnityEditor;
 using UnityEngine;
@@ -19,7 +20,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Enemy Seotda Decks")]
         public static void BuildEnemySeotdaDecks()
         {
-            EnsureFolder(DeckRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(DeckRoot);
             var profiles = LoadProfiles();
             string[] deckFolders = Directory.Exists(ArtRoot)
                 ? Directory.GetDirectories(ArtRoot)
@@ -213,21 +214,6 @@ namespace FFSS.Editor
             string normalized = path.Replace('\\', '/');
             int assetsIndex = normalized.IndexOf("/Assets/", StringComparison.OrdinalIgnoreCase);
             return assetsIndex >= 0 ? normalized.Substring(assetsIndex + 1) : normalized;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = $"{current}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-                current = next;
-            }
         }
     }
 }

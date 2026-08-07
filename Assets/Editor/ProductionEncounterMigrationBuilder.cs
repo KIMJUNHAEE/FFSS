@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using CardBattle;
+using CardBattle.EditorTools;
 using FFSS.Framework.Combat;
 using UnityEditor;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Missing Enemy Encounters")]
         public static void BuildMissingEncounterDefinitions()
         {
-            EnsureFolder(EncounterRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(EncounterRoot);
             string[] profileGuids = AssetDatabase.FindAssets(
                 "t:BossCombatProfile",
                 new[] { LegacyProfileRoot });
@@ -186,22 +187,6 @@ namespace FFSS.Editor
             return string.CompareOrdinal(
                 AssetDatabase.GUIDToAssetPath(leftGuid),
                 AssetDatabase.GUIDToAssetPath(rightGuid));
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CardBattle.EditorTools;
 using CardBattle.Exploration;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Core;
@@ -25,7 +26,6 @@ namespace FFSS.Editor
         private const string FlowDefinitionPath = "Assets/Data/Framework/GameFlowDefinition.asset";
         private const string KernelPrefabPath = "Assets/Prefabs/Framework/GameKernel.prefab";
         private const string MarkerRoot = "Assets/Prefabs/Production/Field";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BuildingRoot = "Assets/Art/Production/Field/Buildings";
         private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
         private const string EncounterRoot = "Assets/Data/Production/Encounters";
@@ -110,7 +110,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Build Field Encounters")]
         public static void BuildFieldEncounters()
         {
-            EnsureFolder(MarkerRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(MarkerRoot);
             PrepareFieldArt();
             AssignFieldEncounterSprites();
             GameObject normal = BuildMarkerPrefab(
@@ -166,9 +166,9 @@ namespace FFSS.Editor
             bool runContent,
             string defaultLabel)
         {
-            Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             if (font == null)
-                throw new InvalidOperationException($"Field marker font is missing: {FontPath}");
+                throw new InvalidOperationException($"Field marker font is missing: {CardBattleSetup.UiFontPath}");
 
             Type nodeType = runContent ? typeof(FieldRunContentNode) : typeof(FieldEncounterNode);
             GameObject root = new(prefabName, typeof(FieldEncounterMarkerView), nodeType, typeof(BoxCollider));
@@ -223,7 +223,7 @@ namespace FFSS.Editor
             visual.transform.SetParent(root.transform, false);
             SpriteRenderer main = CreateSprite("Landmark", visual.transform, null, 26);
             Canvas canvas = CreateLabelCanvas(visual.transform);
-            Text label = CreateLabel(canvas.transform, AssetDatabase.LoadAssetAtPath<Font>(FontPath), string.Empty);
+            Text label = CreateLabel(canvas.transform, AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath), string.Empty);
 
             SerializedObject view = new SerializedObject(root.GetComponent<FieldEncounterMarkerView>());
             view.FindProperty("visualRoot").objectReferenceValue = visual.transform;
@@ -532,19 +532,6 @@ namespace FFSS.Editor
             SerializedProperty transition = transitions.GetArrayElementAtIndex(index);
             transition.FindPropertyRelative("from").enumValueIndex = (int)from;
             transition.FindPropertyRelative("to").enumValueIndex = (int)to;
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            string[] segments = path.Split('/');
-            string current = segments[0];
-            for (int i = 1; i < segments.Length; i++)
-            {
-                string next = $"{current}/{segments[i]}";
-                if (!AssetDatabase.IsValidFolder(next))
-                    AssetDatabase.CreateFolder(current, segments[i]);
-                current = next;
-            }
         }
     }
 }
