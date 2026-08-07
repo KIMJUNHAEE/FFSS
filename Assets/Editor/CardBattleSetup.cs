@@ -1409,17 +1409,19 @@ namespace CardBattle.EditorTools
             attackImage.raycastTarget = false;
             attackImage.rectTransform.anchoredPosition = new Vector2(9.399994f, 4.100006f);
             var attackLabel = CreateText("AttackLabel", root.transform, new Vector2(0.40f, 0.50f), new Vector2(0.49f, 0.70f),
-                "공격", 18, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
+                "공격", 22, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
             attackLabel.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackLabel.fontStyle = FontStyle.Normal;
-            EnableBestFit(attackLabel, 14, 18);
-            AddTextOutline(attackLabel, Color.black, new Vector2(1f, -1f));
+            attackLabel.alignByGeometry = true;
+            EnableBestFit(attackLabel, 18, 22);
+            AddTextShadow(attackLabel, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.49f, 0.50f), new Vector2(0.61f, 0.70f),
-                "0", 30, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
+                "0", 34, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
             attackValue.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
             attackValue.fontStyle = FontStyle.Normal;
-            EnableBestFit(attackValue, 22, 30);
-            AddTextOutline(attackValue, Color.black, new Vector2(1f, -1f));
+            attackValue.alignByGeometry = true;
+            EnableBestFit(attackValue, 28, 34);
+            AddTextShadow(attackValue, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
 
             var defenseImage = CreatePanel("DefenseIcon", root.transform, new Vector2(0.63f, 0.51f), new Vector2(0.70f, 0.67f), Color.white);
             defenseImage.sprite = defendIcon;
@@ -1427,27 +1429,30 @@ namespace CardBattle.EditorTools
             defenseImage.raycastTarget = false;
             defenseImage.rectTransform.anchoredPosition = new Vector2(9.399963f, 4.100037f);
             var defenseLabel = CreateText("DefenseLabel", root.transform, new Vector2(0.71f, 0.50f), new Vector2(0.80f, 0.70f),
-                "방어", 18, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
+                "방어", 22, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
             defenseLabel.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseLabel.fontStyle = FontStyle.Normal;
-            EnableBestFit(defenseLabel, 14, 18);
-            AddTextOutline(defenseLabel, Color.black, new Vector2(1f, -1f));
+            defenseLabel.alignByGeometry = true;
+            EnableBestFit(defenseLabel, 18, 22);
+            AddTextShadow(defenseLabel, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.80f, 0.50f), new Vector2(0.92f, 0.70f),
-                "0", 30, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
+                "0", 34, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
             defenseValue.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
             defenseValue.fontStyle = FontStyle.Normal;
-            EnableBestFit(defenseValue, 22, 30);
-            AddTextOutline(defenseValue, Color.black, new Vector2(1f, -1f));
+            defenseValue.alignByGeometry = true;
+            EnableBestFit(defenseValue, 28, 34);
+            AddTextShadow(defenseValue, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
 
             var hpFill = CreateFillBar("HpBar", root.transform, new Vector2(0.335f, 0.378f), new Vector2(0.895f, 0.432f),
                 Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
             ApplyRectLayout((RectTransform)hpFill.transform.parent,
                 new Vector2(-3.494507f, 0.600006f), new Vector2(11.648f, 4.8101f));
-            var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
+            var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 20, TextAnchor.MiddleCenter, Color.white);
             hpText.rectTransform.anchoredPosition = new Vector2(0f, 1.289002f);
             hpText.fontStyle = FontStyle.Normal;
-            EnableBestFit(hpText, 13, 18);
-            AddTextOutline(hpText, Color.black, new Vector2(1f, -1f));
+            hpText.alignByGeometry = true;
+            EnableBestFit(hpText, 16, 20);
+            AddTextShadow(hpText, new Color(0f, 0f, 0f, 0.86f), new Vector2(1f, -1f));
             var pressureFill = CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
                 Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
             ApplyRectLayout((RectTransform)pressureFill.transform.parent,
@@ -2617,6 +2622,15 @@ namespace CardBattle.EditorTools
             outline.effectColor = color;
             outline.effectDistance = distance;
             outline.useGraphicAlpha = true;
+        }
+
+        private static void AddTextShadow(Text text, Color color, Vector2 distance)
+        {
+            if (text == null) return;
+            var shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = color;
+            shadow.effectDistance = distance;
+            shadow.useGraphicAlpha = true;
         }
 
         private static void EnableBestFit(Text text, int minSize, int maxSize)

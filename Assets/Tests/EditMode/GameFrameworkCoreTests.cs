@@ -571,10 +571,6 @@ namespace FFSS.Framework.Tests
             var visualQualitySettings = new SerializedObject(visualQuality);
             Assert.That(visualQualitySettings.FindProperty("pixelPerfectScreenSpaceCanvases").boolValue, Is.True);
             Assert.That(visualQualitySettings.FindProperty("forceNativeRenderScale").boolValue, Is.True);
-            Assert.That(visualQualitySettings.FindProperty("sharpenLegacyUiText").boolValue, Is.True);
-            Assert.That(visualQualitySettings.FindProperty("avoidSyntheticBold").boolValue, Is.True);
-            Assert.That(visualQualitySettings.FindProperty("legacyTextShadowDistance").floatValue,
-                Is.EqualTo(1f).Within(0.001f));
 
             TrueTypeFontImporter fontImporter = AssetImporter.GetAtPath(
                 "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf") as TrueTypeFontImporter;
@@ -681,11 +677,20 @@ namespace FFSS.Framework.Tests
             {
                 Assert.That(text.fontStyle, Is.EqualTo(FontStyle.Normal),
                     $"Player HUD text is artificially bold: {text.name}");
-                Outline outline = text.GetComponent<Outline>();
-                Assert.That(outline, Is.Not.Null, text.name);
-                Assert.That(Mathf.Abs(outline.effectDistance.x), Is.LessThanOrEqualTo(1f), text.name);
-                Assert.That(Mathf.Abs(outline.effectDistance.y), Is.LessThanOrEqualTo(1f), text.name);
+                Assert.That(text.alignByGeometry, Is.True, text.name);
+                Assert.That(text.GetComponent<Outline>(), Is.Null,
+                    $"Player HUD text still uses a four-direction outline: {text.name}");
+                Shadow shadow = text.GetComponent<Shadow>();
+                Assert.That(shadow, Is.Not.Null, text.name);
+                Assert.That(Mathf.Abs(shadow.effectDistance.x), Is.LessThanOrEqualTo(1f), text.name);
+                Assert.That(Mathf.Abs(shadow.effectDistance.y), Is.LessThanOrEqualTo(1f), text.name);
             }
+
+            Assert.That(playerHud.transform.Find("AttackLabel").GetComponent<Text>().fontSize, Is.EqualTo(22));
+            Assert.That(playerHud.transform.Find("AttackValueText").GetComponent<Text>().fontSize, Is.EqualTo(34));
+            Assert.That(playerHud.transform.Find("DefenseLabel").GetComponent<Text>().fontSize, Is.EqualTo(22));
+            Assert.That(playerHud.transform.Find("DefenseValueText").GetComponent<Text>().fontSize, Is.EqualTo(34));
+            Assert.That(playerHud.transform.Find("HpText").GetComponent<Text>().fontSize, Is.EqualTo(20));
         }
 
         [Test]
