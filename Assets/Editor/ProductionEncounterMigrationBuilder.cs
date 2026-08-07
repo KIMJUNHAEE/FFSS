@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CardBattle;
 using FFSS.Framework.Combat;
 using UnityEditor;
@@ -36,11 +38,12 @@ namespace FFSS.Editor
                 EnemyEncounterDefinition encounter = AssetDatabase.LoadAssetAtPath<EnemyEncounterDefinition>(destinationPath);
                 if (encounter == null)
                 {
-                    encounter = CreateEncounter(source);
+                    encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
                     AssetDatabase.CreateAsset(encounter, destinationPath);
                     createdCount++;
                 }
 
+                SynchronizeEncounter(encounter, source);
                 ConfigureFieldVisual(encounter, source.bossId);
                 EditorUtility.SetDirty(encounter);
             }
@@ -51,9 +54,13 @@ namespace FFSS.Editor
                 $"FFSS enemy encounters are ready. Created {createdCount}; existing encounter assets were preserved.");
         }
 
-        private static EnemyEncounterDefinition CreateEncounter(BossCombatProfile source)
+        private static void SynchronizeEncounter(EnemyEncounterDefinition encounter, BossCombatProfile source)
         {
-            var encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            Dictionary<string, EnemyMoveDefinition> previousMoves = (encounter.moves ?? new List<EnemyMoveDefinition>())
+                .Where(move => move != null && !string.IsNullOrWhiteSpace(move.moveId))
+                .GroupBy(move => move.moveId)
+                .ToDictionary(group => group.Key, group => group.First());
+
             encounter.enemyId = source.bossId;
             encounter.displayName = source.displayName;
             encounter.rank = (FFSS.Framework.Combat.EnemyEncounterRank)(int)source.encounterRank;
@@ -74,10 +81,12 @@ namespace FFSS.Editor
             encounter.hurtVisualOffset = source.hurtVisualOffset;
             encounter.deathVisualScale = source.deathVisualScale;
             encounter.deathVisualOffset = source.deathVisualOffset;
+            encounter.moves ??= new List<EnemyMoveDefinition>();
+            encounter.moves.Clear();
 
             if (source.moves == null)
             {
-                return encounter;
+                return;
             }
 
             for (int i = 0; i < source.moves.Count; i++)
@@ -85,11 +94,25 @@ namespace FFSS.Editor
                 BossMoveDefinition sourceMove = source.moves[i];
                 if (sourceMove != null)
                 {
-                    encounter.moves.Add(CreateMove(sourceMove));
+                    EnemyMoveDefinition move = CreateMove(sourceMove);
+                    if (previousMoves.TryGetValue(move.moveId, out EnemyMoveDefinition previous))
+                    {
+                        PreserveFeedbackCues(move, previous);
+                    }
+                    encounter.moves.Add(move);
                 }
             }
+        }
 
-            return encounter;
+        private static void PreserveFeedbackCues(EnemyMoveDefinition target, EnemyMoveDefinition source)
+        {
+            target.anticipationAudioCue = source.anticipationAudioCue;
+            target.anticipationVfxCue = source.anticipationVfxCue;
+            target.impactAudioCue = source.impactAudioCue;
+            target.impactVfxCue = source.impactVfxCue;
+            target.tailAudioCue = source.tailAudioCue;
+            target.tailVfxCue = source.tailVfxCue;
+            target.tailDelaySeconds = source.tailDelaySeconds;
         }
 
         private static void ConfigureFieldVisual(EnemyEncounterDefinition encounter, string enemyId)
@@ -99,16 +122,23 @@ namespace FFSS.Editor
                 return;
 
             encounter.fieldSprite = sprite;
+            float targetHeight = encounter.rank switch
+            {
+                FFSS.Framework.Combat.EnemyEncounterRank.Boss => 1.95f,
+                FFSS.Framework.Combat.EnemyEncounterRank.MidBoss => 1.75f,
+                _ => 1.55f
+            };
+            Vector2 designerOffset = new Vector2(0.62f, 0.03f);
             if (!ProductionSpriteGeometry.TryCalculateFieldPlacement(
                     sprite,
-                    2.8f,
-                    Vector2.zero,
+                    targetHeight,
+                    designerOffset,
                     out float scale,
                     out Vector2 offset))
             {
                 float height = Mathf.Max(0.01f, sprite.bounds.size.y);
-                encounter.fieldVisualScale = 2.8f / height;
-                encounter.fieldVisualOffset = Vector2.zero;
+                encounter.fieldVisualScale = targetHeight / height;
+                encounter.fieldVisualOffset = designerOffset;
                 return;
             }
 

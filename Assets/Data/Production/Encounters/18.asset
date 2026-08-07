@@ -15,14 +15,14 @@ MonoBehaviour:
   enemyId: 18
   displayName: "18\uAD11\uB561"
   rank: 2
-  maximumHp: 98
-  maximumPressure: 38
+  maximumHp: 240
+  maximumPressure: 74
   combatTitle: "\uAE08\uB95C\uC758 \uAD11\uD328 \xB7 \uC77C\uD314\uAD11\uB561"
   primaryColor: {r: 0.94, g: 0.42, b: 0.18, a: 1}
   secondaryColor: {r: 1, g: 0.82, b: 0.28, a: 1}
-  fieldSprite: {fileID: 2960402581040015946, guid: ed5e1b6a57c2b9748bf47c3bf99a0e30, type: 3}
-  fieldVisualScale: 0.13140161
-  fieldVisualOffset: {x: 0.62, y: 0.028686022}
+  fieldSprite: {fileID: 21300000, guid: dfe252155702471f86547121f978a204, type: 3}
+  fieldVisualScale: 0.17105263
+  fieldVisualOffset: {x: 0.5750987, y: -0.6435197}
   exclusiveSeotdaDeck: {fileID: 11400000, guid: ca9f30773f1380e499a753a21cce87ed, type: 2}
   exclusiveSeotdaCard: {fileID: 11400000, guid: 230c91b9a13428e439f1c4929bc95b26, type: 2}
   signatureCardA: {fileID: 216013294941232667, guid: d49ae1e1664074e4eb40e4ca203b4f16, type: 3}
@@ -42,13 +42,13 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: 18_ring_strike
-    displayName: "\uAE08\uB95C \uC555\uC9C4"
+    displayName: "\uB2EB\uD78C \uBB38 \uB450\uB4DC\uB9AC\uAE30"
     action: 0
     stance: 0
-    telegraph: "\uC77C\uC6D4\uC758 \uAE08\uB95C\uC744 \uC55E\uC73C\uB85C \uAD74\uB824
-      \uC790\uC138\uB97C \uBB34\uB108\uB728\uB824."
-    description: "HP\uBCF4\uB2E4 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C \uD754\uB4DC\uB294
-      \uACAC\uC81C \uACF5\uACA9\uC774\uC57C."
+    telegraph: "\uD604\uC7AC \uBD09\uC778 \uBB34\uB2AC\uB97C \uD655\uC778\uD558\uBA70
+      \uAE08\uB95C\uC73C\uB85C \uC815\uBA74\uC744 \uB450\uB4DC\uB824."
+    description: "1\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uACF5\uACA9\uACFC \uC587\uC740
+      \uAC8C\uC774\uC9C0 \uC555\uBC15\uC774 \uD568\uAED8 \uCEE4\uC838."
     basePower: 12
     pressurePower: 6
     weight: 4
@@ -65,7 +65,8 @@ MonoBehaviour:
     seotdaFailurePowerDelta: 0
     bonusTrigger: 0
     seotdaRule: "1\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
-      \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2. \uBD09\uC778 \uBB34\uB2AC \uCE74\uB4DC\uB9C8\uB2E4
+      \uC704\uB825 +1"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -82,13 +83,14 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: 18_eight_gate
-    displayName: "\uD314\uBB38 \uC218\uD638"
+    displayName: "\uB2E4\uC74C \uBB34\uB2AC \uC7A0\uADF8\uAE30"
     action: 1
     stance: 1
-    telegraph: "\uD314\uC6D4\uC758 \uBB38\uC591\uC774 \uACB9\uCE58\uBA70 \uACF5\uACA9\uB85C\uB97C
-      \uC644\uC804\uD788 \uB2EB\uC544."
-    description: "\uC774 \uBCF4\uC2A4\uC758 \uD575\uC2EC \uBC29\uC5B4. \uC5B4\uC911\uAC04\uD55C
-      \uACF5\uACA9\uC740 \uB9C9\uD78C \uB4A4 \uD070 \uC555\uBC15\uC73C\uB85C \uB3CC\uC544\uC640."
+    telegraph: "\uB2E4\uC74C \uAE08\uB95C \uBB34\uB2AC\uB97C \uC608\uACE0\uD558\uACE0
+      \uACF5\uACA9\uB85C\uB97C \uC7A0\uAC00."
+    description: "8\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBC29\uC5B4\uAC00 \uC624\uB974\uACE0,
+      \uBD09\uC778 \uCE74\uB4DC\uB97C \uB4E4\uACE0 \uC788\uC73C\uBA74 \uD55C \uBC88
+      \uB354 \uB2E8\uB2E8\uD574\uC838."
     basePower: 15
     pressurePower: 9
     weight: 3.6
@@ -105,48 +107,8 @@ MonoBehaviour:
     seotdaFailurePowerDelta: 0
     bonusTrigger: 0
     seotdaRule: "8\uC6D4\uD328 \uD3EC\uD568: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 0}
-    actionPoseSeconds: 0.48
-    actionVisualScale: 1
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 0
-    actionMotionIntensity: 1
-    actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.enemy.18gwang.prepare
-    anticipationVfxCue: vfx.enemy.18gwang
-    impactAudioCue: sfx.enemy.18gwang.impact
-    impactVfxCue: vfx.combat.guard
-    tailAudioCue: sfx.enemy.18gwang.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
-  - moveId: 18_low_orbit
-    displayName: "\uC800\uD328\uC724\uD68C"
-    action: 1
-    stance: 1
-    telegraph: "\uB0AE\uC740 \uD328\uB97C \uAE08\uB95C \uC548\uCABD\uC73C\uB85C \uC228\uACA8
-      \uBC29\uC5B4\uC758 \uCD95\uC73C\uB85C \uBC14\uAFD4."
-    description: "\uC57D\uD55C \uC12F\uB2E4\uD328\uC77C\uC218\uB85D \uB2E8\uB2E8\uD574\uC9C0\uB294
-      \uC5ED\uC804 \uBC29\uC5B4\uB77C\uC11C, \uACF5\uAC1C \uD328\uB97C \uBCF4\uACE0
-      \uACB0\uACFC\uAC00 \uD06C\uAC8C \uB2EC\uB77C\uC838."
-    basePower: 13
-    pressurePower: 7
-    weight: 2.7
-    minimumRound: 1
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 3
-    conditionValueA: 3
-    conditionValueB: 0
-    seotdaPowerBonus: 3
-    seotdaHpDamage: 0
-    seotdaPressureDamage: 3
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "\uAC11\uC624 \uC774\uD558: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 4. \uBD09\uC778 \uCE74\uB4DC
+      \uBCF4\uC720 \uC2DC \uBC29\uC5B4 +2"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -166,11 +128,11 @@ MonoBehaviour:
     displayName: "\uC77C\uD314\uBD09\uC778"
     action: 2
     stance: 0
-    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
-      \uC77C\uC6D4\uACFC \uD314\uC6D4\uC758 \uBD09\uC778\uC744 \uB9DE\uCDB0."
-    description: "\uD53C\uD574\uB7C9\uBCF4\uB2E4 \uC2A4\uD134 \uC9C1\uC804\uAE4C\uC9C0
-      \uBAB0\uC544\uBD99\uC774\uB294 \uBD09\uC778\uAE30\uC57C. \uC815\uD655\uD55C
-      \uC77C\uD314 \uC870\uD569\uC744 \uACBD\uACC4\uD574\uC57C \uD574."
+    telegraph: "\uAE08\uB95C\uC774 1\uC6D4\uACFC 8\uC6D4\uC744 \uB3D9\uC2DC\uC5D0
+      \uAC00\uB9AC\uD0AC \uB54C \uC190\uD328\uB97C \uBB36\uC5B4."
+    description: "\uC815\uD655\uD55C \uC77C\uD314 \uC870\uD569\uC774\uBA74 \uD070
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uD53C\uD574\uB97C \uC8FC\uACE0, \uBD09\uC778
+      \uCE74\uB4DC\uAC00 \uB458 \uC774\uC0C1\uC774\uBA74 HP\uB3C4 \uB178\uB824."
     basePower: 17
     pressurePower: 10
     weight: 1
@@ -187,8 +149,8 @@ MonoBehaviour:
     seotdaFailurePowerDelta: -2
     bonusTrigger: 0
     seotdaRule: "\uC815\uD655\uD788 1\uC6D4+8\uC6D4: \uC2A4\uD0AC +2, \uBA85\uC911
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 6 / \uBD88\uBC1C: \uC2A4\uD0AC
-      -2"
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 6 / \uBD09\uC778 \uCE74\uB4DC
+      2\uC7A5 \uC774\uC0C1: HP \uCD94\uAC00 4 / \uBD88\uBC1C: \uC2A4\uD0AC -2"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48

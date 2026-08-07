@@ -15,8 +15,8 @@ MonoBehaviour:
   enemyId: "3\uB561"
   displayName: "3\uB561"
   rank: 0
-  maximumHp: 68
-  maximumPressure: 28
+  maximumHp: 108
+  maximumPressure: 40
   combatTitle: "\uBC9A\uAF43 \uCC3D\uC744 \uB4E0 \uC0BC\uB561 \uD328\uAC1D"
   primaryColor: {r: 0.96, g: 0.3, b: 0.55, a: 1}
   secondaryColor: {r: 1, g: 0.72, b: 0.34, a: 1}
@@ -82,55 +82,15 @@ MonoBehaviour:
     tailAudioCue: sfx.enemy.3ddaeng.tail
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
-  - moveId: three_ddeng_triple
-    displayName: "\uC0BC\uC5F0\uD654 \uBCA0\uAE30"
-    action: 0
-    stance: 0
-    telegraph: "\uC138 \uAC08\uB798 \uAF43\uC790\uAD6D\uC744 \uC5F0\uB2EC\uC544 \uADF8\uC73C\uBA70
-      HP\uC640 \uC790\uC138\uB97C \uD568\uAED8 \uB178\uB824."
-    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uC138 \uBC88\uC9F8 \uCC38\uACA9\uC774
-      \uC774\uC5B4\uC838 \uD53C\uD574\uC640 \uC587\uC740 \uAC8C\uC774\uC9C0 \uC555\uBC15\uC774
-      \uD568\uAED8 \uCEE4\uC838."
-    basePower: 11
-    pressurePower: 5
-    weight: 3.4
-    minimumRound: 1
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 4
-    conditionValueA: 0
-    conditionValueB: 0
-    seotdaPowerBonus: 2
-    seotdaHpDamage: 2
-    seotdaPressureDamage: 1
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "\uB561: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740
-      \uAC8C\uC774\uC9C0 \uCD94\uAC00 1"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 21300000, guid: 802999619c5c92f4683fe83ac8d786a0, type: 3}
-    actionPoseSeconds: 0.52
-    actionVisualScale: 1.25
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 9
-    actionMotionIntensity: 1
-    actionMotionRepetitions: 3
-    anticipationAudioCue: sfx.enemy.3ddaeng.prepare
-    anticipationVfxCue: vfx.enemy.3ddaeng
-    impactAudioCue: sfx.enemy.3ddaeng.impact
-    impactVfxCue: vfx.enemy.3ddaeng
-    tailAudioCue: sfx.enemy.3ddaeng.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
   - moveId: three_ddeng_curtain
-    displayName: "\uBC9A\uAF43 \uC7A5\uB9C9 \uAC77\uC5B4\uBCA0\uAE30"
+    displayName: "\uAF43\uC78E \uB4A4\uC5D0 \uC228\uAE30"
     action: 1
     stance: 1
     telegraph: "\uBC9A\uAF43 \uC7A5\uB9C9\uC744 \uD3BC\uCCD0 \uACF5\uACA9\uC120\uC744
       \uD758\uB9B0 \uB4A4 \uCC3D\uB0A0\uB85C \uBC00\uC5B4\uB0B4."
-    description: "\uB9C9\uC544\uB0B4\uBA74 HP \uB300\uC2E0 \uC0C1\uB300\uC758 \uC587\uC740
-      \uAC8C\uC774\uC9C0\uB97C \uD754\uB4DC\uB294 \uBC29\uC5B4 \uD589\uB3D9\uC774\uC57C."
+    description: "3\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBC29\uC5B4\uAC00 \uC624\uB974\uACE0,
+      \uB9C9\uC544\uB0B4\uBA74 \uC0C1\uB300\uC758 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C
+      \uD754\uB4E4\uC5B4."
     basePower: 10
     pressurePower: 6
     weight: 3.1
@@ -164,20 +124,20 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: three_ddeng_fall
-    displayName: "\uD68C\uC804\uB099\uD558\uCC38"
+    displayName: "\uC138 \uBC88 \uBAB0\uC544\uCE58\uAE30"
     action: 2
     stance: 0
-    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uB124 \uD134\uB9C8\uB2E4
-      \uB192\uC774 \uD68C\uC804\uD574 \uD55C \uC810\uC73C\uB85C \uB099\uD558\uD574."
-    description: "\uC815\uD655\uD55C 3\uB561\uC5D0\uC11C\uB9CC \uAF43\uACE0\uB9AC\uAC00
-      \uC644\uC131\uB418\uB294 3\uB561\uC758 \uB300\uD45C \uAE30\uC220\uC774\uC57C.
-      \uBE57\uB098\uAC00\uBA74 \uC704\uB825\uC774 \uB0AE\uC544\uC838."
+    telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uBD80\uD130 \uAC19\uC740 \uD589\uB3D9
+      \uC790\uAD6D\uC744 \uD55C\uAEBC\uBC88\uC5D0 \uD130\uB728\uB824."
+    description: "\uD589\uB3D9 \uC790\uAD6D 3\uC5D0\uC11C\uB294 \uACF5\uACA9\uACFC
+      \uC587\uC740 \uAC8C\uC774\uC9C0 \uD53C\uD574\uAC00 \uCEE4\uC9C0\uACE0, \uC815\uD655\uD55C
+      3\uB561\uC774\uBA74 HP\uB3C4 \uB354 \uB178\uB824."
     basePower: 14
     pressurePower: 7
     weight: 1
     minimumRound: 3
     cooldownRounds: 2
-    cadenceRounds: 4
+    cadenceRounds: 3
     cadenceOffset: 3
     seotdaCondition: 7
     conditionValueA: 3
@@ -189,7 +149,8 @@ MonoBehaviour:
     bonusTrigger: 0
     seotdaRule: "\uC815\uD655\uD788 3\uC6D4+3\uC6D4: \uC2A4\uD0AC +3, \uBA85\uC911
       \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2
-      / \uBD88\uBC1C: \uC2A4\uD0AC -2"
+      / \uD589\uB3D9 \uC790\uAD6D 3: \uACF5\uACA9 +4\xB7\uC587\uC740 \uAC8C\uC774\uC9C0
+      \uCD94\uAC00 4 / \uBD88\uBC1C: \uC2A4\uD0AC -2"
     icon: {fileID: 0}
     actionSprite: {fileID: 21300000, guid: 1436d920b677b6f4fbb622387ede8818, type: 3}
     actionPoseSeconds: 0.62

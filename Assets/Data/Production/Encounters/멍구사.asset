@@ -15,14 +15,14 @@ MonoBehaviour:
   enemyId: "\uBA4D\uAD6C\uC0AC"
   displayName: "\uBA4D\uAD6C\uC0AC"
   rank: 1
-  maximumHp: 94
-  maximumPressure: 36
+  maximumHp: 170
+  maximumPressure: 58
   combatTitle: "\uC5F4\uB057\uC5D0 \uC228\uC740 \uC554\uC0B4\uD328"
   primaryColor: {r: 0.3, g: 0.78, b: 0.66, a: 1}
   secondaryColor: {r: 0.52, g: 1, b: 0.78, a: 1}
-  fieldSprite: {fileID: 2399475484404383877, guid: f02deb8bcdd9c7b4daf8247b0971cb43, type: 3}
-  fieldVisualScale: 0.15695068
-  fieldVisualOffset: {x: 0.62, y: 0.028430484}
+  fieldSprite: {fileID: 21300000, guid: 78423053abc6494aaaeefa0ee4c30a55, type: 3}
+  fieldVisualScale: 0.1648999
+  fieldVisualOffset: {x: 0.61690813, y: -0.6625795}
   exclusiveSeotdaDeck: {fileID: 11400000, guid: 51889653d907bcc4ea62c0d87b290bd3, type: 2}
   exclusiveSeotdaCard: {fileID: 11400000, guid: 005c0b010a9696c4c85263d7701fc420, type: 2}
   signatureCardA: {fileID: 824052245774486454, guid: 20a1854dc97fe80448d522776a00a793, type: 3}
@@ -42,14 +42,13 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: meonggusa_hidden_blade
-    displayName: "\uD5C8\uD328\uBE44\uC218"
+    displayName: "\uBE48\uD2C8 \uCC0C\uB974\uAE30"
     action: 0
     stance: 0
-    telegraph: "\uB0AE\uC740 \uD328\uB97C \uBBF8\uB07C\uB85C \uB450\uACE0 \uC2DC\uC57C
+    telegraph: "\uC228\uAE34 \uD328\uC758 \uBE48\uD2C8\uC744 \uC774\uC6A9\uD574 \uC2DC\uC57C
       \uBC16\uC5D0\uC11C \uBE44\uC218\uB97C \uB358\uC838."
-    description: "\uC88B\uC740 \uC871\uBCF4\uAC00 \uC544\uB2C8\uB77C \uAC11\uC624
-      \uC774\uD558\uC77C \uB54C \uB354 \uB0A0\uCE74\uB85C\uC6CC\uC9C0\uB294 \uC554\uC0B4
-      \uACF5\uACA9\uC774\uC57C."
+    description: "\uAC11\uC624 \uC774\uD558\uC5D0\uC11C \uB354 \uB0A0\uCE74\uB85C\uC6CC\uC9C0\uB294
+      \uC800\uD328 \uD2B9\uD654 \uACF5\uACA9\uC774\uC57C."
     basePower: 14
     pressurePower: 5
     weight: 4
@@ -83,13 +82,13 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: meonggusa_silence
-    displayName: "\uBB34\uC74C\uC7A0\uD589"
+    displayName: "\uD754\uC801 \uC228\uAE30\uAE30"
     action: 1
     stance: 1
-    telegraph: "\uC774\uB984 \uC5C6\uB294 \uB057\uD328 \uC0AC\uC774\uB85C \uAE30\uCC99\uC744
-      \uC9C0\uC6B0\uACE0 \uACF5\uACA9\uC120\uC744 \uBE44\uC6CC."
-    description: "\uD2B9\uC218 \uC871\uBCF4\uAC00 \uC544\uB2D0 \uB54C \uD68C\uD53C
-      \uACBD\uB85C\uAC00 \uC5F4\uB9AC\uB294 \uC800\uD328 \uD2B9\uD654 \uBC29\uC5B4\uC57C."
+    telegraph: "\uD55C \uC7A5\uC758 \uC22B\uC790\uB97C \uC228\uAE30\uACE0 \uBB34\uB2AC\uC640
+      \uAC00\uB2A5 \uBC94\uC704\uB9CC \uACF5\uAC1C\uD574."
+    description: "\uC77C\uBC18 \uB057\uD328\uC5D0\uC11C \uBC29\uC5B4\uAC00 \uC624\uB974\uACE0,
+      \uB2E4\uC74C \uD589\uB3D9\uC758 \uC218\uCE58 \uBC94\uC704\uAC00 \uB354 \uB113\uC5B4\uC838."
     basePower: 11
     pressurePower: 7
     weight: 3.1
@@ -106,7 +105,8 @@ MonoBehaviour:
     seotdaFailurePowerDelta: 0
     bonusTrigger: 0
     seotdaRule: "\uC77C\uBC18 \uB057\uD328: \uBC29\uC5B4 +3, \uBC29\uC5B4 \uC131\uACF5
-      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3"
+      \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3 / \uB2E4\uC74C \uC218\uCE58
+      \uBC94\uC704 \xB14"
     icon: {fileID: 0}
     actionSprite: {fileID: 0}
     actionPoseSeconds: 0.48
@@ -122,54 +122,14 @@ MonoBehaviour:
     tailAudioCue: sfx.enemy.meonggusa.tail
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
-  - moveId: meonggusa_ninth_cut
-    displayName: "\uAD6C\uC6D4\uC794\uC601"
-    action: 0
-    stance: 0
-    telegraph: "\uAD6C\uC6D4\uD328\uC758 \uC794\uC601\uC744 \uB0A8\uAE30\uACE0 \uBC18\uB300\uD3B8\uC5D0\uC11C
-      \uB450 \uBC88\uC9F8 \uCE7C\uC774 \uB4E4\uC5B4\uC640."
-    description: "\uBA85\uC911\uD558\uBA74 HP\uC640 \uC587\uC740 \uAC8C\uC774\uC9C0\uB97C
-      \uC791\uAC8C \uB098\uB220 \uAE4E\uB294 \uC5F0\uC18D \uACF5\uACA9\uC774\uC57C."
-    basePower: 13
-    pressurePower: 6
-    weight: 3
-    minimumRound: 1
-    cooldownRounds: 0
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 6
-    conditionValueA: 9
-    conditionValueB: 0
-    seotdaPowerBonus: 2
-    seotdaHpDamage: 2
-    seotdaPressureDamage: 2
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "9\uC6D4\uD328 \uD3EC\uD568: \uACF5\uACA9 +2, \uBA85\uC911 \uC2DC
-      HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 0}
-    actionPoseSeconds: 0.48
-    actionVisualScale: 1
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 0
-    actionMotionIntensity: 1
-    actionMotionRepetitions: 1
-    anticipationAudioCue: sfx.enemy.meonggusa.prepare
-    anticipationVfxCue: vfx.enemy.meonggusa
-    impactAudioCue: sfx.enemy.meonggusa.impact
-    impactVfxCue: vfx.enemy.meonggusa
-    tailAudioCue: sfx.enemy.meonggusa.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
   - moveId: meonggusa_execute
-    displayName: "\uBA4D\uAD6C\uC0AC\xB7\uC808\uBA85"
+    displayName: "\uAC00\uC9DC \uD328 \uCC0C\uB974\uAE30"
     action: 2
     stance: 0
     telegraph: "\uC138 \uBC88\uC9F8 \uC801 \uD134\uB9C8\uB2E4 \uC0AC\uC6D4\uACFC
       \uAD6C\uC6D4\uC758 \uCE7C\uB05D\uC744 \uD55C \uC810\uC5D0 \uBAA8\uC544."
     description: "\uC815\uD655\uD55C \uC0AC\uAD6C\uC5D0\uC11C\uB9CC \uC808\uBA85\uC774
-      \uC644\uC131\uB3FC. \uC870\uD569\uC774 \uC5B4\uAE0B\uB098\uBA74 \uBAB8\uC744
+      \uC644\uC131\uB418\uACE0, \uC870\uD569\uC774 \uC5B4\uAE0B\uB098\uBA74 \uBAB8\uC744
       \uB4DC\uB7EC\uB0B4 \uD06C\uAC8C \uC57D\uD574\uC838."
     basePower: 18
     pressurePower: 8

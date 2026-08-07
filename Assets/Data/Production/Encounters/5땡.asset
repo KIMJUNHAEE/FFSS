@@ -15,8 +15,8 @@ MonoBehaviour:
   enemyId: "5\uB561"
   displayName: "5\uB561"
   rank: 0
-  maximumHp: 61
-  maximumPressure: 27
+  maximumHp: 116
+  maximumPressure: 42
   combatTitle: "\uB09C\uCD08 \uBB3C\uACB0\uC758 \uC624\uB561 \uD328\uAC1D"
   primaryColor: {r: 0.2, g: 0.74, b: 0.88, a: 1}
   secondaryColor: {r: 0.48, g: 0.9, b: 1, a: 1}
@@ -42,13 +42,13 @@ MonoBehaviour:
   deathVisualOffset: {x: 0, y: 0}
   moves:
   - moveId: five_ddeng_wave
-    displayName: "\uCC3D\uD3EC \uBB3C\uACB0\uBCA0\uAE30"
+    displayName: "\uBB3C\uACB0 \uBCA0\uAE30"
     action: 0
     stance: 0
     telegraph: "\uBD80\uCC44 \uB05D\uC5D0\uC11C \uC587\uC740 \uBB3C\uACB0\uC744 \uC138\uC6CC
       \uACE7\uAC8C \uBCA0\uC5B4."
-    description: "\uC624\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBB3C\uACB0\uC774
-      \uD55C \uACB9 \uB354 \uACB9\uCCD0 HP \uD53C\uD574\uAC00 \uCEE4\uC838."
+    description: "5\uC6D4\uD328\uAC00 \uC11E\uC774\uBA74 \uBB3C\uACB0\uC774 \uD55C
+      \uACB9 \uB354 \uACB9\uCCD0 HP \uD53C\uD574\uAC00 \uCEE4\uC838."
     basePower: 9
     pressurePower: 4
     weight: 4.3
@@ -82,13 +82,14 @@ MonoBehaviour:
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
   - moveId: five_ddeng_counter
-    displayName: "\uC218\uBA74 \uBC18\uACA9"
+    displayName: "\uBB3C\uB9C9\uC774 \uC138\uC6B0\uAE30"
     action: 1
     stance: 1
     telegraph: "\uC218\uBA74\uC744 \uAC70\uC6B8\uCC98\uB7FC \uD3B4 \uACF5\uACA9 \uBC29\uD5A5\uC744
       \uBE44\uD2C0\uC5B4."
-    description: "\uB561\uC774 \uC7A1\uD788\uBA74 \uB418\uB3CC\uC544\uC624\uB294
-      \uBB3C\uACB0\uC774 \uC0C1\uB300 \uC790\uC138\uAE4C\uC9C0 \uBB34\uB108\uB728\uB824."
+    description: "\uAC19\uC740 \uD589\uB3D9\uC744 \uBC18\uBCF5\uD588\uB2E4\uBA74
+      \uBC29\uC5B4\uB9C9\uC774 \uB354\uD574\uC9C0\uACE0, \uC544\uB2C8\uBA74 \uBB3C\uAE38
+      \uD558\uB098\uAC00 \uC774\uC5B4\uC838."
     basePower: 10
     pressurePower: 6
     weight: 3
@@ -96,16 +97,16 @@ MonoBehaviour:
     cooldownRounds: 1
     cadenceRounds: 0
     cadenceOffset: 0
-    seotdaCondition: 4
+    seotdaCondition: 1
     conditionValueA: 0
     conditionValueB: 0
-    seotdaPowerBonus: 2
+    seotdaPowerBonus: 0
     seotdaHpDamage: 0
     seotdaPressureDamage: 2
     seotdaFailurePowerDelta: 0
     bonusTrigger: 0
-    seotdaRule: "\uB561: \uBC29\uC5B4 +2, \uBC29\uC5B4 \uC131\uACF5 \uC2DC \uC587\uC740
-      \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
+    seotdaRule: "\uBC18\uBCF5 \uD589\uB3D9 \uB300\uC751: \uBC29\uC5B4 +3 / \uBC29\uC5B4
+      \uC131\uACF5 \uC2DC \uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 2"
     icon: {fileID: 0}
     actionSprite: {fileID: 21300000, guid: 907d8cd473f7f4b419ed9b2e01413cd0, type: 3}
     actionPoseSeconds: 0.5
@@ -121,55 +122,15 @@ MonoBehaviour:
     tailAudioCue: sfx.enemy.5ddaeng.tail
     tailVfxCue: vfx.card.reveal
     tailDelaySeconds: 0.12
-  - moveId: five_ddeng_fivefold
-    displayName: "\uCC3D\uD3EC \uC624\uC5F0\uCC38"
-    action: 0
-    stance: 0
-    telegraph: "\uB2E4\uC12F \uAC08\uB798 \uBB3C\uC904\uAE30\uB97C \uC5F0\uB2EC\uC544
-      \uC811\uC5B4 \uB123\uC5B4."
-    description: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4\uAC00 \uB098\uC624\uBA74
-      \uB9C8\uC9C0\uB9C9 \uBB3C\uACB0\uC774 \uB354 \uAE4A\uAC8C \uC774\uC5B4\uC838."
-    basePower: 11
-    pressurePower: 5
-    weight: 2.5
-    minimumRound: 2
-    cooldownRounds: 1
-    cadenceRounds: 0
-    cadenceOffset: 0
-    seotdaCondition: 8
-    conditionValueA: 0
-    conditionValueB: 0
-    seotdaPowerBonus: 2
-    seotdaHpDamage: 2
-    seotdaPressureDamage: 1
-    seotdaFailurePowerDelta: 0
-    bonusTrigger: 0
-    seotdaRule: "\uC774\uB984 \uC788\uB294 \uC871\uBCF4: \uACF5\uACA9 +2, \uBA85\uC911
-      \uC2DC HP \uCD94\uAC00 2\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 1"
-    icon: {fileID: 0}
-    actionSprite: {fileID: 21300000, guid: 032a2e63d8b7fe941874e6c39f24402f, type: 3}
-    actionPoseSeconds: 0.58
-    actionVisualScale: 1.03
-    actionVisualOffset: {x: 0, y: 0}
-    actionMotion: 9
-    actionMotionIntensity: 0.9
-    actionMotionRepetitions: 5
-    anticipationAudioCue: sfx.enemy.5ddaeng.prepare
-    anticipationVfxCue: vfx.enemy.5ddaeng
-    impactAudioCue: sfx.enemy.5ddaeng.impact
-    impactVfxCue: vfx.enemy.5ddaeng
-    tailAudioCue: sfx.enemy.5ddaeng.tail
-    tailVfxCue: vfx.card.reveal
-    tailDelaySeconds: 0.12
   - moveId: five_ddeng_flood
-    displayName: "\uCC3D\uD3EC\uD64D\uC218"
+    displayName: "\uB2E4\uC12F \uBC88 \uBAB0\uC544\uCE58\uAE30"
     action: 2
     stance: 0
     telegraph: "\uB450 \uBD80\uCC44\uC758 \uBB3C\uAE38\uC744 \uD569\uCCD0 \uAC70\uB300\uD55C
       \uD30C\uB3C4\uB97C \uC77C\uC73C\uCF1C."
-    description: "\uC815\uD655\uD55C 5\uB561\uC774\uBA74 \uD64D\uC218\uAC00 \uC644\uC131\uB3FC.
-      \uBE57\uB098\uAC00\uBA74 \uBB3C\uAE38\uC774 \uAC08\uB77C\uC838 \uC704\uB825\uC774
-      \uB0B4\uB824\uAC00."
+    description: "\uACF5\uACA9\xB7\uBC29\uC5B4\xB7\uC2A4\uD0AC \uBB3C\uAE38\uC744
+      \uBAA8\uB450 \uC774\uC5C8\uB2E4\uBA74 \uD53C\uD574\uB97C \uC904\uC774\uACE0,
+      \uC815\uD655\uD55C 5\uB561\uC774\uBA74 \uD070 \uD30C\uB3C4\uAC00 \uC644\uC131\uB3FC."
     basePower: 15
     pressurePower: 7
     weight: 1
@@ -187,7 +148,8 @@ MonoBehaviour:
     bonusTrigger: 0
     seotdaRule: "\uC815\uD655\uD788 5\uC6D4+5\uC6D4: \uC2A4\uD0AC +3, \uBA85\uC911
       \uC2DC HP \uCD94\uAC00 3\xB7\uC587\uC740 \uAC8C\uC774\uC9C0 \uCD94\uAC00 3
-      / \uBD88\uBC1C: \uC2A4\uD0AC -2"
+      / \uBB3C\uAE38 \uC644\uC131: \uD50C\uB808\uC774\uC5B4 \uACF5\uACA9\xB7\uBC29\uC5B4
+      +2, \uACA9\uD30C +2 / \uBD88\uBC1C: \uC2A4\uD0AC -2"
     icon: {fileID: 0}
     actionSprite: {fileID: 21300000, guid: 1c37c705174147f4da986fda05c10910, type: 3}
     actionPoseSeconds: 0.68

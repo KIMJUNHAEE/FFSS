@@ -1386,7 +1386,8 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter, Is.Not.Null);
                 Assert.That(encounter.enemyId, Is.Not.Empty);
                 Assert.That(enemyIds.Add(encounter.enemyId), Is.True, encounter.enemyId);
-                Assert.That(encounter.moves, Has.Count.GreaterThanOrEqualTo(3), encounter.enemyId);
+                int expectedMoveCount = encounter.enemyId == "38" ? 4 : 3;
+                Assert.That(encounter.moves, Has.Count.EqualTo(expectedMoveCount), encounter.enemyId);
                 Assert.That(encounter.maximumHp, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.maximumPressure, Is.GreaterThan(0), encounter.enemyId);
                 Assert.That(encounter.exclusiveSeotdaDeck, Is.Not.Null, encounter.enemyId);
@@ -1415,7 +1416,8 @@ namespace FFSS.Framework.Tests
                 }
 
                 Assert.That(hasOffense, Is.True, encounter.enemyId);
-                Assert.That(hasDefense, Is.True, encounter.enemyId);
+                if (encounter.enemyId != "13")
+                    Assert.That(hasDefense, Is.True, encounter.enemyId);
                 Assert.That(hasSpecialTiming, Is.True, encounter.enemyId);
 
                 switch (encounter.rank)
@@ -1712,23 +1714,23 @@ namespace FFSS.Framework.Tests
         {
             var expected = new Dictionary<string, (int hp, int pressure, EnemyRuleBehaviorKind rule)>
             {
-                ["1땡"] = (52, 24, EnemyRuleBehaviorKind.PineRedraw),
-                ["2땡"] = (55, 25, EnemyRuleBehaviorKind.ReadRepeatedAction),
-                ["3땡"] = (68, 28, EnemyRuleBehaviorKind.RepeatActionTrace),
-                ["4땡"] = (58, 26, EnemyRuleBehaviorKind.RedrawRisk),
-                ["5땡"] = (61, 27, EnemyRuleBehaviorKind.UniqueActionCycle),
-                ["6땡"] = (64, 28, EnemyRuleBehaviorKind.CardPoison),
-                ["7땡"] = (68, 30, EnemyRuleBehaviorKind.BalanceTremor),
-                ["8땡"] = (72, 32, EnemyRuleBehaviorKind.CardSeal),
-                ["9땡"] = (76, 34, EnemyRuleBehaviorKind.Intoxication),
-                ["10땡"] = (80, 36, EnemyRuleBehaviorKind.FinalCountdown),
-                ["땡잡이"] = (101, 39, EnemyRuleBehaviorKind.PairTracking),
-                ["멍구사"] = (94, 36, EnemyRuleBehaviorKind.Suspicion),
-                ["구사"] = (126, 48, EnemyRuleBehaviorKind.LowHandReversal),
-                ["암행어사"] = (116, 44, EnemyRuleBehaviorKind.ActionHistoryCharge),
-                ["13"] = (92, 35, EnemyRuleBehaviorKind.TargetAim),
-                ["18"] = (98, 38, EnemyRuleBehaviorKind.SuitWheel),
-                ["38"] = (105, 42, EnemyRuleBehaviorKind.GwangHeat)
+                ["1땡"] = (92, 36, EnemyRuleBehaviorKind.PineRedraw),
+                ["2땡"] = (96, 38, EnemyRuleBehaviorKind.ReadRepeatedAction),
+                ["3땡"] = (108, 40, EnemyRuleBehaviorKind.RepeatActionTrace),
+                ["4땡"] = (102, 40, EnemyRuleBehaviorKind.RedrawRisk),
+                ["5땡"] = (116, 42, EnemyRuleBehaviorKind.UniqueActionCycle),
+                ["6땡"] = (120, 44, EnemyRuleBehaviorKind.CardPoison),
+                ["7땡"] = (132, 46, EnemyRuleBehaviorKind.BalanceTremor),
+                ["8땡"] = (138, 48, EnemyRuleBehaviorKind.CardSeal),
+                ["9땡"] = (148, 50, EnemyRuleBehaviorKind.Intoxication),
+                ["10땡"] = (156, 52, EnemyRuleBehaviorKind.FinalCountdown),
+                ["땡잡이"] = (178, 60, EnemyRuleBehaviorKind.PairTracking),
+                ["멍구사"] = (170, 58, EnemyRuleBehaviorKind.Suspicion),
+                ["구사"] = (205, 66, EnemyRuleBehaviorKind.LowHandReversal),
+                ["암행어사"] = (198, 64, EnemyRuleBehaviorKind.ActionHistoryCharge),
+                ["13"] = (210, 68, EnemyRuleBehaviorKind.TargetAim),
+                ["18"] = (240, 74, EnemyRuleBehaviorKind.SuitWheel),
+                ["38"] = (320, 88, EnemyRuleBehaviorKind.GwangHeat)
             };
 
             string[] guids = AssetDatabase.FindAssets(

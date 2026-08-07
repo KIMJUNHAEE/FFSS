@@ -1,3 +1,4 @@
+using CardBattle.EditorTools;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,6 +9,7 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Refresh Combat Data And Media")]
         public static void RefreshCombatDataAndMedia()
         {
+            CardBattleSetup.BuildBossCombatProfiles();
             ProductionCombatFoundationBuilder.BuildMissingCombatFoundation();
             ProductionEncounterMigrationBuilder.BuildMissingEncounterDefinitions();
             ProductionEnemySeotdaDeckBuilder.BuildEnemySeotdaDecks();
