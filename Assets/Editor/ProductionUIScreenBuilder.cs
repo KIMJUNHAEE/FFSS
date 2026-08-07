@@ -148,12 +148,16 @@ namespace FFSS.Editor
                     for (int textIndex = 0; textIndex < texts.Length; textIndex++)
                     {
                         Text text = texts[textIndex];
-                        Outline outline = text.GetComponent<Outline>();
-                        if (outline != null)
-                            outline.effectDistance = new Vector2(1f, -1f);
-
                         if (path.EndsWith("/FieldHudScreen.prefab", StringComparison.Ordinal))
+                        {
                             TuneFieldHudText(text);
+                        }
+                        else
+                        {
+                            Outline outline = text.GetComponent<Outline>();
+                            if (outline != null)
+                                outline.effectDistance = new Vector2(1f, -1f);
+                        }
                     }
 
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -176,19 +180,39 @@ namespace FFSS.Editor
 
         private static void TuneFieldHudText(Text text)
         {
-            int minimumSize = text.gameObject.name switch
+            Outline outline = text.GetComponent<Outline>();
+            if (outline != null)
+                UnityEngine.Object.DestroyImmediate(outline, true);
+            Shadow shadow = text.GetComponent<Shadow>();
+            if (shadow == null)
+                shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.86f);
+            shadow.effectDistance = new Vector2(1f, -1f);
+
+            int targetSize = text.gameObject.name switch
             {
-                "HP Text" => 16,
-                "Risk" => 15,
-                "Gold" => 20,
+                "HP Text" => 18,
+                "Risk" => 16,
+                "Gold" => 22,
                 "Act" => 22,
                 "Region" => 19,
-                "Label" => 16,
+                "Label" => 17,
                 _ => text.fontSize
             };
-            text.fontSize = Mathf.Max(text.fontSize, minimumSize);
-            text.resizeTextMaxSize = Mathf.Max(text.resizeTextMaxSize, minimumSize);
-            text.resizeTextMinSize = Mathf.Max(text.resizeTextMinSize, Mathf.Min(13, minimumSize));
+            float minimumHeight = text.gameObject.name switch
+            {
+                "HP Text" => 24f,
+                "Act" => 28f,
+                "Region" => 28f,
+                _ => text.rectTransform.sizeDelta.y
+            };
+            text.rectTransform.sizeDelta = new Vector2(
+                text.rectTransform.sizeDelta.x,
+                Mathf.Max(text.rectTransform.sizeDelta.y, minimumHeight));
+            text.fontSize = targetSize;
+            text.resizeTextForBestFit = false;
+            text.resizeTextMinSize = targetSize;
+            text.resizeTextMaxSize = targetSize;
         }
 
         [MenuItem("FFSS/Production/Build Reward Screen")]
@@ -391,10 +415,10 @@ namespace FFSS.Editor
                 "HP Text",
                 playerHud,
                 "HP 104 / 104",
-                16,
+                18,
                 TextAnchor.MiddleCenter,
                 Color.white,
-                new Vector2(226f, 22f),
+                new Vector2(226f, 24f),
                 new Vector2(56f, 16f));
 
             RectTransform goldPanel = CreateRect(
@@ -412,7 +436,7 @@ namespace FFSS.Editor
                 "Gold",
                 goldPanel,
                 "30냥",
-                20,
+                22,
                 TextAnchor.MiddleCenter,
                 new Color(1f, 0.84f, 0.3f),
                 new Vector2(112f, 28f),
@@ -436,7 +460,7 @@ namespace FFSS.Editor
                 22,
                 TextAnchor.MiddleLeft,
                 new Color(1f, 0.78f, 0.2f),
-                new Vector2(296f, 26f),
+                new Vector2(296f, 28f),
                 new Vector2(10f, 28f));
             build.Subtitle = CreateText(
                 "Region",
@@ -445,13 +469,13 @@ namespace FFSS.Editor
                 19,
                 TextAnchor.MiddleLeft,
                 Color.white,
-                new Vector2(296f, 26f),
+                new Vector2(296f, 28f),
                 new Vector2(10f, 0f));
             build.Status = CreateText(
                 "Risk",
                 regionPanel,
                 string.Empty,
-                15,
+                16,
                 TextAnchor.MiddleLeft,
                 new Color(0.78f, 0.84f, 0.92f),
                 new Vector2(296f, 32f),
@@ -474,13 +498,16 @@ namespace FFSS.Editor
                 image.preserveAspect = true;
                 Button button = host.gameObject.AddComponent<Button>();
                 button.targetGraphic = hitArea;
-                Text label = CreateText("Label", host, labels[i], 14, TextAnchor.MiddleCenter, Color.white,
+                Text label = CreateText("Label", host, labels[i], 17, TextAnchor.MiddleCenter, Color.white,
                     new Vector2(72f, 22f), new Vector2(0f, -31f));
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, icon = image });
             }
 
             build.Root.AddComponent<InventoryHotkey>();
 
+            Text[] fieldTexts = build.Root.GetComponentsInChildren<Text>(true);
+            for (int i = 0; i < fieldTexts.Length; i++)
+                TuneFieldHudText(fieldTexts[i]);
             ConfigureController(build);
             return Save(build.Root, spec.Path);
         }
