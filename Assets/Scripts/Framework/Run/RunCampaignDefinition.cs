@@ -4,6 +4,22 @@ using UnityEngine;
 
 namespace FFSS.Framework.Run
 {
+    public enum RunFieldLayoutPattern
+    {
+        BroadRoadY,
+        CanalDoubleLoop,
+        PalaceDoubleRing
+    }
+
+    public enum RunFieldRouteSlot
+    {
+        Combat,
+        Event,
+        Shop,
+        MidBoss,
+        BossDoor
+    }
+
     [Serializable]
     public sealed class RunActDefinition
     {
@@ -16,6 +32,10 @@ namespace FFSS.Framework.Run
         [Min(0)] public int requiredEvents = 3;
         [Min(0)] public int shopCount = 1;
         [Min(0)] public int restCount = 0;
+        [Header("Inspectable field level design")]
+        public RunFieldLayoutPattern layoutPattern = RunFieldLayoutPattern.BroadRoadY;
+        [Range(0, 100)] public int alternateOpeningEnemyChancePercent = 30;
+        public List<RunFieldRouteSlot> fieldRoute = new List<RunFieldRouteSlot>();
         public List<string> normalEnemyIds = new List<string>();
         public List<string> eventIds = new List<string>();
         public List<string> midBossIds = new List<string>();

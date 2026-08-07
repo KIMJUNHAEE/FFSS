@@ -119,7 +119,8 @@ namespace CardBattle.Exploration
             mapGenerator.ConfigureRunLayoutForAct(
                 runs.Current.CurrentActProgress.generatedTileCount,
                 CountPlannedNodes(definition),
-                act);
+                act,
+                definition.layoutPattern);
             mapGenerator.SetRuntimeSeed(unchecked(runs.Current.seed ^ (act * 486187739)));
         }
 
@@ -196,10 +197,10 @@ namespace CardBattle.Exploration
         {
             var normalNodes = new Queue<PlannedNode>();
             int normalCount = Mathf.Max(0, definition.requiredNormalVictories);
-            for (int i = 0; i < normalCount && definition.normalEnemyIds.Count > 0; i++)
+            List<string> enemyOrder = BuildNormalEnemyOrder(definition, act, GetRunSeed());
+            for (int i = 0; i < normalCount && i < enemyOrder.Count; i++)
             {
-                string enemyId = definition.normalEnemyIds[i % definition.normalEnemyIds.Count];
-                normalNodes.Enqueue(EncounterNode(act, RunFieldContentType.Combat, i + 1, enemyId));
+                normalNodes.Enqueue(EncounterNode(act, RunFieldContentType.Combat, i + 1, enemyOrder[i]));
             }
 
             var eventNodes = new Queue<PlannedNode>();
@@ -213,86 +214,111 @@ namespace CardBattle.Exploration
             for (int i = 0; i < definition.shopCount; i++)
                 shopNodes.Enqueue(ContentNode(act, RunFieldContentType.Shop, i + 1, $"shop.act{act}.{i + 1}"));
 
-            // Rest is an act-transition choice after 13/18, never a field landmark.
-            var nodes = WeaveFieldRoute(act, normalNodes, eventNodes, shopNodes);
+            var midBossNodes = new Queue<PlannedNode>();
 
             if (definition.midBossIds.Count > 0)
             {
                 int index = Mathf.Abs((GetRunSeed() + act * 31) % definition.midBossIds.Count);
-                nodes.Add(EncounterNode(act, RunFieldContentType.MidBoss, 1, definition.midBossIds[index]));
+                midBossNodes.Enqueue(EncounterNode(act, RunFieldContentType.MidBoss, 1, definition.midBossIds[index]));
             }
 
+            var bossNodes = new Queue<PlannedNode>();
             if (!string.IsNullOrWhiteSpace(definition.bossId))
-                nodes.Add(EncounterNode(act, RunFieldContentType.BossDoor, 1, definition.bossId));
+                bossNodes.Enqueue(EncounterNode(act, RunFieldContentType.BossDoor, 1, definition.bossId));
 
-            return nodes;
+            // Rest is an act-transition choice after 13/18, never a field landmark.
+            return WeaveFieldRoute(
+                definition.fieldRoute,
+                normalNodes,
+                eventNodes,
+                shopNodes,
+                midBossNodes,
+                bossNodes);
+        }
+
+        private static List<string> BuildNormalEnemyOrder(
+            RunActDefinition definition,
+            int act,
+            int runSeed)
+        {
+            var order = new List<string>();
+            if (definition.normalEnemyIds.Count == 0 || definition.requiredNormalVictories <= 0)
+                return order;
+
+            var random = new System.Random(unchecked(runSeed ^ (act * 92821)));
+            int openingIndex = definition.normalEnemyIds.Count > 1 &&
+                               random.Next(0, 100) < definition.alternateOpeningEnemyChancePercent
+                ? 1
+                : 0;
+            order.Add(definition.normalEnemyIds[openingIndex]);
+
+            for (int i = 0; i < definition.normalEnemyIds.Count; i++)
+            {
+                if (i != openingIndex)
+                    order.Add(definition.normalEnemyIds[i]);
+            }
+
+            var duplicateCandidates = new List<string>(definition.normalEnemyIds);
+            while (order.Count < definition.requiredNormalVictories)
+            {
+                int index = random.Next(duplicateCandidates.Count);
+                string enemyId = duplicateCandidates[index];
+                duplicateCandidates.RemoveAt(index);
+                if (order[^1] == enemyId && duplicateCandidates.Count > 0)
+                {
+                    duplicateCandidates.Add(enemyId);
+                    continue;
+                }
+
+                order.Add(enemyId);
+                if (duplicateCandidates.Count == 0)
+                    duplicateCandidates.AddRange(definition.normalEnemyIds);
+            }
+
+            return order;
         }
 
         private static List<PlannedNode> WeaveFieldRoute(
-            int act,
+            IReadOnlyList<RunFieldRouteSlot> route,
             Queue<PlannedNode> normalNodes,
             Queue<PlannedNode> eventNodes,
-            Queue<PlannedNode> shopNodes)
+            Queue<PlannedNode> shopNodes,
+            Queue<PlannedNode> midBossNodes,
+            Queue<PlannedNode> bossNodes)
         {
             var nodes = new List<PlannedNode>();
-            RunFieldContentType[] cadence = act switch
+            for (int i = 0; i < route.Count; i++)
             {
-                1 => new[]
+                Queue<PlannedNode> source = route[i] switch
                 {
-                    RunFieldContentType.Event, RunFieldContentType.Combat, RunFieldContentType.Combat,
-                    RunFieldContentType.Shop, RunFieldContentType.Combat, RunFieldContentType.Event,
-                    RunFieldContentType.Combat, RunFieldContentType.Event, RunFieldContentType.Combat
-                },
-                2 => new[]
-                {
-                    RunFieldContentType.Combat, RunFieldContentType.Event, RunFieldContentType.Combat,
-                    RunFieldContentType.Shop, RunFieldContentType.Combat, RunFieldContentType.Event,
-                    RunFieldContentType.Combat, RunFieldContentType.Event, RunFieldContentType.Combat,
-                    RunFieldContentType.Shop, RunFieldContentType.Combat, RunFieldContentType.Event
-                },
-                _ => new[]
-                {
-                    RunFieldContentType.Event, RunFieldContentType.Combat, RunFieldContentType.Combat,
-                    RunFieldContentType.Shop, RunFieldContentType.Combat, RunFieldContentType.Event,
-                    RunFieldContentType.Combat, RunFieldContentType.Event, RunFieldContentType.Combat,
-                    RunFieldContentType.Shop, RunFieldContentType.Combat, RunFieldContentType.Event,
-                    RunFieldContentType.Combat, RunFieldContentType.Event
-                }
-            };
+                    RunFieldRouteSlot.Combat => normalNodes,
+                    RunFieldRouteSlot.Event => eventNodes,
+                    RunFieldRouteSlot.Shop => shopNodes,
+                    RunFieldRouteSlot.MidBoss => midBossNodes,
+                    RunFieldRouteSlot.BossDoor => bossNodes,
+                    _ => null
+                };
+                if (source != null && source.Count > 0)
+                    nodes.Add(source.Dequeue());
+            }
 
-            for (int i = 0; i < cadence.Length; i++)
-                TryAddNext(nodes, cadence[i], normalNodes, eventNodes, shopNodes);
-
-            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0)
+            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0 ||
+                   midBossNodes.Count > 0 || bossNodes.Count > 0)
             {
-                TryAddNext(nodes, RunFieldContentType.Combat, normalNodes, eventNodes, shopNodes);
-                TryAddNext(nodes, RunFieldContentType.Event, normalNodes, eventNodes, shopNodes);
-                TryAddNext(nodes, RunFieldContentType.Shop, normalNodes, eventNodes, shopNodes);
+                AppendNext(nodes, normalNodes);
+                AppendNext(nodes, eventNodes);
+                AppendNext(nodes, shopNodes);
+                AppendNext(nodes, midBossNodes);
+                AppendNext(nodes, bossNodes);
             }
 
             return nodes;
         }
 
-        private static bool TryAddNext(
-            List<PlannedNode> nodes,
-            RunFieldContentType type,
-            Queue<PlannedNode> normalNodes,
-            Queue<PlannedNode> eventNodes,
-            Queue<PlannedNode> shopNodes)
+        private static void AppendNext(List<PlannedNode> nodes, Queue<PlannedNode> source)
         {
-            Queue<PlannedNode> source = type switch
-            {
-                RunFieldContentType.Combat => normalNodes,
-                RunFieldContentType.Event => eventNodes,
-                RunFieldContentType.Shop => shopNodes,
-                _ => null
-            };
-
-            if (source == null || source.Count == 0)
-                return false;
-
-            nodes.Add(source.Dequeue());
-            return true;
+            if (source.Count > 0)
+                nodes.Add(source.Dequeue());
         }
 
         private PlannedNode EncounterNode(

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FFSS.Framework.Run;
 using UnityEngine;
 
 namespace CardBattle.Exploration
@@ -135,6 +136,7 @@ namespace CardBattle.Exploration
         private int runtimeSeed;
         private bool hasRuntimeSeed;
         private int districtAct = 1;
+        private RunFieldLayoutPattern districtLayoutPattern = RunFieldLayoutPattern.BroadRoadY;
 
         public event Action GenerationStarted;
         public event Action<IReadOnlyList<GeneratedHexTile>> GenerationCompleted;
@@ -307,6 +309,21 @@ namespace CardBattle.Exploration
 
         public void ConfigureRunLayoutForAct(int targetTileCount, int contentNodeCount, int act)
         {
+            RunFieldLayoutPattern pattern = Mathf.Clamp(act, 1, 3) switch
+            {
+                2 => RunFieldLayoutPattern.CanalDoubleLoop,
+                3 => RunFieldLayoutPattern.PalaceDoubleRing,
+                _ => RunFieldLayoutPattern.BroadRoadY
+            };
+            ConfigureRunLayoutForAct(targetTileCount, contentNodeCount, act, pattern);
+        }
+
+        public void ConfigureRunLayoutForAct(
+            int targetTileCount,
+            int contentNodeCount,
+            int act,
+            RunFieldLayoutPattern layoutPattern)
+        {
             int target = Mathf.Max(12, targetTileCount);
             int areas = Mathf.Clamp(Mathf.RoundToInt(target / 16f) + 1, 3, 6);
 
@@ -320,6 +337,7 @@ namespace CardBattle.Exploration
             minInteractionHexDistance = 2;
             interactionTileChance = 0f;
             districtAct = Mathf.Clamp(act, 1, 3);
+            districtLayoutPattern = layoutPattern;
         }
 
         public void ClearRuntimeSeed()
@@ -396,7 +414,7 @@ namespace CardBattle.Exploration
             var random = new System.Random(GetEffectiveSeed());
             int targetCount = ResolveTargetTileCount();
             var cells = new HashSet<Vector2Int>();
-            List<Vector2Int> areaCenters = BuildAreaCenters(random, targetCount);
+            List<Vector2Int> areaCenters = BuildAreaCenters(random, targetCount, districtLayoutPattern);
 
             for (int i = 0; i < areaCenters.Count; i++)
             {
@@ -407,7 +425,7 @@ namespace CardBattle.Exploration
             for (int i = 1; i < areaCenters.Count; i++)
                 CarveWideRoad(random, cells, areaCenters[i - 1], areaCenters[i]);
 
-            AddIntentionalLoops(random, cells, areaCenters);
+            AddIntentionalLoops(random, cells, areaCenters, districtLayoutPattern);
             WidenFieldUntilTarget(random, cells, targetCount);
             TrimFieldToTarget(cells, targetCount);
 
@@ -430,34 +448,54 @@ namespace CardBattle.Exploration
             return Mathf.Max(12, mainPathLength + Mathf.Max(0, branchCount) * branchLength);
         }
 
-        private List<Vector2Int> BuildAreaCenters(System.Random random, int targetCount)
+        private static List<Vector2Int> BuildAreaCenters(
+            System.Random random,
+            int targetCount,
+            RunFieldLayoutPattern pattern)
         {
             int areaCount = Mathf.Clamp(Mathf.RoundToInt(targetCount / 16f) + 1, 3, 6);
-            var centers = new List<Vector2Int> { Vector2Int.zero };
             int forwardDirection = random.Next(Directions.Length);
-            int sideDirection = (forwardDirection + 1 + random.Next(0, 2)) % Directions.Length;
-            Vector2Int current = Vector2Int.zero;
+            Vector2Int forward = Directions[forwardDirection];
+            Vector2Int left = Directions[(forwardDirection + 1) % Directions.Length];
+            Vector2Int right = Directions[(forwardDirection + 5) % Directions.Length];
+            var centers = new List<Vector2Int> { Vector2Int.zero };
 
-            for (int i = 1; i < areaCount; i++)
+            if (pattern == RunFieldLayoutPattern.BroadRoadY)
             {
-                int forward = random.Next(3, 6);
-                int lateral = random.Next(-2, 3);
-                Vector2Int next = current +
-                                  Scale(Directions[forwardDirection], forward) +
-                                  Scale(Directions[sideDirection], lateral);
-                int guard = 0;
-                while ((centers.Contains(next) || HexDistance(current, next) < 3) && guard++ < 12)
-                {
-                    next += Directions[(forwardDirection + guard) % Directions.Length];
-                }
-
-                current = next;
-                centers.Add(current);
-
-                if (random.NextDouble() < 0.35d)
-                    sideDirection = (sideDirection + (random.Next(0, 2) == 0 ? 1 : 5)) % Directions.Length;
+                Vector2Int fork = Scale(forward, random.Next(3, 5));
+                centers.Add(fork);
+                centers.Add(fork + Scale(forward, 3) + Scale(left, 2));
+                if (areaCount >= 4)
+                    centers.Add(fork + Scale(forward, 3) + Scale(right, 2));
+                if (areaCount >= 5)
+                    centers.Add(fork + Scale(forward, 6));
+                if (areaCount >= 6)
+                    centers.Add(fork + Scale(forward, 7) + Scale(left, 2));
+                return centers;
             }
 
+            if (pattern == RunFieldLayoutPattern.CanalDoubleLoop)
+            {
+                Vector2Int near = Scale(forward, 4);
+                Vector2Int far = Scale(forward, 8);
+                centers.Add(near + Scale(left, 2));
+                centers.Add(far);
+                centers.Add(near + Scale(right, 2));
+                if (areaCount >= 5)
+                    centers.Add(far + Scale(left, 3));
+                if (areaCount >= 6)
+                    centers.Add(far + Scale(right, 3));
+                return centers;
+            }
+
+            Vector2Int palaceNear = Scale(forward, 4);
+            Vector2Int palaceFar = Scale(forward, 10);
+            centers.Add(palaceNear + Scale(left, 2));
+            centers.Add(Scale(forward, 8) + Scale(left, 2));
+            centers.Add(palaceFar);
+            centers.Add(Scale(forward, 8) + Scale(right, 2));
+            if (areaCount >= 6)
+                centers.Add(palaceNear + Scale(right, 2));
             return centers;
         }
 
@@ -519,19 +557,33 @@ namespace CardBattle.Exploration
         private static void AddIntentionalLoops(
             System.Random random,
             HashSet<Vector2Int> cells,
-            IReadOnlyList<Vector2Int> areaCenters)
+            IReadOnlyList<Vector2Int> areaCenters,
+            RunFieldLayoutPattern pattern)
         {
-            int loops = Mathf.Clamp(areaCenters.Count - 2, 1, 3);
-            for (int i = 0; i < loops; i++)
+            if (pattern == RunFieldLayoutPattern.BroadRoadY)
             {
-                int fromIndex = Mathf.Clamp(i, 0, areaCenters.Count - 1);
-                int toIndex = Mathf.Clamp(i + 2, 0, areaCenters.Count - 1);
-                if (fromIndex == toIndex)
-                    continue;
+                if (areaCenters.Count >= 4)
+                    CarveWideRoad(random, cells, areaCenters[2], areaCenters[3]);
+                return;
+            }
 
-                Vector2Int from = areaCenters[fromIndex] + Directions[(i + random.Next(0, 2)) % Directions.Length];
-                Vector2Int to = areaCenters[toIndex] + Directions[(i + 3 + random.Next(0, 2)) % Directions.Length];
-                CarveWideRoad(random, cells, from, to);
+            if (pattern == RunFieldLayoutPattern.CanalDoubleLoop)
+            {
+                if (areaCenters.Count >= 4)
+                {
+                    CarveWideRoad(random, cells, areaCenters[0], areaCenters[3]);
+                    CarveWideRoad(random, cells, areaCenters[1], areaCenters[3]);
+                }
+                if (areaCenters.Count >= 5)
+                    CarveWideRoad(random, cells, areaCenters[2], areaCenters[4]);
+                return;
+            }
+
+            if (areaCenters.Count >= 5)
+            {
+                CarveWideRoad(random, cells, areaCenters[0], areaCenters[^1]);
+                CarveWideRoad(random, cells, areaCenters[1], areaCenters[4]);
+                CarveWideRoad(random, cells, areaCenters[0], areaCenters[3]);
             }
         }
 

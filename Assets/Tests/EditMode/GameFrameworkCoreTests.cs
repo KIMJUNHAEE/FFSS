@@ -346,6 +346,9 @@ namespace FFSS.Framework.Tests
             Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
             Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
             Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
+            Assert.That(campaign.GetAct(1).layoutPattern, Is.EqualTo(RunFieldLayoutPattern.BroadRoadY));
+            Assert.That(campaign.GetAct(2).layoutPattern, Is.EqualTo(RunFieldLayoutPattern.CanalDoubleLoop));
+            Assert.That(campaign.GetAct(3).layoutPattern, Is.EqualTo(RunFieldLayoutPattern.PalaceDoubleRing));
             CollectionAssert.AreEquivalent(
                 new[] { "7땡", "8땡", "9땡", "10땡" },
                 campaign.GetAct(3).normalEnemyIds);
@@ -361,7 +364,30 @@ namespace FFSS.Framework.Tests
                 int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
                                 definition.shopCount + 2;
                 Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
+                Assert.That(definition.fieldRoute, Has.Count.EqualTo(nodeCount), $"act {act}");
+                Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Combat),
+                    Is.EqualTo(definition.requiredNormalVictories), $"act {act}");
+                Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Event),
+                    Is.EqualTo(definition.requiredEvents), $"act {act}");
+                Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Shop),
+                    Is.EqualTo(definition.shopCount), $"act {act}");
+                Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.MidBoss),
+                    Is.EqualTo(1), $"act {act}");
+                Assert.That(definition.fieldRoute[^1], Is.EqualTo(RunFieldRouteSlot.BossDoor), $"act {act}");
             }
+
+            Assert.That(campaign.GetAct(2).fieldRoute.TakeLast(3), Is.EqualTo(new[]
+            {
+                RunFieldRouteSlot.MidBoss,
+                RunFieldRouteSlot.Shop,
+                RunFieldRouteSlot.BossDoor
+            }), "Act 2 must route Gusa into the fixed pre-boss shop.");
+            Assert.That(campaign.GetAct(3).fieldRoute.TakeLast(3), Is.EqualTo(new[]
+            {
+                RunFieldRouteSlot.Shop,
+                RunFieldRouteSlot.Event,
+                RunFieldRouteSlot.BossDoor
+            }), "Act 3 final shop must be two route slots before 38 Gwangddaeng.");
 
             string fieldBuilder = File.ReadAllText("Assets/Editor/ProductionFieldEncounterBuilder.cs");
             Assert.That(fieldBuilder, Does.Not.Contain("RunFieldContentType.Rest"),
@@ -638,6 +664,128 @@ namespace FFSS.Framework.Tests
             Assert.That(catalog.Events.All(value => value.choices.Count >= 2), Is.True);
             Assert.That(catalog.ShopOffers, Has.Count.GreaterThanOrEqualTo(10));
             Assert.That(catalog.RestOptions, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void EveryActLayoutStaysBroadConnectedAndInsideItsPlannedTileBudget()
+        {
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            Type generatorType = Type.GetType(
+                "CardBattle.Exploration.HexTileMapGenerator, Assembly-CSharp");
+            MethodInfo configure = generatorType?.GetMethod(
+                "ConfigureRunLayoutForAct",
+                new[]
+                {
+                    typeof(int),
+                    typeof(int),
+                    typeof(int),
+                    typeof(RunFieldLayoutPattern)
+                });
+            MethodInfo build = generatorType?.GetMethod(
+                "BuildCellPath",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(campaign, Is.Not.Null);
+            Assert.That(generatorType, Is.Not.Null);
+            Assert.That(configure, Is.Not.Null);
+            Assert.That(build, Is.Not.Null);
+
+            for (int act = 1; act <= 3; act++)
+            {
+                RunActDefinition definition = campaign.GetAct(act);
+                int nodeCount = definition.fieldRoute.Count;
+                int[] targets =
+                {
+                    definition.minimumTiles,
+                    (definition.minimumTiles + definition.maximumTiles) / 2,
+                    definition.maximumTiles
+                };
+
+                for (int sample = 0; sample < targets.Length; sample++)
+                {
+                    var host = new GameObject($"Act {act} Layout {sample}");
+                    try
+                    {
+                        Component generator = host.AddComponent(generatorType);
+                        generatorType.GetMethod("SetRuntimeSeed")?.Invoke(
+                            generator,
+                            new object[] { 8701 + act * 100 + sample });
+                        configure.Invoke(
+                            generator,
+                            new object[]
+                            {
+                                targets[sample],
+                                nodeCount,
+                                act,
+                                definition.layoutPattern
+                            });
+
+                        object[] arguments = { null, Vector2Int.zero };
+                        var cells = (List<Vector2Int>)build.Invoke(generator, arguments);
+                        var interactions = (HashSet<Vector2Int>)arguments[0];
+                        var bossCell = (Vector2Int)arguments[1];
+                        var cellSet = new HashSet<Vector2Int>(cells);
+                        int leafCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 1);
+                        int narrowCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 2);
+
+                        Assert.That(cells, Has.Count.EqualTo(targets[sample]), $"act {act}, sample {sample}");
+                        Assert.That(interactions.Count, Is.GreaterThanOrEqualTo(nodeCount),
+                            $"act {act}, sample {sample}");
+                        Assert.That(interactions, Does.Contain(bossCell), $"act {act}, sample {sample}");
+                        Assert.That(cellSet, Does.Contain(Vector2Int.zero), $"act {act}, sample {sample}");
+                        Assert.That(ReachableHexCount(Vector2Int.zero, cellSet), Is.EqualTo(cells.Count),
+                            $"act {act}, sample {sample}");
+                        Assert.That(leafCount, Is.LessThanOrEqualTo(2), $"act {act}, sample {sample}");
+                        Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.34f),
+                            $"act {act}, sample {sample}");
+                    }
+                    finally
+                    {
+                        UnityEngine.Object.DestroyImmediate(host);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void OpeningEnemyDistributionUsesTheInspectableActChance()
+        {
+            RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(
+                "Assets/Data/Framework/MainCampaign.asset");
+            Type distributorType = Type.GetType(
+                "CardBattle.Exploration.FieldEncounterDistributor, Assembly-CSharp");
+            MethodInfo buildOrder = distributorType?.GetMethod(
+                "BuildNormalEnemyOrder",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(campaign, Is.Not.Null);
+            Assert.That(buildOrder, Is.Not.Null);
+            for (int act = 1; act <= 3; act++)
+            {
+                RunActDefinition definition = campaign.GetAct(act);
+                int alternateOpenings = 0;
+                for (int seed = 0; seed < 1000; seed++)
+                {
+                    var order = (List<string>)buildOrder.Invoke(
+                        null,
+                        new object[] { definition, act, seed });
+                    Assert.That(order, Has.Count.EqualTo(definition.requiredNormalVictories));
+                    Assert.That(order.Take(definition.normalEnemyIds.Count),
+                        Is.EquivalentTo(definition.normalEnemyIds));
+                    Assert.That(order.GroupBy(value => value).Max(group => group.Count()),
+                        Is.LessThanOrEqualTo(2));
+                    if (order[0] == definition.normalEnemyIds[1])
+                        alternateOpenings++;
+                }
+
+                float observedPercent = alternateOpenings / 10f;
+                Assert.That(observedPercent,
+                    Is.InRange(
+                        definition.alternateOpeningEnemyChancePercent - 5f,
+                        definition.alternateOpeningEnemyChancePercent + 5f),
+                    $"act {act}");
+            }
         }
 
         [Test]
@@ -2525,6 +2673,28 @@ namespace FFSS.Framework.Tests
             }
 
             return count;
+        }
+
+        private static int ReachableHexCount(Vector2Int start, HashSet<Vector2Int> cells)
+        {
+            if (!cells.Contains(start))
+                return 0;
+
+            var visited = new HashSet<Vector2Int> { start };
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(start);
+            while (queue.Count > 0)
+            {
+                Vector2Int current = queue.Dequeue();
+                for (int i = 0; i < HexNeighborOffsets.Length; i++)
+                {
+                    Vector2Int next = current + HexNeighborOffsets[i];
+                    if (cells.Contains(next) && visited.Add(next))
+                        queue.Enqueue(next);
+                }
+            }
+
+            return visited.Count;
         }
 
         private static bool TryReadOpaqueBounds(Sprite sprite, out RectInt bounds)
