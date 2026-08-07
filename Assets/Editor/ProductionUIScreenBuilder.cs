@@ -25,7 +25,7 @@ namespace FFSS.Editor
         private const string TitlePrefabPath = ScreenRoot + "/TitleScreen.prefab";
         private const string ResultScenePath = "Assets/Scenes/Production/Frontend/Production_Result.unity";
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string FontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
         private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
 
@@ -276,10 +276,10 @@ namespace FFSS.Editor
         {
             TrueTypeFontImporter importer = AssetImporter.GetAtPath(CardBattleSetup.UiFontPath)
                 as TrueTypeFontImporter;
-            if (importer == null || importer.fontRenderingMode == FontRenderingMode.HintedSmooth)
+            if (importer == null || importer.fontRenderingMode == FontRenderingMode.HintedRaster)
                 return;
 
-            importer.fontRenderingMode = FontRenderingMode.HintedSmooth;
+            importer.fontRenderingMode = FontRenderingMode.HintedRaster;
             importer.SaveAndReimport();
         }
 
