@@ -40,9 +40,10 @@ namespace CardBattle.Inventory
 
             if (descriptionText)
             {
-                descriptionText.text = entry is EquipmentDefinition equipment
+                string description = entry is EquipmentDefinition equipment
                     ? $"{EquipmentCatalog.RarityLabel(equipment.Rarity)} 장비 · {equipment.EffectText}"
                     : entry.Description;
+                KeywordTooltipSource.Apply(descriptionText, description);
             }
 
             RefreshUseButton();

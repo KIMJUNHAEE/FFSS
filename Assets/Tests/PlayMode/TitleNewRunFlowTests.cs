@@ -12,6 +12,7 @@ using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -243,10 +244,56 @@ namespace FFSS.Framework.Tests
                 Assert.That(ui.HasVisibleModal, Is.True, $"{id} did not block field input.");
                 AssertVisibleUiInsideViewport($"{id} 1280x720");
                 yield return CaptureScreenshot(fileName, 1280, 720);
+                if (id == UIScreenId.Equipment)
+                    yield return CaptureKeywordTooltip(overlay);
                 ui.Hide(id, false);
                 yield return WaitFrames(2);
                 Assert.That(ui.HasVisibleModal, Is.False, $"{id} stayed open after closing.");
             }
+        }
+
+        private static IEnumerator CaptureKeywordTooltip(UIScreen equipmentScreen)
+        {
+            Text target = equipmentScreen.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(text => text.gameObject.name == "Body");
+            Assert.That(target, Is.Not.Null, "Equipment screen has no detail text for keyword QA.");
+
+            Type sourceType = Type.GetType("CardBattle.KeywordTooltipSource, Assembly-CSharp");
+            Type viewType = Type.GetType("CardBattle.KeywordTooltipView, Assembly-CSharp");
+            Assert.That(sourceType, Is.Not.Null);
+            Assert.That(viewType, Is.Not.Null);
+            MethodInfo apply = sourceType.GetMethod("Apply", BindingFlags.Public | BindingFlags.Static);
+            Assert.That(apply, Is.Not.Null);
+            apply.Invoke(null, new object[]
+            {
+                target,
+                "약점 관통으로 방어를 뚫고, 약점 격파로 균형을 흔들어."
+            });
+
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                position = new Vector2(Screen.width * 0.54f, Screen.height * 0.52f)
+            };
+            ExecuteEvents.Execute<IPointerEnterHandler>(
+                target.gameObject,
+                pointer,
+                ExecuteEvents.pointerEnterHandler);
+            yield return WaitFrames(2);
+
+            Object[] views = Object.FindObjectsByType(viewType, FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Assert.That(views, Has.Length.EqualTo(1), "Keyword tooltip was not created exactly once.");
+            CanvasGroup canvasGroup = ((Component)views[0]).GetComponent<CanvasGroup>();
+            Assert.That(canvasGroup, Is.Not.Null);
+            Assert.That(canvasGroup.alpha, Is.EqualTo(1f));
+            AssertVisibleUiInsideViewport("keyword tooltip 1280x720");
+            yield return CaptureScreenshot("flow_keyword_tooltip_1280x720", 1280, 720);
+
+            ExecuteEvents.Execute<IPointerExitHandler>(
+                target.gameObject,
+                pointer,
+                ExecuteEvents.pointerExitHandler);
+            yield return WaitFrames(1);
+            Assert.That(canvasGroup.alpha, Is.EqualTo(0f));
         }
 
         [UnityTest]
@@ -260,7 +307,8 @@ namespace FFSS.Framework.Tests
             newRun.onClick.Invoke();
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene &&
-                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                      FindVisibleScreen(UIScreenId.FieldHud) != null &&
+                      !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
                 360,
                 "New Run did not reach the field.");
 
@@ -310,12 +358,20 @@ namespace FFSS.Framework.Tests
                 Assert.That(proceed, Is.Not.Null, $"act {act} transition continue");
                 proceed.onClick.Invoke();
 
+                yield return WaitFrames(2);
+                Assert.That(runs.Current.act, Is.EqualTo(act < progression.Campaign.Acts.Count ? act + 1 : act),
+                    $"act {act} transition button did not advance the run state.");
+                Assert.That(flow.Current,
+                    Is.EqualTo(act < progression.Campaign.Acts.Count ? GameFlowState.Field : GameFlowState.Result),
+                    $"act {act} transition button did not advance the game flow state.");
+
                 if (act < progression.Campaign.Acts.Count)
                 {
                     yield return WaitUntil(
                         () => SceneManager.GetActiveScene().name == FieldScene &&
                               FindVisibleScreen(UIScreenId.FieldHud) != null &&
-                              runs.Current.act == act + 1,
+                              runs.Current.act == act + 1 &&
+                              !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
                         360,
                         $"act {act} did not continue to the next field.");
                 }

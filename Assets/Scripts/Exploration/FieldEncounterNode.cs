@@ -1,5 +1,6 @@
 using FFSS.Framework.Flow;
 using FFSS.Framework.Core;
+using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using UnityEngine;
 
@@ -54,6 +55,13 @@ namespace CardBattle.Exploration
             if (!Application.isPlaying || loading || player == null || string.IsNullOrWhiteSpace(enemyId))
                 return;
 
+            if (!GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) ||
+                !runs.HasActiveRun)
+            {
+                return;
+            }
+
             float distance = ExplorationGeometryUtility.PlanarDistance(player.position, transform.position);
             markerView?.SetFocused(distance <= focusRadius);
             UpdatePatrol(distance);
@@ -70,7 +78,7 @@ namespace CardBattle.Exploration
                 return;
             }
 
-            if (Time.unscaledTime - enteredAt < activationDelay || !GameKernelReady())
+            if (Time.unscaledTime - enteredAt < activationDelay)
                 return;
 
             loading = FFSS.Framework.Core.GameKernel.Services
@@ -103,11 +111,6 @@ namespace CardBattle.Exploration
                 current,
                 patrolTarget,
                 patrolSpeed * Time.deltaTime);
-        }
-
-        private static bool GameKernelReady()
-        {
-            return FFSS.Framework.Core.GameKernel.IsReady;
         }
     }
 }
