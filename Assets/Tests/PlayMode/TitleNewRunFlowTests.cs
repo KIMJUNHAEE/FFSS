@@ -271,10 +271,46 @@ namespace FFSS.Framework.Tests
                 yield return CaptureScreenshot(fileName, 1280, 720);
                 if (id == UIScreenId.Equipment)
                     yield return CaptureKeywordTooltip(overlay);
-                ui.Hide(id, false);
-                yield return WaitFrames(2);
+                Button close = overlay.GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name == "Close");
+                Assert.That(close, Is.Not.Null, $"{id} has no working close control.");
+                close.onClick.Invoke();
+                yield return WaitUntil(
+                    () => FindVisibleScreen(id) == null,
+                    120,
+                    $"Clicking the close control did not dismiss {id}.");
                 Assert.That(ui.HasVisibleModal, Is.False, $"{id} stayed open after closing.");
             }
+        }
+
+        [UnityTest]
+        public IEnumerator BlockedRewardTransitionDoesNotConsumePendingReward()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                300,
+                "Production field did not become ready for reward rollback QA.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
+            EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
+            int goldBefore = runs.Current.gold;
+            RunRewardState pending = runs.PrepareReward("1땡", 20);
+            flow.SynchronizeSceneState(GameFlowState.Combat);
+
+            Assert.That(encounters.ClaimRewardAndContinue(), Is.False,
+                "A reward claim escaped an invalid combat flow state.");
+            Assert.That(runs.Current.pendingReward, Is.SameAs(pending),
+                "A failed transition consumed the pending reward.");
+            Assert.That(runs.Current.gold, Is.EqualTo(goldBefore),
+                "A failed transition changed the player's gold.");
+            Assert.That(flow.Current, Is.EqualTo(GameFlowState.Combat));
+
+            runs.ClaimReward();
+            flow.SynchronizeSceneState(GameFlowState.Field);
         }
 
         [UnityTest]

@@ -156,12 +156,7 @@ namespace FFSS.Framework.Flow
 
             EncounterSceneEntry entry = catalog.Get(pending.enemyId);
             bool completedBoss = entry.encounter.rank == EnemyEncounterRank.Boss;
-            RunRewardState claimed = runs.ClaimReward(selectedItemId, selectedCardInstanceId);
-            runs.Current.result.earnedGold += claimed.gold;
-            runs.ClearEncounterNode();
-
             UIManager ui = services.Get<UIManager>();
-            ui.Hide(UIScreenId.Reward, false);
             GameFlowManager flow = services.Get<GameFlowManager>();
             SceneFlowManager scenes = services.Get<SceneFlowManager>();
             if (completedBoss)
@@ -170,8 +165,6 @@ namespace FFSS.Framework.Flow
                 {
                     return false;
                 }
-
-                ui.Show(UIScreenId.ActTransition);
             }
             else
             {
@@ -180,11 +173,20 @@ namespace FFSS.Framework.Flow
                 {
                     return false;
                 }
+            }
 
-                if (!scenes.TryLoad(GameSceneId.Field))
-                {
-                    throw new InvalidOperationException("Field scene became unavailable after validation.");
-                }
+            RunRewardState claimed = runs.ClaimReward(selectedItemId, selectedCardInstanceId);
+            runs.Current.result.earnedGold += claimed.gold;
+            runs.ClearEncounterNode();
+            ui.Hide(UIScreenId.Reward, false);
+
+            if (completedBoss)
+            {
+                ui.Show(UIScreenId.ActTransition);
+            }
+            else if (!scenes.TryLoad(GameSceneId.Field))
+            {
+                throw new InvalidOperationException("Field scene became unavailable after reward validation.");
             }
 
             if (services.TryGet(out SaveManager saves))
