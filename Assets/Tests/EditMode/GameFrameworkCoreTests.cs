@@ -1867,6 +1867,68 @@ namespace FFSS.Framework.Tests
             Assert.That(context.playerPowerDelta, Is.EqualTo(1));
             Assert.That(context.ruleNote, Does.Contain("봉인 무늬 2장 -2"));
             Assert.That(context.ruleNote, Does.Contain("반대 무늬 3장 +3"));
+
+            state.phase = 2;
+            var emptySealedSuit = new EnemyRuleExchangeContext
+            {
+                clubCount = 2,
+                playerAction = CombatActionType.Defend,
+                enemyAction = CombatActionType.Attack
+            };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, emptySealedSuit);
+            Assert.That(emptySealedSuit.directPressureToEnemy, Is.EqualTo(5));
+            Assert.That(emptySealedSuit.ruleNote, Does.Contain("빈 봉인 무늬"));
+            UnityEngine.Object.DestroyImmediate(encounter);
+        }
+
+        [Test]
+        public void EnemyRuleManagerAppliesSecondPhaseRuleVariants()
+        {
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            encounter.enemyId = "phase-test";
+            encounter.ruleMeter = new EnemyRuleMeterDefinition
+            {
+                stateKey = "rule.phase",
+                minimumValue = 0,
+                maximumValue = 3,
+                initialValue = 0
+            };
+            encounter.ruleRuntime = new EnemyRuleRuntimeDefinition
+            {
+                kind = EnemyRuleBehaviorKind.PineRedraw,
+                triggerPowerBonus = 3,
+                hiddenPowerRange = 2
+            };
+            var state = new EnemyRuleState { phase = 2 };
+            state.SetFlag("rule.pine.breakDefense", true);
+            var brokenDefense = new EnemyRuleExchangeContext
+            {
+                playerAction = CombatActionType.Attack,
+                enemyAction = CombatActionType.Defend
+            };
+
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, brokenDefense);
+
+            Assert.That(brokenDefense.enemyPowerDelta, Is.EqualTo(-2));
+            Assert.That(state.GetFlag("rule.pine.breakDefense"), Is.False);
+
+            encounter.ruleRuntime.kind = EnemyRuleBehaviorKind.Intoxication;
+            state.SetCounter("rule.phase", 3);
+            var intoxicated = new EnemyRuleExchangeContext { enemyAction = CombatActionType.Attack };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, intoxicated);
+            Assert.That(intoxicated.enemyPowerVisibilityRange, Is.EqualTo(1));
+
+            encounter.ruleRuntime.kind = EnemyRuleBehaviorKind.LowHandReversal;
+            state.SetCounter("rule.reversal.turns", 1);
+            var reversal = new EnemyRuleExchangeContext
+            {
+                playerHand = EnemyRuleHandKind.OnePair,
+                enemyAction = CombatActionType.Defend
+            };
+            EnemyRuleManager.ApplyExchangeModifiersCore(encounter, state, reversal);
+            Assert.That(reversal.playerPowerDelta, Is.EqualTo(5));
+            Assert.That(reversal.enemyPowerDelta, Is.EqualTo(-4));
+
             UnityEngine.Object.DestroyImmediate(encounter);
         }
 

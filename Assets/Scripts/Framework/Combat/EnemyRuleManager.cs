@@ -90,6 +90,12 @@ namespace FFSS.Framework.Combat
                         context.enemyPowerDelta += rule.triggerPowerBonus;
                         context.AddNote($"솔잎 강화 +{rule.triggerPowerBonus}");
                     }
+                    if (state.GetFlag("rule.pine.breakDefense") && context.EnemyUsesDefense)
+                    {
+                        context.enemyPowerDelta -= 2;
+                        context.AddNote("격파 후 방어 -2");
+                        state.SetFlag("rule.pine.breakDefense", false);
+                    }
                     break;
 
                 case EnemyRuleBehaviorKind.ReadRepeatedAction:
@@ -110,7 +116,18 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.RedrawRisk:
-                    if (meter == 0 && context.EnemyUsesDefense)
+                    if (state.phase >= 2)
+                    {
+                        int safeMinimum = state.turnNumber % 2 == 0 ? 1 : 2;
+                        int safeMaximum = safeMinimum + 1;
+                        if ((meter < safeMinimum || meter > safeMaximum) &&
+                            context.enemyAction != CombatActionType.Stunned)
+                        {
+                            context.enemyPowerDelta += rule.triggerPowerBonus;
+                            context.AddNote($"안전 교체 {safeMinimum}~{safeMaximum}장 이탈 +{rule.triggerPowerBonus}");
+                        }
+                    }
+                    else if (meter == 0 && context.EnemyUsesDefense)
                     {
                         context.enemyPowerDelta += rule.playerPowerBonus;
                         context.AddNote($"무교체 방어 +{rule.playerPowerBonus}");
@@ -123,7 +140,8 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.UniqueActionCycle:
-                    if (state.GetFlag("rule.cycle.reward.ready"))
+                    if (state.GetFlag("rule.cycle.reward.ready") ||
+                        state.GetCounter("rule.cycle.reward.turns") > 0)
                     {
                         context.playerPowerDelta += rule.playerPowerBonus;
                         context.playerBreakDelta += rule.playerBreakBonus;
@@ -180,9 +198,11 @@ namespace FFSS.Framework.Combat
                 case EnemyRuleBehaviorKind.Intoxication:
                     if (meter > 0)
                     {
-                        context.enemyPowerVisibilityRange = meter >= encounter.ruleMeter.maximumValue
-                            ? rule.hiddenPowerRange + 1
-                            : rule.hiddenPowerRange;
+                        context.enemyPowerVisibilityRange = state.phase >= 2
+                            ? 1
+                            : meter >= encounter.ruleMeter.maximumValue
+                                ? rule.hiddenPowerRange + 1
+                                : rule.hiddenPowerRange;
                     }
                     break;
 
@@ -213,13 +233,20 @@ namespace FFSS.Framework.Combat
                     break;
 
                 case EnemyRuleBehaviorKind.LowHandReversal:
-                    if (meter >= encounter.ruleMeter.maximumValue)
+                    int reversalTurns = state.GetCounter("rule.reversal.turns");
+                    if (meter >= encounter.ruleMeter.maximumValue || reversalTurns > 0)
                     {
                         int bonus = ReversalBonus(context.playerHand);
                         context.playerPowerDelta += bonus;
                         if (bonus > 0)
                         {
                             context.AddNote($"족보 반전 +{bonus}");
+                        }
+
+                        if (reversalTurns > 0 && context.EnemyUsesDefense)
+                        {
+                            context.enemyPowerDelta -= 4;
+                            context.AddNote("긴 판뒤집기 방어 -4");
                         }
                     }
                     break;
@@ -266,6 +293,11 @@ namespace FFSS.Framework.Combat
                         int bonus = Math.Min(3, favoredSuitCards);
                         context.playerPowerDelta += bonus;
                         context.AddNote($"금륜 반대 무늬 {favoredSuitCards}장 +{bonus}");
+                    }
+                    if (state.phase >= 2 && sealedSuitCards == 0)
+                    {
+                        context.directPressureToEnemy += 5;
+                        context.AddNote("빈 봉인 무늬 격파 +5");
                     }
                     break;
 

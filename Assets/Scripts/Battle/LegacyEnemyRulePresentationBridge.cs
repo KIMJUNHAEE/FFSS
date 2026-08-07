@@ -181,6 +181,7 @@ namespace CardBattle
 
             state.turnNumber++;
             state.lastMoveId = result.EnemyMoveId;
+            int previousPhase = state.phase;
             UpdateEncounterPhase();
             switch (encounter.ruleRuntime.kind)
             {
@@ -189,6 +190,8 @@ namespace CardBattle
                     {
                         SetMeter(0);
                     }
+                    if (result.EnemyStunned)
+                        state.SetFlag("rule.pine.breakDefense", true);
                     break;
                 case EnemyRuleBehaviorKind.ReadRepeatedAction:
                     TrackReadAction(result.PlayerAction);
@@ -200,14 +203,18 @@ namespace CardBattle
                     SetMeter(0);
                     break;
                 case EnemyRuleBehaviorKind.UniqueActionCycle:
+                    int rewardTurns = state.GetCounter("rule.cycle.reward.turns");
                     TrackActionCycle(result.PlayerAction);
+                    if (rewardTurns > 0)
+                        state.SetCounter("rule.cycle.reward.turns", rewardTurns - 1);
                     break;
                 case EnemyRuleBehaviorKind.CardPoison:
                     if (ContainsMoveId(result, "poison") || ContainsMoveId(result, "bloom"))
                     {
                         AddMeter(encounter.ruleRuntime.meterGain);
                         state.SetCounter("rule.poison.held", 1);
-                        state.AddCounter("rule.poison.pending", 1, 0, 4);
+                        if (state.phase < 2)
+                            state.AddCounter("rule.poison.pending", 1, 0, 4);
                     }
                     if (result.EnemyStunned)
                     {
@@ -225,6 +232,10 @@ namespace CardBattle
                     if (result.EnemyStunned)
                     {
                         SetMeter(0);
+                    }
+                    else if (state.phase >= 2)
+                    {
+                        AddMeter(-1);
                     }
                     break;
                 case EnemyRuleBehaviorKind.CardSeal:
@@ -256,12 +267,16 @@ namespace CardBattle
                         : Mathf.Max(0, GetMeter() - 1));
                     break;
                 case EnemyRuleBehaviorKind.SuitWheel:
-                    SetMeter((GetMeter() + 1) % (encounter.ruleMeter.maximumValue + 1));
+                    SetMeter((GetMeter() + (state.phase >= 2 ? 2 : 1)) %
+                             (encounter.ruleMeter.maximumValue + 1));
                     break;
                 case EnemyRuleBehaviorKind.GwangHeat:
                     TrackHeat(result);
                     break;
             }
+
+            ApplyPhaseTransition(previousPhase);
+            ApplyBreakResponse(result);
 
             TickCardRuleDurations();
         }
@@ -344,7 +359,15 @@ namespace CardBattle
             SetMeter(completed);
             if (completed >= encounter.ruleMeter.maximumValue)
             {
-                state.SetFlag("rule.cycle.reward.ready", true);
+                if (state.phase >= 2)
+                {
+                    state.SetFlag("rule.cycle.reward.ready", false);
+                    state.SetCounter("rule.cycle.reward.turns", 2);
+                }
+                else
+                {
+                    state.SetFlag("rule.cycle.reward.ready", true);
+                }
                 state.SetCounter("history.actionMask", 0);
                 SetMeter(0);
             }
@@ -377,7 +400,7 @@ namespace CardBattle
             int value = GetMeter();
             if (result.EnemyStunned)
             {
-                value += 2;
+                value += state.phase >= 2 ? 3 : 2;
             }
             else if (result.EnemyAction != RpsAction.Stunned)
             {
@@ -410,7 +433,8 @@ namespace CardBattle
             }
 
             if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.UniqueActionCycle &&
-                state.GetFlag("rule.cycle.reward.ready"))
+                state.GetFlag("rule.cycle.reward.ready") &&
+                state.phase < 2)
             {
                 state.SetFlag("rule.cycle.reward.ready", false);
             }
@@ -659,7 +683,7 @@ namespace CardBattle
                 .Select(group => group.Key);
             foreach (int rank in pairedRanks)
             {
-                state.AddCounter($"rule.tracking.rank.{rank}", 1, 0, 2);
+                state.AddCounter($"rule.tracking.rank.{rank}", 1, 0, state.phase >= 2 ? 3 : 2);
             }
 
             int total = Enumerable.Range(1, 14)
@@ -681,9 +705,18 @@ namespace CardBattle
 
         private void TrackLowHandReversal()
         {
+            int activeTurns = state.GetCounter("rule.reversal.turns");
+            if (activeTurns > 0)
+            {
+                state.SetCounter("rule.reversal.turns", activeTurns - 1);
+                return;
+            }
+
             if (GetMeter() >= encounter.ruleMeter.maximumValue)
             {
                 SetMeter(0);
+                if (state.phase >= 2)
+                    state.SetCounter("rule.reversal.turns", 1);
                 return;
             }
 
@@ -721,9 +754,6 @@ namespace CardBattle
         {
             if (result.EnemyStunned)
             {
-                int heatAtBreak = GetMeter();
-                source?.SetEnemyStunTurns(heatAtBreak <= 2 ? 2 : 1);
-                SetMeter(0);
                 return;
             }
 
@@ -742,6 +772,31 @@ namespace CardBattle
             {
                 AddMeter(-encounter.ruleRuntime.defenseDecay);
             }
+        }
+
+        private void ApplyPhaseTransition(int previousPhase)
+        {
+            if (state == null || state.phase <= previousPhase)
+                return;
+
+            if (encounter.ruleRuntime.kind == EnemyRuleBehaviorKind.FinalCountdown && state.phase >= 2)
+                SetMeter(Mathf.Min(4, GetMeter()));
+        }
+
+        private void ApplyBreakResponse(RpsCombatExchangeResult result)
+        {
+            if (!result.EnemyStunned || encounter?.breakResponse == null)
+                return;
+
+            EnemyBreakResponseDefinition response = encounter.breakResponse;
+            int meterAtBreak = GetMeter();
+            int stunTurns = response.twoTurnStunMaximumMeter >= 0 &&
+                            meterAtBreak <= response.twoTurnStunMaximumMeter
+                ? 2
+                : 1;
+            source?.SetEnemyStunTurns(stunTurns);
+            if (response.resetRuleMeter)
+                SetMeter(encounter.ruleMeter.initialValue);
         }
 
         private bool Ready()

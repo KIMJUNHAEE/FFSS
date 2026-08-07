@@ -109,7 +109,6 @@ namespace FFSS.Editor
         {
             EnsureFolder(MarkerRoot);
             PrepareFieldArt();
-            AssignFieldEncounterSprites();
             GameObject normal = BuildMarkerPrefab(
                 "FieldEncounter_Normal",
                 0.92f,
