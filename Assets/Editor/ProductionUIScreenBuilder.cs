@@ -22,6 +22,7 @@ namespace FFSS.Editor
         private const string FieldScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
         private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
         private const string BulkRoot = "Assets/UI/CardBattleRoguelike/Bulk/";
+        private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
 
         private sealed class ScreenBuild
         {
@@ -127,6 +128,18 @@ namespace FFSS.Editor
             Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
         }
 
+        [MenuItem("FFSS/Production/Build Reward Screen")]
+        public static void BuildRewardScreen()
+        {
+            EnsureFolder("Assets/Prefabs/UI");
+            EnsureFolder(ScreenRoot);
+            ScreenSpec reward = CreateSpecs().First(spec => spec.Id == UIScreenId.Reward);
+            BuildStandardScreen(reward);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS reward screen rebuilt with inspectable artwork previews.");
+        }
+
         [MenuItem("FFSS/Production/Ensure Run Status Options Path")]
         public static void EnsureRunStatusOptionsPath()
         {
@@ -179,7 +192,7 @@ namespace FFSS.Editor
                 new ScreenSpec(UIScreenId.Event, "EventScreen", "갈림길", "선택은 다음 판까지 남는다", "084_panel_event", 3, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.Combat, "CombatScreen", "", "", "", 0, UILayer.Overlay, true),
                 new ScreenSpec(UIScreenId.Break, "BreakScreen", "격파", "주도권을 잡을 순간", "106_banner_reward", 0, UILayer.Overlay, false),
-                new ScreenSpec(UIScreenId.Reward, "RewardScreen", "전리품", "하나를 골라 다음 판을 준비한다", "081_panel_reward_cards", 5, UILayer.Modal, false),
+                new ScreenSpec(UIScreenId.Reward, "RewardScreen", "승전 보상", "하나를 골라 다음 판을 준비한다", "081_panel_reward_cards", 5, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.Rest, "RestScreen", "휴식처", "세 선택 중 하나만 고를 수 있다", "083_panel_rest", 3, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.BossDoor, "BossDoorScreen", "보스문", "마지막 점검", "086_panel_battle_result", 0, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.ActTransition, "ActTransitionScreen", "막 돌파", "막 사이 휴식과 정비", "086_panel_battle_result", 3, UILayer.Screen, false),
@@ -277,6 +290,8 @@ namespace FFSS.Editor
             {
                 build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(560f, 270f));
             }
+            if (spec.Id == UIScreenId.Reward)
+                AddCardHoverPreview(build.Root.transform);
             ConfigureController(build);
             return Save(build.Root, spec.Path);
         }
@@ -477,14 +492,15 @@ namespace FFSS.Editor
 
         private static void CreateActionSlots(RectTransform frame, ScreenBuild build, UIScreenId screenId, int count)
         {
+            bool reward = screenId == UIScreenId.Reward;
             for (int i = 0; i < count; i++)
             {
                 int column = count <= 3 ? 0 : i % 2;
                 int row = count <= 3 ? i : i / 2;
                 float x = count <= 3 ? 0f : (column == 0 ? -285f : 285f);
-                float y = count <= 3 ? 20f - row * 100f : 20f - row * 92f;
+                float y = count <= 3 ? 20f - row * 100f : 20f - row * (reward ? 104f : 92f);
                 float width = count <= 3 ? 900f : 530f;
-                float height = count <= 3 ? 82f : 78f;
+                float height = count <= 3 ? 82f : reward ? 94f : 78f;
                 RectTransform host = CreateRect($"Action {i + 1}", frame, new Vector2(width, height), new Vector2(x, y));
                 Image image = host.gameObject.AddComponent<Image>();
                 image.sprite = ActionButtonSprite(screenId, i);
@@ -497,7 +513,7 @@ namespace FFSS.Editor
                 colors.disabledColor = new Color(0.35f, 0.38f, 0.44f, 0.65f);
                 button.colors = colors;
 
-                float textWidth = width - (count <= 3 ? 300f : 150f);
+                float textWidth = width - (count <= 3 ? 300f : reward ? 178f : 150f);
                 Text label = CreateText("Label", host, $"선택 {i + 1}", 21, TextAnchor.MiddleLeft,
                     Color.white, new Vector2(textWidth, 30f), new Vector2(55f, 14f));
                 Text detail = CreateText("Detail", host, string.Empty, 14, TextAnchor.MiddleLeft,
@@ -505,11 +521,25 @@ namespace FFSS.Editor
                 detail.horizontalOverflow = HorizontalWrapMode.Wrap;
                 detail.verticalOverflow = VerticalWrapMode.Truncate;
                 Image icon = CreateImage("Icon", host, ScreenActionIcon(screenId, i), Color.white);
-                icon.rectTransform.sizeDelta = new Vector2(44f, 44f);
-                icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : -214f, 0f);
+                icon.rectTransform.sizeDelta = reward ? new Vector2(64f, 78f) : new Vector2(44f, 44f);
+                icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : reward ? -210f : -214f, 0f);
                 icon.preserveAspect = true;
+                if (reward)
+                    host.gameObject.AddComponent<CardBattle.CardHoverSource>();
                 build.Actions.Add(new RunScreenActionSlot { button = button, label = label, detail = detail, icon = icon });
             }
+        }
+
+        private static void AddCardHoverPreview(Transform parent)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CardHoverPreviewPrefabPath);
+            if (prefab == null)
+                throw new InvalidOperationException($"Card hover preview prefab is missing: {CardHoverPreviewPrefabPath}");
+            GameObject preview = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
+            if (preview == null)
+                throw new InvalidOperationException("Failed to instantiate reward card hover preview.");
+            preview.name = "CardHoverPreview";
+            preview.transform.SetAsLastSibling();
         }
 
         private static void ConfigureController(ScreenBuild build)

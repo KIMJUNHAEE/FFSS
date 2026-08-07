@@ -930,6 +930,31 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void RewardScreenExposesArtworkSlotsAndLargeHoverPreview()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/RewardScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Text heading = prefab.transform.Find("Art Frame/Heading")?.GetComponent<Text>();
+            Assert.That(heading, Is.Not.Null);
+            Assert.That(heading.text, Is.EqualTo("승전 보상"));
+
+            Transform preview = prefab.transform.Find("CardHoverPreview");
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(preview.gameObject), Is.Not.Null);
+            for (int i = 1; i <= 5; i++)
+            {
+                Transform action = prefab.transform.Find($"Art Frame/Action {i}");
+                Assert.That(action, Is.Not.Null);
+                Assert.That(action.GetComponent("CardHoverSource"), Is.Not.Null);
+                RectTransform icon = action.Find("Icon") as RectTransform;
+                Assert.That(icon, Is.Not.Null);
+                Assert.That(icon.sizeDelta, Is.EqualTo(new Vector2(64f, 78f)));
+            }
+        }
+
+        [Test]
         public void CardWorkshopPrefabExposesInspectableCardActionsAndPaging()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

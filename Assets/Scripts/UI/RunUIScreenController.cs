@@ -400,6 +400,8 @@ namespace CardBattle.UI
                     string label = item != null ? item.DisplayName : itemId;
                     string detail = item != null ? $"{RarityLabel(item.Rarity)} 장비 · {item.EffectText}" : "장비 보상";
                     SetAction(i, label, detail, true);
+                    SetActionArtwork(i, item?.Icon, label,
+                        item != null ? $"{item.Description}\n\n{item.EffectText}" : detail);
                 }
                 else if (i - itemCount < cardCount)
                 {
@@ -411,7 +413,11 @@ namespace CardBattle.UI
                         continue;
                     }
 
-                    SetAction(i, card.cardId, $"카드 연마 {card.enhancementLevel} → {card.enhancementLevel + 1}", true);
+                    string label = PokerCardPresentation.DisplayName(card.cardId);
+                    string detail = $"카드 연마 +{card.enhancementLevel} → +{card.enhancementLevel + 1}";
+                    SetAction(i, label, detail, true);
+                    SetActionArtwork(i, PokerCardPresentation.LoadArtwork(card.cardId), label,
+                        $"{detail}\n\n{PokerCardPresentation.Detail(card)}");
                 }
                 else
                 {
@@ -1071,6 +1077,33 @@ namespace CardBattle.UI
                 slot.button.gameObject.SetActive(!string.IsNullOrWhiteSpace(label));
                 slot.button.interactable = interactable;
             }
+            if (string.IsNullOrWhiteSpace(label))
+                SetActionArtwork(index, null, string.Empty, string.Empty);
+        }
+
+        private void SetActionArtwork(int index, Sprite artwork, string title, string detail)
+        {
+            if (index < 0 || index >= actions.Count)
+                return;
+
+            RunScreenActionSlot slot = actions[index];
+            if (slot.icon != null)
+            {
+                slot.icon.sprite = artwork;
+                slot.icon.overrideSprite = artwork;
+                slot.icon.enabled = artwork != null;
+                slot.icon.preserveAspect = true;
+            }
+
+            if (slot.button == null)
+                return;
+            CardBattle.CardHoverSource hover = slot.button.GetComponent<CardBattle.CardHoverSource>();
+            if (hover == null)
+                hover = slot.button.gameObject.AddComponent<CardBattle.CardHoverSource>();
+            if (artwork != null)
+                hover.Configure(artwork, title, detail);
+            else
+                hover.Clear();
         }
 
         private static void SetText(Text target, string value)
