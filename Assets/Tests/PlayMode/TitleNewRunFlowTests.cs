@@ -246,6 +246,86 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator ThreeActBossFlowUsesOnlyIntermissionRestAndReachesResult()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(() => GameKernel.IsReady, 180, "GameKernel did not initialize.");
+
+            Button newRun = FindButton("New Run");
+            Assert.That(newRun, Is.Not.Null);
+            newRun.onClick.Invoke();
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == FieldScene &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                360,
+                "New Run did not reach the field.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            RunProgressionManager progression = GameKernel.Services.Get<RunProgressionManager>();
+            EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
+            GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+
+            for (int act = 1; act <= progression.Campaign.Acts.Count; act++)
+            {
+                Assert.That(runs.Current.act, Is.EqualTo(act));
+                string bossId = progression.Campaign.GetAct(act).bossId;
+                Assert.That(flow.TryChangeState(GameFlowState.Combat), Is.True, $"act {act} combat state");
+                ui.HideAll(false);
+                runs.BeginEncounter(bossId);
+                runs.Current.CurrentActProgress.bossDefeated = true;
+
+                encounters.CompleteVictory(
+                    runs.Current.player.currentHp,
+                    runs.Current.player.currentPressure);
+                Assert.That(encounters.OpenRewardScreen(), Is.True, $"act {act} reward");
+                yield return WaitFrames(2);
+                Assert.That(FindVisibleScreen(UIScreenId.Reward), Is.Not.Null);
+                Assert.That(encounters.ClaimRewardAndContinue(), Is.True, $"act {act} reward claim");
+                yield return WaitFrames(2);
+
+                UIScreen transition = FindVisibleScreen(UIScreenId.ActTransition);
+                Assert.That(transition, Is.Not.Null, $"act {act} transition");
+                Assert.That(FindVisibleScreen(UIScreenId.Rest), Is.Null,
+                    $"act {act} incorrectly opened a field rest screen.");
+
+                if (act < progression.Campaign.Acts.Count)
+                {
+                    Button restChoice = transition.GetComponentsInChildren<Button>(true)
+                        .FirstOrDefault(button => button.name == "Action 1");
+                    Assert.That(restChoice, Is.Not.Null, $"act {act} intermission rest choice");
+                    restChoice.onClick.Invoke();
+                    yield return WaitFrames(2);
+                    Assert.That(runs.Current.consumedRestIds,
+                        Does.Contain(RunProgressionManager.IntermissionRestId(act)));
+                }
+
+                Button proceed = transition.GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name == "Primary");
+                Assert.That(proceed, Is.Not.Null, $"act {act} transition continue");
+                proceed.onClick.Invoke();
+
+                if (act < progression.Campaign.Acts.Count)
+                {
+                    yield return WaitUntil(
+                        () => SceneManager.GetActiveScene().name == FieldScene &&
+                              FindVisibleScreen(UIScreenId.FieldHud) != null &&
+                              runs.Current.act == act + 1,
+                        360,
+                        $"act {act} did not continue to the next field.");
+                }
+                else
+                {
+                    yield return WaitUntil(
+                        () => FindVisibleScreen(UIScreenId.Result) != null && runs.Current.isComplete,
+                        360,
+                        "The final boss did not reach the result screen.");
+                    Assert.That(runs.Current.outcome, Is.EqualTo(RunOutcome.Victory));
+                }
+            }
+        }
+
         private static Button FindButton(string objectName)
         {
             Button[] buttons = Object.FindObjectsByType<Button>(

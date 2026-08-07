@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -530,6 +531,25 @@ namespace FFSS.Editor
             }
         }
 
+        [MenuItem("FFSS/Production/Repair Result Scene Input")]
+        public static void RepairResultSceneInput()
+        {
+            Scene scene = EditorSceneManager.OpenScene(ResultScenePath, OpenSceneMode.Single);
+            EventSystem eventSystem = FindInScene<EventSystem>(scene);
+            if (eventSystem == null)
+                eventSystem = new GameObject("Event System", typeof(EventSystem)).GetComponent<EventSystem>();
+
+            StandaloneInputModule legacy = eventSystem.GetComponent<StandaloneInputModule>();
+            if (legacy != null)
+                UnityEngine.Object.DestroyImmediate(legacy);
+            InputSystemUIInputModule input = eventSystem.GetComponent<InputSystemUIInputModule>();
+            if (input == null)
+                input = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+            input.AssignDefaultActions();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, ResultScenePath);
+        }
+
         private static void AddCardHoverPreview(Transform parent)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CardHoverPreviewPrefabPath);
@@ -686,7 +706,11 @@ namespace FFSS.Editor
             serialized.FindProperty("musicCueId").stringValue = "bgm.event";
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            new GameObject("Event System", typeof(EventSystem), typeof(StandaloneInputModule));
+            var eventSystemObject = new GameObject(
+                "Event System",
+                typeof(EventSystem),
+                typeof(InputSystemUIInputModule));
+            eventSystemObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             EditorSceneManager.SaveScene(scene, ResultScenePath);
 
             var buildScenes = EditorBuildSettings.scenes.ToList();

@@ -16,6 +16,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -2093,6 +2094,33 @@ namespace FFSS.Framework.Tests
                     Assert.That(serialized.FindProperty("pokerHand").objectReferenceValue, Is.Not.Null, path);
                     Assert.That(serialized.FindProperty("encounter").objectReferenceValue, Is.Not.Null, path);
                     Assert.That(serialized.FindProperty("meterView").objectReferenceValue, Is.SameAs(meter), path);
+                }
+                finally
+                {
+                    EditorSceneManager.CloseScene(scene, true);
+                }
+            }
+        }
+
+        [Test]
+        public void ProductionScenesUseOnlyTheInputSystemUiModule()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes/Production" });
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                try
+                {
+                    StandaloneInputModule[] legacy = scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<StandaloneInputModule>(true))
+                        .ToArray();
+                    Assert.That(legacy, Is.Empty, path);
+
+                    EventSystem eventSystem = FindInScene<EventSystem>(scene);
+                    Assert.That(eventSystem, Is.Not.Null, path);
+                    Assert.That(eventSystem.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>(),
+                        Is.Not.Null, path);
                 }
                 finally
                 {

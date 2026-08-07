@@ -334,7 +334,7 @@ namespace CardBattle
         {
             var rootRt = (RectTransform)transform;
             float centerIndex = index - (cardCount - 1) * 0.5f;
-            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, Mathf.Abs(centerIndex) * 2f);
+            Vector2 gatherOffset = WorldToLocalOffset(gatherTarget, rootRt) + new Vector2(centerIndex * 7f, 0f);
             float gatherAngle = centerIndex * -2.5f;
 
             yield return TweenTransform(visual.anchoredPosition, gatherOffset,
