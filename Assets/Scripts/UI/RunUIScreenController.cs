@@ -959,6 +959,12 @@ namespace CardBattle.UI
         {
             if (GameKernel.IsReady)
             {
+                if (ScreenId == UIScreenId.Reward)
+                {
+                    GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue();
+                    return;
+                }
+
                 if (ScreenId == UIScreenId.Shop || ScreenId == UIScreenId.Event || ScreenId == UIScreenId.Rest)
                 {
                     GameKernel.Services.Get<GameFlowManager>().TryChangeState(GameFlowState.Field);

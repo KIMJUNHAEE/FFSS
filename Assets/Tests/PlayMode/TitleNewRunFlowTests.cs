@@ -216,12 +216,15 @@ namespace FFSS.Framework.Tests
             AssertVisibleUiInsideViewport("reward 1280x720");
             yield return CaptureScreenshot("flow_reward_1280x720", 1280, 720);
 
-            Assert.That(encounters.ClaimRewardAndContinue(), Is.True,
-                "Claiming the reward did not continue the run.");
+            UIScreen rewardScreen = FindVisibleScreen(UIScreenId.Reward);
+            Button closeReward = rewardScreen.GetComponentsInChildren<Button>(true)
+                .FirstOrDefault(button => button.name == "Close");
+            Assert.That(closeReward, Is.Not.Null, "The reward screen has no close control.");
+            closeReward.onClick.Invoke();
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene,
                 300,
-                "Reward claim did not return to Production_Field.");
+                "Closing the reward screen did not return to Production_Field.");
             yield return WaitUntil(
                 () => FindVisibleScreen(UIScreenId.FieldHud) != null,
                 180,
@@ -229,6 +232,8 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(3);
             Assert.That(flow.Current, Is.EqualTo(GameFlowState.Field));
             Assert.That(ui.HasVisibleModal, Is.False);
+            Assert.That(runs.Current.pendingReward, Is.Null,
+                "Closing the reward screen left a pending reward and blocked progression.");
             AssertFieldHudGeometry();
             yield return SetResolutionAndCapture("flow_return_field_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("returned field 1280x720");
