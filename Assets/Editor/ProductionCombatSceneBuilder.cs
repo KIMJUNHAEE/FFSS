@@ -150,6 +150,146 @@ namespace FFSS.Editor
             Debug.Log($"Wired inspectable combat services into {Seeds.Count} existing production battle scene copies.");
         }
 
+        [MenuItem("FFSS/Production/Repair Production Combat Scene Layouts")]
+        public static void RepairProductionCombatSceneLayouts()
+        {
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            Directory.CreateDirectory(Path.Combine("Assets/Scenes", ProductionRelativeRoot));
+            PrepareActBattleBackgroundPrefabs();
+            PrepareCardHoverPreviewPrefab();
+            PrepareCommandButtonSelectionPrefab();
+
+            BattleSeed boss38 = default;
+            for (int i = 0; i < Seeds.Count; i++)
+            {
+                if (Seeds[i].EnemyId == "38")
+                {
+                    boss38 = Seeds[i];
+                    break;
+                }
+            }
+
+            try
+            {
+                CardBattleSetup.BeginBattleSceneBuildBatch();
+                CardBattleSetup.BuildBattleSceneFor(
+                    boss38.EnemyId,
+                    $"{ProductionRelativeRoot}/{boss38.SceneName}",
+                    boss38.Weakness,
+                    boss38.IncludeBackground);
+                WireGeneratedScene(boss38);
+
+                for (int i = 0; i < Seeds.Count; i++)
+                {
+                    BattleSeed seed = Seeds[i];
+                    string path = $"Assets/Scenes/{ProductionRelativeRoot}/{seed.SceneName}.unity";
+                    Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                    NormalizeCommandButtons(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+            }
+            finally
+            {
+                CardBattleSetup.EndBattleSceneBuildBatch();
+                if (!Application.isBatchMode && previousSetup.Length > 0)
+                    EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("Rebuilt the production 38 battle copy and normalized command prefab instances in all production combat scenes.");
+        }
+
+        private static void NormalizeCommandButtons(Scene scene)
+        {
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            if (combat == null)
+                throw new InvalidOperationException($"{scene.path}: RpsCombatController is missing.");
+
+            PokerHandController[] pokerControllers = FindAllInScene<PokerHandController>(scene);
+            for (int i = pokerControllers.Length - 1; i >= 0; i--)
+            {
+                if (pokerControllers[i] != combat.pokerHand)
+                    UnityEngine.Object.DestroyImmediate(pokerControllers[i].gameObject);
+            }
+
+            var retainedRoots = new HashSet<GameObject>();
+            NormalizeCommandButton(combat.attackButton, "AttackButton", new Vector2(0.695f, 0.245f),
+                new Vector2(0.835f, 0.34f), combat.attackActionIcon, "\uacf5\uaca9", retainedRoots);
+            NormalizeCommandButton(combat.defendButton, "DefendButton", new Vector2(0.695f, 0.135f),
+                new Vector2(0.835f, 0.23f), combat.defendActionIcon, "\ubc29\uc5b4", retainedRoots);
+            NormalizeCommandButton(combat.skillButton, "SkillButton", new Vector2(0.695f, 0.025f),
+                new Vector2(0.835f, 0.12f), combat.skillActionIcon, "\uc2a4\ud0ac", retainedRoots);
+            NormalizeCommandButton(combat.redrawButton, "RedrawButton", new Vector2(0.845f, 0.19f),
+                new Vector2(0.985f, 0.285f), null, "\ub2e4\uc2dc\ubf51\uae30", retainedRoots);
+            NormalizeCommandButton(combat.endTurnButton, "EndTurnButton", new Vector2(0.845f, 0.075f),
+                new Vector2(0.985f, 0.17f), combat.endTurnActionIcon, "\ud134 \uc885\ub8cc", retainedRoots);
+
+            CombatCommandSelectionView[] commandViews = FindAllInScene<CombatCommandSelectionView>(scene);
+            for (int i = commandViews.Length - 1; i >= 0; i--)
+            {
+                GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(commandViews[i].gameObject)
+                    ?? commandViews[i].gameObject;
+                if (!retainedRoots.Contains(root))
+                    UnityEngine.Object.DestroyImmediate(root);
+            }
+
+            Canvas primaryCanvas = combat.attackButton.GetComponentInParent<Canvas>();
+            Canvas[] canvases = FindAllInScene<Canvas>(scene);
+            for (int i = canvases.Length - 1; i >= 0; i--)
+            {
+                if (canvases[i] != primaryCanvas && canvases[i].transform.parent == null)
+                    UnityEngine.Object.DestroyImmediate(canvases[i].gameObject);
+            }
+        }
+
+        private static void NormalizeCommandButton(
+            Button button,
+            string objectName,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Sprite iconSprite,
+            string labelValue,
+            ISet<GameObject> retainedRoots)
+        {
+            if (button == null)
+                throw new InvalidOperationException($"Combat scene is missing its {objectName} reference.");
+
+            GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(button.gameObject) ?? button.gameObject;
+            retainedRoots.Add(root);
+            root.name = objectName;
+            root.SetActive(true);
+
+            RectTransform rect = root.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
+            rect.localScale = Vector3.one;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(rect);
+
+            Image icon = FindNamedComponent<Image>(root.transform, "IconImage");
+            if (icon != null && iconSprite != null)
+            {
+                icon.sprite = iconSprite;
+                EditorUtility.SetDirty(icon);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(icon);
+            }
+            Text label = FindNamedComponent<Text>(root.transform, "LabelText");
+            if (label != null)
+            {
+                label.text = labelValue;
+                EditorUtility.SetDirty(label);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(label);
+            }
+
+            EditorUtility.SetDirty(root);
+        }
+
         private static void WireGeneratedScene(BattleSeed seed)
         {
             Scene scene = EditorSceneManager.GetActiveScene();
@@ -640,6 +780,15 @@ namespace FFSS.Editor
             }
 
             return null;
+        }
+
+        private static T[] FindAllInScene<T>(Scene scene) where T : Component
+        {
+            var results = new List<T>();
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+                results.AddRange(roots[i].GetComponentsInChildren<T>(true));
+            return results.ToArray();
         }
     }
 }

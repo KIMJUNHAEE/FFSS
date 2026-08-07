@@ -1378,7 +1378,14 @@ namespace CardBattle
 
             string detailBody = $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}";
             if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
-            if (enemyStatText) enemyStatText.text = detailBody;
+            if (enemyStatText)
+            {
+                string shortTelegraph = CompactIntentLine(telegraph, 28);
+                string shortRule = CompactIntentLine(seotdaRule, 30);
+                enemyStatText.text =
+                    $"<color=#D6DEEA>{shortTelegraph}</color>\n" +
+                    $"<color=#FFD989><b>패 변주</b> {shortRule}</color>";
+            }
             if (enemyIntentTooltip)
                 enemyIntentTooltip.SetContent(
                     moveName,
@@ -1402,6 +1409,20 @@ namespace CardBattle
                 ? $"\n<color=#AFC8E8>주기: {move.cadenceTurns}턴마다 준비</color>"
                 : string.Empty;
             return $"<color=#D6DEEA>{description}</color>{timing}\n\n<color=#FFD989><b>패 공개 시 변주</b></color>\n{rule}";
+        }
+
+        private static string CompactIntentLine(string value, int maximumLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            string line = value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+            int sentenceEnd = line.IndexOfAny(new[] { '.', '!', '?' });
+            if (sentenceEnd >= 0)
+                line = line.Substring(0, sentenceEnd + 1);
+            return line.Length <= maximumLength
+                ? line
+                : line.Substring(0, Mathf.Max(1, maximumLength - 1)).TrimEnd() + "…";
         }
 
         private void ShowPlayerSkillDetail()
@@ -1665,7 +1686,8 @@ namespace CardBattle
             if (intent.IsStunned) return "적 스턴";
 
             string effect = string.IsNullOrEmpty(intent.EffectLabel) ? "섯다 효과 없음" : intent.EffectLabel;
-            return $"<b>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</b>\n{intent.Formula}\n{effect}";
+            return $"<b>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</b>\n" +
+                   CompactIntentLine(effect, 34);
         }
 
         private static string BuildValueLine(CombatIntent player, CombatIntent enemy, int visibilityRange = 0)
