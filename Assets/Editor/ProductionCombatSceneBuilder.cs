@@ -20,7 +20,7 @@ namespace FFSS.Editor
         private const string BackgroundPrefabRoot = "Assets/Prefabs/Production/Combat/Backgrounds";
         private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
         private const string CommandButtonPrefabPath = "Assets/Prefabs/CombatUI38/PokerCommandButton.prefab";
-        private const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
 

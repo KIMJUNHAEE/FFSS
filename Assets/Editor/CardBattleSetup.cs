@@ -40,7 +40,7 @@ namespace CardBattle.EditorTools
         private const string Boss38CombatPrefabDir = "Assets/Prefabs/CombatUI38";
         private const string BossProfileDir = "Assets/Data/BossProfiles";
         private const string CombatIconDir = "Assets/UI/CommonCombat/Icons";
-        internal const string UiFontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        internal const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string SkillDetailPanelPath = "Assets/UI/BossCombatSkins/Common/skill_detail_panel.png";
         private const string EmptyBarFillPath = "Assets/UI/BossCombatSkins/HUD/ornate_empty_fill.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
@@ -1411,15 +1411,15 @@ namespace CardBattle.EditorTools
             var attackLabel = CreateText("AttackLabel", root.transform, new Vector2(0.40f, 0.50f), new Vector2(0.49f, 0.70f),
                 "공격", 18, TextAnchor.MiddleCenter, new Color(1f, 0.46f, 0.40f));
             attackLabel.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
-            attackLabel.fontStyle = FontStyle.Bold;
+            attackLabel.fontStyle = FontStyle.Normal;
             EnableBestFit(attackLabel, 14, 18);
-            AddTextOutline(attackLabel, Color.black, new Vector2(2f, -2f));
+            AddTextOutline(attackLabel, Color.black, new Vector2(1f, -1f));
             var attackValue = CreateText("AttackValueText", root.transform, new Vector2(0.49f, 0.50f), new Vector2(0.61f, 0.70f),
                 "0", 30, TextAnchor.MiddleCenter, new Color(1f, 0.52f, 0.47f));
             attackValue.rectTransform.anchoredPosition = new Vector2(9.399963f, 0f);
-            attackValue.fontStyle = FontStyle.Bold;
+            attackValue.fontStyle = FontStyle.Normal;
             EnableBestFit(attackValue, 22, 30);
-            AddTextOutline(attackValue, Color.black, new Vector2(2f, -2f));
+            AddTextOutline(attackValue, Color.black, new Vector2(1f, -1f));
 
             var defenseImage = CreatePanel("DefenseIcon", root.transform, new Vector2(0.63f, 0.51f), new Vector2(0.70f, 0.67f), Color.white);
             defenseImage.sprite = defendIcon;
@@ -1429,15 +1429,15 @@ namespace CardBattle.EditorTools
             var defenseLabel = CreateText("DefenseLabel", root.transform, new Vector2(0.71f, 0.50f), new Vector2(0.80f, 0.70f),
                 "방어", 18, TextAnchor.MiddleCenter, new Color(0.45f, 0.78f, 1f));
             defenseLabel.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
-            defenseLabel.fontStyle = FontStyle.Bold;
+            defenseLabel.fontStyle = FontStyle.Normal;
             EnableBestFit(defenseLabel, 14, 18);
-            AddTextOutline(defenseLabel, Color.black, new Vector2(2f, -2f));
+            AddTextOutline(defenseLabel, Color.black, new Vector2(1f, -1f));
             var defenseValue = CreateText("DefenseValueText", root.transform, new Vector2(0.80f, 0.50f), new Vector2(0.92f, 0.70f),
                 "0", 30, TextAnchor.MiddleCenter, new Color(0.50f, 0.82f, 1f));
             defenseValue.rectTransform.anchoredPosition = new Vector2(9.399902f, 0f);
-            defenseValue.fontStyle = FontStyle.Bold;
+            defenseValue.fontStyle = FontStyle.Normal;
             EnableBestFit(defenseValue, 22, 30);
-            AddTextOutline(defenseValue, Color.black, new Vector2(2f, -2f));
+            AddTextOutline(defenseValue, Color.black, new Vector2(1f, -1f));
 
             var hpFill = CreateFillBar("HpBar", root.transform, new Vector2(0.335f, 0.378f), new Vector2(0.895f, 0.432f),
                 Color.white, Color.white, hpFillSprite, emptyBarFillSprite);
@@ -1445,9 +1445,9 @@ namespace CardBattle.EditorTools
                 new Vector2(-3.494507f, 0.600006f), new Vector2(11.648f, 4.8101f));
             var hpText = CreateText("HpText", root.transform, new Vector2(0.335f, 0.373f), new Vector2(0.895f, 0.438f), "HP 0 / 0", 18, TextAnchor.MiddleCenter, Color.white);
             hpText.rectTransform.anchoredPosition = new Vector2(0f, 1.289002f);
-            hpText.fontStyle = FontStyle.Bold;
+            hpText.fontStyle = FontStyle.Normal;
             EnableBestFit(hpText, 13, 18);
-            AddTextOutline(hpText, Color.black, new Vector2(2f, -2f));
+            AddTextOutline(hpText, Color.black, new Vector2(1f, -1f));
             var pressureFill = CreateFillBar("PressureBar", root.transform, new Vector2(0.33f, 0.294f), new Vector2(0.895f, 0.326f),
                 Color.white, Color.white, breakFillSprite, emptyBarFillSprite);
             ApplyRectLayout((RectTransform)pressureFill.transform.parent,

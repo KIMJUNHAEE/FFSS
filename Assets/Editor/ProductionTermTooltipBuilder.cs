@@ -10,7 +10,7 @@ namespace FFSS.EditorTools
     {
         private const string PrefabPath = "Assets/Resources/UI/KeywordTooltip.prefab";
         private const string FramePath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_wide.png";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string FontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
 
         [MenuItem("FFSS/Production/Configure Term Tooltip")]
         public static void Configure()

@@ -566,7 +566,20 @@ namespace FFSS.Framework.Tests
                 "Assets/Prefabs/Framework/GameKernel.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponent<VisualQualityController>(), Is.Not.Null);
+            VisualQualityController visualQuality = prefab.GetComponent<VisualQualityController>();
+            Assert.That(visualQuality, Is.Not.Null);
+            var visualQualitySettings = new SerializedObject(visualQuality);
+            Assert.That(visualQualitySettings.FindProperty("pixelPerfectScreenSpaceCanvases").boolValue, Is.True);
+            Assert.That(visualQualitySettings.FindProperty("forceNativeRenderScale").boolValue, Is.True);
+            Assert.That(visualQualitySettings.FindProperty("sharpenLegacyUiText").boolValue, Is.True);
+            Assert.That(visualQualitySettings.FindProperty("avoidSyntheticBold").boolValue, Is.True);
+            Assert.That(visualQualitySettings.FindProperty("legacyTextShadowDistance").floatValue,
+                Is.EqualTo(1f).Within(0.001f));
+
+            TrueTypeFontImporter fontImporter = AssetImporter.GetAtPath(
+                "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf") as TrueTypeFontImporter;
+            Assert.That(fontImporter, Is.Not.Null);
+            Assert.That(fontImporter.fontRenderingMode, Is.EqualTo(FontRenderingMode.HintedSmooth));
             Assert.That(prefab.GetComponentsInChildren<GameServiceBehaviour>(true), Has.Length.EqualTo(12));
             Assert.That(prefab.GetComponentInChildren<RunProgressionManager>(true), Is.Not.Null);
             Assert.That(prefab.GetComponentInChildren<RunEconomyManager>(true), Is.Not.Null);
@@ -627,6 +640,89 @@ namespace FFSS.Framework.Tests
             Assert.That(catalog.Events.All(value => value.choices.Count >= 2), Is.True);
             Assert.That(catalog.ShopOffers, Has.Count.GreaterThanOrEqualTo(10));
             Assert.That(catalog.RestOptions, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void ProductionLegacyUiTextUsesGyeonggiTypeface()
+        {
+            const string expectedFontGuid = "322796440afaa8a4390aae26e2925adc";
+            string[] roots =
+            {
+                Path.Combine(Application.dataPath, "Prefabs"),
+                Path.Combine(Application.dataPath, "Scenes", "Production")
+            };
+
+            foreach (string root in roots)
+            {
+                IEnumerable<string> paths = Directory.EnumerateFiles(root, "*.prefab", SearchOption.AllDirectories)
+                    .Concat(Directory.EnumerateFiles(root, "*.unity", SearchOption.AllDirectories));
+                foreach (string path in paths)
+                {
+                    int lineNumber = 0;
+                    foreach (string line in File.ReadLines(path))
+                    {
+                        lineNumber++;
+                        if (!line.Contains("m_Font: {fileID:", StringComparison.Ordinal))
+                            continue;
+
+                        Assert.That(line, Does.Contain(expectedFontGuid),
+                            $"Legacy UI text uses another font: {path}:{lineNumber}");
+                    }
+                }
+            }
+
+            Assert.That(File.Exists(Path.Combine(Application.dataPath,
+                "Fonts", "NanumBarunGothicBold.ttf")), Is.False);
+
+            GameObject playerHud = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab");
+            Assert.That(playerHud, Is.Not.Null);
+            foreach (Text text in playerHud.GetComponentsInChildren<Text>(true))
+            {
+                Assert.That(text.fontStyle, Is.EqualTo(FontStyle.Normal),
+                    $"Player HUD text is artificially bold: {text.name}");
+                Outline outline = text.GetComponent<Outline>();
+                Assert.That(outline, Is.Not.Null, text.name);
+                Assert.That(Mathf.Abs(outline.effectDistance.x), Is.LessThanOrEqualTo(1f), text.name);
+                Assert.That(Mathf.Abs(outline.effectDistance.y), Is.LessThanOrEqualTo(1f), text.name);
+            }
+        }
+
+        [Test]
+        public void EquipmentShopCatalogHasFiveRenderableChoicesPerAct()
+        {
+            RunContentCatalog catalog = AssetDatabase.LoadAssetAtPath<RunContentCatalog>(
+                "Assets/Data/Framework/RunContentCatalog.asset");
+            Type equipmentCatalogType = Type.GetType("CardBattle.EquipmentCatalog, Assembly-CSharp");
+            MethodInfo getEquipment = equipmentCatalogType?.GetMethod(
+                "Get",
+                BindingFlags.Public | BindingFlags.Static);
+
+            Assert.That(catalog, Is.Not.Null);
+            Assert.That(equipmentCatalogType, Is.Not.Null);
+            Assert.That(getEquipment, Is.Not.Null);
+            for (int act = 1; act <= 3; act++)
+            {
+                RunShopOfferDefinition[] offers = catalog.ShopOffers
+                    .Where(value => value != null &&
+                                    value.type == RunShopOfferType.Equipment &&
+                                    act >= value.minimumAct &&
+                                    act <= value.maximumAct)
+                    .ToArray();
+                Assert.That(offers.Length, Is.GreaterThanOrEqualTo(catalog.ShopStockSize),
+                    $"Act {act} cannot fill every equipment display slot.");
+                foreach (RunShopOfferDefinition offer in offers)
+                {
+                    object equipment = getEquipment.Invoke(null, new object[] { offer.contentId });
+                    Assert.That(equipment, Is.Not.Null, offer.offerId);
+                    Type equipmentType = equipment.GetType();
+                    Sprite icon = equipmentType.GetProperty("Icon")?.GetValue(equipment) as Sprite;
+                    string displayName = equipmentType.GetProperty("DisplayName")?.GetValue(equipment) as string;
+                    Assert.That(icon, Is.Not.Null, $"Missing equipment artwork: {offer.contentId}");
+                    Assert.That(offer.displayName, Is.EqualTo(displayName),
+                        $"Shop name does not match the equipment catalog: {offer.offerId}");
+                }
+            }
         }
 
         [Test]
@@ -978,6 +1074,47 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EquipmentShopPrefabShowsOnlyInspectableArtwork()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/ShopScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Transform preview = prefab.transform.Find("Shop Item Preview");
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(preview.GetComponent("CardHoverPreview"), Is.Not.Null);
+            Assert.That(preview.Find("Visual/Equipment Artwork"), Is.Not.Null);
+            Assert.That(preview.Find("Visual/Equipment Name"), Is.Not.Null);
+            Assert.That(preview.Find("Visual/Equipment Details"), Is.Not.Null);
+            CanvasGroup previewGroup = preview.Find("Visual").GetComponent<CanvasGroup>();
+            Assert.That(previewGroup, Is.Not.Null);
+            Assert.That(previewGroup.blocksRaycasts, Is.False,
+                "The equipment detail panel must not steal hover from its display slot.");
+            foreach (Text text in prefab.GetComponentsInChildren<Text>(true))
+            {
+                Assert.That(text.GetComponent<Outline>(), Is.Null,
+                    $"Shop text still uses a blurred four-direction outline: {text.name}");
+                Assert.That(text.GetComponent<Shadow>(), Is.Not.Null,
+                    $"Shop text has no contrast shadow: {text.name}");
+                Assert.That(text.alignByGeometry, Is.True, text.name);
+                Assert.That(text.fontStyle, Is.EqualTo(FontStyle.Normal),
+                    $"Shop text applies synthetic bold over an already-bold typeface: {text.name}");
+            }
+
+            for (int i = 1; i <= 5; i++)
+            {
+                Transform action = prefab.transform.Find($"Art Frame/Action {i}");
+                Assert.That(action, Is.Not.Null);
+                Assert.That(action.GetComponent("CardHoverSource"), Is.Not.Null);
+                Assert.That(action.GetComponentsInChildren<Text>(true), Is.Empty,
+                    $"Shop display {i} must not show item text before hover.");
+                RectTransform artwork = action.Find("Equipment Artwork") as RectTransform;
+                Assert.That(artwork, Is.Not.Null);
+                Assert.That(artwork.sizeDelta, Is.EqualTo(new Vector2(128f, 128f)));
+            }
+        }
+
+        [Test]
         public void CardWorkshopPrefabExposesInspectableCardActionsAndPaging()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -1048,6 +1185,53 @@ namespace FFSS.Framework.Tests
             finally
             {
                 EditorSceneManager.CloseScene(result, true);
+            }
+        }
+
+        [Test]
+        public void ProductionFieldDisablesBuildingOcclusion()
+        {
+            const string fieldPath = "Assets/Scenes/Production/Field/Production_Field.unity";
+            Scene field = EditorSceneManager.OpenScene(fieldPath, OpenSceneMode.Additive);
+            try
+            {
+                Camera fieldCamera = FindInScene<Camera>(field);
+                Assert.That(fieldCamera, Is.Not.Null);
+                Assert.That(fieldCamera.useOcclusionCulling, Is.False,
+                    "Field camera can hide buildings based on player position.");
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(field, true);
+            }
+
+            string[] prefabPaths =
+            {
+                "Assets/Prefabs/Production/Field/FieldLandmark_Ambient.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_Boss.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_Event.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_Shop.prefab",
+                "Assets/Prefabs/Production/Field/FieldContent_BossDoor.prefab"
+            };
+
+            foreach (string path in prefabPaths)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.That(prefab, Is.Not.Null, path);
+                SpriteRenderer[] renderers = prefab.GetComponentsInChildren<SpriteRenderer>(true);
+                Assert.That(renderers, Is.Not.Empty, path);
+                foreach (SpriteRenderer renderer in renderers)
+                {
+                    Assert.That(renderer.allowOcclusionWhenDynamic, Is.False,
+                        $"Dynamic occlusion remains enabled: {path}/{renderer.name}");
+                    SerializedProperty smallMeshCulling =
+                        new SerializedObject(renderer).FindProperty("m_SmallMeshCulling");
+                    Assert.That(smallMeshCulling, Is.Not.Null, path);
+                    Assert.That(smallMeshCulling.boolValue, Is.False,
+                        $"Small-mesh culling remains enabled: {path}/{renderer.name}");
+                }
             }
         }
 

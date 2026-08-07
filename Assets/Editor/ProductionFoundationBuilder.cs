@@ -21,7 +21,7 @@ namespace FFSS.Editor
         private const string PrefabRoot = "Assets/Prefabs/Framework";
         private const string KernelPrefabPath = PrefabRoot + "/GameKernel.prefab";
         private const string TransitionPrefabPath = PrefabRoot + "/SceneTransitionView.prefab";
-        private const string FontPath = "Assets/Fonts/NanumBarunGothicBold.ttf";
+        private const string FontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TransitionBannerPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/banner_shuffle.png";
 
         [MenuItem("FFSS/Production/Build Missing Foundation Assets")]
