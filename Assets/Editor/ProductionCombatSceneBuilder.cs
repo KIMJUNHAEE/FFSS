@@ -302,14 +302,21 @@ namespace FFSS.Editor
             RpsCombatController combat = FindInScene<RpsCombatController>(scene);
             if (combat == null)
                 throw new InvalidOperationException($"{scene.path}: RpsCombatController is missing.");
+            SeotdaTableController seotda = FindInScene<SeotdaTableController>(scene);
 
             var result = new Dictionary<string, RectTransform>
             {
                 ["PlayerHUD"] = RequirePrefabRoot(combat.playerHpText, scene, "PlayerHUD"),
                 ["EnemyHUD"] = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD"),
                 ["EnemyIntentBadge"] = RequirePrefabRoot(combat.enemyActionText, scene, "EnemyIntentBadge"),
-                ["PokerTableV2"] = RequireNamedRect(scene, "PokerTableV2"),
-                ["HwatuTableV2"] = RequireNamedRect(scene, "HwatuTableV2"),
+                ["PokerTableV2"] = RequireTableRect(
+                    scene,
+                    "PokerTableV2",
+                    combat.pokerHand != null ? combat.pokerHand.handContainer : null),
+                ["HwatuTableV2"] = RequireTableRect(
+                    scene,
+                    "HwatuTableV2",
+                    seotda != null && seotda.cardSlotA != null ? seotda.cardSlotA.rectTransform : null),
                 ["AttackButton"] = RequireButtonRoot(combat.attackButton, scene, "AttackButton"),
                 ["DefendButton"] = RequireButtonRoot(combat.defendButton, scene, "DefendButton"),
                 ["SkillButton"] = RequireButtonRoot(combat.skillButton, scene, "SkillButton"),
@@ -339,7 +346,10 @@ namespace FFSS.Editor
             return rect;
         }
 
-        private static RectTransform RequireNamedRect(Scene scene, string objectName)
+        private static RectTransform RequireTableRect(
+            Scene scene,
+            string objectName,
+            RectTransform tableChild)
         {
             RectTransform[] rects = FindAllInScene<RectTransform>(scene);
             for (int i = 0; i < rects.Length; i++)
@@ -348,7 +358,20 @@ namespace FFSS.Editor
                     return rects[i];
             }
 
-            throw new InvalidOperationException($"{scene.path}: RectTransform '{objectName}' is missing.");
+            RectTransform current = tableChild;
+            while (current != null && current.parent is RectTransform parent)
+            {
+                if (parent.GetComponent<Canvas>() != null)
+                {
+                    current.name = objectName;
+                    EditorUtility.SetDirty(current.gameObject);
+                    return current;
+                }
+
+                current = parent;
+            }
+
+            throw new InvalidOperationException($"{scene.path}: table RectTransform '{objectName}' is missing.");
         }
 
         private static RectTransform RequireButtonRoot(Button button, Scene scene, string objectName)
