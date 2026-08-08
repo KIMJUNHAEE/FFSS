@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Run;
@@ -198,6 +199,21 @@ namespace FFSS.Framework.Tests
             Assert.That(player, Is.Not.Null);
             Assert.That(eventNode, Is.Not.Null);
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.False);
+
+            FieldInfo activationRadiusField = eventNode.GetType().GetField(
+                "activationRadius",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            float activationRadius = activationRadiusField?.GetValue(eventNode) is float radius
+                ? radius
+                : 0.85f;
+            Vector3 approachDirection = Vector3.ProjectOnPlane(
+                player.transform.position - eventNode.transform.position,
+                Vector3.up);
+            if (approachDirection.sqrMagnitude <= 0.0001f)
+                approachDirection = Vector3.right;
+            player.transform.position = eventNode.transform.position +
+                                        approachDirection.normalized * (activationRadius + 0.75f);
+            yield return WaitFrames(2);
 
             yield return MoveTowardUntil(
                 player,
