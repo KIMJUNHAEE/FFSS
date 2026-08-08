@@ -163,9 +163,65 @@ namespace FFSS.Editor
             encounter.ruleRuntime.heatAttackThreshold = 3;
             encounter.ruleRuntime.heatFlareThreshold = 4;
             encounter.ruleRuntime.heatFlareDamage = 4;
+            encounter.playerGuide ??= new EnemyPlayerGuideDefinition();
+            encounter.playerGuide.role = PlayerRole(encounter);
+            encounter.playerGuide.gimmick = spec.Description;
+            encounter.playerGuide.counterplay = Counterplay(spec.EnemyId);
+            encounter.playerGuide.relatedTerms = RelatedTerms(spec);
             encounter.phases = BuildPhases(spec.EnemyId);
             encounter.breakResponse = BuildBreakResponse(spec.EnemyId);
             EditorUtility.SetDirty(encounter);
+        }
+
+        private static string PlayerRole(EnemyEncounterDefinition encounter)
+        {
+            string rank = encounter.rank switch
+            {
+                EnemyEncounterRank.Boss => "막의 선택을 결산하는 광땡 보스",
+                EnemyEncounterRank.MidBoss => "덱의 대응력을 검사하는 특수 족보 중간보스",
+                _ => "한 가지 전투 문법을 가르치는 땡 일반 적"
+            };
+            return $"{rank}. {encounter.combatTitle}";
+        }
+
+        private static string Counterplay(string enemyId)
+        {
+            return enemyId switch
+            {
+                "1땡" => "한 번에 3장 이상 교체하지 말고, 솔잎이 2일 때 방어하거나 격파해 초기화해.",
+                "2땡" => "같은 행동을 연속으로 내지 말고 공격·방어·스킬을 번갈아 읽힘을 끊어.",
+                "3땡" => "행동을 바꿔 자국을 지우고, 자국이 차기 전에 격파해 연속타를 막아.",
+                "4땡" => "표시된 안전 구간만큼만 교체하고, 위험 구간이면 현재 패로 방어해.",
+                "5땡" => "서로 다른 행동 세 개가 이어지는 순서를 보고 완성 직전에 방어하거나 격파해.",
+                "6땡" => "독이 붙은 카드를 먼저 교체하고, 독 합계가 높을 때는 공격보다 방어를 우선해.",
+                "7땡" => "진동 2부터 방어를 준비하고, 3이 되기 전에 격파해 강화된 균형 피해를 막아.",
+                "8땡" => "봉인 예정 카드와 남은 턴을 보고 필요한 카드를 미리 교체하거나 보호해.",
+                "9땡" => "취기가 높아 수치가 흐릴 때는 최대 예상치 기준으로 방어하고 격파로 취기를 낮춰.",
+                "10땡" => "열 번째 시계가 2 이하로 내려가기 전에 격파해 카운트를 늦추고 최종기를 미뤄.",
+                "땡잡이" => "손패의 같은 숫자를 줄여 짝 추적을 끊고, 추적 3부터는 관통 공격을 방어해.",
+                "멍구사" => "숨은 정보에 무리하게 공격하지 말고 공개 수단과 방어로 의심을 낮춰.",
+                "구사" => "뒤집기 준비가 2가 되기 전에 격파하거나, 반전 턴에는 낮은 족보 보너스를 경계해.",
+                "암행어사" => "같은 행동과 같은 장비를 반복하지 말고 죄목이 차기 전에 행동 순서를 바꿔.",
+                "13" => "조준된 카드를 교체해 표식을 낮추고, 일삼천궁 예고에는 방어 또는 격파를 맞춰.",
+                "18" => "금륜에 표시된 현재·다음 봉인 무늬를 보고 안전한 무늬로 행동을 준비해.",
+                "38" => "광열 3부터 방어를 준비하고, 격파 가능 창에서 집중 공격해 광열 폭발을 끊어.",
+                _ => "예고된 행동과 전용패 조건을 확인하고 공격·방어·다시뽑기를 선택해."
+            };
+        }
+
+        private static List<string> RelatedTerms(MeterSpec spec)
+        {
+            var terms = new List<string> { spec.Label };
+            switch (spec.EnemyId)
+            {
+                case "1땡": terms.Add("전체 교체"); break;
+                case "6땡": terms.Add("강제 버림"); break;
+                case "8땡": terms.Add("고정"); break;
+                case "구사": terms.Add("리버스"); break;
+                case "암행어사": terms.Add("죄목"); break;
+                case "38": terms.Add("광열"); break;
+            }
+            return terms;
         }
 
         private static List<EnemyPhaseDefinition> BuildPhases(string enemyId)

@@ -83,6 +83,7 @@ namespace FFSS.Editor
             PrepareActBattleBackgroundPrefabs();
             PrepareCardHoverPreviewPrefab();
             PrepareCommandButtonSelectionPrefab();
+            ProductionEnemyCombatGuideBuilder.BuildPrefabIfMissing();
             try
             {
                 CardBattleSetup.BeginBattleSceneBuildBatch();
@@ -124,6 +125,7 @@ namespace FFSS.Editor
                 PrepareActBattleBackgroundPrefabs();
                 PrepareCardHoverPreviewPrefab();
                 PrepareCommandButtonSelectionPrefab();
+                ProductionEnemyCombatGuideBuilder.BuildPrefabIfMissing();
                 for (int i = 0; i < Seeds.Count; i++)
                 {
                     BattleSeed seed = Seeds[i];
@@ -161,6 +163,7 @@ namespace FFSS.Editor
             PrepareActBattleBackgroundPrefabs();
             PrepareCardHoverPreviewPrefab();
             PrepareCommandButtonSelectionPrefab();
+            ProductionEnemyCombatGuideBuilder.BuildPrefabIfMissing();
 
             BattleSeed boss38 = default;
             for (int i = 0; i < Seeds.Count; i++)
@@ -525,6 +528,7 @@ namespace FFSS.Editor
 
             EnsureCardHoverPreview(canvas, combat);
             EnsureWeaknessSubtitle(canvas, seed.Weakness);
+            ProductionEnemyCombatGuideBuilder.EnsureInScene(scene, canvas, encounter);
 
             LegacyCombatFeedbackBridge feedback = combat.GetComponent<LegacyCombatFeedbackBridge>();
             if (feedback == null)

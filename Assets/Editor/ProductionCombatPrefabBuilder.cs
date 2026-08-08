@@ -28,6 +28,7 @@ namespace FFSS.Editor
             ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/Intent");
             ClockworkTimekeeperEditorUtils.EnsureFolder(ProductionRoot + "/Overlays");
 
+            ProductionEnemyCombatGuideBuilder.BuildPrefabIfMissing();
             BuildPlayerHud();
             IReadOnlyList<EnemyEncounterDefinition> encounters = LoadEncounters();
             int createdCount = 0;

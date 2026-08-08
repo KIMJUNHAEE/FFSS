@@ -39,6 +39,12 @@ namespace CardBattle
             Term("덱 정렬", "카드 조작", "공개된 후보의 순서를 바꿔 다음 뽑기를 계획해.", "#61D7FF"),
             Term("전투 제외", "상태", "이번 전투 동안 카드가 덱과 손패에서 빠져 발동하지 않아.", "#FF8A7A"),
             Term("특수 족보", "족보", "풀하우스 이상처럼 전용 특수 행동을 여는 높은 족보야.", "#F6B4FF"),
+            Term("전용패", "적 기믹", "해당 적만 사용하는 섯다 카드야. 예고된 조건을 만족하면 기술에 추가 효과가 붙어.", "#F6B4FF"),
+            Term("적 테마 장비", "장비", "특정 적의 전투 문법을 플레이어 방식으로 바꾼 희귀 장비야.", "#F6B4FF"),
+            Term("리버스", "카드 조작", "카드 숫자와 무늬는 유지하고 컬러·흑 분류만 서로 뒤집어.", "#61D7FF"),
+            Term("시간각성", "성장", "시간 균열을 이용해 카드 한 장의 영구 강화 단계를 올려.", "#61D7FF"),
+            Term("광열", "적 기믹", "38광땡이 쌓는 열기야. 높을수록 공격과 방어가 강해지지만 격파할 틈도 드러나.", "#FF8A7A"),
+            Term("죄목", "적 기믹", "암행어사가 반복한 행동과 장비 사용을 기록하는 수치야.", "#FF8A7A"),
             Term("탐색", "카드 조작", "덱 위 정해진 범위에서 조건에 맞는 카드를 찾아.", "#61D7FF"),
             Term("고정", "카드 조작", "교체와 적의 강제 버림에서 해당 카드를 보호해.", "#61D7FF"),
             Term("보관", "카드 조작", "카드를 손패 밖에 두며 보관 중에는 카드 효과가 멈춰.", "#61D7FF"),
@@ -101,6 +107,21 @@ namespace CardBattle
             }
 
             return found;
+        }
+
+        public static bool TryFind(string term, out GameTermDefinition definition)
+        {
+            for (int i = 0; i < Terms.Length; i++)
+            {
+                if (string.Equals(Terms[i].Term, term, StringComparison.Ordinal))
+                {
+                    definition = Terms[i];
+                    return true;
+                }
+            }
+
+            definition = default;
+            return false;
         }
 
         private static GameTermDefinition? FindAt(string text, int index)

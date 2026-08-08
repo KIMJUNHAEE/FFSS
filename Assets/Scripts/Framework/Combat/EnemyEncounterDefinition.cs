@@ -205,6 +205,15 @@ namespace FFSS.Framework.Combat
         public int twoTurnStunMaximumMeter = -1;
     }
 
+    [Serializable]
+    public sealed class EnemyPlayerGuideDefinition
+    {
+        [TextArea(1, 2)] public string role;
+        [TextArea(2, 4)] public string gimmick;
+        [TextArea(2, 4)] public string counterplay;
+        public List<string> relatedTerms = new List<string>();
+    }
+
     [CreateAssetMenu(
         fileName = "EnemyEncounterDefinition",
         menuName = "FFSS/Combat/Enemy Encounter Definition")]
@@ -255,6 +264,9 @@ namespace FFSS.Framework.Combat
         [Header("Enemy rule meter")]
         public EnemyRuleMeterDefinition ruleMeter = new EnemyRuleMeterDefinition();
         public EnemyRuleRuntimeDefinition ruleRuntime = new EnemyRuleRuntimeDefinition();
+
+        [Header("Player-facing combat guide")]
+        public EnemyPlayerGuideDefinition playerGuide = new EnemyPlayerGuideDefinition();
 
         [Header("Phase and break rules")]
         public List<EnemyPhaseDefinition> phases = new List<EnemyPhaseDefinition>();
