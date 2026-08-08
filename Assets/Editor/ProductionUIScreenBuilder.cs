@@ -508,6 +508,12 @@ namespace FFSS.Editor
                 build.SecondaryLabel = label;
             }
 
+            if (spec.Id == UIScreenId.Shop)
+            {
+                build.SecondaryButton = CreateCommandButton("Refresh Stock", frame, "갱신 40냥", new Vector2(210f, -294f), out Text label);
+                build.SecondaryLabel = label;
+            }
+
             if (spec.Id == UIScreenId.CardWorkshop)
             {
                 build.PrimaryButton = CreateCommandButton("Hone Card", frame, "연마 20냥", new Vector2(180f, -302f), out Text primary);

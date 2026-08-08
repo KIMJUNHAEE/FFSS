@@ -1,6 +1,7 @@
 using CardBattle.UI;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace CardBattle.Exploration
 
         private float enteredAt = -1f;
         private bool opened;
+        private bool approachCuePlayed;
 
         public string NodeId => nodeId;
         public RunFieldContentType ContentType => contentType;
@@ -58,6 +60,16 @@ namespace CardBattle.Exploration
 
             float distance = ExplorationGeometryUtility.PlanarDistance(player.position, transform.position);
             markerView?.SetFocused(distance <= focusRadius);
+            if (distance <= focusRadius && !approachCuePlayed)
+            {
+                approachCuePlayed = true;
+                if (GameKernel.Services.TryGet(out AudioManager audio))
+                    audio.Play("sfx.node.approach", transform.position);
+            }
+            else if (distance > focusRadius)
+            {
+                approachCuePlayed = false;
+            }
 
             if (opened)
             {

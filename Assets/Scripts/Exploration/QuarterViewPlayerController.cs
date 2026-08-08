@@ -40,6 +40,7 @@ namespace CardBattle.Exploration
             "sfx.footstep.stone.01",
             "sfx.footstep.stone.02"
         };
+        [SerializeField, Range(0f, 1f)] private float primaryFootstepChance = 0.7f;
         [SerializeField, Min(0.1f)] private float footstepInterval = 0.42f;
 
         public const string HeadingRootName = "VisualRoot";
@@ -53,7 +54,6 @@ namespace CardBattle.Exploration
         private Transform axisCorrectionRoot;
         private float lastMovementInputTime = -999f;
         private float nextFootstepAt;
-        private int footstepCueIndex;
 
         public bool IsMoving { get; private set; }
 
@@ -359,8 +359,8 @@ namespace CardBattle.Exploration
                 return;
             }
 
-            string cueId = footstepCueIds[footstepCueIndex % footstepCueIds.Length];
-            footstepCueIndex = (footstepCueIndex + 1) % footstepCueIds.Length;
+            int cueIndex = footstepCueIds.Length == 1 || UnityEngine.Random.value < primaryFootstepChance ? 0 : 1;
+            string cueId = footstepCueIds[cueIndex];
             nextFootstepAt = Time.unscaledTime + footstepInterval;
             if (!string.IsNullOrWhiteSpace(cueId))
                 audio.Play(cueId, transform.position);

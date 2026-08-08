@@ -14,6 +14,14 @@ namespace FFSS.Framework.Run
         AlreadyOwned
     }
 
+    public enum RunShopRefreshResult
+    {
+        Refreshed,
+        InsufficientGold,
+        AlreadyRefreshed,
+        Unavailable
+    }
+
     public readonly struct RunTransactionEvent
     {
         public RunTransactionEvent(string sourceId, string actionId, int goldAfter)
@@ -59,7 +67,7 @@ namespace FFSS.Framework.Run
                 return offer == null || offer.type != RunShopOfferType.Equipment ||
                        run.act < offer.minimumAct || run.act > offer.maximumAct;
             });
-            candidates.RemoveAll(offer => state.stockIds.Contains(offer.offerId));
+            candidates.RemoveAll(offer => state.stockIds.Contains(offer.offerId) || state.purchasedIds.Contains(offer.offerId));
             while (candidates.Count > 0 && state.stockIds.Count < catalog.ShopStockSize)
             {
                 int index = rng.Range(0, candidates.Count);
@@ -71,6 +79,33 @@ namespace FFSS.Framework.Run
             if (existing == null)
                 run.shops.Add(state);
             return state;
+        }
+
+        public int ShopRefreshCost(RunShopState shop)
+        {
+            int act = Mathf.Clamp(shop?.act ?? RequireRun().act, 1, 3);
+            return 30 + act * 10;
+        }
+
+        public RunShopRefreshResult TryRefreshShop(string shopId)
+        {
+            RunState run = RequireRun();
+            RunShopState shop = GetOrCreateShop(shopId);
+            if (shop == null || string.IsNullOrWhiteSpace(shop.shopId))
+                return RunShopRefreshResult.Unavailable;
+            if (shop.refreshed)
+                return RunShopRefreshResult.AlreadyRefreshed;
+
+            int cost = ShopRefreshCost(shop);
+            if (run.gold < cost)
+                return RunShopRefreshResult.InsufficientGold;
+
+            run.gold -= cost;
+            shop.refreshed = true;
+            shop.stockIds.Clear();
+            GetOrCreateShop(shopId);
+            Publish(shopId, "shop.refresh", run.gold);
+            return RunShopRefreshResult.Refreshed;
         }
 
         private RunShopOfferDefinition FindOffer(string offerId)

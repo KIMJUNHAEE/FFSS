@@ -5,6 +5,7 @@ using CardBattle.Inventory;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using Text = TMPro.TMP_Text;
@@ -98,6 +99,7 @@ namespace CardBattle.UI
         private int selectedOptionTab;
         private int lastSavedSlot = -1;
         private DateTime lastSavedAt;
+        private bool screenMusicStarted;
 
         public UIScreenId ScreenId => screen != null ? screen.Id : UIScreenId.Title;
         public string SourceId => sourceId;
@@ -160,6 +162,7 @@ namespace CardBattle.UI
             screenShownSubscription = null;
             runStateChangedSubscription?.Dispose();
             runStateChangedSubscription = null;
+            screenMusicStarted = false;
             if (refreshRoutine != null)
             {
                 StopCoroutine(refreshRoutine);
@@ -178,6 +181,7 @@ namespace CardBattle.UI
             screenShownSubscription = GameKernel.Events.Subscribe<UIScreenShownEvent>(HandleScreenShown);
             runStateChangedSubscription?.Dispose();
             runStateChangedSubscription = GameKernel.Events.Subscribe<RunStateChangedEvent>(HandleRunStateChanged);
+            StartScreenMusic();
             Refresh();
             refreshRoutine = null;
         }
@@ -380,7 +384,12 @@ namespace CardBattle.UI
             string shopId = string.IsNullOrWhiteSpace(sourceId) ? $"shop.act{run.act}.main" : sourceId;
             sourceId = shopId;
             RunShopState shop = economy.GetOrCreateShop(shopId);
+            int refreshCost = economy.ShopRefreshCost(shop);
             SetText(currency, $"보유 {run.gold}냥");
+            SetText(subtitle, shop.refreshed ? "이번 상점의 갱신을 사용했다" : $"이번 상점의 재고 · 갱신 {refreshCost}냥");
+            SetText(secondaryLabel, shop.refreshed ? "갱신 완료" : $"갱신 {refreshCost}냥");
+            if (secondaryButton != null)
+                secondaryButton.interactable = !shop.refreshed && run.gold >= refreshCost;
             SetText(body, string.Empty);
             for (int i = 0; i < actions.Count; i++)
             {
@@ -748,6 +757,10 @@ namespace CardBattle.UI
             {
                 Show(UIScreenId.Options);
             }
+            else if (ScreenId == UIScreenId.Shop)
+            {
+                RefreshShopStock();
+            }
             else
             {
                 Close();
@@ -821,6 +834,11 @@ namespace CardBattle.UI
             if (index < shop.stockIds.Count)
             {
                 RunPurchaseResult result = economy.TryPurchaseDetailed(sourceId, shop.stockIds[index]);
+                if (result == RunPurchaseResult.Purchased)
+                {
+                    PlayCue("sfx.reward.coin");
+                    AutoSaveRun();
+                }
                 Refresh();
                 SetText(status, result switch
                 {
@@ -839,9 +857,31 @@ namespace CardBattle.UI
             if (index < definition.choices.Count &&
                 GameKernel.Services.Get<RunEconomyManager>().ResolveEvent(sourceId, definition.choices[index].choiceId))
             {
+                RunEventChoiceDefinition choice = definition.choices[index];
+                PlayCue(IsDangerousChoice(choice) ? "sfx.combat.guard" : "sfx.event.choice");
+                AutoSaveRun();
                 ResolveProgressNode();
                 CloseToField();
             }
+        }
+
+        private void RefreshShopStock()
+        {
+            RunShopRefreshResult result = GameKernel.Services.Get<RunEconomyManager>().TryRefreshShop(sourceId);
+            if (result == RunShopRefreshResult.Refreshed)
+            {
+                PlayCue("sfx.shop.refresh");
+                AutoSaveRun();
+            }
+
+            Refresh();
+            SetText(status, result switch
+            {
+                RunShopRefreshResult.Refreshed => "새 재고를 펼쳤다.",
+                RunShopRefreshResult.InsufficientGold => "엽전이 부족하다.",
+                RunShopRefreshResult.AlreadyRefreshed => "이 상점의 갱신은 이미 사용했다.",
+                _ => "지금은 재고를 바꿀 수 없다."
+            });
         }
 
         private void ChooseRest(int index)
@@ -1101,6 +1141,7 @@ namespace CardBattle.UI
                 if (ScreenId == UIScreenId.Shop || ScreenId == UIScreenId.Event || ScreenId == UIScreenId.Rest)
                 {
                     GameKernel.Services.Get<GameFlowManager>().TryChangeState(GameFlowState.Field);
+                    RestoreFieldMusic();
                 }
                 GameKernel.Services.Get<UIManager>().Hide(ScreenId);
             }
@@ -1156,6 +1197,57 @@ namespace CardBattle.UI
             }
 
             return runs.Current;
+        }
+
+        private void StartScreenMusic()
+        {
+            if (screenMusicStarted || !GameKernel.Services.TryGet(out AudioManager audio))
+                return;
+
+            string cueId = ScreenId switch
+            {
+                UIScreenId.Shop => "bgm.shop",
+                UIScreenId.Event => "bgm.event",
+                _ => string.Empty
+            };
+            if (string.IsNullOrWhiteSpace(cueId))
+                return;
+
+            screenMusicStarted = true;
+            audio.PlayMusic(cueId, 0.45f);
+        }
+
+        private static void RestoreFieldMusic()
+        {
+            if (GameKernel.Services.TryGet(out AudioManager audio))
+                audio.PlayMusic("bgm.roam", 0.45f);
+        }
+
+        private static void PlayCue(string cueId)
+        {
+            if (GameKernel.Services.TryGet(out AudioManager audio))
+                audio.Play(cueId);
+        }
+
+        private static void AutoSaveRun()
+        {
+            if (GameKernel.Services.TryGet(out SaveManager saves))
+                saves.Save(0);
+        }
+
+        private static bool IsDangerousChoice(RunEventChoiceDefinition choice)
+        {
+            if (choice == null)
+                return false;
+            if (choice.goldCost > 0)
+                return true;
+            for (int i = 0; i < choice.effects.Count; i++)
+            {
+                RunEffectDefinition effect = choice.effects[i];
+                if (effect != null && (effect.type == RunEffectType.Pressure || effect.amount < 0))
+                    return true;
+            }
+            return false;
         }
 
         private void SetAction(int index, string label, string detail, bool interactable)

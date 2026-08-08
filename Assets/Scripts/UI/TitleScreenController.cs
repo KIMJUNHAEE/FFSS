@@ -3,6 +3,7 @@ using System.Collections;
 using FFSS.Framework.Core;
 using FFSS.Framework.Flow;
 using FFSS.Framework.Persistence;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.UI;
@@ -88,6 +89,7 @@ namespace FFSS.UI
             }
 
             int seed = unchecked(Environment.TickCount ^ DateTime.UtcNow.Millisecond);
+            PlayConfirmCue();
             GameKernel.Services.Get<RunManager>().StartNewRun(seed);
             EnterField();
         }
@@ -102,6 +104,7 @@ namespace FFSS.UI
             SaveGameData loaded = GameKernel.Services.Get<SaveManager>().Load(0);
             if (loaded != null)
             {
+                PlayConfirmCue();
                 EnterField();
             }
         }
@@ -117,6 +120,7 @@ namespace FFSS.UI
 
         private void OpenOptions()
         {
+            PlayConfirmCue();
             optionsPanel.SetActive(true);
         }
 
@@ -124,6 +128,7 @@ namespace FFSS.UI
         {
             if (GameKernel.IsReady)
             {
+                PlayConfirmCue();
                 GameKernel.Services.Get<FFSS.Framework.UI.UIManager>()
                     .Show(FFSS.Framework.UI.UIScreenId.Load);
             }
@@ -131,6 +136,7 @@ namespace FFSS.UI
 
         private void CloseOptions()
         {
+            PlayConfirmCue();
             optionsPanel.SetActive(false);
             PlayerPrefs.Save();
         }
@@ -149,7 +155,14 @@ namespace FFSS.UI
 
         private static void Quit()
         {
+            PlayConfirmCue();
             Application.Quit();
+        }
+
+        private static void PlayConfirmCue()
+        {
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out AudioManager audio))
+                audio.Play("sfx.card.reveal");
         }
     }
 }

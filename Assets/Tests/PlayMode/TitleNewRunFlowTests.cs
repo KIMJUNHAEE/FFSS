@@ -550,9 +550,17 @@ namespace FFSS.Framework.Tests
             RunEconomyManager economy = GameKernel.Services.Get<RunEconomyManager>();
             RunShopState shopState = economy.GetOrCreateShop("shop.visual.qa");
             Assert.That(shopState.stockIds, Is.Not.Empty);
-            RunShopOfferDefinition offer = economy.Catalog.GetOffer(shopState.stockIds[0]);
+            int offerIndex = shopState.stockIds.FindIndex(id =>
+            {
+                RunShopOfferDefinition candidate = economy.Catalog.GetOffer(id);
+                return !runs.Current.inventoryItemIds.Contains(candidate.contentId) &&
+                       !runs.Current.equippedItemIds.Contains(candidate.contentId) &&
+                       !shopState.purchasedIds.Contains(candidate.offerId);
+            });
+            Assert.That(offerIndex, Is.GreaterThanOrEqualTo(0), "The test shop has no purchasable equipment.");
+            RunShopOfferDefinition offer = economy.Catalog.GetOffer(shopState.stockIds[offerIndex]);
             int goldBefore = runs.Current.gold;
-            Button purchase = firstAction.GetComponent<Button>();
+            Button purchase = shop.transform.Find($"Art Frame/Action {offerIndex + 1}")?.GetComponent<Button>();
             Assert.That(purchase, Is.Not.Null);
             purchase.onClick.Invoke();
             yield return WaitFrames(2);
@@ -560,6 +568,20 @@ namespace FFSS.Framework.Tests
             Assert.That(runs.Current.inventoryItemIds, Does.Contain(offer.contentId));
             Assert.That(shopState.purchasedIds, Does.Contain(offer.offerId));
             Assert.That(purchase.interactable, Is.False);
+
+            Button refresh = shop.transform.Find("Art Frame/Refresh Stock")?.GetComponent<Button>();
+            Assert.That(refresh, Is.Not.Null, "The inspectable shop prefab has no stock refresh button.");
+            int refreshCost = economy.ShopRefreshCost(shopState);
+            int goldBeforeRefresh = runs.Current.gold;
+            refresh.onClick.Invoke();
+            yield return WaitFrames(2);
+            Assert.That(runs.Current.gold, Is.EqualTo(goldBeforeRefresh - refreshCost));
+            Assert.That(shopState.refreshed, Is.True);
+            Assert.That(shopState.stockIds, Is.Not.Empty);
+            Assert.That(shopState.stockIds, Does.Not.Contain(offer.offerId),
+                "A purchased offer returned during the one allowed stock refresh.");
+            Assert.That(refresh.interactable, Is.False);
+            Assert.That(GameKernel.Services.Get<AudioManager>().CurrentMusicCueId, Is.EqualTo("bgm.shop"));
 
             ExecuteEvents.Execute(firstAction.gameObject, pointer, ExecuteEvents.pointerExitHandler);
             yield return WaitFrames(2);

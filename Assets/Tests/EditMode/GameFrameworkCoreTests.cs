@@ -1158,6 +1158,17 @@ namespace FFSS.Framework.Tests
 
             AudioCueDefinition lightHit = catalog.Get("sfx.combat.slash.light");
             Assert.That(lightHit.Volume, Is.EqualTo(0.4f).Within(0.001f));
+
+            AudioCueDefinition shopMusic = catalog.Get("bgm.shop");
+            Assert.That(shopMusic.PickClip().name, Is.EqualTo("event-orien"));
+            Assert.That(shopMusic.Volume, Is.EqualTo(0.63f).Within(0.001f));
+            AudioCueDefinition eventChoice = catalog.Get("sfx.event.choice");
+            Assert.That(eventChoice.PickClip().name, Is.EqualTo("card-deal-02"));
+            AudioCueDefinition shopRefresh = catalog.Get("sfx.shop.refresh");
+            Assert.That(shopRefresh.PickClip().name, Is.EqualTo("card-deal-03"));
+            AudioCueDefinition nodeApproach = catalog.Get("sfx.node.approach");
+            Assert.That(nodeApproach.PickClip().name, Is.EqualTo("node-enter-01"));
+            Assert.That(nodeApproach.Volume, Is.EqualTo(0.25f).Within(0.001f));
         }
 
         [Test]
@@ -1172,6 +1183,7 @@ namespace FFSS.Framework.Tests
             var serialized = new SerializedObject(controller);
             Assert.That(serialized.FindProperty("playFootsteps").boolValue, Is.True);
             Assert.That(serialized.FindProperty("footstepInterval").floatValue, Is.EqualTo(0.42f).Within(0.001f));
+            Assert.That(serialized.FindProperty("primaryFootstepChance").floatValue, Is.EqualTo(0.7f).Within(0.001f));
 
             SerializedProperty cues = serialized.FindProperty("footstepCueIds");
             Assert.That(cues.arraySize, Is.EqualTo(2));
@@ -1187,11 +1199,11 @@ namespace FFSS.Framework.Tests
             Assert.That(audio, Is.Not.Null);
             string[] audioCueIds =
             {
-                "bgm.roam", "bgm.event", "bgm.battle",
-                "sfx.card.deal", "sfx.card.reveal",
+                "bgm.roam", "bgm.event", "bgm.shop", "bgm.battle",
+                "sfx.card.deal", "sfx.event.choice", "sfx.shop.refresh", "sfx.card.reveal",
                 "sfx.combat.slash.light", "sfx.combat.slash.heavy",
                 "sfx.combat.guard", "sfx.combat.break",
-                "sfx.reward.coin", "sfx.node.enter",
+                "sfx.reward.coin", "sfx.node.enter", "sfx.node.approach",
                 "sfx.footstep.stone.01", "sfx.footstep.stone.02"
             };
             foreach (string cueId in audioCueIds)
