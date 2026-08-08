@@ -231,13 +231,15 @@ namespace FFSS.Framework.Tests
         public void LegacyCombatUsesTheCurrentEncounterDataInsteadOfTheSceneCopy()
         {
             var host = new GameObject("RuntimeEncounterProfileTests");
-            CardBattle.RpsCombatController combat = host.AddComponent<CardBattle.RpsCombatController>();
+            Type combatType = Type.GetType("CardBattle.RpsCombatController, Assembly-CSharp");
+            Assert.That(combatType, Is.Not.Null);
+            Component combat = host.AddComponent(combatType);
             EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
             EnemySeotdaDeckDefinition deck = ScriptableObject.CreateInstance<EnemySeotdaDeckDefinition>();
             EnemySeotdaSignatureCardDefinition signature =
                 ScriptableObject.CreateInstance<EnemySeotdaSignatureCardDefinition>();
             encounter.enemyId = "test.enemy";
-            encounter.displayName = "최신 적";
+            encounter.displayName = "Latest Enemy";
             encounter.maximumHp = 123;
             encounter.maximumPressure = 41;
             encounter.exclusiveSeotdaDeck = deck;
@@ -247,7 +249,7 @@ namespace FFSS.Framework.Tests
             encounter.moves.Add(new EnemyMoveDefinition
             {
                 moveId = "latest.move",
-                displayName = "최신 행동",
+                displayName = "Latest Move",
                 action = CombatActionType.Defend,
                 basePower = 17,
                 pressurePower = 9
@@ -255,17 +257,26 @@ namespace FFSS.Framework.Tests
 
             try
             {
-                combat.ConfigureEncounterDefinition(encounter);
+                MethodInfo configure = combatType.GetMethod("ConfigureEncounterDefinition");
+                FieldInfo profileField = combatType.GetField("bossProfile");
+                Assert.That(configure, Is.Not.Null);
+                Assert.That(profileField, Is.Not.Null);
+                configure.Invoke(combat, new object[] { encounter });
 
-                Assert.That(combat.bossProfile.bossId, Is.EqualTo("test.enemy"));
-                Assert.That(combat.bossProfile.displayName, Is.EqualTo("최신 적"));
-                Assert.That(combat.bossProfile.maxHp, Is.EqualTo(123));
-                Assert.That(combat.bossProfile.exclusiveSeotdaDeck, Is.SameAs(deck));
-                Assert.That(combat.bossProfile.exclusiveSeotdaCard, Is.SameAs(signature));
-                Assert.That(combat.bossProfile.signatureCardChance, Is.EqualTo(0.78f));
-                Assert.That(combat.bossProfile.moves, Has.Count.EqualTo(1));
-                Assert.That(combat.bossProfile.moves[0].moveType, Is.EqualTo(CardBattle.BossMoveType.Defend));
-                Assert.That(combat.bossProfile.moves[0].power, Is.EqualTo(17));
+                object profile = profileField.GetValue(combat);
+                Type profileType = profile.GetType();
+                Assert.That(profileType.GetField("bossId")?.GetValue(profile), Is.EqualTo("test.enemy"));
+                Assert.That(profileType.GetField("displayName")?.GetValue(profile), Is.EqualTo("Latest Enemy"));
+                Assert.That(profileType.GetField("maxHp")?.GetValue(profile), Is.EqualTo(123));
+                Assert.That(profileType.GetField("exclusiveSeotdaDeck")?.GetValue(profile), Is.SameAs(deck));
+                Assert.That(profileType.GetField("exclusiveSeotdaCard")?.GetValue(profile), Is.SameAs(signature));
+                Assert.That(profileType.GetField("signatureCardChance")?.GetValue(profile), Is.EqualTo(0.78f));
+                var moves = profileType.GetField("moves")?.GetValue(profile) as System.Collections.IList;
+                Assert.That(moves, Has.Count.EqualTo(1));
+                object runtimeMove = moves[0];
+                Assert.That(runtimeMove.GetType().GetField("moveType")?.GetValue(runtimeMove)?.ToString(),
+                    Is.EqualTo("Defend"));
+                Assert.That(runtimeMove.GetType().GetField("power")?.GetValue(runtimeMove), Is.EqualTo(17));
             }
             finally
             {
