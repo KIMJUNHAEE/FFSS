@@ -159,10 +159,10 @@ namespace CardBattle.Exploration
             }
 
             int requiredFieldSlots = nodes.Count + (midBoss != null ? 1 : 0);
-            if (interactionAnchors.Count >= requiredFieldSlots)
-                available = interactionAnchors;
-            else
-                available.InsertRange(0, interactionAnchors);
+            // Interaction tiles are preferred visual anchors, but they can be clustered.
+            // Keep every traversable tile available so required buildings never have to
+            // overlap merely because the anchor count happens to match the node count.
+            available.InsertRange(0, interactionAnchors);
 
             available.Sort((left, right) => left.Order.CompareTo(right.Order));
             if (available.Count < requiredFieldSlots)
