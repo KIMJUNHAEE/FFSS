@@ -275,6 +275,9 @@ namespace FFSS.Framework.Tests
                 $"A real pointer click did not open {expectedScreen}.");
             Assert.That(GameKernel.Services.Get<UIManager>().HasVisibleModal, Is.True);
 
+            if (expectedScreen == UIScreenId.Inventory)
+                yield return new WaitForSecondsRealtime(0.4f);
+
             Button close = FindVisibleButton(modal, "Close");
             Assert.That(close, Is.Not.Null, $"{expectedScreen} has no close button.");
             yield return Click(close);
