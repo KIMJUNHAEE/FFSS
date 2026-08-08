@@ -278,7 +278,10 @@ namespace FFSS.Framework.Tests
             Button close = FindVisibleButton(modal, "Close");
             Assert.That(close, Is.Not.Null, $"{expectedScreen} has no close button.");
             yield return Click(close);
-            yield return WaitFrames(2);
+            yield return WaitUntil(
+                () => FindVisibleScreen(expectedScreen) == null,
+                120,
+                $"A real pointer click did not close {expectedScreen}.");
             Assert.That(FindVisibleScreen(expectedScreen), Is.Null,
                 $"A real pointer click did not close {expectedScreen}.");
         }
