@@ -53,11 +53,13 @@ namespace FFSS.Framework.Tests
             Button attack = controllerType.GetField("attackButton")?.GetValue(controller) as Button;
             Button redraw = controllerType.GetField("redrawButton")?.GetValue(controller) as Button;
             Button endTurn = controllerType.GetField("endTurnButton")?.GetValue(controller) as Button;
+            Text enemyAction = controllerType.GetField("enemyActionText")?.GetValue(controller) as Text;
             object seotda = controllerType.GetField("seotdaTable")?.GetValue(controller);
             Assert.That(hand, Is.Not.Null);
             Assert.That(attack, Is.Not.Null);
             Assert.That(redraw, Is.Not.Null);
             Assert.That(endTurn, Is.Not.Null);
+            Assert.That(enemyAction, Is.Not.Null);
             Assert.That(seotda, Is.Not.Null);
 
             PropertyInfo ready = handType.GetProperty("HasResolvedHand");
@@ -105,6 +107,12 @@ namespace FFSS.Framework.Tests
                 () => !(bool)ready.GetValue(hand),
                 5f,
                 "Turn end did not gather the poker cards into the deck.");
+            yield return WaitUntilSeconds(
+                () => enemyAction.gameObject.activeInHierarchy &&
+                      !string.IsNullOrWhiteSpace(enemyAction.text),
+                5f,
+                "The enemy turn hid its announced action and value.");
+            AssertTextVisibleOnScreen(enemyAction, "Enemy intent");
 
             Type seotdaType = seotda.GetType();
             Image face = seotdaType.GetField("cardSlotA")?.GetValue(seotda) as Image;
@@ -167,6 +175,33 @@ namespace FFSS.Framework.Tests
 
         private static int PrivateInt(Type type, object target, string name) =>
             (int)type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(target);
+
+        private static void AssertTextVisibleOnScreen(Text value, string label)
+        {
+            Assert.That(value, Is.Not.Null, $"{label} text is missing.");
+            Assert.That(value.gameObject.activeInHierarchy, Is.True, $"{label} text is inactive.");
+            Assert.That(
+                value.GetComponentsInParent<CanvasGroup>(true).All(group => group.alpha > 0.01f),
+                Is.True,
+                $"{label} is hidden by a transparent CanvasGroup.");
+
+            Canvas.ForceUpdateCanvases();
+            RectTransform rect = value.rectTransform;
+            Canvas canvas = value.GetComponentInParent<Canvas>();
+            Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector2 screen = RectTransformUtility.WorldToScreenPoint(camera, corners[i]);
+                Assert.That(screen.x, Is.InRange(-1f, Screen.width + 1f),
+                    $"{label} leaves the viewport horizontally at corner {i}: {screen}.");
+                Assert.That(screen.y, Is.InRange(-1f, Screen.height + 1f),
+                    $"{label} leaves the viewport vertically at corner {i}: {screen}.");
+            }
+        }
 
         private static IEnumerator WaitUntil(Func<bool> condition, int maximumFrames, string message)
         {
