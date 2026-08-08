@@ -79,6 +79,41 @@ namespace FFSS.Framework.Tests
             Assert.That(PokerRunDeckRules.IsEffectivelyRed(redJoker), Is.True);
         }
 
+        [Test]
+        public void HonedCardsApplyTheirCurrentLevelsToCombatContestValues()
+        {
+            var deck = new RunPokerDeckState();
+            deck.cards.Add(new RunCardState("heart", "poker.heart.05") { enhancementLevel = 2, isHoned = true });
+            deck.cards.Add(new RunCardState("club", "poker.club.09") { enhancementLevel = 1, isHoned = true });
+
+            (int attack, int defense) = PokerRunDeckRules.CalculateEnhancementContestBonuses(
+                deck,
+                new[] { "heart", "club" });
+
+            Assert.That(attack, Is.EqualTo(2));
+            Assert.That(defense, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ReverseHonedCardMovesOnlyItsOwnBonusToTheOppositeColor()
+        {
+            var deck = new RunPokerDeckState();
+            deck.cards.Add(new RunCardState("heart", "poker.heart.05")
+            {
+                enhancementLevel = 3,
+                growthPath = CardGrowthPath.Reverse,
+                isHoned = true
+            });
+            deck.cards.Add(new RunCardState("club", "poker.club.09") { enhancementLevel = 1, isHoned = true });
+
+            (int attack, int defense) = PokerRunDeckRules.CalculateEnhancementContestBonuses(
+                deck,
+                new[] { "heart", "club", "heart" });
+
+            Assert.That(attack, Is.Zero);
+            Assert.That(defense, Is.EqualTo(4));
+        }
+
         [TestCase("poker.club.01", "C-1")]
         [TestCase("poker.diamond.13", "D-13")]
         [TestCase("poker.joker.black", "X-B")]

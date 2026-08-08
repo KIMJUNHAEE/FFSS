@@ -1124,9 +1124,10 @@ namespace CardBattle
             int equipmentBreak = EquipmentModifier(EquipmentStat.BreakPower, context);
             int baseAttack = playerBaseAttack + equipmentBaseAttack;
             int baseDefense = playerBaseDefense + equipmentBaseDefense;
-            int attackBonus = equipmentAttack + EquipmentModifier(EquipmentStat.RedCardAttack, context) +
+            (int enhancementAttack, int enhancementDefense) = CurrentEnhancementBonuses();
+            int attackBonus = enhancementAttack + equipmentAttack + EquipmentModifier(EquipmentStat.RedCardAttack, context) +
                               EquipmentModifier(EquipmentStat.HandTierPower, context);
-            int defenseBonus = equipmentDefense + EquipmentModifier(EquipmentStat.BlackCardDefense, context) +
+            int defenseBonus = enhancementDefense + equipmentDefense + EquipmentModifier(EquipmentStat.BlackCardDefense, context) +
                                EquipmentModifier(EquipmentStat.HandTierPower, context);
             int courtSkill = result.CourtCardCount * courtCardSkillBonus;
             int attack = PokerCombatBalance.CalculateAttackContest(baseAttack, result.Rank, red, attackBonus);
@@ -1134,8 +1135,8 @@ namespace CardBattle
             int breakPower = baseBreakPower + equipmentBreak + Mathf.Max(0, 2 - tier) +
                              Mathf.Max(0, black - 2);
             int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill;
-            string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 컬러 {PokerCombatBalance.ColorContestBonus(red)} + 장비 {attackBonus}";
-            string defenseFormula = $"기본 {baseDefense} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 흑 {PokerCombatBalance.ColorContestBonus(black)} + 장비 {defenseBonus}";
+            string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 컬러 {PokerCombatBalance.ColorContestBonus(red)} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
+            string defenseFormula = $"기본 {baseDefense} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 흑 {PokerCombatBalance.ColorContestBonus(black)} + 연마 {enhancementDefense} + 장비 {defenseBonus - enhancementDefense}";
             string skillFormula = $"대결 {attack} + 기술 {skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill}";
             return new CombatNumbers(rankName, baseAttack, baseDefense, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
@@ -1166,6 +1167,19 @@ namespace CardBattle
             return (
                 Mathf.Max(0, red - result.RedJokersUsedForRank),
                 Mathf.Max(0, black - result.BlackJokersUsedForRank));
+        }
+
+        private (int Attack, int Defense) CurrentEnhancementBonuses()
+        {
+            if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count == 0 ||
+                !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return (0, 0);
+            }
+
+            return PokerRunDeckRules.CalculateEnhancementContestBonuses(
+                runs.Current.pokerDeck,
+                pokerHand.CurrentCardInstanceIds);
         }
 
         private static float NextCombatRandomValue()

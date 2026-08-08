@@ -156,6 +156,35 @@ namespace FFSS.Framework.Run
                 : naturallyRed;
         }
 
+        public static (int Attack, int Defense) CalculateEnhancementContestBonuses(
+            RunPokerDeckState deck,
+            IReadOnlyList<string> handInstanceIds)
+        {
+            if (deck == null || handInstanceIds == null)
+                return (0, 0);
+
+            deck.EnsureCollections();
+            int attack = 0;
+            int defense = 0;
+            var counted = new HashSet<string>();
+            for (int i = 0; i < handInstanceIds.Count; i++)
+            {
+                string instanceId = handInstanceIds[i];
+                if (string.IsNullOrWhiteSpace(instanceId) || !counted.Add(instanceId))
+                    continue;
+
+                RunCardState card = deck.FindCard(instanceId);
+                int level = Math.Min(3, Math.Max(0, card?.enhancementLevel ?? 0));
+                if (level == 0)
+                    continue;
+
+                if (IsEffectivelyRed(card)) attack += level;
+                else defense += level;
+            }
+
+            return (attack, defense);
+        }
+
         private static void RemoveInvalidPriorityEntries(List<string> priority, List<string> available)
         {
             priority.RemoveAll(instanceId => string.IsNullOrWhiteSpace(instanceId) || !available.Contains(instanceId));
