@@ -148,7 +148,9 @@ namespace FFSS.Framework.Tests
                 "DefendButton",
                 "SkillButton",
                 "RedrawButton",
-                "EndTurnButton"
+                "EndTurnButton",
+                "PokerTableV2",
+                "HwatuTableV2"
             };
             for (int i = 0; i < names.Length; i++)
             {
@@ -187,7 +189,7 @@ namespace FFSS.Framework.Tests
             string key,
             Component component)
         {
-            if (component == null)
+            if (component == null || result.ContainsKey(key))
                 return;
             RectTransform root = component.GetComponentsInParent<RectTransform>(true).LastOrDefault(
                 rect => rect.GetComponentInParent<Canvas>() != null && rect.GetComponent<Canvas>() == null);
