@@ -138,6 +138,8 @@ namespace CardBattle.Exploration
 
             PlannedNode boss = nodes.Find(value => value.type == RunFieldContentType.BossDoor);
             nodes.Remove(boss);
+            PlannedNode midBoss = nodes.Find(value => value.type == RunFieldContentType.MidBoss);
+            nodes.Remove(midBoss);
 
             var available = new List<GeneratedHexTile>();
             var interactionAnchors = new List<GeneratedHexTile>();
@@ -156,15 +158,38 @@ namespace CardBattle.Exploration
                     available.Add(tile);
             }
 
-            if (interactionAnchors.Count >= nodes.Count)
+            int requiredFieldSlots = nodes.Count + (midBoss != null ? 1 : 0);
+            if (interactionAnchors.Count >= requiredFieldSlots)
                 available = interactionAnchors;
             else
                 available.InsertRange(0, interactionAnchors);
 
             available.Sort((left, right) => left.Order.CompareTo(right.Order));
-            if (available.Count < nodes.Count)
+            if (available.Count < requiredFieldSlots)
             {
-                Debug.LogWarning($"[FieldEncounterDistributor] {nodes.Count} nodes need {nodes.Count} tiles, but only {available.Count} are available.", this);
+                Debug.LogWarning($"[FieldEncounterDistributor] {requiredFieldSlots} nodes need {requiredFieldSlots} tiles, but only {available.Count} are available.", this);
+            }
+
+            if (midBoss != null && available.Count > 0)
+            {
+                int preferredIndex = Mathf.Clamp(
+                    Mathf.RoundToInt((available.Count - 1) * 0.72f),
+                    0,
+                    available.Count - 1);
+                int tileIndex = FindClearTileIndex(
+                    available,
+                    preferredIndex,
+                    GetNodeFootprint(RunFieldContentType.MidBoss));
+                if (tileIndex >= 0)
+                {
+                    GeneratedHexTile selected = available[tileIndex];
+                    CreateMarker(midBoss, selected);
+                    available.RemoveAt(tileIndex);
+                }
+                else
+                {
+                    Debug.LogError("[FieldEncounterDistributor] The required midboss has no valid placement tile.", this);
+                }
             }
 
             int count = Mathf.Min(nodes.Count, available.Count);

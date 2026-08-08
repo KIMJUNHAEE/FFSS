@@ -416,6 +416,28 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void BossDoorEntryIsAllowedBeforeRecommendedProgressIsComplete()
+        {
+            var host = new GameObject("BossDoorEntryTests");
+            RunProgressionManager progression = host.AddComponent<RunProgressionManager>();
+            var run = new RunState();
+            run.CurrentActProgress.requiredNormalVictories = 5;
+            run.CurrentActProgress.requiredEvents = 3;
+
+            try
+            {
+                Assert.That(RunProgressionManager.MeetsBossRequirements(run), Is.False);
+                Assert.That(progression.CanChallengeBoss(run), Is.True);
+                run.isComplete = true;
+                Assert.That(progression.CanChallengeBoss(run), Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void ProductionCampaignDefinesTheFullThreeActRun()
         {
             RunCampaignDefinition campaign = AssetDatabase.LoadAssetAtPath<RunCampaignDefinition>(

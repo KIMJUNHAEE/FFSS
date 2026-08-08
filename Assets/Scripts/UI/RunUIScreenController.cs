@@ -543,15 +543,17 @@ namespace CardBattle.UI
             RunState run = CurrentRun();
             RunCampaignDefinition campaign = GameKernel.Services.Get<RunProgressionManager>().Campaign;
             RunActDefinition act = campaign.GetAct(run.act);
-            bool ready = GameKernel.Services.Get<RunProgressionManager>().CanChallengeBoss(run);
+            RunProgressionManager progression = GameKernel.Services.Get<RunProgressionManager>();
+            bool canEnter = progression.CanChallengeBoss(run);
+            bool prepared = RunProgressionManager.MeetsBossRequirements(run);
             SetText(heading, $"{act.bossId} 보스문");
-            SetText(subtitle, ready ? "입장 가능" : "아직 문이 열리지 않았다");
-            SetText(body, ready
+            SetText(subtitle, prepared ? "입장 가능" : "입장 가능 · 전력 부족");
+            SetText(body, prepared
                 ? "최종 장비와 덱을 확인하자. 문을 넘으면 보스 전투가 시작된다."
-                : "필드의 전투·사건·중간보스를 마쳐야 한다.");
+                : "권장 전투·사건·중간보스를 마치지 않았다. 그래도 바로 도전할 수 있다.");
             if (primaryButton != null)
             {
-                primaryButton.interactable = ready;
+                primaryButton.interactable = canEnter;
             }
         }
 

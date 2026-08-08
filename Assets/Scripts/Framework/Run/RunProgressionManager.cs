@@ -139,7 +139,7 @@ namespace FFSS.Framework.Run
 
         public bool CanChallengeBoss(RunState run)
         {
-            return MeetsBossRequirements(run);
+            return run != null && !run.isComplete;
         }
 
         public static bool MeetsBossRequirements(RunState run)
