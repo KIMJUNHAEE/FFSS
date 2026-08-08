@@ -117,6 +117,8 @@ namespace CardBattle.Inventory
                         run.inventoryItemIds.Add(equipment.Id);
                 }
             }
+
+            RunAccess.NotifyStateChanged("inventory.changed");
         }
 
         public InventorySlotData GetSlot(int index) => slots[index];

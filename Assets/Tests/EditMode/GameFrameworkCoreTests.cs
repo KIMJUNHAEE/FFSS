@@ -89,6 +89,50 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void CombatResolutionPublishesUpdatedRunVitals()
+        {
+            var runHost = new GameObject("CombatRunManagerTests");
+            var combatHost = new GameObject("CombatManagerTests");
+            RunManager runs = runHost.AddComponent<RunManager>();
+            CombatManager combat = combatHost.AddComponent<CombatManager>();
+            var registry = new GameServiceRegistry();
+            var events = new GameEventBus();
+            registry.Register(runs);
+            registry.Register(combat);
+            var context = new GameServiceContext(registry, events);
+            runs.Initialize(context);
+            combat.Initialize(context);
+            var received = new List<RunStateChangedEvent>();
+            IDisposable subscription = events.Subscribe<RunStateChangedEvent>(received.Add);
+
+            try
+            {
+                var state = new RunState();
+                state.player.maxHp = 90;
+                state.player.currentHp = 90;
+                state.player.maxPressure = 36;
+                runs.Restore(state);
+                combat.StartEncounter("combat.sync", "enemy.sync", "Sync Enemy", 40, 20);
+                received.Clear();
+
+                combat.PrepareEnemyIntent(Intent(CombatSide.Enemy, CombatStance.Offense, 12, 0));
+                combat.ResolvePlayerIntent(Intent(CombatSide.Player, CombatStance.Offense, 4, 0));
+
+                Assert.That(received.Exists(value => value.Reason == "combat.resolved"), Is.True);
+                Assert.That(state.player.currentHp, Is.LessThan(90));
+                Assert.That(received[^1].State.player.currentHp, Is.EqualTo(state.player.currentHp));
+            }
+            finally
+            {
+                subscription.Dispose();
+                combat.Shutdown();
+                runs.Shutdown();
+                UnityEngine.Object.DestroyImmediate(combatHost);
+                UnityEngine.Object.DestroyImmediate(runHost);
+            }
+        }
+
+        [Test]
         public void PokerDeckAllowsOneRedrawPerTurn()
         {
             var deck = new RunPokerDeckState();

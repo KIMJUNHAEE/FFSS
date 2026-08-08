@@ -9,5 +9,11 @@ namespace CardBattle.Inventory
     {
         public static RunState Current =>
             GameKernel.IsReady && GameKernel.Services.TryGet(out RunManager runs) ? runs.Current : null;
+
+        public static void NotifyStateChanged(string reason)
+        {
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out RunManager runs) && runs.Current != null)
+                runs.NotifyStateChanged(reason);
+        }
     }
 }

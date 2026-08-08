@@ -189,6 +189,7 @@ namespace FFSS.Framework.Combat
             runPlayer.currentHp = Current.player.currentHp;
             runPlayer.currentPressure = Current.player.currentPressure;
             runs.Current.activeCombat = Current;
+            runs.NotifyStateChanged("combat.resolved");
         }
 
         private void RequireEncounter()
