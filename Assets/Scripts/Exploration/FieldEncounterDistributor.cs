@@ -158,6 +158,10 @@ namespace CardBattle.Exploration
                     available.Add(tile);
             }
 
+            // Reserve the district's establishing landmarks before encounter buildings
+            // consume every clear edge tile on the smallest campaign layouts.
+            CreateAmbientLandmarks(tiles, act);
+
             int requiredFieldSlots = nodes.Count + (midBoss != null ? 1 : 0);
             // Interaction tiles are preferred visual anchors, but they can be clustered.
             // Keep every traversable tile available so required buildings never have to
@@ -208,7 +212,6 @@ namespace CardBattle.Exploration
                     CreateMarker(boss, target);
             }
 
-            CreateAmbientLandmarks(tiles, act);
         }
 
         private List<PlannedNode> BuildPlan(RunActDefinition definition, int act)
