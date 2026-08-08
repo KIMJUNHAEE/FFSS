@@ -308,8 +308,8 @@ namespace FFSS.Editor
                 ["PlayerHUD"] = RequirePrefabRoot(combat.playerHpText, scene, "PlayerHUD"),
                 ["EnemyHUD"] = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD"),
                 ["EnemyIntentBadge"] = RequirePrefabRoot(combat.enemyActionText, scene, "EnemyIntentBadge"),
-                ["PokerTableV2"] = RequirePrefabRoot(combat.pokerHand, scene, "PokerTableV2"),
-                ["HwatuTableV2"] = RequirePrefabRoot(
+                ["PokerTableV2"] = RequireCanvasChildRoot(combat.pokerHand, scene, "PokerTableV2"),
+                ["HwatuTableV2"] = RequireCanvasChildRoot(
                     FindInScene<SeotdaTableController>(scene),
                     scene,
                     "HwatuTableV2"),
@@ -352,6 +352,28 @@ namespace FFSS.Editor
             }
 
             throw new InvalidOperationException($"{scene.path}: RectTransform '{objectName}' is missing.");
+        }
+
+        private static RectTransform RequireCanvasChildRoot(
+            Component component,
+            Scene scene,
+            string objectName)
+        {
+            if (component == null)
+                throw new InvalidOperationException($"{scene.path}: component root '{objectName}' is missing.");
+
+            RectTransform[] parents = component.GetComponentsInParent<RectTransform>(true);
+            for (int i = parents.Length - 1; i >= 0; i--)
+            {
+                RectTransform candidate = parents[i];
+                if (candidate.GetComponent<Canvas>() != null || candidate.GetComponentInParent<Canvas>() == null)
+                    continue;
+                candidate.name = objectName;
+                EditorUtility.SetDirty(candidate.gameObject);
+                return candidate;
+            }
+
+            throw new InvalidOperationException($"{scene.path}: canvas root '{objectName}' has no RectTransform.");
         }
 
         private static RectTransform RequireButtonRoot(Button button, Scene scene, string objectName)
