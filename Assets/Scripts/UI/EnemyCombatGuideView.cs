@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using FrameworkEnemyEncounterRank = FFSS.Framework.Combat.EnemyEncounterRank;
 
 namespace CardBattle
 {
@@ -146,12 +147,12 @@ namespace CardBattle
                 terms.Add(term);
         }
 
-        private static string RankLabel(EnemyEncounterRank rank)
+        private static string RankLabel(FrameworkEnemyEncounterRank rank)
         {
             return rank switch
             {
-                EnemyEncounterRank.Boss => "막의 선택을 시험하는 광땡 보스",
-                EnemyEncounterRank.MidBoss => "덱의 대응력을 검사하는 특수 족보 중간보스",
+                FrameworkEnemyEncounterRank.Boss => "막의 선택을 시험하는 광땡 보스",
+                FrameworkEnemyEncounterRank.MidBoss => "덱의 대응력을 검사하는 특수 족보 중간보스",
                 _ => "전투 문법 하나를 가르치는 땡 일반 적"
             };
         }
