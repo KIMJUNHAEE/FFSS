@@ -144,8 +144,6 @@ namespace FFSS.Framework.Tests
             var result = new Dictionary<string, RectGeometry>();
             string[] names =
             {
-                "PokerTableV2",
-                "HwatuTableV2",
                 "AttackButton",
                 "DefendButton",
                 "SkillButton",
@@ -167,7 +165,14 @@ namespace FFSS.Framework.Tests
                 AddReferencedRootGeometry(result, "PlayerHUD", ReadField<Component>(combats[0], "playerHpText"));
                 AddReferencedRootGeometry(result, "EnemyHUD", ReadField<Component>(combats[0], "enemyHpText"));
                 AddReferencedRootGeometry(result, "EnemyIntentBadge", ReadField<Component>(combats[0], "enemyActionText"));
+                AddReferencedRootGeometry(result, "PokerTableV2", ReadField<Component>(combats[0], "pokerHand"));
             }
+
+            MonoBehaviour[] seotdaTables = SceneComponentsByTypeName(
+                SceneManager.GetActiveScene(),
+                "SeotdaTableController");
+            if (seotdaTables.Length == 1)
+                AddReferencedRootGeometry(result, "HwatuTableV2", seotdaTables[0]);
 
             MonoBehaviour[] meters = SceneComponentsByTypeName(
                 SceneManager.GetActiveScene(),

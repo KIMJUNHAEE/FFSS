@@ -308,8 +308,11 @@ namespace FFSS.Editor
                 ["PlayerHUD"] = RequirePrefabRoot(combat.playerHpText, scene, "PlayerHUD"),
                 ["EnemyHUD"] = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD"),
                 ["EnemyIntentBadge"] = RequirePrefabRoot(combat.enemyActionText, scene, "EnemyIntentBadge"),
-                ["PokerTableV2"] = RequireNamedRect(scene, "PokerTableV2"),
-                ["HwatuTableV2"] = RequireNamedRect(scene, "HwatuTableV2"),
+                ["PokerTableV2"] = RequirePrefabRoot(combat.pokerHand, scene, "PokerTableV2"),
+                ["HwatuTableV2"] = RequirePrefabRoot(
+                    FindInScene<SeotdaTableController>(scene),
+                    scene,
+                    "HwatuTableV2"),
                 ["AttackButton"] = RequireButtonRoot(combat.attackButton, scene, "AttackButton"),
                 ["DefendButton"] = RequireButtonRoot(combat.defendButton, scene, "DefendButton"),
                 ["SkillButton"] = RequireButtonRoot(combat.skillButton, scene, "SkillButton"),
