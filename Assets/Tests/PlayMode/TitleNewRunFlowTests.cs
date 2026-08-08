@@ -758,24 +758,26 @@ namespace FFSS.Framework.Tests
             Assert.That(controllers, Has.Length.EqualTo(1));
             object controller = controllers[0];
 
-            (string fieldName, string expectedLabel)[] commands =
+            (string fieldName, string expectedSprite)[] commands =
             {
-                ("attackButton", "\uACF5\uACA9"),
-                ("defendButton", "\uBC29\uC5B4"),
-                ("skillButton", "\uC2A4\uD0AC"),
-                ("redrawButton", "\uB2E4\uC2DC\uBF51\uAE30"),
-                ("endTurnButton", "\uD134 \uC885\uB8CC")
+                ("attackButton", "command_label_attack"),
+                ("defendButton", "command_label_defend"),
+                ("skillButton", "command_label_skill"),
+                ("redrawButton", "command_label_redraw"),
+                ("endTurnButton", "command_label_end_turn")
             };
-            foreach ((string fieldName, string expectedLabel) in commands)
+            foreach ((string fieldName, string expectedSprite) in commands)
             {
                 Button button = controllerType.GetField(fieldName)?.GetValue(controller) as Button;
                 Assert.That(button, Is.Not.Null, $"Combat command binding is missing: {fieldName}");
-                Text label = button.GetComponentInChildren<Text>(true);
-                Assert.That(label, Is.Not.Null, $"Combat command TMP label is missing: {fieldName}");
-                Assert.That(label.text, Does.StartWith(expectedLabel),
-                    $"Combat command label regressed: {fieldName}");
-                Assert.That(label.text, Is.Not.EqualTo("\uD589\uB3D9"),
-                    $"Combat command still shows the generic prefab label: {fieldName}");
+                Image label = button.GetComponentsInChildren<Image>(true)
+                    .FirstOrDefault(image => image.name == "Fixed Label Image");
+                Assert.That(label, Is.Not.Null, $"Combat command image label is missing: {fieldName}");
+                Assert.That(label.sprite, Is.Not.Null, $"Combat command image sprite is missing: {fieldName}");
+                Assert.That(label.sprite.name, Is.EqualTo(expectedSprite),
+                    $"Combat command image regressed: {fieldName}");
+                Assert.That(label.gameObject.activeInHierarchy, Is.True,
+                    $"Combat command image is hidden: {fieldName}");
             }
 
             string[] requiredRuntimeTextFields =
@@ -826,6 +828,8 @@ namespace FFSS.Framework.Tests
             List<string> opening = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
                 .Select(sprite => sprite.name)
                 .ToList();
+            VfxManager redrawVfx = GameKernel.Services.Get<VfxManager>();
+            int vfxCountBeforeRedraw = redrawVfx.TotalPlayCount;
             redraw.onClick.Invoke();
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
@@ -843,7 +847,14 @@ namespace FFSS.Framework.Tests
                 "A card already seen this turn returned during redraw.");
             Assert.That(redraw.interactable, Is.False,
                 "The redraw button stayed enabled after its base use was spent.");
-            Assert.That(redraw.GetComponentInChildren<Text>(true).text, Does.Contain("0/1"));
+            Assert.That(redrawVfx.TotalPlayCount, Is.GreaterThan(vfxCountBeforeRedraw),
+                "Redraw did not emit its dedicated shuffle VFX.");
+            Assert.That(redrawVfx.LastPlayedCueId, Is.EqualTo("vfx.card.shuffle"),
+                "Redraw emitted a combat or reveal VFX instead of the shuffle cue.");
+            Text redrawCounter = redraw.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(text => text.name == "Redraw Counter");
+            Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
+            Assert.That(redrawCounter.text, Does.Contain("0/1"));
 
             handType.GetMethod("Redraw")?.Invoke(hand, null);
             yield return WaitFrames(2);
@@ -942,7 +953,11 @@ namespace FFSS.Framework.Tests
                 playerHpAfter != playerHpBefore || playerPressureAfter != playerPressureBefore,
                 Is.True,
                 "The attack/defense exchange completed without changing HP or the thin pressure gauge.");
-            Assert.That(redraw.GetComponentInChildren<Text>(true).text, Does.Contain("1/1"));
+            Text refreshedRedrawCounter = redraw.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(text => text.name == "Redraw Counter");
+            Assert.That(refreshedRedrawCounter, Is.Not.Null,
+                "The image redraw label lost its resource counter on the next turn.");
+            Assert.That(refreshedRedrawCounter.text, Does.Contain("1/1"));
         }
 
         private static void AssertVisibleUiInsideViewport(string stage)

@@ -950,7 +950,8 @@ namespace FFSS.Framework.Tests
             Assert.That(vfx, Is.Not.Null);
             string[] vfxCueIds =
             {
-                "vfx.combat.slash", "vfx.combat.guard", "vfx.combat.break", "vfx.card.reveal",
+                "vfx.combat.slash", "vfx.combat.guard", "vfx.combat.break",
+                "vfx.card.reveal", "vfx.card.shuffle",
                 "vfx.enemy.wave", "vfx.enemy.poison", "vfx.enemy.talisman",
                 "vfx.enemy.wind", "vfx.enemy.gwang"
             };
@@ -984,7 +985,7 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/VfxCueCatalog.asset");
             var vfxSerialized = new SerializedObject(vfx);
             SerializedProperty vfxCues = vfxSerialized.FindProperty("cues");
-            Assert.That(vfxCues.arraySize, Is.EqualTo(26));
+            Assert.That(vfxCues.arraySize, Is.EqualTo(27));
             var vfxIds = new HashSet<string>();
             for (int i = 0; i < vfxCues.arraySize; i++)
             {
@@ -1061,24 +1062,40 @@ namespace FFSS.Framework.Tests
                 Assert.That(enemyThemeVfx.Add(encounter.ruleGainVfxCue), Is.True, encounter.enemyId);
                 foreach (EnemyMoveDefinition move in encounter.moves)
                 {
+                    bool defense = move.stance == CombatStance.Defense ||
+                                   move.action == CombatActionType.Defend;
+                    bool skill = move.action == CombatActionType.Skill;
                     Assert.That(move.anticipationAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
-                    Assert.That(move.anticipationVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(move.impactAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(move.impactVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
-                    Assert.That(move.tailAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
-                    Assert.That(move.tailVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
                     Assert.That(audio.TryGet(move.anticipationAudioCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.anticipationAudioCue}");
                     Assert.That(audio.TryGet(move.impactAudioCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.impactAudioCue}");
-                    Assert.That(audio.TryGet(move.tailAudioCue, out _), Is.True,
-                        $"{encounter.enemyId}/{move.Id}/{move.tailAudioCue}");
-                    Assert.That(vfx.TryGet(move.anticipationVfxCue, out _), Is.True,
-                        $"{encounter.enemyId}/{move.Id}/{move.anticipationVfxCue}");
                     Assert.That(vfx.TryGet(move.impactVfxCue, out _), Is.True,
                         $"{encounter.enemyId}/{move.Id}/{move.impactVfxCue}");
-                    Assert.That(vfx.TryGet(move.tailVfxCue, out _), Is.True,
-                        $"{encounter.enemyId}/{move.Id}/{move.tailVfxCue}");
+
+                    if (skill)
+                    {
+                        Assert.That(move.anticipationVfxCue, Is.EqualTo("vfx.card.reveal"),
+                            $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.tailAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.tailVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(audio.TryGet(move.tailAudioCue, out _), Is.True,
+                            $"{encounter.enemyId}/{move.Id}/{move.tailAudioCue}");
+                        Assert.That(vfx.TryGet(move.anticipationVfxCue, out _), Is.True,
+                            $"{encounter.enemyId}/{move.Id}/{move.anticipationVfxCue}");
+                        Assert.That(vfx.TryGet(move.tailVfxCue, out _), Is.True,
+                            $"{encounter.enemyId}/{move.Id}/{move.tailVfxCue}");
+                    }
+                    else
+                    {
+                        Assert.That(move.tailAudioCue, Is.Empty, $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.tailVfxCue, Is.Empty, $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.anticipationVfxCue,
+                            Is.EqualTo(defense ? "vfx.combat.guard" : string.Empty),
+                            $"{encounter.enemyId}/{move.Id}");
+                    }
                 }
             }
 
@@ -1508,6 +1525,14 @@ namespace FFSS.Framework.Tests
                 [RunFieldContentType.Shop] = "상점",
                 [RunFieldContentType.BossDoor] = "보스전"
             };
+            var expectedSprites = new Dictionary<RunFieldContentType, string>
+            {
+                [RunFieldContentType.Combat] = "field_label_combat",
+                [RunFieldContentType.MidBoss] = "field_label_combat",
+                [RunFieldContentType.Event] = "field_label_event",
+                [RunFieldContentType.Shop] = "field_label_shop",
+                [RunFieldContentType.BossDoor] = "field_label_boss"
+            };
 
             foreach ((string path, RunFieldContentType contentType) in contentTypes)
             {
@@ -1519,6 +1544,10 @@ namespace FFSS.Framework.Tests
                     marker.GetType().GetMethod("ConfigureMarkerType")?.Invoke(marker, new object[] { contentType });
                     Text label = instance.GetComponentInChildren<Text>(true);
                     Assert.That(label.text, Is.EqualTo(expectedLabels[contentType]), path);
+                    var serialized = new SerializedObject(marker);
+                    var labelImage = serialized.FindProperty("categoryLabelImage").objectReferenceValue as Image;
+                    Assert.That(labelImage, Is.Not.Null, path);
+                    Assert.That(labelImage.sprite.name, Is.EqualTo(expectedSprites[contentType]), path);
                 }
                 finally
                 {
@@ -1529,6 +1558,43 @@ namespace FFSS.Framework.Tests
             string distributor = File.ReadAllText("Assets/Scripts/Exploration/FieldEncounterDistributor.cs");
             Assert.That(distributor, Does.Not.Contain("view?.Configure(planned.encounter.encounter)"),
                 "Field combat landmarks must never expose the enemy name before combat starts.");
+        }
+
+        [Test]
+        public void FixedCommandsUseInspectableImageLabels()
+        {
+            var expected = new Dictionary<string, string[]>
+            {
+                ["Assets/Prefabs/UI/Screens/TitleScreen.prefab"] = new[]
+                {
+                    "title_label_new_game", "title_label_continue", "title_label_load",
+                    "title_label_settings", "title_label_exit"
+                },
+                ["Assets/Prefabs/UI/Screens/FieldHudScreen.prefab"] = new[]
+                {
+                    "field_nav_status", "field_nav_equipment", "field_nav_map"
+                },
+                ["Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab"] = new[]
+                {
+                    "hud_label_attack", "hud_label_defense"
+                },
+                ["Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab"] = new[]
+                {
+                    "hud_label_attack", "hud_label_defense"
+                }
+            };
+
+            foreach ((string prefabPath, string[] spriteNames) in expected)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                Assert.That(prefab, Is.Not.Null, prefabPath);
+                var present = prefab.GetComponentsInChildren<Image>(true)
+                    .Where(image => image.sprite != null)
+                    .Select(image => image.sprite.name)
+                    .ToHashSet();
+                foreach (string spriteName in spriteNames)
+                    Assert.That(present.Contains(spriteName), Is.True, $"{prefabPath}/{spriteName}");
+            }
         }
 
         [Test]

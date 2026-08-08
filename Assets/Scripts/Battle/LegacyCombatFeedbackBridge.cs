@@ -21,6 +21,7 @@ namespace CardBattle
         private const string GuardVfxCue = "vfx.combat.guard";
         private const string BreakVfxCue = "vfx.combat.break";
         private const string CardRevealVfxCue = "vfx.card.reveal";
+        private const string CardShuffleVfxCue = "vfx.card.shuffle";
 
         [SerializeField] private RpsCombatController source;
         [SerializeField] private EnemyEncounterDefinition encounter;
@@ -71,6 +72,8 @@ namespace CardBattle
                 source.pokerHand.CardDealt += HandleCardMoved;
                 source.pokerHand.CardRedrawn -= HandleCardMoved;
                 source.pokerHand.CardRedrawn += HandleCardMoved;
+                source.pokerHand.RedrawCommitted -= HandleRedrawCommitted;
+                source.pokerHand.RedrawCommitted += HandleRedrawCommitted;
             }
             if (source.seotdaTable != null)
             {
@@ -90,6 +93,7 @@ namespace CardBattle
                 {
                     source.pokerHand.CardDealt -= HandleCardMoved;
                     source.pokerHand.CardRedrawn -= HandleCardMoved;
+                    source.pokerHand.RedrawCommitted -= HandleRedrawCommitted;
                 }
                 if (source.seotdaTable != null)
                     source.seotdaTable.CardRevealed -= HandleSeotdaCardRevealed;
@@ -169,6 +173,14 @@ namespace CardBattle
             if (GameKernel.Services.TryGet(out AudioManager audio))
                 audio.Play(CardRevealCue);
             PlayVfx(CardRevealVfxCue, card);
+        }
+
+        private void HandleRedrawCommitted(int replaced, int kept)
+        {
+            if (replaced <= 0 || source == null || source.pokerHand == null)
+                return;
+
+            PlayVfx(CardShuffleVfxCue, source.pokerHand.deckPileTransform);
         }
 
         private Transform EnemyTarget()

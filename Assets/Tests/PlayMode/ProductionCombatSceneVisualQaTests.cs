@@ -101,7 +101,14 @@ namespace FFSS.Framework.Tests
                 ReadField<Button>(combat, "endTurnButton")
             };
             string[] names = { "AttackButton", "DefendButton", "SkillButton", "RedrawButton", "EndTurnButton" };
-            string[] labels = { "공격", "방어", "스킬", "다시뽑기", "턴 종료" };
+            string[] labelSprites =
+            {
+                "command_label_attack",
+                "command_label_defend",
+                "command_label_skill",
+                "command_label_redraw",
+                "command_label_end_turn"
+            };
             if (buttons.Any(item => item == null))
             {
                 failures.Add($"{sceneName}: one or more combat command references are missing");
@@ -125,13 +132,17 @@ namespace FFSS.Framework.Tests
                 Image icon = iconTransform != null ? iconTransform.GetComponent<Image>() : null;
                 if (icon == null || icon.sprite == null)
                     failures.Add($"{sceneName}: {names[i]} icon is missing");
-                Transform labelTransform = root.transform.Find("LabelText");
-                TMP_Text label = labelTransform != null ? labelTransform.GetComponent<TMP_Text>() : null;
-                bool labelMatches = label != null && (i == 3
-                    ? label.text.StartsWith(labels[i])
-                    : label.text == labels[i]);
-                if (!labelMatches)
-                    failures.Add($"{sceneName}: {names[i]} label is '{label?.text ?? "<missing>"}'");
+                Transform labelTransform = root.transform.Find("Fixed Label Image");
+                Image label = labelTransform != null ? labelTransform.GetComponent<Image>() : null;
+                if (label == null || label.sprite == null || label.sprite.name != labelSprites[i])
+                    failures.Add($"{sceneName}: {names[i]} fixed label image is missing or incorrect");
+
+                if (i == 3)
+                {
+                    TMP_Text counter = root.transform.Find("Redraw Counter")?.GetComponent<TMP_Text>();
+                    if (counter == null || !counter.text.Contains("/"))
+                        failures.Add($"{sceneName}: RedrawButton counter is missing");
+                }
             }
         }
 
