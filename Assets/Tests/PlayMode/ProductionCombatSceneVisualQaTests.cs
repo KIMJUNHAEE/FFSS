@@ -87,6 +87,7 @@ namespace FFSS.Framework.Tests
             ExpectCount(sceneName, "SeotdaTableController", seotdaTables.Length, 1, failures);
             ExpectCount(sceneName, "root Canvas", rootCanvases.Length, 1, failures);
             ExpectCount(sceneName, "CombatCommandSelectionView", commands.Length, 5, failures);
+            ValidatePlayerHudFixedLabels(sceneName, scene, failures);
 
             if (combats.Length != 1)
                 return;
@@ -143,6 +144,36 @@ namespace FFSS.Framework.Tests
                     if (counter == null || !counter.text.Contains("/"))
                         failures.Add($"{sceneName}: RedrawButton counter is missing");
                 }
+            }
+        }
+
+        private static void ValidatePlayerHudFixedLabels(
+            string sceneName,
+            Scene scene,
+            ICollection<string> failures)
+        {
+            Image[] images = SceneComponents<Image>(scene);
+            string[] expectedSprites = { "hud_label_attack", "hud_label_defense" };
+            foreach (string spriteName in expectedSprites)
+            {
+                Image[] activeMatches = images
+                    .Where(image => image.sprite != null &&
+                                    image.sprite.name == spriteName &&
+                                    image.gameObject.activeInHierarchy)
+                    .ToArray();
+                ExpectCount(sceneName, $"active {spriteName}", activeMatches.Length, 1, failures);
+            }
+
+            TMP_Text[] staleLabels = SceneComponents<TMP_Text>(scene)
+                .Where(text => text.gameObject.activeInHierarchy &&
+                               text.GetComponentInParent<Button>(true) == null &&
+                               (text.text == "공격" || text.text == "방어"))
+                .ToArray();
+            if (staleLabels.Length > 0)
+            {
+                failures.Add(
+                    $"{sceneName}: legacy HUD TMP labels are still visible: " +
+                    string.Join(", ", staleLabels.Select(text => HierarchyPath(text.transform))));
             }
         }
 

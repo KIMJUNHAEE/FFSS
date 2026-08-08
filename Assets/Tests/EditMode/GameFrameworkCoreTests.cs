@@ -1077,23 +1077,23 @@ namespace FFSS.Framework.Tests
 
                     if (skill)
                     {
-                        Assert.That(move.anticipationVfxCue, Is.EqualTo("vfx.card.reveal"),
+                        Assert.That(move.anticipationVfxCue, Is.Empty,
                             $"{encounter.enemyId}/{move.Id}");
                         Assert.That(move.tailAudioCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
-                        Assert.That(move.tailVfxCue, Is.Not.Empty, $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.tailVfxCue, Is.Empty, $"{encounter.enemyId}/{move.Id}");
                         Assert.That(audio.TryGet(move.tailAudioCue, out _), Is.True,
                             $"{encounter.enemyId}/{move.Id}/{move.tailAudioCue}");
-                        Assert.That(vfx.TryGet(move.anticipationVfxCue, out _), Is.True,
-                            $"{encounter.enemyId}/{move.Id}/{move.anticipationVfxCue}");
-                        Assert.That(vfx.TryGet(move.tailVfxCue, out _), Is.True,
-                            $"{encounter.enemyId}/{move.Id}/{move.tailVfxCue}");
+                        Assert.That(move.impactVfxCue, Does.StartWith("vfx.enemy."),
+                            $"{encounter.enemyId}/{move.Id}");
                     }
                     else
                     {
                         Assert.That(move.tailAudioCue, Is.Empty, $"{encounter.enemyId}/{move.Id}");
                         Assert.That(move.tailVfxCue, Is.Empty, $"{encounter.enemyId}/{move.Id}");
-                        Assert.That(move.anticipationVfxCue,
-                            Is.EqualTo(defense ? "vfx.combat.guard" : string.Empty),
+                        Assert.That(move.anticipationVfxCue, Is.Empty,
+                            $"{encounter.enemyId}/{move.Id}");
+                        Assert.That(move.impactVfxCue,
+                            Is.EqualTo(defense ? "vfx.combat.guard" : "vfx.combat.slash"),
                             $"{encounter.enemyId}/{move.Id}");
                     }
                 }

@@ -831,6 +831,8 @@ namespace FFSS.Framework.Tests
             VfxManager redrawVfx = GameKernel.Services.Get<VfxManager>();
             int vfxCountBeforeRedraw = redrawVfx.TotalPlayCount;
             redraw.onClick.Invoke();
+            yield return WaitFrames(1);
+            yield return CaptureScreenshot("flow_combat_redraw_shuffle_vfx_1280x720", 1280, 720);
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
                       (int)remainingProperty.GetValue(hand) == 0,

@@ -44,15 +44,15 @@ namespace FFSS.Editor
             bool skill = move.action == CombatActionType.Skill;
             string slug = EnemySlug(enemyId);
             move.anticipationAudioCue = $"sfx.enemy.{slug}.prepare";
-            move.anticipationVfxCue = skill
-                ? "vfx.card.reveal"
-                : defense
-                    ? "vfx.combat.guard"
-                    : string.Empty;
+            move.anticipationVfxCue = string.Empty;
             move.impactAudioCue = $"sfx.enemy.{slug}.impact";
-            move.impactVfxCue = defense ? "vfx.combat.guard" : ThemeVfx(enemyId);
+            move.impactVfxCue = defense
+                ? "vfx.combat.guard"
+                : skill
+                    ? ThemeVfx(enemyId)
+                    : "vfx.combat.slash";
             move.tailAudioCue = skill ? $"sfx.enemy.{slug}.tail" : string.Empty;
-            move.tailVfxCue = skill ? ThemeVfx(enemyId) : string.Empty;
+            move.tailVfxCue = string.Empty;
             move.tailDelaySeconds = skill ? 0.18f : 0f;
         }
 
