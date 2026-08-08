@@ -41,9 +41,7 @@ namespace CardBattle.Exploration
             activationRadius = Mathf.Max(0.2f, radius);
             focusRadius = Mathf.Max(activationRadius + 0.35f, activationRadius * 1.75f);
             markerView = markerView != null ? markerView : GetComponent<FieldEncounterMarkerView>();
-            markerView?.Configure(
-                string.IsNullOrWhiteSpace(locationName) ? DisplayName(type) : locationName,
-                Accent(type));
+            markerView?.Configure(FieldEncounterMarkerView.DisplayLabelFor(type), Accent(type));
         }
 
         private void Update()
@@ -122,17 +120,6 @@ namespace CardBattle.Exploration
 
             opened = true;
             RunUIScreenController.ShowScreen(screenId, nodeId, contentId);
-        }
-
-        private static string DisplayName(RunFieldContentType type)
-        {
-            return type switch
-            {
-                RunFieldContentType.Event => "갈림길",
-                RunFieldContentType.Shop => "유돌이의 행상",
-                RunFieldContentType.BossDoor => "보스문",
-                _ => type.ToString()
-            };
         }
 
         private static Color Accent(RunFieldContentType type)

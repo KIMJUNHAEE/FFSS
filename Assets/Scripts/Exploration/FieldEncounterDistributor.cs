@@ -387,8 +387,6 @@ namespace CardBattle.Exploration
                     landmark.localOffset);
             }
             view?.ConfigureMarkerType(planned.type);
-            if (planned.encounter != null && planned.type != RunFieldContentType.BossDoor)
-                view?.Configure(planned.encounter.encounter);
 
             if (planned.type == RunFieldContentType.Combat || planned.type == RunFieldContentType.MidBoss)
             {

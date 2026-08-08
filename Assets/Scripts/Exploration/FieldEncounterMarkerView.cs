@@ -69,9 +69,6 @@ namespace CardBattle.Exploration
             if (encounter == null)
                 return;
 
-            if (nameText != null)
-                nameText.text = encounter.displayName;
-
             HideEncounterActor();
 
             if (auraRenderer != null)
@@ -80,6 +77,9 @@ namespace CardBattle.Exploration
 
         public void ConfigureMarkerType(RunFieldContentType type)
         {
+            if (nameText != null)
+                nameText.text = DisplayLabelFor(type);
+
             idleColor = type switch
             {
                 RunFieldContentType.Combat => new Color(1f, 0.72f, 0.68f, 1f),
@@ -90,6 +90,19 @@ namespace CardBattle.Exploration
 
             HideEncounterActor();
             ApplyFocusAppearance();
+        }
+
+        public static string DisplayLabelFor(RunFieldContentType type)
+        {
+            return type switch
+            {
+                RunFieldContentType.Combat => "전투",
+                RunFieldContentType.MidBoss => "전투",
+                RunFieldContentType.Event => "이벤트",
+                RunFieldContentType.Shop => "상점",
+                RunFieldContentType.BossDoor => "보스전",
+                _ => string.Empty
+            };
         }
 
         public void Configure(string displayName, Color accent)

@@ -1490,6 +1490,48 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionFieldLandmarksExposeOnlyTheirContentCategory()
+        {
+            var contentTypes = new Dictionary<string, RunFieldContentType>
+            {
+                ["Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab"] = RunFieldContentType.Combat,
+                ["Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab"] = RunFieldContentType.MidBoss,
+                ["Assets/Prefabs/Production/Field/FieldContent_Event.prefab"] = RunFieldContentType.Event,
+                ["Assets/Prefabs/Production/Field/FieldContent_Shop.prefab"] = RunFieldContentType.Shop,
+                ["Assets/Prefabs/Production/Field/FieldContent_BossDoor.prefab"] = RunFieldContentType.BossDoor
+            };
+            var expectedLabels = new Dictionary<RunFieldContentType, string>
+            {
+                [RunFieldContentType.Combat] = "전투",
+                [RunFieldContentType.MidBoss] = "전투",
+                [RunFieldContentType.Event] = "이벤트",
+                [RunFieldContentType.Shop] = "상점",
+                [RunFieldContentType.BossDoor] = "보스전"
+            };
+
+            foreach ((string path, RunFieldContentType contentType) in contentTypes)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                GameObject instance = UnityEngine.Object.Instantiate(prefab);
+                try
+                {
+                    Component marker = instance.GetComponent("FieldEncounterMarkerView");
+                    marker.GetType().GetMethod("ConfigureMarkerType")?.Invoke(marker, new object[] { contentType });
+                    Text label = instance.GetComponentInChildren<Text>(true);
+                    Assert.That(label.text, Is.EqualTo(expectedLabels[contentType]), path);
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(instance);
+                }
+            }
+
+            string distributor = File.ReadAllText("Assets/Scripts/Exploration/FieldEncounterDistributor.cs");
+            Assert.That(distributor, Does.Not.Contain("view?.Configure(planned.encounter.encounter)"),
+                "Field combat landmarks must never expose the enemy name before combat starts.");
+        }
+
+        [Test]
         public void ProductionFieldSceneContainsDirectEncounterFlow()
         {
             const string path = "Assets/Scenes/Production/Field/Production_Field.unity";
