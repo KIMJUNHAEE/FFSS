@@ -410,6 +410,8 @@ namespace FFSS.Framework.Run
         private void Publish(string sourceId, string actionId, int gold)
         {
             events?.Publish(new RunTransactionEvent(sourceId, actionId, gold));
+            if (GameKernel.Services.TryGet(out RunManager runs) && runs.HasActiveRun)
+                runs.NotifyStateChanged($"transaction.{sourceId}.{actionId}");
         }
     }
 }

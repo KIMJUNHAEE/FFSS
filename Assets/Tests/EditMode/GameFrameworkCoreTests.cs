@@ -52,6 +52,43 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void RunManagerPublishesSharedStateChangesForRuntimeMutations()
+        {
+            var host = new GameObject("RunManagerTests");
+            RunManager runs = host.AddComponent<RunManager>();
+            var registry = new GameServiceRegistry();
+            var events = new GameEventBus();
+            registry.Register(runs);
+            runs.Initialize(new GameServiceContext(registry, events));
+            var received = new List<RunStateChangedEvent>();
+            IDisposable subscription = events.Subscribe<RunStateChangedEvent>(received.Add);
+
+            try
+            {
+                var state = new RunState();
+                state.player.maxHp = 90;
+                state.player.currentHp = 90;
+                state.player.maxPressure = 36;
+
+                runs.Restore(state);
+                runs.UpdatePlayerVitals(71, 12);
+
+                Assert.That(received, Has.Count.EqualTo(2));
+                Assert.That(received[0].Reason, Is.EqualTo("run.restored"));
+                Assert.That(received[1].Reason, Is.EqualTo("player.vitals"));
+                Assert.That(received[1].State, Is.SameAs(state));
+                Assert.That(received[1].State.player.currentHp, Is.EqualTo(71));
+                Assert.That(received[1].State.player.currentPressure, Is.EqualTo(12));
+            }
+            finally
+            {
+                subscription.Dispose();
+                runs.Shutdown();
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void PokerDeckAllowsOneRedrawPerTurn()
         {
             var deck = new RunPokerDeckState();

@@ -1,3 +1,4 @@
+using FFSS.Framework.Core;
 using FFSS.Framework.Run;
 using Text = TMPro.TMP_Text;
 using UnityEngine;
@@ -87,6 +88,8 @@ namespace CardBattle.Inventory
             run.equippedItemIds[(int)sourceSlot] = string.Empty;
             model.AddItem(dragged, 1);
             EquipmentStatsCalculator.Recalculate(run);
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out RunManager runs))
+                runs.NotifyStateChanged("equipment.changed");
         }
     }
 }

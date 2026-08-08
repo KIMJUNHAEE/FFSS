@@ -1,3 +1,4 @@
+using FFSS.Framework.Core;
 using FFSS.Framework.Run;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -91,6 +92,8 @@ namespace CardBattle.Inventory
                 sourceModel.AddItem(previous, 1);
 
             EquipmentStatsCalculator.Recalculate(run);
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out RunManager runs))
+                runs.NotifyStateChanged("equipment.changed");
             Refresh();
         }
     }

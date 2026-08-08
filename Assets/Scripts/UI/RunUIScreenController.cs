@@ -94,6 +94,7 @@ namespace CardBattle.UI
         private int page;
         private Coroutine refreshRoutine;
         private IDisposable screenShownSubscription;
+        private IDisposable runStateChangedSubscription;
         private int selectedOptionTab;
         private int lastSavedSlot = -1;
         private DateTime lastSavedAt;
@@ -157,6 +158,8 @@ namespace CardBattle.UI
             UnwireOptionControls();
             screenShownSubscription?.Dispose();
             screenShownSubscription = null;
+            runStateChangedSubscription?.Dispose();
+            runStateChangedSubscription = null;
             if (refreshRoutine != null)
             {
                 StopCoroutine(refreshRoutine);
@@ -173,6 +176,8 @@ namespace CardBattle.UI
 
             screenShownSubscription?.Dispose();
             screenShownSubscription = GameKernel.Events.Subscribe<UIScreenShownEvent>(HandleScreenShown);
+            runStateChangedSubscription?.Dispose();
+            runStateChangedSubscription = GameKernel.Events.Subscribe<RunStateChangedEvent>(HandleRunStateChanged);
             Refresh();
             refreshRoutine = null;
         }
@@ -183,6 +188,12 @@ namespace CardBattle.UI
             {
                 Refresh();
             }
+        }
+
+        private void HandleRunStateChanged(RunStateChangedEvent message)
+        {
+            if (isActiveAndEnabled && message.State != null)
+                Refresh();
         }
 
         private void Update()
@@ -1010,6 +1021,7 @@ namespace CardBattle.UI
                 run.inventoryItemIds.Add(previous);
             run.equippedItemIds[slotIndex] = next;
             EquipmentStatsCalculator.Recalculate(run);
+            GameKernel.Services.Get<RunManager>().NotifyStateChanged("equipment.changed");
             SetText(status, $"{EquipmentCatalog.Get(next).DisplayName} 장착");
             Refresh();
         }

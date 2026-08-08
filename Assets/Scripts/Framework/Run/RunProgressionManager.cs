@@ -275,6 +275,8 @@ namespace FFSS.Framework.Run
         private void Publish(RunState run, string reason)
         {
             events?.Publish(new RunProgressChangedEvent(run, reason));
+            if (GameKernel.Services.TryGet(out RunManager runs) && runs.Current != null)
+                runs.NotifyStateChanged(reason);
         }
     }
 }

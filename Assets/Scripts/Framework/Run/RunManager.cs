@@ -25,6 +25,18 @@ namespace FFSS.Framework.Run
         public RunState State { get; }
     }
 
+    public readonly struct RunStateChangedEvent
+    {
+        public RunStateChangedEvent(RunState state, string reason)
+        {
+            State = state;
+            Reason = reason ?? string.Empty;
+        }
+
+        public RunState State { get; }
+        public string Reason { get; }
+    }
+
     public sealed class RunManager : GameServiceBehaviour
     {
         [SerializeField] private RunDefinition defaultRunDefinition;
@@ -43,6 +55,7 @@ namespace FFSS.Framework.Run
 
             Current = defaultRunDefinition.CreateState(seed);
             events.Publish(new RunStartedEvent(Current));
+            NotifyStateChanged("run.started");
             return Current;
         }
 
@@ -50,6 +63,7 @@ namespace FFSS.Framework.Run
         {
             Current = state ?? throw new ArgumentNullException(nameof(state));
             events.Publish(new RunRestoredEvent(Current));
+            NotifyStateChanged("run.restored");
         }
 
         public EnemyRuleState BeginEncounter(string enemyId, string nodeId = null)
@@ -57,6 +71,7 @@ namespace FFSS.Framework.Run
             RequireRun();
             Current.activeEnemyRule = new EnemyRuleState { enemyId = enemyId };
             Current.activeEncounterNodeId = nodeId ?? string.Empty;
+            NotifyStateChanged("encounter.started");
             return Current.activeEnemyRule;
         }
 
@@ -65,6 +80,7 @@ namespace FFSS.Framework.Run
             RequireRun();
             Current.encounterIndex++;
             Current.activeEnemyRule = null;
+            NotifyStateChanged("encounter.completed");
         }
 
         public void CancelEncounter()
@@ -73,12 +89,14 @@ namespace FFSS.Framework.Run
             Current.activeEnemyRule = null;
             Current.activeEncounterNodeId = string.Empty;
             Current.activeCombat = null;
+            NotifyStateChanged("encounter.cancelled");
         }
 
         public void ClearEncounterNode()
         {
             RequireRun();
             Current.activeEncounterNodeId = string.Empty;
+            NotifyStateChanged("encounter.node.cleared");
         }
 
         public void UpdatePlayerVitals(int currentHp, int currentPressure)
@@ -86,6 +104,7 @@ namespace FFSS.Framework.Run
             RequireRun();
             Current.player.currentHp = Math.Max(0, Math.Min(Current.player.maxHp, currentHp));
             Current.player.currentPressure = Math.Max(0, Math.Min(Current.player.maxPressure, currentPressure));
+            NotifyStateChanged("player.vitals");
         }
 
         public RunRewardState PrepareReward(
@@ -107,6 +126,7 @@ namespace FFSS.Framework.Run
                     ? new System.Collections.Generic.List<string>()
                     : new System.Collections.Generic.List<string>(cardChoiceInstanceIds)
             };
+            NotifyStateChanged("reward.prepared");
             return Current.pendingReward;
         }
 
@@ -142,6 +162,7 @@ namespace FFSS.Framework.Run
                 }
             }
             Current.pendingReward = null;
+            NotifyStateChanged("reward.claimed");
             return reward;
         }
 
@@ -149,6 +170,13 @@ namespace FFSS.Framework.Run
         {
             RequireRun();
             Current.isComplete = true;
+            NotifyStateChanged("run.completed");
+        }
+
+        public void NotifyStateChanged(string reason)
+        {
+            RequireRun();
+            events?.Publish(new RunStateChangedEvent(Current, reason));
         }
 
         protected override void OnInitialize(GameServiceContext context)
