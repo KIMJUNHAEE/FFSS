@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace CardBattle.Exploration
 {
+    [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
     public sealed class FieldExplorationTracker : MonoBehaviour
     {
@@ -14,7 +15,7 @@ namespace CardBattle.Exploration
         public bool HasCurrentCell { get; private set; }
 
         private HexTileMapGenerator subscribedMap;
-        private bool restoreAttempted;
+        private bool initialPositionReady;
 
         private void Start()
         {
@@ -58,13 +59,13 @@ namespace CardBattle.Exploration
 
         private void HandleMapGenerated(System.Collections.Generic.IReadOnlyList<GeneratedHexTile> _)
         {
-            restoreAttempted = false;
+            initialPositionReady = false;
             TryRestoreCurrentTile();
         }
 
         private void TryRestoreCurrentTile()
         {
-            if (restoreAttempted || map == null || map.GeneratedTiles.Count == 0 ||
+            if (initialPositionReady || map == null || map.GeneratedTiles.Count == 0 ||
                 !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) ||
                 !runs.HasActiveRun)
             {
@@ -72,22 +73,65 @@ namespace CardBattle.Exploration
             }
 
             RunActProgressState progress = runs.Current.CurrentActProgress;
-            restoreAttempted = true;
-            if (!progress.hasCurrentCell ||
-                !map.TryGetWorldPosition(
-                    new Vector2Int(progress.currentAxialX, progress.currentAxialY),
-                    out Vector3 tilePosition))
+            if (!progress.hasCurrentCell)
+            {
+                initialPositionReady = true;
+                return;
+            }
+
+            Vector2Int savedCell = new(progress.currentAxialX, progress.currentAxialY);
+            if (!map.TryGetWorldPosition(savedCell, out Vector3 tilePosition) &&
+                !TryGetNearestGeneratedPosition(savedCell, out tilePosition))
             {
                 return;
             }
 
             Vector3 current = transform.position;
-            transform.position = new Vector3(tilePosition.x, current.y, tilePosition.z);
+            SetPlayerPosition(new Vector3(tilePosition.x, current.y, tilePosition.z));
+            initialPositionReady = true;
+        }
+
+        private void SetPlayerPosition(Vector3 worldPosition)
+        {
+            CharacterController characterController = GetComponent<CharacterController>();
+            bool restoreController = characterController != null && characterController.enabled;
+            if (restoreController)
+                characterController.enabled = false;
+
+            transform.position = worldPosition;
+
+            if (restoreController)
+                characterController.enabled = true;
+        }
+
+        private bool TryGetNearestGeneratedPosition(Vector2Int savedCell, out Vector3 worldPosition)
+        {
+            worldPosition = default;
+            int nearestDistance = int.MaxValue;
+            bool found = false;
+            for (int i = 0; i < map.GeneratedTiles.Count; i++)
+            {
+                GeneratedHexTile tile = map.GeneratedTiles[i];
+                if (tile.Tile == null)
+                    continue;
+
+                Vector2Int delta = tile.Cell - savedCell;
+                int distance = Mathf.Abs(delta.x) + Mathf.Abs(delta.y) + Mathf.Abs(delta.x + delta.y);
+                if (distance >= nearestDistance)
+                    continue;
+
+                nearestDistance = distance;
+                worldPosition = tile.Tile.transform.position;
+                found = true;
+            }
+
+            return found;
         }
 
         private void RecordCurrentTile()
         {
-            if (map == null || !map.TryGetCell(transform.position, out Vector2Int cell) ||
+            if (!initialPositionReady || map == null ||
+                !map.TryGetCell(transform.position, out Vector2Int cell) ||
                 !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) ||
                 !runs.HasActiveRun)
             {

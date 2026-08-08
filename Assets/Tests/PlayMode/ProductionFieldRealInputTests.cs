@@ -279,6 +279,96 @@ namespace FFSS.Framework.Tests
                 Is.EqualTo(enemyId));
         }
 
+        [UnityTest]
+        public IEnumerator ClearedEnemyReturnsPlayerToSameTileAndDoesNotRespawn()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady && FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become input-ready.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            runs.StartNewRun(461902);
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => FindVisibleScreen(UIScreenId.FieldHud) != null && FindEnemyNode() != null,
+                500,
+                "Fresh field did not build an enemy landmark.");
+            yield return WaitFrames(3);
+
+            Component player = FindPlayerController();
+            Component enemyNode = FindEnemyNode(player.transform.position);
+            Assert.That(player, Is.Not.Null);
+            Assert.That(enemyNode, Is.Not.Null);
+
+            string enemyId = enemyNode.GetType().GetProperty("EnemyId")?.GetValue(enemyNode) as string;
+            string nodeId = enemyNode.GetType().GetProperty("NodeId")?.GetValue(enemyNode) as string;
+            Assert.That(enemyId, Is.Not.Empty);
+            Assert.That(nodeId, Is.Not.Empty);
+
+            enemyNode.gameObject.SetActive(false);
+            Vector3 destination = enemyNode.transform.position;
+            player.transform.position = new Vector3(destination.x, player.transform.position.y, destination.z);
+            yield return WaitFrames(3);
+
+            RunActProgressState progress = runs.Current.CurrentActProgress;
+            Assert.That(progress.hasCurrentCell, Is.True, "The field tracker did not record the encounter tile.");
+            Vector2Int expectedCell = new(progress.currentAxialX, progress.currentAxialY);
+
+            EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
+            Assert.That(encounters.TryEnterEncounter(enemyId, nodeId), Is.True);
+            yield return WaitUntilSeconds(
+                () => SceneManager.GetActiveScene().name.StartsWith("Combat_", StringComparison.Ordinal),
+                20f,
+                "The selected field encounter did not load its combat scene.");
+            yield return WaitUntil(
+                () => !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                300,
+                "The combat scene loader did not settle before victory resolution.");
+
+            encounters.CompleteVictory(runs.Current.player.currentHp, runs.Current.player.currentPressure);
+            Assert.That(encounters.OpenRewardScreen(), Is.True);
+            yield return WaitFrames(2);
+            Assert.That(
+                new Vector2Int(
+                    runs.Current.CurrentActProgress.currentAxialX,
+                    runs.Current.CurrentActProgress.currentAxialY),
+                Is.EqualTo(expectedCell),
+                "Victory resolution changed the saved field tile before leaving combat.");
+            Assert.That(encounters.ClaimRewardAndContinue(), Is.True);
+            yield return WaitUntilSeconds(
+                () => SceneManager.GetActiveScene().name == FieldScene &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                20f,
+                "Claiming the encounter reward did not return to the field.");
+            yield return WaitFrames(5);
+
+            Component returnedPlayer = FindPlayerController();
+            Assert.That(returnedPlayer, Is.Not.Null);
+            Vector2Int persistedCell = new(
+                runs.Current.CurrentActProgress.currentAxialX,
+                runs.Current.CurrentActProgress.currentAxialY);
+            Assert.That(persistedCell, Is.EqualTo(expectedCell),
+                "Field loading overwrote the saved encounter tile before restoration completed.");
+            Component tracker = returnedPlayer.GetComponent(
+                Type.GetType("CardBattle.Exploration.FieldExplorationTracker, Assembly-CSharp"));
+            Assert.That(tracker, Is.Not.Null, "The returning player has no field exploration tracker.");
+            object restoredCell = tracker.GetType().GetProperty("CurrentCell")?.GetValue(tracker);
+            Assert.That(restoredCell, Is.EqualTo(expectedCell),
+                "The player returned to the field start instead of the cleared encounter tile.");
+
+            Component clearedNode = FindEnemyNodeById(nodeId, true);
+            Assert.That(clearedNode == null || !clearedNode.gameObject.activeInHierarchy, Is.True,
+                "The defeated enemy landmark respawned after returning to the field.");
+            Assert.That(runs.Current.completedEncounterIds, Does.Contain(nodeId));
+            Assert.That(
+                runs.Current.CurrentActProgress.fieldNodes.Any(node =>
+                    node != null && node.nodeId == nodeId && node.resolved),
+                Is.True,
+                "The cleared field node was not persisted as resolved.");
+        }
+
         private IEnumerator ClickFieldCommandAndClose(string buttonName, UIScreenId expectedScreen)
         {
             Button command = FindVisibleButton(null, buttonName);
@@ -384,6 +474,22 @@ namespace FFSS.Framework.Tests
                 .FirstOrDefault();
         }
 
+        private static Component FindEnemyNodeById(string nodeId, bool includeInactive)
+        {
+            FindObjectsInactive inactive = includeInactive
+                ? FindObjectsInactive.Include
+                : FindObjectsInactive.Exclude;
+            return Object.FindObjectsByType<MonoBehaviour>(inactive, FindObjectsSortMode.None)
+                .Where(component =>
+                    component != null &&
+                    component.GetType().FullName == "CardBattle.Exploration.FieldEncounterNode")
+                .FirstOrDefault(component =>
+                    string.Equals(
+                        component.GetType().GetProperty("NodeId")?.GetValue(component) as string,
+                        nodeId,
+                        StringComparison.Ordinal));
+        }
+
         private IEnumerator MoveTowardUntil(
             Component player,
             Transform target,
@@ -470,6 +576,19 @@ namespace FFSS.Framework.Tests
         {
             for (int i = 0; i < count; i++)
                 yield return null;
+        }
+
+        private static IEnumerator WaitUntilSeconds(Func<bool> predicate, float timeoutSeconds, string message)
+        {
+            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                if (predicate())
+                    yield break;
+                yield return null;
+            }
+
+            Assert.Fail(message);
         }
     }
 }

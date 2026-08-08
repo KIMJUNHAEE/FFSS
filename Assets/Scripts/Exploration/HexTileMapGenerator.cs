@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FFSS.Framework.Core;
 using FFSS.Framework.Run;
 using UnityEngine;
 
@@ -312,10 +313,28 @@ namespace CardBattle.Exploration
             if (placePlayerAtStart && playerTarget != null)
             {
                 Vector3 position = playerTarget.position;
-                playerTarget.position = new Vector3(0f, position.y, 0f);
+                Vector3 target = TryGetSavedPlayerPosition(out Vector3 savedPosition)
+                    ? savedPosition
+                    : transform.TransformPoint(Vector3.zero);
+                playerTarget.position = new Vector3(target.x, position.y, target.z);
             }
 
             GenerationCompleted?.Invoke(generatedTileDescriptors);
+        }
+
+        private bool TryGetSavedPlayerPosition(out Vector3 worldPosition)
+        {
+            worldPosition = default;
+            if (!Application.isPlaying || !GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return false;
+            }
+
+            RunActProgressState progress = runs.Current.CurrentActProgress;
+            return progress.hasCurrentCell && TryGetWorldPosition(
+                new Vector2Int(progress.currentAxialX, progress.currentAxialY),
+                out worldPosition);
         }
 
         public void SetRuntimeSeed(int seed)
