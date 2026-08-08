@@ -494,6 +494,7 @@ namespace FFSS.Framework.Tests
             UIManager ui = GameKernel.Services.Get<UIManager>();
 
             AssertFieldHudActLabel(1);
+            yield return WaitForPlannedFieldRoute(1, progression.Campaign.GetAct(1));
             yield return SetResolutionAndCapture("flow_act_1_field_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("act 1 field 1280x720");
             yield return SetResolutionAndCapture("flow_act_1_field_1920x1080", 1920, 1080);
@@ -557,6 +558,7 @@ namespace FFSS.Framework.Tests
                         360,
                         $"act {act} did not continue to the next field.");
                     AssertFieldHudActLabel(act + 1);
+                    yield return WaitForPlannedFieldRoute(act + 1, progression.Campaign.GetAct(act + 1));
                     yield return SetResolutionAndCapture($"flow_act_{act + 1}_field_1280x720", 1280, 720);
                     AssertVisibleUiInsideViewport($"act {act + 1} field 1280x720");
                     yield return SetResolutionAndCapture($"flow_act_{act + 1}_field_1920x1080", 1920, 1080);
@@ -598,6 +600,38 @@ namespace FFSS.Framework.Tests
                     FindObjectsSortMode.None)
                 .Any(text => text.text == expected && IsVisuallyActive(text.transform));
             Assert.That(found, Is.True, $"Field HUD did not refresh its act label to {expected}.");
+        }
+
+        private static IEnumerator WaitForPlannedFieldRoute(int act, RunActDefinition definition)
+        {
+            int expected = definition.requiredNormalVictories + definition.requiredEvents + definition.shopCount +
+                           (definition.midBossIds.Count > 0 ? 1 : 0) +
+                           (!string.IsNullOrWhiteSpace(definition.bossId) ? 1 : 0);
+            yield return WaitUntil(
+                () => CountFieldNodes(act) == expected,
+                180,
+                $"Act {act} did not create all {expected} planned field buildings.");
+
+            Assert.That(CountFieldNodes(act, RunFieldContentType.Combat),
+                Is.EqualTo(definition.requiredNormalVictories), $"act {act} normal combat buildings");
+            Assert.That(CountFieldNodes(act, RunFieldContentType.Event),
+                Is.EqualTo(definition.requiredEvents), $"act {act} event buildings");
+            Assert.That(CountFieldNodes(act, RunFieldContentType.Shop),
+                Is.EqualTo(definition.shopCount), $"act {act} shop buildings");
+            Assert.That(CountFieldNodes(act, RunFieldContentType.MidBoss),
+                Is.EqualTo(definition.midBossIds.Count > 0 ? 1 : 0), $"act {act} midboss buildings");
+            Assert.That(CountFieldNodes(act, RunFieldContentType.BossDoor),
+                Is.EqualTo(string.IsNullOrWhiteSpace(definition.bossId) ? 0 : 1), $"act {act} boss buildings");
+        }
+
+        private static int CountFieldNodes(int act, RunFieldContentType? type = null)
+        {
+            string prefix = $"Run Node - act{act}.";
+            string typedPrefix = type.HasValue
+                ? prefix + type.Value.ToString().ToLowerInvariant() + "."
+                : prefix;
+            return Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .Count(value => value.name.StartsWith(typedPrefix, StringComparison.Ordinal));
         }
 
         private static UIScreen FindVisibleScreen(UIScreenId id)

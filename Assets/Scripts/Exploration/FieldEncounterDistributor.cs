@@ -180,16 +180,10 @@ namespace CardBattle.Exploration
                     available,
                     preferredIndex,
                     GetNodeFootprint(RunFieldContentType.MidBoss));
-                if (tileIndex >= 0)
-                {
-                    GeneratedHexTile selected = available[tileIndex];
-                    CreateMarker(midBoss, selected);
-                    available.RemoveAt(tileIndex);
-                }
-                else
-                {
-                    Debug.LogError("[FieldEncounterDistributor] The required midboss has no valid placement tile.", this);
-                }
+                tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex);
+                GeneratedHexTile selected = available[tileIndex];
+                CreateMarker(midBoss, selected);
+                available.RemoveAt(tileIndex);
             }
 
             int count = Mathf.Min(nodes.Count, available.Count);
@@ -200,8 +194,7 @@ namespace CardBattle.Exploration
                     0,
                     available.Count - 1);
                 int tileIndex = FindClearTileIndex(available, preferredIndex, GetNodeFootprint(nodes[i].type));
-                if (tileIndex < 0)
-                    continue;
+                tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex);
 
                 GeneratedHexTile selected = available[tileIndex];
                 CreateMarker(nodes[i], selected);
@@ -563,6 +556,39 @@ namespace CardBattle.Exploration
             }
 
             return bestIndex;
+        }
+
+        private int FindRequiredTileIndex(
+            IReadOnlyList<GeneratedHexTile> candidates,
+            int preferredIndex,
+            int clearTileIndex)
+        {
+            if (clearTileIndex >= 0)
+                return clearTileIndex;
+
+            int fallbackIndex = -1;
+            int fallbackDistance = int.MaxValue;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                GeneratedHexTile candidate = candidates[i];
+                if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform))
+                    continue;
+
+                int distance = Mathf.Abs(i - preferredIndex);
+                if (distance >= fallbackDistance)
+                    continue;
+
+                fallbackIndex = i;
+                fallbackDistance = distance;
+            }
+
+            if (fallbackIndex < 0)
+                throw new InvalidOperationException("A required field node has no available tile.");
+
+            Debug.LogWarning(
+                "[FieldEncounterDistributor] Required node used the nearest free tile because its preferred clearance was unavailable.",
+                this);
+            return fallbackIndex;
         }
 
         private bool IsClearOfOccupied(Vector3 position, float footprint)
