@@ -289,6 +289,7 @@ namespace CardBattle
         private bool enemyStunned;
         private int enemyStunTurns;
         private bool gameOver;
+        private bool enemyDeathAnimationStarted;
         private bool combatLocked;
         private RpsAction? selectedAction;
         private bool hasPendingEnemyIntent;
@@ -817,8 +818,11 @@ namespace CardBattle
             if (!impactFinished)
                 yield return new WaitUntil(() => impactFinished);
 
-            if (enemyAnimator != null && enemyHp <= 0)
+            if (enemyAnimator != null && enemyHp <= 0 && !enemyDeathAnimationStarted)
+            {
+                enemyDeathAnimationStarted = true;
                 enemyAnimator.Play(EnemyAnimState.Death);
+            }
 
             if (enemyWasStunned)
             {

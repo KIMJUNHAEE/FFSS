@@ -3096,7 +3096,7 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void ProductionBossAndMidbossDeathAnimationsNeverLoop()
+        public void EveryProductionEnemyDeathAnimationNeverLoops()
         {
             string[] guids = AssetDatabase.FindAssets(
                 "t:Scene",
@@ -3107,9 +3107,6 @@ namespace FFSS.Framework.Tests
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.Contains("Combat_Boss_") && !path.Contains("Combat_Midboss_"))
-                    continue;
-
                 Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
                 try
                 {

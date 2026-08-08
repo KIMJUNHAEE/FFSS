@@ -54,6 +54,7 @@ namespace CardBattle
         private Quaternion baseLocalRotation;
         private Color baseColor;
         private bool visualStateReady;
+        private bool deathAnimationStarted;
 
         private void Start()
         {
@@ -65,6 +66,8 @@ namespace CardBattle
         {
             if (CurrentState == EnemyAnimState.Death) return; // 죽은 뒤에는 다른 애니메이션으로 덮지 않음
 
+            if (state == EnemyAnimState.Death && deathAnimationStarted) return;
+
             var sequence = GetSequence(state);
             // 이미 같은 반복 애니메이션(Idle 등)을 재생 중이면 다시 시작하지 않음 - 프레임이 0번으로
             // 되돌아가며 튀는 히치를 막는다. Attack/Hurt처럼 반복 안 하는 연출은 맞을 때마다 새로
@@ -73,6 +76,8 @@ namespace CardBattle
 
             bool animateEntry = state != CurrentState;
             CurrentState = state;
+            if (state == EnemyAnimState.Death)
+                deathAnimationStarted = true;
             if (playRoutine != null) StopCoroutine(playRoutine);
             playRoutine = StartCoroutine(PlayRoutine(sequence, state, animateEntry, onComplete));
         }
@@ -112,7 +117,11 @@ namespace CardBattle
                 yield break;
             }
 
-            float frameDuration = 1f / Mathf.Max(1f, sequence.frameRate);
+            bool isDeath = state == EnemyAnimState.Death;
+            bool shouldLoop = sequence.loop && !isDeath;
+            float frameDuration = isDeath
+                ? Mathf.Clamp(1.1f / Mathf.Max(1, sequence.frames.Count), 0.035f, 0.1f)
+                : 1f / Mathf.Max(1f, sequence.frameRate);
             int lastIndex = sequence.frames.Count - 1;
             int i = 0;
             int direction = 1;
@@ -120,7 +129,7 @@ namespace CardBattle
             Vector2 visualOffset = VisualOffset(state);
 
             if (animateEntry)
-                yield return FadeSwap(sequence.frames[0], visualScale, visualOffset, state == EnemyAnimState.Death ? 0.16f : 0.10f);
+                yield return FadeSwap(sequence.frames[0], visualScale, visualOffset, isDeath ? 0.08f : 0.10f);
             else
             {
                 EnsureVisualState();
@@ -131,16 +140,13 @@ namespace CardBattle
 
             while (true)
             {
-                if (i > 0 && state == EnemyAnimState.Death)
-                    yield return FadeSwap(sequence.frames[i], visualScale, visualOffset, 0.12f);
-                else
-                    targetImage.sprite = sequence.frames[i];
+                targetImage.sprite = sequence.frames[i];
                 float wait = frameDuration;
-                if (sequence.loop && sequence.pingPong && (i == 0 || i == lastIndex))
+                if (shouldLoop && sequence.pingPong && (i == 0 || i == lastIndex))
                     wait += sequence.pingPongEdgeHold;
                 yield return new WaitForSeconds(wait);
 
-                if (sequence.loop && sequence.pingPong && lastIndex > 0)
+                if (shouldLoop && sequence.pingPong && lastIndex > 0)
                 {
                     i += direction;
                     if (i > lastIndex) { i = lastIndex - 1; direction = -1; }
@@ -151,7 +157,7 @@ namespace CardBattle
                 i++;
                 if (i <= lastIndex) continue;
 
-                if (sequence.loop)
+                if (shouldLoop)
                 {
                     i = 0;
                     continue;
