@@ -184,7 +184,11 @@ namespace CardBattle.Exploration
                     available,
                     preferredIndex,
                     GetNodeFootprint(RunFieldContentType.MidBoss));
-                tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex);
+                tileIndex = FindRequiredTileIndex(
+                    available,
+                    preferredIndex,
+                    tileIndex,
+                    GetNodeFootprint(RunFieldContentType.MidBoss));
                 GeneratedHexTile selected = available[tileIndex];
                 CreateMarker(midBoss, selected);
                 available.RemoveAt(tileIndex);
@@ -197,8 +201,9 @@ namespace CardBattle.Exploration
                     Mathf.FloorToInt((i + 1f) * available.Count / (count + 1f)),
                     0,
                     available.Count - 1);
-                int tileIndex = FindClearTileIndex(available, preferredIndex, GetNodeFootprint(nodes[i].type));
-                tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex);
+                float footprint = GetNodeFootprint(nodes[i].type);
+                int tileIndex = FindClearTileIndex(available, preferredIndex, footprint);
+                tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex, footprint);
 
                 GeneratedHexTile selected = available[tileIndex];
                 CreateMarker(nodes[i], selected);
@@ -547,6 +552,7 @@ namespace CardBattle.Exploration
             {
                 GeneratedHexTile candidate = candidates[i];
                 if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform) ||
+                    !IsClearOfPlayer(candidate.Tile.transform.position, footprint) ||
                     !IsClearOfOccupied(candidate.Tile.transform.position, footprint))
                     continue;
 
@@ -564,25 +570,31 @@ namespace CardBattle.Exploration
         private int FindRequiredTileIndex(
             IReadOnlyList<GeneratedHexTile> candidates,
             int preferredIndex,
-            int clearTileIndex)
+            int clearTileIndex,
+            float footprint)
         {
             if (clearTileIndex >= 0)
                 return clearTileIndex;
 
             int fallbackIndex = -1;
             int fallbackDistance = int.MaxValue;
+            float bestClearance = float.NegativeInfinity;
             for (int i = 0; i < candidates.Count; i++)
             {
                 GeneratedHexTile candidate = candidates[i];
-                if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform))
+                if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform) ||
+                    !IsClearOfPlayer(candidate.Tile.transform.position, footprint))
                     continue;
 
+                float clearance = MinimumClearance(candidate.Tile.transform.position, footprint);
                 int distance = Mathf.Abs(i - preferredIndex);
-                if (distance >= fallbackDistance)
+                if (clearance < bestClearance - 0.001f ||
+                    (Mathf.Abs(clearance - bestClearance) <= 0.001f && distance >= fallbackDistance))
                     continue;
 
                 fallbackIndex = i;
                 fallbackDistance = distance;
+                bestClearance = clearance;
             }
 
             if (fallbackIndex < 0)
@@ -592,6 +604,30 @@ namespace CardBattle.Exploration
                 "[FieldEncounterDistributor] Required node used the nearest free tile because its preferred clearance was unavailable.",
                 this);
             return fallbackIndex;
+        }
+
+        private float MinimumClearance(Vector3 position, float footprint)
+        {
+            float minimum = float.PositiveInfinity;
+            foreach (KeyValuePair<Transform, float> occupied in occupiedTileRadii)
+            {
+                if (occupied.Key == null)
+                    continue;
+
+                float distance = ExplorationGeometryUtility.PlanarDistance(position, occupied.Key.position);
+                minimum = Mathf.Min(minimum, distance - (footprint + occupied.Value));
+            }
+
+            return float.IsPositiveInfinity(minimum) ? float.MaxValue : minimum;
+        }
+
+        private bool IsClearOfPlayer(Vector3 position, float footprint)
+        {
+            if (player == null)
+                return true;
+
+            float clearance = footprint + 1.2f;
+            return ExplorationGeometryUtility.PlanarSqrDistance(position, player.position) >= clearance * clearance;
         }
 
         private bool IsClearOfOccupied(Vector3 position, float footprint)

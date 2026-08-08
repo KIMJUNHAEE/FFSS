@@ -10,6 +10,8 @@ namespace CardBattle
         [SerializeField] private string title;
         [SerializeField, TextArea(2, 7)] private string body;
 
+        private CardHoverPreview ownerPreview;
+
         public void Configure(Sprite cardArtwork, string cardTitle, string cardBody)
         {
             artwork = cardArtwork;
@@ -22,18 +24,29 @@ namespace CardBattle
             artwork = null;
             title = string.Empty;
             body = string.Empty;
-            CardHoverPreview.Current?.Hide();
+            ResolvePreview()?.Hide();
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
             if (artwork != null)
-                CardHoverPreview.Current?.Show(artwork, title, body);
+                ResolvePreview()?.Show(artwork, title, body);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            CardHoverPreview.Current?.Hide();
+            ResolvePreview()?.Hide();
+        }
+
+        private CardHoverPreview ResolvePreview()
+        {
+            if (ownerPreview != null)
+                return ownerPreview;
+
+            ownerPreview = GetComponentInParent<CardHoverPreview>(true);
+            if (ownerPreview == null)
+                ownerPreview = CardHoverPreview.Current;
+            return ownerPreview;
         }
     }
 }
