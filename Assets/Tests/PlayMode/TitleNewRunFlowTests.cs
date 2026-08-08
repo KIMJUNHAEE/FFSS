@@ -326,6 +326,8 @@ namespace FFSS.Framework.Tests
             yield return WaitFrames(3);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            runs.Current.gold = 500;
             UIScreen shop = ui.Show(UIScreenId.Shop, false);
             Assert.That(shop, Is.Not.Null);
             Component controller = shop.GetComponent("RunUIScreenController");
@@ -377,11 +379,52 @@ namespace FFSS.Framework.Tests
             AssertVisibleUiInsideViewport("shop equipment hover 1280x720");
             yield return CaptureScreenshot("flow_shop_equipment_hover_1280x720", 1280, 720);
 
+            RunEconomyManager economy = GameKernel.Services.Get<RunEconomyManager>();
+            RunShopState shopState = economy.GetOrCreateShop("shop.visual.qa");
+            Assert.That(shopState.stockIds, Is.Not.Empty);
+            RunShopOfferDefinition offer = economy.Catalog.GetOffer(shopState.stockIds[0]);
+            int goldBefore = runs.Current.gold;
+            Button purchase = firstAction.GetComponent<Button>();
+            Assert.That(purchase, Is.Not.Null);
+            purchase.onClick.Invoke();
+            yield return WaitFrames(2);
+            Assert.That(runs.Current.gold, Is.EqualTo(goldBefore - offer.price));
+            Assert.That(runs.Current.inventoryItemIds, Does.Contain(offer.contentId));
+            Assert.That(shopState.purchasedIds, Does.Contain(offer.offerId));
+            Assert.That(purchase.interactable, Is.False);
+
             ExecuteEvents.Execute(firstAction.gameObject, pointer, ExecuteEvents.pointerExitHandler);
             yield return WaitFrames(2);
             Assert.That(preview.gameObject.activeSelf, Is.False,
                 "Equipment details stayed visible after the pointer left the item.");
             ui.Hide(UIScreenId.Shop, false);
+        }
+
+        [UnityTest]
+        public IEnumerator FieldEquipmentCommandOpensOriginalDragInventory()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      FindVisibleScreen(UIScreenId.FieldHud) != null,
+                300,
+                "Production field did not become ready for inventory QA.");
+
+            UIScreen fieldHud = FindVisibleScreen(UIScreenId.FieldHud);
+            Button equipment = fieldHud.GetComponentsInChildren<Button>(true)
+                .FirstOrDefault(button => button.name == "Action 2");
+            Assert.That(equipment, Is.Not.Null);
+            equipment.onClick.Invoke();
+            yield return WaitFrames(3);
+
+            UIScreen inventory = FindVisibleScreen(UIScreenId.Inventory);
+            Assert.That(inventory, Is.Not.Null, "The field command did not open the drag inventory.");
+            Assert.That(FindVisibleScreen(UIScreenId.Equipment), Is.Null,
+                "The obsolete click-to-cycle equipment screen opened instead.");
+            Type slotType = Type.GetType("CardBattle.Inventory.EquipmentSlotView, Assembly-CSharp");
+            Assert.That(slotType, Is.Not.Null);
+            Assert.That(inventory.GetComponentsInChildren(slotType, true), Has.Length.EqualTo(4));
         }
 
         private static IEnumerator CaptureKeywordTooltip(UIScreen equipmentScreen)
@@ -452,6 +495,9 @@ namespace FFSS.Framework.Tests
 
             AssertFieldHudActLabel(1);
             yield return SetResolutionAndCapture("flow_act_1_field_1280x720", 1280, 720);
+            AssertVisibleUiInsideViewport("act 1 field 1280x720");
+            yield return SetResolutionAndCapture("flow_act_1_field_1920x1080", 1920, 1080);
+            AssertVisibleUiInsideViewport("act 1 field 1920x1080");
 
             for (int act = 1; act <= progression.Campaign.Acts.Count; act++)
             {
@@ -476,6 +522,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(FindVisibleScreen(UIScreenId.Rest), Is.Null,
                     $"act {act} incorrectly opened a field rest screen.");
                 yield return SetResolutionAndCapture($"flow_act_{act}_transition_1280x720", 1280, 720);
+                AssertVisibleUiInsideViewport($"act {act} transition 1280x720");
 
                 if (act < progression.Campaign.Acts.Count)
                 {
@@ -511,6 +558,9 @@ namespace FFSS.Framework.Tests
                         $"act {act} did not continue to the next field.");
                     AssertFieldHudActLabel(act + 1);
                     yield return SetResolutionAndCapture($"flow_act_{act + 1}_field_1280x720", 1280, 720);
+                    AssertVisibleUiInsideViewport($"act {act + 1} field 1280x720");
+                    yield return SetResolutionAndCapture($"flow_act_{act + 1}_field_1920x1080", 1920, 1080);
+                    AssertVisibleUiInsideViewport($"act {act + 1} field 1920x1080");
                 }
                 else
                 {

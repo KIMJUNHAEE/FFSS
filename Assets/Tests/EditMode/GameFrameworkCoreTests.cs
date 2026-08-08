@@ -2878,6 +2878,41 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionBossAndMidbossDeathAnimationsNeverLoop()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:Scene",
+                new[] { "Assets/Scenes/Production/Battles" });
+            Type animatorType = Type.GetType("CardBattle.EnemySpriteAnimator, Assembly-CSharp");
+            Assert.That(animatorType, Is.Not.Null);
+
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!path.Contains("Combat_Boss_") && !path.Contains("Combat_Midboss_"))
+                    continue;
+
+                Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+                try
+                {
+                    Component animator = scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren(animatorType, true))
+                        .Cast<Component>()
+                        .Single();
+                    SerializedProperty death = new SerializedObject(animator).FindProperty("death");
+                    Assert.That(death, Is.Not.Null, path);
+                    Assert.That(death.FindPropertyRelative("frames").arraySize, Is.GreaterThan(0), path);
+                    Assert.That(death.FindPropertyRelative("loop").boolValue, Is.False,
+                        $"{path}: death must finish on its final frame instead of repeating.");
+                }
+                finally
+                {
+                    EditorSceneManager.CloseScene(scene, true);
+                }
+            }
+        }
+
+        [Test]
         public void ProductionScenesUseOnlyTheInputSystemUiModule()
         {
             string[] guids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes/Production" });
