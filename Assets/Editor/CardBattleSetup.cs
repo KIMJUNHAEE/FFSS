@@ -2112,7 +2112,7 @@ namespace CardBattle.EditorTools
             if (useBoss38SmallTables)
             {
                 var enemyHud = InstantiateUiPrefabFixed(boss38Ui.BossHud(enemyId), canvasT, "EnemyHUD",
-                    new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -28f));
+                    new Vector2(1f, 1f), new Vector2(1f, 1f), Vector2.zero);
                 enemyPanel = enemyHud.GetComponent<Image>();
                 FindUi<Text>(enemyHud, "NameText").text = BossDisplayName(enemyId);
                 Text enemyTitle = FindUi<Text>(enemyHud, "TitleText");
