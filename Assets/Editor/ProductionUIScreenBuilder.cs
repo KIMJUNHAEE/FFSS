@@ -760,8 +760,8 @@ namespace FFSS.Editor
                 "Balance",
                 playerHud,
                 "gauge_pressure_gold_small.png",
-                new Vector2(205f, 21f),
-                new Vector2(33f, -25f));
+                new Vector2(252f, 24f),
+                new Vector2(56f, -36.2f));
             build.HpGaugeText = CreateText(
                 "HP Text",
                 playerHud,
