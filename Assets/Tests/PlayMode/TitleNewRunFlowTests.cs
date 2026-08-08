@@ -413,7 +413,7 @@ namespace FFSS.Framework.Tests
 
             UIScreen fieldHud = FindVisibleScreen(UIScreenId.FieldHud);
             Button equipment = fieldHud.GetComponentsInChildren<Button>(true)
-                .FirstOrDefault(button => button.name == "Action 2");
+                .FirstOrDefault(button => button.name == "장비 Button");
             Assert.That(equipment, Is.Not.Null);
             equipment.onClick.Invoke();
             yield return WaitFrames(3);

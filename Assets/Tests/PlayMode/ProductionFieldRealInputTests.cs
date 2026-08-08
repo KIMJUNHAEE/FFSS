@@ -145,7 +145,7 @@ namespace FFSS.Framework.Tests
                 "Real keyboard input could not move the player away from the starting tile.");
 
             yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap);
-            yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Equipment);
+            yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Inventory);
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 
             UIManager ui = GameKernel.Services.Get<UIManager>();

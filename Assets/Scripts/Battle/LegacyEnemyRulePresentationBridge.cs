@@ -161,13 +161,13 @@ namespace CardBattle
             switch (rule.kind)
             {
                 case EnemyRuleBehaviorKind.PineRedraw when replaced >= rule.redrawThreshold:
-                    AddMeter(rule.meterGain);
+                    AddMeter(rule.meterGain, false);
                     break;
                 case EnemyRuleBehaviorKind.RedrawRisk:
-                    SetMeter(replaced);
+                    SetMeter(replaced, false);
                     break;
                 case EnemyRuleBehaviorKind.GwangHeat when replaced >= rule.redrawThreshold:
-                    AddMeter(rule.meterGain);
+                    AddMeter(rule.meterGain, false);
                     break;
             }
         }
@@ -825,7 +825,7 @@ namespace CardBattle
                 encounter.ruleMeter.maximumValue);
         }
 
-        private void SetMeter(int value)
+        private void SetMeter(int value, bool playFeedback = true)
         {
             int before = GetMeter();
             int clamped;
@@ -840,12 +840,15 @@ namespace CardBattle
                 meterView.Render(encounter.ruleMeter, clamped);
             }
 
-            PlayRuleFeedback(before, clamped);
+            if (playFeedback)
+            {
+                PlayRuleFeedback(before, clamped);
+            }
         }
 
-        private void AddMeter(int delta)
+        private void AddMeter(int delta, bool playFeedback = true)
         {
-            SetMeter(GetMeter() + delta);
+            SetMeter(GetMeter() + delta, playFeedback);
         }
 
         private void HandleMeterChanged(EnemyRuleMeterChangedEvent message)
