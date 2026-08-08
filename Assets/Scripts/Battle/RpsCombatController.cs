@@ -1874,10 +1874,16 @@ namespace CardBattle
             {
                 bool canRedraw = pokerHand == null || pokerHand.CanRedraw;
                 redrawButton.interactable = canInput && canRedraw;
-                Text label = redrawButton.GetComponentInChildren<Text>(true);
-                if (label != null && pokerHand != null)
+                CombatCommandLabelView commandLabel = redrawButton.GetComponent<CombatCommandLabelView>();
+                if (commandLabel != null && pokerHand != null)
                 {
-                    label.text = $"다시뽑기  {pokerHand.RedrawsRemaining}/{pokerHand.RedrawLimit}";
+                    commandLabel.SetCounter(pokerHand.RedrawsRemaining, pokerHand.RedrawLimit);
+                }
+                else
+                {
+                    Text label = redrawButton.GetComponentInChildren<Text>(true);
+                    if (label != null && pokerHand != null)
+                        label.text = $"다시뽑기  {pokerHand.RedrawsRemaining}/{pokerHand.RedrawLimit}";
                 }
             }
             if (endTurnButton) endTurnButton.interactable = canInput && selectedAction != null;

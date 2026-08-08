@@ -16,6 +16,7 @@ namespace CardBattle.Exploration
         [SerializeField] private SpriteRenderer landmarkRenderer;
         [SerializeField] private SpriteRenderer actorRenderer;
         [SerializeField] private Text nameText;
+        [SerializeField] private Image categoryLabelImage;
         [SerializeField] private Color idleColor = Color.white;
         [SerializeField] private Color focusedColor = new(1f, 0.82f, 0.28f, 1f);
         [SerializeField] private bool hideLabelUntilFocused = true;
@@ -205,8 +206,11 @@ namespace CardBattle.Exploration
             if (nameText != null)
             {
                 nameText.color = focused ? focusedColor : new Color(0.96f, 0.93f, 0.82f, 1f);
-                nameText.gameObject.SetActive(!hideLabelUntilFocused || focused);
+                nameText.gameObject.SetActive(categoryLabelImage == null && (!hideLabelUntilFocused || focused));
             }
+
+            if (categoryLabelImage != null)
+                categoryLabelImage.gameObject.SetActive(!hideLabelUntilFocused || focused);
 
             if (!Application.isPlaying && visualRoot != null)
                 visualRoot.localScale = baseLocalScale * (focused ? focusedScale : 1f);
