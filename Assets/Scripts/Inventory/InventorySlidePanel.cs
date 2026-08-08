@@ -64,6 +64,11 @@ namespace CardBattle.Inventory
             slideRoutine = StartCoroutine(SlideOut(onComplete));
         }
 
+        public void Close()
+        {
+            InventoryScreenController.Close();
+        }
+
         private IEnumerator SlideIn()
         {
             // AspectRatioFitter가 sizeDelta를 다시 계산하므로, rect.height를 재기 전에 캔버스
