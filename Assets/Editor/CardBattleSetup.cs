@@ -55,9 +55,20 @@ namespace CardBattle.EditorTools
         };
         private static readonly string[] NormalDdaengIds =
             { "1땡", "2땡", "3땡", "4땡", "5땡", "6땡", "7땡", "8땡", "9땡", "10땡" };
-        private static readonly Vector2 Boss38TableSize = new Vector2(1060f, 334f);
+        private static readonly Vector2 Boss38TableSize = new Vector2(1420f, 447f);
         private static readonly Vector2 PokerCardSize = new Vector2(91f, 131f);
         private static readonly Vector2 SeotdaCardSize = new Vector2(91f, 146f);
+        private static readonly Vector2 AttackButtonPosition = new Vector2(-492.147827f, 287.885864f);
+        private static readonly Vector2 DefendButtonPosition = new Vector2(-492.147827f, 180.446777f);
+        private static readonly Vector2 SkillButtonPosition = new Vector2(-492.147827f, 73.50781f);
+        private static readonly Vector2 RedrawButtonPosition = new Vector2(-180.297f, 234.166321f);
+        private static readonly Vector2 EndTurnButtonPosition = new Vector2(-180.297f, 122.252808f);
+        private static readonly Vector2 PrimaryCommandButtonSize = new Vector2(291.594116f, 92.0155f);
+        private static readonly Vector2 SkillCommandButtonSize = new Vector2(291.594116f, 93.0155f);
+        private static readonly Vector2 SecondaryCommandButtonSize = new Vector2(290.594116f, 93.0155f);
+        private static readonly Vector2 ExpandedSkillDetailSize = new Vector2(1033.29578f, 580.2353f);
+        private static readonly Vector2 StandardSkillDetailSize = new Vector2(780f, 438f);
+        private static readonly Vector2 CompactEnemySkillDetailSize = new Vector2(430f, 500f);
 
         [MenuItem("Card Battle/Setup/Run All (Content + Prefab + Scenes)")]
         public static void RunAll()
@@ -1404,7 +1415,7 @@ namespace CardBattle.EditorTools
         private static GameObject BuildPlayerHudPrefab(Sprite sprite, Sprite attackIcon, Sprite defendIcon,
             Sprite hpFillSprite, Sprite breakFillSprite, Sprite emptyBarFillSprite)
         {
-            var root = CreatePrefabImageRoot("PlayerPokerHUD", sprite, new Vector2(680f, 286f));
+            var root = CreatePrefabImageRoot("PlayerPokerHUD", sprite, new Vector2(560f, 242f));
 
             var attackImage = CreatePanel("AttackIcon", root.transform, new Vector2(0.32f, 0.51f), new Vector2(0.39f, 0.67f), Color.white);
             attackImage.sprite = attackIcon;
@@ -2111,8 +2122,11 @@ namespace CardBattle.EditorTools
 
             if (useBoss38SmallTables)
             {
+                Vector2 enemyHudPosition = enemyId == NormalDdaengIds[0]
+                    ? Vector2.zero
+                    : new Vector2(-24f, -28f);
                 var enemyHud = InstantiateUiPrefabFixed(boss38Ui.BossHud(enemyId), canvasT, "EnemyHUD",
-                    new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -28f));
+                    new Vector2(1f, 1f), new Vector2(1f, 1f), enemyHudPosition);
                 enemyPanel = enemyHud.GetComponent<Image>();
                 FindUi<Text>(enemyHud, "NameText").text = BossDisplayName(enemyId);
                 Text enemyTitle = FindUi<Text>(enemyHud, "TitleText");
@@ -2123,7 +2137,7 @@ namespace CardBattle.EditorTools
                 enemyBreakFill = FindUi<Image>(enemyHud, "PressureBarBg/PressureBarFill");
 
                 var playerHud = InstantiateUiPrefabFixed(boss38Ui.playerHud, canvasT, "PlayerHUD",
-                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -52f));
+                    new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero);
                 playerPanel = playerHud.GetComponent<Image>();
                 playerHpFill = FindUi<Image>(playerHud, "HpBarBg/HpBarFill");
                 playerHpText = FindUi<Text>(playerHud, "HpText");
@@ -2267,15 +2281,15 @@ namespace CardBattle.EditorTools
             if (useBoss38SmallTables)
             {
                 attackButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "AttackButton",
-                    new Vector2(0.695f, 0.245f), new Vector2(0.835f, 0.34f), boss38Ui.attackIcon, "공격");
+                    AttackButtonPosition, PrimaryCommandButtonSize, boss38Ui.attackIcon, "공격");
                 defendButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "DefendButton",
-                    new Vector2(0.695f, 0.135f), new Vector2(0.835f, 0.23f), boss38Ui.defendIcon, "방어");
+                    DefendButtonPosition, PrimaryCommandButtonSize, boss38Ui.defendIcon, "방어");
                 skillButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "SkillButton",
-                    new Vector2(0.695f, 0.025f), new Vector2(0.835f, 0.12f), boss38Ui.skillIcon, "스킬");
+                    SkillButtonPosition, SkillCommandButtonSize, boss38Ui.skillIcon, "스킬");
                 redrawButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "RedrawButton",
-                    new Vector2(0.845f, 0.19f), new Vector2(0.985f, 0.285f), boss38Ui.redrawIcon, "다시뽑기");
+                    RedrawButtonPosition, SecondaryCommandButtonSize, boss38Ui.redrawIcon, "다시뽑기");
                 endTurnButton = InstantiateCommandButton(boss38Ui.commandButton, canvasT, "EndTurnButton",
-                    new Vector2(0.845f, 0.075f), new Vector2(0.985f, 0.17f), boss38Ui.endTurnIcon, "턴 종료");
+                    EndTurnButtonPosition, SecondaryCommandButtonSize, boss38Ui.endTurnIcon, "턴 종료");
             }
             else
             {
@@ -2291,8 +2305,15 @@ namespace CardBattle.EditorTools
             GameObject enemyIntentHitArea;
             if (useBoss38SmallTables)
             {
+                bool usesFirstDdaengLayout = enemyId == NormalDdaengIds[0];
+                Vector2 intentBadgePosition = usesFirstDdaengLayout
+                    ? new Vector2(-23.65503f, 35.471f)
+                    : new Vector2(-165f, 18f);
+                Vector2 intentBadgeSize = usesFirstDdaengLayout
+                    ? new Vector2(512.69f, 589.5941f)
+                    : new Vector2(300f, 345f);
                 enemyIntentHitArea = InstantiateUiPrefabFixed(boss38Ui.IntentBadge(enemyId), canvasT, "EnemyIntentBadge",
-                    new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-165f, 18f));
+                    new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), intentBadgePosition, intentBadgeSize);
                 enemyIntentHitArea.GetComponent<Image>().raycastTarget = true;
                 enemyActionText = FindUi<Text>(enemyIntentHitArea, "ActionText");
                 enemyStatText = FindUi<Text>(enemyIntentHitArea, "StatText");
@@ -2315,8 +2336,17 @@ namespace CardBattle.EditorTools
             Text enemyIntentTooltipBody = null;
             if (useBoss38SmallTables)
             {
+                bool centersEnemySkillDetail = UsesCenteredEnemySkillDetail(enemyId);
+                Vector2 enemySkillDetailAnchor = centersEnemySkillDetail
+                    ? new Vector2(0.5f, 0.5f)
+                    : new Vector2(1f, 0.5f);
+                Vector2 enemySkillDetailPivot = enemySkillDetailAnchor;
+                Vector2 enemySkillDetailPosition = centersEnemySkillDetail
+                    ? new Vector2(0f, 100f)
+                    : new Vector2(-555f, 48f);
+                Vector2 enemySkillDetailSize = EnemySkillDetailSize(enemyId);
                 var tooltipObject = InstantiateUiPrefabFixed(boss38Ui.EnemySkillDetailPanel(enemyId), canvasT, "EnemyIntentTooltip",
-                    new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-555f, 48f));
+                    enemySkillDetailAnchor, enemySkillDetailPivot, enemySkillDetailPosition, enemySkillDetailSize);
                 enemyIntentTooltipBg = tooltipObject.GetComponent<Image>();
                 enemyIntentTooltipTitle = FindUi<Text>(tooltipObject, "TitleText");
                 enemyIntentTooltipValue = FindUi<Text>(tooltipObject, "ValueText");
@@ -2342,8 +2372,15 @@ namespace CardBattle.EditorTools
             Text playerSkillBodyText = null;
             if (useBoss38SmallTables)
             {
+                bool usesExpandedPlayerSkillDetail = IsNormalDdaeng(enemyId) || enemyId == "멍구사";
+                Vector2 playerSkillDetailPosition = usesExpandedPlayerSkillDetail
+                    ? new Vector2(0f, 100f)
+                    : new Vector2(0f, 92f);
+                Vector2 playerSkillDetailSize = usesExpandedPlayerSkillDetail
+                    ? ExpandedSkillDetailSize
+                    : StandardSkillDetailSize;
                 playerSkillDetailRoot = InstantiateUiPrefabFixed(boss38Ui.skillDetailPanel, canvasT, "PlayerSkillDetail",
-                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 92f));
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), playerSkillDetailPosition, playerSkillDetailSize);
                 playerSkillTitleText = FindUi<Text>(playerSkillDetailRoot, "TitleText");
                 playerSkillValueText = FindUi<Text>(playerSkillDetailRoot, "ValueText");
                 playerSkillBodyText = FindUi<Text>(playerSkillDetailRoot, "BodyText");
@@ -2713,6 +2750,14 @@ namespace CardBattle.EditorTools
             return instance;
         }
 
+        private static GameObject InstantiateUiPrefabFixed(GameObject prefab, Transform parent, string name,
+            Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Vector2 sizeDelta)
+        {
+            GameObject instance = InstantiateUiPrefabFixed(prefab, parent, name, anchor, pivot, anchoredPosition);
+            instance.GetComponent<RectTransform>().sizeDelta = sizeDelta;
+            return instance;
+        }
+
         private static T FindUi<T>(GameObject root, string path) where T : Component
         {
             var child = root.transform.Find(path);
@@ -2723,9 +2768,10 @@ namespace CardBattle.EditorTools
         }
 
         private static Button InstantiateCommandButton(GameObject prefab, Transform parent, string name,
-            Vector2 anchorMin, Vector2 anchorMax, Sprite icon, string label)
+            Vector2 anchoredPosition, Vector2 sizeDelta, Sprite icon, string label)
         {
-            var instance = InstantiateUiPrefab(prefab, parent, name, anchorMin, anchorMax);
+            var instance = InstantiateUiPrefabFixed(prefab, parent, name,
+                new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), anchoredPosition, sizeDelta);
             var button = instance.GetComponent<Button>();
             var iconImage = FindUi<Image>(instance, "IconImage");
             var labelText = FindUi<Text>(instance, "LabelText");
@@ -2737,6 +2783,28 @@ namespace CardBattle.EditorTools
             labelText.fontSizeMax = 23;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             return button;
+        }
+
+        private static bool IsNormalDdaeng(string enemyId)
+        {
+            return System.Array.IndexOf(NormalDdaengIds, enemyId) >= 0;
+        }
+
+        private static bool UsesCenteredEnemySkillDetail(string enemyId)
+        {
+            return enemyId == "13" || enemyId == "18" || enemyId == "38" ||
+                   enemyId == "암행어사" || enemyId == "땡잡이" || enemyId == "구사" ||
+                   enemyId == NormalDdaengIds[0];
+        }
+
+        private static Vector2 EnemySkillDetailSize(string enemyId)
+        {
+            int normalDdaengIndex = System.Array.IndexOf(NormalDdaengIds, enemyId);
+            if (normalDdaengIndex == 0 || UsesCenteredEnemySkillDetail(enemyId))
+                return ExpandedSkillDetailSize;
+            if (normalDdaengIndex >= 1 && normalDdaengIndex <= 7)
+                return CompactEnemySkillDetailSize;
+            return StandardSkillDetailSize;
         }
 
         /// <summary>SerializedObject에서 프로퍼티를 찾고, 없으면 로그만 남기고 null을 돌려준다.

@@ -217,16 +217,21 @@ namespace FFSS.Editor
             }
 
             var retainedRoots = new HashSet<GameObject>();
-            NormalizeCommandButton(combat.attackButton, "AttackButton", new Vector2(0.695f, 0.245f),
-                new Vector2(0.835f, 0.34f), combat.attackActionIcon, "\uacf5\uaca9", retainedRoots);
-            NormalizeCommandButton(combat.defendButton, "DefendButton", new Vector2(0.695f, 0.135f),
-                new Vector2(0.835f, 0.23f), combat.defendActionIcon, "\ubc29\uc5b4", retainedRoots);
-            NormalizeCommandButton(combat.skillButton, "SkillButton", new Vector2(0.695f, 0.025f),
-                new Vector2(0.835f, 0.12f), combat.skillActionIcon, "\uc2a4\ud0ac", retainedRoots);
-            NormalizeCommandButton(combat.redrawButton, "RedrawButton", new Vector2(0.845f, 0.19f),
-                new Vector2(0.985f, 0.285f), null, "\ub2e4\uc2dc\ubf51\uae30", retainedRoots);
-            NormalizeCommandButton(combat.endTurnButton, "EndTurnButton", new Vector2(0.845f, 0.075f),
-                new Vector2(0.985f, 0.17f), combat.endTurnActionIcon, "\ud134 \uc885\ub8cc", retainedRoots);
+            NormalizeCommandButton(combat.attackButton, "AttackButton",
+                new Vector2(-492.147827f, 287.885864f), new Vector2(291.594116f, 92.0155f),
+                combat.attackActionIcon, "\uacf5\uaca9", retainedRoots);
+            NormalizeCommandButton(combat.defendButton, "DefendButton",
+                new Vector2(-492.147827f, 180.446777f), new Vector2(291.594116f, 92.0155f),
+                combat.defendActionIcon, "\ubc29\uc5b4", retainedRoots);
+            NormalizeCommandButton(combat.skillButton, "SkillButton",
+                new Vector2(-492.147827f, 73.50781f), new Vector2(291.594116f, 93.0155f),
+                combat.skillActionIcon, "\uc2a4\ud0ac", retainedRoots);
+            NormalizeCommandButton(combat.redrawButton, "RedrawButton",
+                new Vector2(-180.297f, 234.166321f), new Vector2(290.594116f, 93.0155f),
+                null, "\ub2e4\uc2dc\ubf51\uae30", retainedRoots);
+            NormalizeCommandButton(combat.endTurnButton, "EndTurnButton",
+                new Vector2(-180.297f, 122.252808f), new Vector2(290.594116f, 93.0155f),
+                combat.endTurnActionIcon, "\ud134 \uc885\ub8cc", retainedRoots);
 
             CombatCommandSelectionView[] commandViews = FindAllInScene<CombatCommandSelectionView>(scene);
             for (int i = commandViews.Length - 1; i >= 0; i--)
@@ -249,8 +254,8 @@ namespace FFSS.Editor
         private static void NormalizeCommandButton(
             Button button,
             string objectName,
-            Vector2 anchorMin,
-            Vector2 anchorMax,
+            Vector2 anchoredPosition,
+            Vector2 sizeDelta,
             Sprite iconSprite,
             string labelValue,
             ISet<GameObject> retainedRoots)
@@ -264,11 +269,11 @@ namespace FFSS.Editor
             root.SetActive(true);
 
             RectTransform rect = root.GetComponent<RectTransform>();
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
+            rect.anchorMin = new Vector2(1f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = Vector2.zero;
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = sizeDelta;
             rect.localScale = Vector3.one;
             PrefabUtility.RecordPrefabInstancePropertyModifications(rect);
 
@@ -329,8 +334,8 @@ namespace FFSS.Editor
             meterRect.anchorMin = Vector2.one;
             meterRect.anchorMax = Vector2.one;
             meterRect.pivot = Vector2.one;
-            meterRect.anchoredPosition = new Vector2(-24f, -250f);
-            meterRect.sizeDelta = new Vector2(300f, 60f);
+            meterRect.anchoredPosition = new Vector2(-560.1805f, -123.600067f);
+            meterRect.sizeDelta = new Vector2(301f, 60f);
             meterRect.localScale = Vector3.one;
             meterObject.transform.SetAsLastSibling();
 
