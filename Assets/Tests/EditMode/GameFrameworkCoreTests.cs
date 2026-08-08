@@ -548,7 +548,9 @@ namespace FFSS.Framework.Tests
                 new[] { "7땡", "8땡", "9땡", "10땡" },
                 campaign.GetAct(3).normalEnemyIds);
 
-            int[] expectedNodeCounts = { 11, 14, 16 };
+            int[] expectedMaximumNodeCounts = { 13, 16, 19 };
+            int[] expectedMinimumSupplies = { 1, 2, 2 };
+            int[] expectedMaximumSupplies = { 2, 2, 3 };
             for (int act = 1; act <= 3; act++)
             {
                 RunActDefinition definition = campaign.GetAct(act);
@@ -556,33 +558,52 @@ namespace FFSS.Framework.Tests
                 Assert.That(definition.eventIds.Count, Is.GreaterThanOrEqualTo(definition.requiredEvents), $"act {act}");
                 Assert.That(definition.midBossIds, Is.Not.Empty, $"act {act}");
                 Assert.That(definition.restCount, Is.Zero, $"act {act}");
-                int nodeCount = definition.requiredNormalVictories + definition.requiredEvents +
-                                definition.shopCount + 2;
-                Assert.That(nodeCount, Is.EqualTo(expectedNodeCounts[act - 1]), $"act {act}");
-                Assert.That(definition.fieldRoute, Has.Count.EqualTo(nodeCount), $"act {act}");
+                Assert.That(definition.minimumSupplyCount, Is.EqualTo(expectedMinimumSupplies[act - 1]), $"act {act}");
+                Assert.That(definition.maximumSupplyCount, Is.EqualTo(expectedMaximumSupplies[act - 1]), $"act {act}");
+                Assert.That(definition.supplyEventIds.Count,
+                    Is.GreaterThanOrEqualTo(definition.maximumSupplyCount), $"act {act}");
+                int maximumNodeCount = definition.requiredNormalVictories + definition.requiredEvents +
+                                       definition.shopCount + definition.maximumSupplyCount + 2;
+                Assert.That(maximumNodeCount, Is.EqualTo(expectedMaximumNodeCounts[act - 1]), $"act {act}");
+                Assert.That(definition.fieldRoute, Has.Count.EqualTo(maximumNodeCount), $"act {act}");
                 Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Combat),
                     Is.EqualTo(definition.requiredNormalVictories), $"act {act}");
                 Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Event),
                     Is.EqualTo(definition.requiredEvents), $"act {act}");
                 Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Shop),
                     Is.EqualTo(definition.shopCount), $"act {act}");
+                Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.Supply),
+                    Is.EqualTo(definition.maximumSupplyCount), $"act {act}");
                 Assert.That(definition.fieldRoute.Count(value => value == RunFieldRouteSlot.MidBoss),
                     Is.EqualTo(1), $"act {act}");
                 Assert.That(definition.fieldRoute[^1], Is.EqualTo(RunFieldRouteSlot.BossDoor), $"act {act}");
             }
 
-            Assert.That(campaign.GetAct(2).fieldRoute.TakeLast(3), Is.EqualTo(new[]
+            Assert.That(campaign.GetAct(2).fieldRoute.TakeLast(5), Is.EqualTo(new[]
             {
                 RunFieldRouteSlot.MidBoss,
+                RunFieldRouteSlot.Supply,
                 RunFieldRouteSlot.Shop,
+                RunFieldRouteSlot.Supply,
                 RunFieldRouteSlot.BossDoor
-            }), "Act 2 must route Gusa into the fixed pre-boss shop.");
-            Assert.That(campaign.GetAct(3).fieldRoute.TakeLast(3), Is.EqualTo(new[]
+            }), "Act 2 must route Gusa through supply and the fixed pre-boss shop.");
+            Assert.That(campaign.GetAct(3).fieldRoute.TakeLast(5), Is.EqualTo(new[]
             {
                 RunFieldRouteSlot.Shop,
                 RunFieldRouteSlot.Event,
+                RunFieldRouteSlot.Supply,
+                RunFieldRouteSlot.Supply,
                 RunFieldRouteSlot.BossDoor
             }), "Act 3 final shop must be two route slots before 38 Gwangddaeng.");
+
+            RunContentCatalog content = AssetDatabase.LoadAssetAtPath<RunContentCatalog>(
+                "Assets/Data/Framework/RunContentCatalog.asset");
+            Assert.That(content, Is.Not.Null);
+            foreach (RunActDefinition definition in campaign.Acts)
+            {
+                foreach (string supplyEventId in definition.supplyEventIds)
+                    Assert.That(content.GetEvent(supplyEventId).act, Is.EqualTo(definition.act), supplyEventId);
+            }
 
             string fieldBuilder = File.ReadAllText("Assets/Editor/ProductionFieldEncounterBuilder.cs");
             Assert.That(fieldBuilder, Does.Not.Contain("RunFieldContentType.Rest"),
@@ -852,11 +873,13 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/RunContentCatalog.asset");
 
             Assert.That(catalog, Is.Not.Null);
-            Assert.That(catalog.Events, Has.Count.EqualTo(12));
-            Assert.That(catalog.Events.Count(value => value.act == 1), Is.EqualTo(3));
-            Assert.That(catalog.Events.Count(value => value.act == 2), Is.EqualTo(4));
-            Assert.That(catalog.Events.Count(value => value.act == 3), Is.EqualTo(5));
+            Assert.That(catalog.Events, Has.Count.EqualTo(19));
+            Assert.That(catalog.Events.Count(value => value.act == 1), Is.EqualTo(5));
+            Assert.That(catalog.Events.Count(value => value.act == 2), Is.EqualTo(6));
+            Assert.That(catalog.Events.Count(value => value.act == 3), Is.EqualTo(8));
             Assert.That(catalog.Events.All(value => value.choices.Count >= 2), Is.True);
+            Assert.That(catalog.Events.Count(value => value.eventId.StartsWith("supply.", StringComparison.Ordinal)),
+                Is.EqualTo(7));
             Assert.That(catalog.ShopOffers, Has.Count.GreaterThanOrEqualTo(10));
             Assert.That(catalog.RestOptions, Has.Count.EqualTo(3));
         }
@@ -1813,6 +1836,28 @@ namespace FFSS.Framework.Tests
                 {
                     UnityEngine.Object.DestroyImmediate(instance);
                 }
+            }
+
+            const string supplyBasePrefabPath =
+                "Assets/Prefabs/Production/Field/FieldContent_Event.prefab";
+            GameObject supplyBase = AssetDatabase.LoadAssetAtPath<GameObject>(supplyBasePrefabPath);
+            GameObject supplyInstance = UnityEngine.Object.Instantiate(supplyBase);
+            try
+            {
+                Component marker = supplyInstance.GetComponent("FieldEncounterMarkerView");
+                marker.GetType().GetMethod("ConfigureMarkerType")
+                    ?.Invoke(marker, new object[] { RunFieldContentType.Supply });
+                Text label = supplyInstance.GetComponentInChildren<Text>(true);
+                Assert.That(label.text, Is.EqualTo("보급"));
+                var serialized = new SerializedObject(marker);
+                var labelImage = serialized.FindProperty("categoryLabelImage").objectReferenceValue as Image;
+                Assert.That(labelImage, Is.Not.Null);
+                Assert.That(labelImage.sprite, Is.Not.Null);
+                Assert.That(labelImage.sprite.name, Is.EqualTo("field_label_supply"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(supplyInstance);
             }
 
             string distributor = File.ReadAllText("Assets/Scripts/Exploration/FieldEncounterDistributor.cs");

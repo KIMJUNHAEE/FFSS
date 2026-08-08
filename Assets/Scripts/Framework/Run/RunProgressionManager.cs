@@ -125,6 +125,9 @@ namespace FFSS.Framework.Run
                 case RunFieldContentType.Rest:
                     act.restVisits++;
                     break;
+                case RunFieldContentType.Supply:
+                    act.supplyVisits++;
+                    break;
                 case RunFieldContentType.MidBoss:
                     act.midBossDefeated = true;
                     break;

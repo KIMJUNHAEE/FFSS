@@ -240,6 +240,17 @@ namespace CardBattle.Exploration
             for (int i = 0; i < definition.shopCount; i++)
                 shopNodes.Enqueue(ContentNode(act, RunFieldContentType.Shop, i + 1, $"shop.act{act}.{i + 1}"));
 
+            var supplyNodes = new Queue<PlannedNode>();
+            int supplyCount = ResolveSupplyCount(definition);
+            for (int i = 0; i < supplyCount && i < definition.supplyEventIds.Count; i++)
+            {
+                supplyNodes.Enqueue(ContentNode(
+                    act,
+                    RunFieldContentType.Supply,
+                    i + 1,
+                    definition.supplyEventIds[i]));
+            }
+
             var midBossNodes = new Queue<PlannedNode>();
 
             if (definition.midBossIds.Count > 0)
@@ -258,6 +269,7 @@ namespace CardBattle.Exploration
                 normalNodes,
                 eventNodes,
                 shopNodes,
+                supplyNodes,
                 midBossNodes,
                 bossNodes);
         }
@@ -309,6 +321,7 @@ namespace CardBattle.Exploration
             Queue<PlannedNode> normalNodes,
             Queue<PlannedNode> eventNodes,
             Queue<PlannedNode> shopNodes,
+            Queue<PlannedNode> supplyNodes,
             Queue<PlannedNode> midBossNodes,
             Queue<PlannedNode> bossNodes)
         {
@@ -320,6 +333,7 @@ namespace CardBattle.Exploration
                     RunFieldRouteSlot.Combat => normalNodes,
                     RunFieldRouteSlot.Event => eventNodes,
                     RunFieldRouteSlot.Shop => shopNodes,
+                    RunFieldRouteSlot.Supply => supplyNodes,
                     RunFieldRouteSlot.MidBoss => midBossNodes,
                     RunFieldRouteSlot.BossDoor => bossNodes,
                     _ => null
@@ -328,12 +342,13 @@ namespace CardBattle.Exploration
                     nodes.Add(source.Dequeue());
             }
 
-            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0 ||
+            while (normalNodes.Count > 0 || eventNodes.Count > 0 || shopNodes.Count > 0 || supplyNodes.Count > 0 ||
                    midBossNodes.Count > 0 || bossNodes.Count > 0)
             {
                 AppendNext(nodes, normalNodes);
                 AppendNext(nodes, eventNodes);
                 AppendNext(nodes, shopNodes);
+                AppendNext(nodes, supplyNodes);
                 AppendNext(nodes, midBossNodes);
                 AppendNext(nodes, bossNodes);
             }
@@ -403,7 +418,9 @@ namespace CardBattle.Exploration
                 marker.hideFlags = HideFlags.DontSave;
 
             FieldEncounterMarkerView view = marker.GetComponent<FieldEncounterMarkerView>();
-            FieldLandmarkVisualDefinition landmark = FindLandmark(GetCurrentAct(), planned.type, planned.variant);
+            FieldLandmarkVisualDefinition landmark = planned.type == RunFieldContentType.Supply
+                ? FindSupplyLandmark(GetCurrentAct(), planned.variant)
+                : FindLandmark(GetCurrentAct(), planned.type, planned.variant);
             if (landmark?.sprite != null)
             {
                 view?.ConfigureLandmark(
@@ -653,6 +670,7 @@ namespace CardBattle.Exploration
                 RunFieldContentType.BossDoor => 2.5f,
                 RunFieldContentType.MidBoss => 2.1f,
                 RunFieldContentType.Event => 1.75f,
+                RunFieldContentType.Supply => 1.75f,
                 RunFieldContentType.Combat => 1.75f,
                 _ => 1.5f
             };
@@ -664,6 +682,7 @@ namespace CardBattle.Exploration
             {
                 RunFieldContentType.MidBoss => midBossMarkerPrefab,
                 RunFieldContentType.Event => eventMarkerPrefab,
+                RunFieldContentType.Supply => eventMarkerPrefab,
                 RunFieldContentType.Shop => shopMarkerPrefab,
                 RunFieldContentType.BossDoor => bossDoorMarkerPrefab,
                 _ => normalMarkerPrefab
@@ -690,6 +709,21 @@ namespace CardBattle.Exploration
             return fallback;
         }
 
+        private FieldLandmarkVisualDefinition FindSupplyLandmark(int act, int variant)
+        {
+            (RunFieldContentType type, int sourceVariant) source = act switch
+            {
+                1 when variant <= 1 => (RunFieldContentType.Road, 2),
+                1 => (RunFieldContentType.Event, 1),
+                2 when variant <= 1 => (RunFieldContentType.Road, 1),
+                2 => (RunFieldContentType.Road, 2),
+                3 when variant <= 1 => (RunFieldContentType.Event, 1),
+                3 when variant == 2 => (RunFieldContentType.Event, 4),
+                _ => (RunFieldContentType.Event, 5)
+            };
+            return FindLandmark(act, source.type, source.sourceVariant);
+        }
+
         private int GetCurrentAct()
         {
             RunState run = CurrentRun();
@@ -702,11 +736,21 @@ namespace CardBattle.Exploration
             return run != null ? run.seed : directOpenSeed;
         }
 
-        private static int CountPlannedNodes(RunActDefinition definition)
+        private int CountPlannedNodes(RunActDefinition definition)
         {
             return definition.requiredNormalVictories + definition.requiredEvents + definition.shopCount +
+                   ResolveSupplyCount(definition) +
                    (definition.midBossIds.Count > 0 ? 1 : 0) +
                    (!string.IsNullOrWhiteSpace(definition.bossId) ? 1 : 0);
+        }
+
+        private int ResolveSupplyCount(RunActDefinition definition)
+        {
+            RunState run = CurrentRun();
+            int count = run?.CurrentActProgress.plannedSupplyCount ?? definition.minimumSupplyCount;
+            if (count <= 0 && definition.minimumSupplyCount > 0)
+                count = definition.minimumSupplyCount;
+            return Mathf.Clamp(count, definition.minimumSupplyCount, definition.maximumSupplyCount);
         }
 
         private static RunState CurrentRun()

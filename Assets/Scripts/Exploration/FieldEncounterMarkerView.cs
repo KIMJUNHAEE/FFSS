@@ -17,6 +17,8 @@ namespace CardBattle.Exploration
         [SerializeField] private SpriteRenderer actorRenderer;
         [SerializeField] private Text nameText;
         [SerializeField] private Image categoryLabelImage;
+        [SerializeField] private Sprite defaultCategoryLabel;
+        [SerializeField] private Sprite supplyCategoryLabel;
         [SerializeField] private Color idleColor = Color.white;
         [SerializeField] private Color focusedColor = new(1f, 0.82f, 0.28f, 1f);
         [SerializeField] private bool hideLabelUntilFocused = true;
@@ -28,7 +30,6 @@ namespace CardBattle.Exploration
         private Vector3 baseLocalPosition;
         private Vector3 baseLocalScale;
         private bool focused;
-
         public float SuggestedActivationRadius { get; private set; } = 0.85f;
 
         private void Awake()
@@ -81,11 +82,21 @@ namespace CardBattle.Exploration
             if (nameText != null)
                 nameText.text = DisplayLabelFor(type);
 
+            if (categoryLabelImage != null)
+            {
+                Sprite categoryLabel = type == RunFieldContentType.Supply
+                    ? supplyCategoryLabel
+                    : defaultCategoryLabel;
+                if (categoryLabel != null)
+                    categoryLabelImage.sprite = categoryLabel;
+            }
+
             idleColor = type switch
             {
                 RunFieldContentType.Combat => new Color(1f, 0.72f, 0.68f, 1f),
                 RunFieldContentType.MidBoss => new Color(0.96f, 0.52f, 0.42f, 1f),
                 RunFieldContentType.BossDoor => new Color(0.9f, 0.34f, 0.3f, 1f),
+                RunFieldContentType.Supply => new Color(0.35f, 0.86f, 0.58f, 1f),
                 _ => Color.white
             };
 
@@ -101,6 +112,7 @@ namespace CardBattle.Exploration
                 RunFieldContentType.MidBoss => "전투",
                 RunFieldContentType.Event => "이벤트",
                 RunFieldContentType.Shop => "상점",
+                RunFieldContentType.Supply => "보급",
                 RunFieldContentType.BossDoor => "보스전",
                 _ => string.Empty
             };

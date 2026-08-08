@@ -429,6 +429,59 @@ namespace FFSS.Framework.Tests
         }
 
         [UnityTest]
+        public IEnumerator SupplyBuildingChoiceUpdatesRunAndReturnsControlToField()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      !GameKernel.Services.Get<SceneFlowManager>().IsLoading &&
+                      GameKernel.Services.Get<RunManager>().Current.CurrentActProgress.fieldNodes
+                          .Any(node => node != null && node.contentType == RunFieldContentType.Supply),
+                360,
+                "Production field did not create a supply building.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            GameFlowManager flow = GameKernel.Services.Get<GameFlowManager>();
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+            RunState run = runs.Current;
+            RunFieldNodeState supply = run.CurrentActProgress.fieldNodes.First(node =>
+                node != null && node.contentType == RunFieldContentType.Supply);
+
+            run.player.currentHp = 20;
+            run.player.currentPressure = 10;
+            int expectedHp = Mathf.Min(
+                run.player.maxHp,
+                20 + Mathf.CeilToInt(run.player.maxHp * 0.2f));
+
+            Assert.That(flow.TryChangeState(GameFlowState.Event), Is.True);
+            UIScreen eventScreen = ui.Show(UIScreenId.Event, false);
+            Component controller = eventScreen.GetComponent("RunUIScreenController");
+            Assert.That(controller, Is.Not.Null, "The supply event screen has no controller.");
+            controller.GetType().GetMethod("Configure")?.Invoke(
+                controller,
+                new object[] { $"{supply.nodeId}::{supply.contentId}" });
+            yield return WaitFrames(2);
+
+            Button firstChoice = eventScreen.GetComponentsInChildren<Button>(true)
+                .FirstOrDefault(button => button.name == "Action 1");
+            Assert.That(firstChoice, Is.Not.Null, "The supply event has no first choice button.");
+            firstChoice.onClick.Invoke();
+            yield return WaitFrames(3);
+
+            Assert.That(run.player.currentHp, Is.EqualTo(expectedHp),
+                "The supply treatment did not update HP.");
+            Assert.That(run.player.currentPressure, Is.EqualTo(6),
+                "The supply treatment did not update pressure.");
+            Assert.That(run.CurrentActProgress.supplyVisits, Is.EqualTo(1));
+            Assert.That(supply.resolved, Is.True, "The used supply building remained unresolved.");
+            Assert.That(run.completedEventIds, Does.Contain(supply.contentId));
+            Assert.That(flow.Current, Is.EqualTo(GameFlowState.Field));
+            Assert.That(ui.HasVisibleModal, Is.False,
+                "The supply screen kept field input blocked after choosing a reward.");
+        }
+
+        [UnityTest]
         public IEnumerator EquipmentShopRevealsTextOnlyWhileHoveringArtwork()
         {
             SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
@@ -720,6 +773,7 @@ namespace FFSS.Framework.Tests
         private static IEnumerator WaitForPlannedFieldRoute(int act, RunActDefinition definition)
         {
             int expected = definition.requiredNormalVictories + definition.requiredEvents + definition.shopCount +
+                           GameKernel.Services.Get<RunManager>().Current.CurrentActProgress.plannedSupplyCount +
                            (definition.midBossIds.Count > 0 ? 1 : 0) +
                            (!string.IsNullOrWhiteSpace(definition.bossId) ? 1 : 0);
             yield return WaitUntil(
@@ -733,6 +787,9 @@ namespace FFSS.Framework.Tests
                 Is.EqualTo(definition.requiredEvents), $"act {act} event buildings");
             Assert.That(CountFieldNodes(act, RunFieldContentType.Shop),
                 Is.EqualTo(definition.shopCount), $"act {act} shop buildings");
+            Assert.That(CountFieldNodes(act, RunFieldContentType.Supply),
+                Is.EqualTo(GameKernel.Services.Get<RunManager>().Current.CurrentActProgress.plannedSupplyCount),
+                $"act {act} supply buildings");
             Assert.That(CountFieldNodes(act, RunFieldContentType.MidBoss),
                 Is.EqualTo(definition.midBossIds.Count > 0 ? 1 : 0), $"act {act} midboss buildings");
             Assert.That(CountFieldNodes(act, RunFieldContentType.BossDoor),

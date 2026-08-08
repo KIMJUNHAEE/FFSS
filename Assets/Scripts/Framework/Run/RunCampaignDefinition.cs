@@ -17,7 +17,8 @@ namespace FFSS.Framework.Run
         Event,
         Shop,
         MidBoss,
-        BossDoor
+        BossDoor,
+        Supply
     }
 
     [Serializable]
@@ -32,12 +33,15 @@ namespace FFSS.Framework.Run
         [Min(0)] public int requiredEvents = 3;
         [Min(0)] public int shopCount = 1;
         [Min(0)] public int restCount = 0;
+        [Min(0)] public int minimumSupplyCount = 1;
+        [Min(0)] public int maximumSupplyCount = 2;
         [Header("Inspectable field level design")]
         public RunFieldLayoutPattern layoutPattern = RunFieldLayoutPattern.BroadRoadY;
         [Range(0, 100)] public int alternateOpeningEnemyChancePercent = 30;
         public List<RunFieldRouteSlot> fieldRoute = new List<RunFieldRouteSlot>();
         public List<string> normalEnemyIds = new List<string>();
         public List<string> eventIds = new List<string>();
+        public List<string> supplyEventIds = new List<string>();
         public List<string> midBossIds = new List<string>();
         public string bossId;
         [Min(0)] public int actRewardGold = 30;
@@ -47,6 +51,13 @@ namespace FFSS.Framework.Run
         {
             int minimum = Mathf.Max(1, minimumTiles);
             int maximum = Mathf.Max(minimum, maximumTiles);
+            return rng.Range(minimum, maximum + 1);
+        }
+
+        public int PickSupplyCount(DeterministicRng rng)
+        {
+            int minimum = Mathf.Max(0, minimumSupplyCount);
+            int maximum = Mathf.Max(minimum, maximumSupplyCount);
             return rng.Range(minimum, maximum + 1);
         }
     }
@@ -93,6 +104,7 @@ namespace FFSS.Framework.Run
                     act = definition.act,
                     regionId = definition.regionId,
                     generatedTileCount = definition.PickTileCount(rng),
+                    plannedSupplyCount = definition.PickSupplyCount(rng),
                     requiredNormalVictories = definition.requiredNormalVictories,
                     requiredEvents = definition.requiredEvents
                 });

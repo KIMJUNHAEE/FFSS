@@ -23,9 +23,11 @@ MonoBehaviour:
     requiredEvents: 3
     shopCount: 1
     restCount: 0
+    minimumSupplyCount: 1
+    maximumSupplyCount: 2
     layoutPattern: 0
     alternateOpeningEnemyChancePercent: 30
-    fieldRoute: 0000000001000000000000000200000000000000010000000000000003000000000000000100000004000000
+    fieldRoute: 00000000010000000000000002000000010000000000000000000000010000000000000003000000050000000500000004000000
     normalEnemyIds:
     - "1\uB561"
     - "2\uB561"
@@ -35,6 +37,9 @@ MonoBehaviour:
     - event.act1.lost_wager
     - event.act1.marked_card
     - event.act1.old_dealer
+    supplyEventIds:
+    - supply.act1.apothecary
+    - supply.act1.refugee_bundle
     midBossIds:
     - "\uB561\uC7A1\uC774"
     - "\uBA4D\uAD6C\uC0AC"
@@ -50,9 +55,11 @@ MonoBehaviour:
     requiredEvents: 4
     shopCount: 2
     restCount: 0
+    minimumSupplyCount: 2
+    maximumSupplyCount: 2
     layoutPattern: 1
     alternateOpeningEnemyChancePercent: 50
-    fieldRoute: 0000000001000000000000000200000000000000010000000000000000000000010000000000000001000000030000000200000004000000
+    fieldRoute: 00000000010000000000000002000000010000000000000000000000010000000000000001000000000000000300000005000000020000000500000004000000
     normalEnemyIds:
     - "5\uB561"
     - "6\uB561"
@@ -63,6 +70,9 @@ MonoBehaviour:
     - event.act2.sunken_shop
     - event.act2.suit_debt
     - event.act2.closed_table
+    supplyEventIds:
+    - supply.act2.clinic
+    - supply.act2.warehouse
     midBossIds:
     - "\uAD6C\uC0AC"
     bossId: 18
@@ -77,9 +87,11 @@ MonoBehaviour:
     requiredEvents: 5
     shopCount: 2
     restCount: 0
+    minimumSupplyCount: 2
+    maximumSupplyCount: 3
     layoutPattern: 2
     alternateOpeningEnemyChancePercent: 50
-    fieldRoute: 00000000010000000000000002000000000000000100000000000000000000000100000003000000000000000100000000000000020000000100000004000000
+    fieldRoute: 00000000010000000000000002000000010000000000000000000000010000000000000003000000000000000100000005000000000000000200000001000000050000000500000004000000
     normalEnemyIds:
     - "7\uB561"
     - "8\uB561"
@@ -91,6 +103,10 @@ MonoBehaviour:
     - event.act3.last_hand
     - event.act3.broken_clock
     - event.act3.royal_table
+    supplyEventIds:
+    - supply.act3.shrine
+    - supply.act3.last_wagon
+    - supply.act3.sealed_cache
     midBossIds:
     - "\uC554\uD589\uC5B4\uC0AC"
     bossId: 38

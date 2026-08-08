@@ -14,7 +14,8 @@ namespace FFSS.Framework.Run
         BonusRedraw,
         UpgradeRandomCard,
         RemoveRandomCard,
-        AddEquipment
+        AddEquipment,
+        AddItem
     }
 
     public enum RunShopOfferType

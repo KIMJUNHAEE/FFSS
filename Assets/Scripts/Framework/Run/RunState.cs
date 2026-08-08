@@ -20,7 +20,8 @@ namespace FFSS.Framework.Run
         Shop,
         Rest,
         MidBoss,
-        BossDoor
+        BossDoor,
+        Supply
     }
 
     [Serializable]
@@ -78,6 +79,8 @@ namespace FFSS.Framework.Run
         public int completedEvents;
         public int shopVisits;
         public int restVisits;
+        public int plannedSupplyCount;
+        public int supplyVisits;
         public bool midBossDefeated;
         public bool bossDoorUnlocked;
         public bool bossDefeated;

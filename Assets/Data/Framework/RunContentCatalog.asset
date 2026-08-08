@@ -319,6 +319,183 @@ MonoBehaviour:
       - type: 3
         amount: 6
         contentId:
+  - eventId: supply.act1.apothecary
+    act: 1
+    title: "\uC7A0\uAE34 \uC57D\uBC29 \uBCF4\uAE09"
+    situation: "\uC2DC\uACC4\uAC00 \uBA48\uCD98 \uC57D\uBC29\uC5D0 \uC0C1\uCC98\uB97C \uB2E4\uC2A4\uB9B4 \uC57D\uACFC \uC791\uC740 \uBB3C\uC57D\uBCD1\uC774 \uB0A8\uC544 \uC788\uB2E4."
+    choices:
+    - choiceId: treatment
+      label: "\uC989\uC2DC \uCE58\uB8CC\uB97C \uBC1B\uB294\uB2E4"
+      consequencePreview: "HP 20% \uD68C\uBCF5, \uC555\uBC15 -4"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 20
+        contentId:
+      - type: 3
+        amount: -4
+        contentId:
+    - choiceId: bottle
+      label: "\uD68C\uBCF5 \uBB3C\uC57D\uC744 \uCC59\uAE34\uB2E4"
+      consequencePreview: "\uD68C\uBCF5 \uBB3C\uC57D 1\uAC1C \uD68D\uB4DD"
+      goldCost: 0
+      effects:
+      - type: 9
+        amount: 1
+        contentId: heal_potion
+  - eventId: supply.act1.refugee_bundle
+    act: 1
+    title: "\uD53C\uB09C\uBBFC\uC758 \uBCF4\uAE09 \uAFB8\uB7EC\uBBF8"
+    situation: "\uBB34\uB108\uC9C4 \uB2F4 \uB4A4\uC5D0 \uBC29\uCE58\uB41C \uAFB8\uB7EC\uBBF8\uC5D0\uC11C \uC57D\uD488\uACFC \uC791\uC740 \uD310\uB3C8\uC774 \uBCF4\uC778\uB2E4."
+    choices:
+    - choiceId: medicine
+      label: "\uC57D\uD488\uC744 \uCC59\uAE34\uB2E4"
+      consequencePreview: "\uD68C\uBCF5 \uBB3C\uC57D 2\uAC1C \uD68D\uB4DD"
+      goldCost: 0
+      effects:
+      - type: 9
+        amount: 2
+        contentId: heal_potion
+    - choiceId: coins
+      label: "\uD310\uB3C8\uB9CC \uAC70\uB454\uB2E4"
+      consequencePreview: "\uACE8\uB4DC +16, \uC555\uBC15 +2"
+      goldCost: 0
+      effects:
+      - type: 0
+        amount: 16
+        contentId:
+      - type: 3
+        amount: 2
+        contentId:
+  - eventId: supply.act2.clinic
+    act: 2
+    title: "\uC218\uB85C \uC9C4\uB8CC\uC18C"
+    situation: "\uB3C5\uBB3C\uC774 \uB2FF\uC9C0 \uC54A\uC740 \uC9C4\uB8CC\uC18C\uC5D0 \uC815\uD654\uC81C\uC640 \uBE44\uC0C1 \uC57D\uD488\uC774 \uBCF4\uAD00\uB418\uC5B4 \uC788\uB2E4."
+    choices:
+    - choiceId: cleanse
+      label: "\uC0C1\uCC98\uC640 \uB3C5\uAE30\uB97C \uC815\uBE44\uD55C\uB2E4"
+      consequencePreview: "HP 12 \uD68C\uBCF5, \uC555\uBC15 -8"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: 12
+        contentId:
+      - type: 3
+        amount: -8
+        contentId:
+    - choiceId: pack
+      label: "\uBE44\uC0C1 \uC57D\uD488\uC744 \uCC59\uAE34\uB2E4"
+      consequencePreview: "\uD68C\uBCF5 \uBB3C\uC57D 2\uAC1C \uD68D\uB4DD"
+      goldCost: 0
+      effects:
+      - type: 9
+        amount: 2
+        contentId: heal_potion
+  - eventId: supply.act2.warehouse
+    act: 2
+    title: "\uAD00\uC544 \uCC3D\uACE0 \uBCF4\uAE09"
+    situation: "\uC816\uC740 \uC7A5\uBD80 \uB4A4\uD3B8\uC5D0 \uC815\uBE44\uC6A9 \uAE30\uB984\uACFC \uBB3C\uC57D, \uC218\uC1A1\uBE44\uAC00 \uB0A8\uC544 \uC788\uB2E4."
+    choices:
+    - choiceId: ration
+      label: "\uC548\uC804\uD55C \uBCF4\uAE09\uB9CC \uCC59\uAE34\uB2E4"
+      consequencePreview: "\uD68C\uBCF5 \uBB3C\uC57D 1\uAC1C, \uACE8\uB4DC +12"
+      goldCost: 0
+      effects:
+      - type: 9
+        amount: 1
+        contentId: heal_potion
+      - type: 0
+        amount: 12
+        contentId:
+    - choiceId: tune
+      label: "\uC815\uBE44\uC6A9 \uAE30\uB984\uC73C\uB85C \uD3EC\uCEE4 \uCE74\uB4DC\uB97C \uB2E4\uB4EC\uB294\uB2E4"
+      consequencePreview: "\uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8, \uC555\uBC15 +4"
+      goldCost: 0
+      effects:
+      - type: 6
+        amount: 1
+        contentId:
+      - type: 3
+        amount: 4
+        contentId:
+  - eventId: supply.act3.shrine
+    act: 3
+    title: "\uB124\uBB34\uB2AC \uC2E0\uC0AC \uB4F1\uBD88"
+    situation: "\uB124 \uBB34\uB2AC\uB97C \uBE44\uCD94\uB294 \uB4F1\uBD88\uC774 \uC0C1\uCC98\uB97C \uB2E4\uC2A4\uB9AC\uAC70\uB098 \uD3EC\uCEE4 \uD328 \uD558\uB098\uB97C \uB2E4\uB4EC\uC744 \uAE30\uD68C\uB97C \uC900\uB2E4."
+    choices:
+    - choiceId: recover
+      label: "\uB4F1\uBD88 \uC544\uB798\uC11C \uD638\uD761\uC744 \uAC00\uB2E4\uB4EC\uB294\uB2E4"
+      consequencePreview: "HP 18% \uD68C\uBCF5, \uC555\uBC15 -10"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 18
+        contentId:
+      - type: 3
+        amount: -10
+        contentId:
+    - choiceId: hone
+      label: "\uB4F1\uBD88\uC5D0 \uD328 \uD558\uB098\uB97C \uBE44\uCD98\uB2E4"
+      consequencePreview: "\uCE74\uB4DC 1\uC7A5 \uC5F0\uB9C8, HP -6"
+      goldCost: 0
+      effects:
+      - type: 6
+        amount: 1
+        contentId:
+      - type: 1
+        amount: -6
+        contentId:
+  - eventId: supply.act3.last_wagon
+    act: 3
+    title: "\uB9C8\uC9C0\uB9C9 \uBCF4\uAE09 \uB9C8\uCC28"
+    situation: "38\uAD11\uB561\uC758 \uAD11\uD328\uBB38 \uC55E, \uC55E\uC120 \uB3C4\uBC15\uC0AC\uB4E4\uC774 \uB0A8\uAE34 \uC751\uAE09 \uBCF4\uAE09\uC774 \uC788\uB2E4."
+    choices:
+    - choiceId: kit
+      label: "\uC751\uAE09 \uBCF4\uAE09\uC744 \uB098\uB220 \uCC59\uAE34\uB2E4"
+      consequencePreview: "HP 8 \uD68C\uBCF5, \uD68C\uBCF5 \uBB3C\uC57D 2\uAC1C \uD68D\uB4DD"
+      goldCost: 0
+      effects:
+      - type: 1
+        amount: 8
+        contentId:
+      - type: 9
+        amount: 2
+        contentId: heal_potion
+    - choiceId: treatment
+      label: "\uB9C8\uCC28 \uC548\uC5D0\uC11C \uC644\uC804\uD788 \uC815\uBE44\uD55C\uB2E4"
+      consequencePreview: "HP 25% \uD68C\uBCF5, \uC555\uBC15 +5"
+      goldCost: 0
+      effects:
+      - type: 2
+        amount: 25
+        contentId:
+      - type: 3
+        amount: 5
+        contentId:
+  - eventId: supply.act3.sealed_cache
+    act: 3
+    title: "\uBD09\uC778 \uAD00\uBB38 \uBE44\uC0C1\uD488"
+    situation: "\uBE48 \uAD00\uBB38\uC758 \uC218\uB0A9\uD568\uC5D0 \uC57D\uD488\uACFC \uBAB8\uC744 \uBC1B\uCCD0 \uC904 \uC2DC\uACC4 \uBD80\uD488\uC774 \uB0A8\uC544 \uC788\uB2E4."
+    choices:
+    - choiceId: calm
+      label: "\uBE44\uC0C1\uD488\uC744 \uCC59\uAE30\uACE0 \uD638\uD761\uC744 \uACE0\uB978\uB2E4"
+      consequencePreview: "\uD68C\uBCF5 \uBB3C\uC57D 1\uAC1C, \uC555\uBC15 -14"
+      goldCost: 0
+      effects:
+      - type: 9
+        amount: 1
+        contentId: heal_potion
+      - type: 3
+        amount: -14
+        contentId:
+    - choiceId: reinforce
+      label: "\uC2DC\uACC4 \uBD80\uD488\uC73C\uB85C \uBAB8\uC744 \uBCF4\uAC15\uD55C\uB2E4"
+      consequencePreview: "\uCD5C\uB300 HP +4"
+      goldCost: 0
+      effects:
+      - type: 4
+        amount: 4
+        contentId:
   shopOffers:
   - offerId: shop.weapon.red_moon
     type: 0

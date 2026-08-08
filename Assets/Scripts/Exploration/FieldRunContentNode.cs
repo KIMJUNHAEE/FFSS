@@ -99,6 +99,7 @@ namespace CardBattle.Exploration
             switch (contentType)
             {
                 case RunFieldContentType.Event:
+                case RunFieldContentType.Supply:
                     screenId = UIScreenId.Event;
                     flowState = GameFlowState.Event;
                     break;
@@ -127,6 +128,7 @@ namespace CardBattle.Exploration
             return type switch
             {
                 RunFieldContentType.Event => new Color(0.67f, 0.28f, 0.78f, 1f),
+                RunFieldContentType.Supply => new Color(0.22f, 0.7f, 0.45f, 1f),
                 RunFieldContentType.Shop => new Color(0.2f, 0.72f, 0.48f, 1f),
                 RunFieldContentType.BossDoor => new Color(0.92f, 0.2f, 0.16f, 1f),
                 _ => Color.white

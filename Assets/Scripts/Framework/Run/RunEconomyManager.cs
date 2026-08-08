@@ -345,6 +345,9 @@ namespace FFSS.Framework.Run
                         run.inventoryItemIds.Add(effect.contentId);
                     }
                     break;
+                case RunEffectType.AddItem:
+                    AddItemStack(run, effect.contentId, Mathf.Max(1, effect.amount));
+                    break;
             }
         }
 

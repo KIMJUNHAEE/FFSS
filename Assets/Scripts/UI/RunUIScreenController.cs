@@ -295,7 +295,7 @@ namespace CardBattle.UI
                 _ => "극위험"
             };
             SetText(status,
-                $"주변 위험 {risk}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
+                $"위험도: {risk}  ·  전투 {run.CurrentActProgress.normalVictories}/{run.CurrentActProgress.requiredNormalVictories}  ·  사건 {run.CurrentActProgress.completedEvents}/{run.CurrentActProgress.requiredEvents}");
             SetGauge(hpGauge, run.player.currentHp, run.player.maxHp);
             SetGauge(pressureGauge, run.player.currentPressure, run.player.maxPressure);
             SetGauge(hpGaugeFill, run.player.currentHp, run.player.maxHp);
@@ -344,9 +344,9 @@ namespace CardBattle.UI
             SetText(subtitle,
                 $"{position}  ·  걸어 본 타일 {act.visitedTileIds.Count}/{act.generatedTileCount}  ·  발견 건물 {run.discoveredNodeIds.Count}");
             SetText(body, act.bossDoorUnlocked
-                ? "보스문이 열렸다. 지도 끝의 붉은 문양으로 향하자."
-                : $"보스문 조건: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")}");
-            string[] labels = { "전투", "사건", "상점", "보스문" };
+                ? "권장 준비를 마쳤다. 지도 끝의 붉은 보스문으로 향하자."
+                : $"권장 준비: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")} · 준비 전에도 입장 가능");
+            string[] labels = { "전투", "사건", "상점", "보급", "보스문" };
             for (int i = 0; i < actions.Count; i++)
             {
                 SetAction(i, i < labels.Length ? labels[i] : string.Empty, MapCountDetail(run, i), i < labels.Length);
@@ -543,14 +543,18 @@ namespace CardBattle.UI
             RunState run = CurrentRun();
             RunCampaignDefinition campaign = GameKernel.Services.Get<RunProgressionManager>().Campaign;
             RunActDefinition act = campaign.GetAct(run.act);
+            RunActProgressState actProgress = run.CurrentActProgress;
             RunProgressionManager progression = GameKernel.Services.Get<RunProgressionManager>();
             bool canEnter = progression.CanChallengeBoss(run);
             bool prepared = RunProgressionManager.MeetsBossRequirements(run);
             SetText(heading, $"{act.bossId} 보스문");
             SetText(subtitle, prepared ? "입장 가능" : "입장 가능 · 전력 부족");
+            string supplyStatus = actProgress.supplyVisits > 0
+                ? $"보급 {actProgress.supplyVisits}/{Mathf.Max(1, actProgress.plannedSupplyCount)} 이용"
+                : $"보급 미이용 · 발견 시 최대 {Mathf.Max(1, actProgress.plannedSupplyCount)}곳";
             SetText(body, prepared
-                ? "최종 장비와 덱을 확인하자. 문을 넘으면 보스 전투가 시작된다."
-                : "권장 전투·사건·중간보스를 마치지 않았다. 그래도 바로 도전할 수 있다.");
+                ? $"최종 장비와 덱을 확인하자. {supplyStatus}. 문을 넘으면 보스 전투가 시작된다."
+                : $"권장 전투·사건·중간보스를 마치지 않았다. {supplyStatus}. 그래도 바로 도전할 수 있다.");
             if (primaryButton != null)
             {
                 primaryButton.interactable = canEnter;
@@ -1408,6 +1412,7 @@ namespace CardBattle.UI
                 0 => RunFieldContentType.Combat,
                 1 => RunFieldContentType.Event,
                 2 => RunFieldContentType.Shop,
+                3 => RunFieldContentType.Supply,
                 _ => RunFieldContentType.BossDoor
             };
         }
@@ -1419,6 +1424,7 @@ namespace CardBattle.UI
                 RunFieldContentType.Combat => "적 건물",
                 RunFieldContentType.Event => "사건 건물",
                 RunFieldContentType.Shop => "상점",
+                RunFieldContentType.Supply => "보급",
                 RunFieldContentType.BossDoor => "보스문",
                 _ => "목적지"
             };
