@@ -138,7 +138,10 @@ namespace FFSS.Framework.Tests
                 playerHpAfter != playerHpBefore || playerPressureAfter != playerPressureBefore,
                 Is.True,
                 "The resolved attack/defense exchange changed neither HP nor pressure.");
-            Assert.That(redraw.GetComponentInChildren<Text>(true).text, Does.Contain("1/1"));
+            Text redrawCounter = redraw.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(text => text.name == "Redraw Counter");
+            Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
+            Assert.That(redrawCounter.text, Does.Contain("1/1"));
             yield return Capture("combat_turn_next_player", 1280, 720);
         }
 
