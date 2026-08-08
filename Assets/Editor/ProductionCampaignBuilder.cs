@@ -47,7 +47,22 @@ namespace FFSS.Editor
                 5,
                 3,
                 1,
-                1,
+                RunFieldLayoutPattern.BroadRoadY,
+                30,
+                new[]
+                {
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Shop,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.MidBoss,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.BossDoor
+                },
                 new[] { "1땡", "2땡", "3땡", "4땡" },
                 new[] { "event.act1.lost_wager", "event.act1.marked_card", "event.act1.old_dealer" },
                 new[] { "땡잡이", "멍구사" },
@@ -64,7 +79,25 @@ namespace FFSS.Editor
                 6,
                 4,
                 2,
-                1,
+                RunFieldLayoutPattern.CanalDoubleLoop,
+                50,
+                new[]
+                {
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Shop,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.MidBoss,
+                    RunFieldRouteSlot.Shop,
+                    RunFieldRouteSlot.BossDoor
+                },
                 new[] { "5땡", "6땡", "7땡", "8땡" },
                 new[]
                 {
@@ -87,8 +120,28 @@ namespace FFSS.Editor
                 7,
                 5,
                 2,
-                1,
-                new[] { "9땡", "10땡" },
+                RunFieldLayoutPattern.PalaceDoubleRing,
+                50,
+                new[]
+                {
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Shop,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.MidBoss,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.Combat,
+                    RunFieldRouteSlot.Shop,
+                    RunFieldRouteSlot.Event,
+                    RunFieldRouteSlot.BossDoor
+                },
+                new[] { "7땡", "8땡", "9땡", "10땡" },
                 new[]
                 {
                     "event.act3.false_warrant",
@@ -116,7 +169,9 @@ namespace FFSS.Editor
             int normalVictories,
             int events,
             int shops,
-            int rests,
+            RunFieldLayoutPattern layoutPattern,
+            int alternateOpeningEnemyChancePercent,
+            IReadOnlyList<RunFieldRouteSlot> fieldRoute,
             IReadOnlyList<string> normalEnemies,
             IReadOnlyList<string> eventIds,
             IReadOnlyList<string> midBosses,
@@ -131,7 +186,11 @@ namespace FFSS.Editor
             act.FindPropertyRelative("requiredNormalVictories").intValue = normalVictories;
             act.FindPropertyRelative("requiredEvents").intValue = events;
             act.FindPropertyRelative("shopCount").intValue = shops;
-            act.FindPropertyRelative("restCount").intValue = rests;
+            act.FindPropertyRelative("restCount").intValue = 0;
+            act.FindPropertyRelative("layoutPattern").enumValueIndex = (int)layoutPattern;
+            act.FindPropertyRelative("alternateOpeningEnemyChancePercent").intValue =
+                alternateOpeningEnemyChancePercent;
+            SetEnums(act.FindPropertyRelative("fieldRoute"), fieldRoute);
             SetStrings(act.FindPropertyRelative("normalEnemyIds"), normalEnemies);
             SetStrings(act.FindPropertyRelative("eventIds"), eventIds);
             SetStrings(act.FindPropertyRelative("midBossIds"), midBosses);
@@ -195,6 +254,15 @@ namespace FFSS.Editor
             for (int i = 0; i < values.Count; i++)
             {
                 list.GetArrayElementAtIndex(i).stringValue = values[i];
+            }
+        }
+
+        private static void SetEnums(SerializedProperty list, IReadOnlyList<RunFieldRouteSlot> values)
+        {
+            list.arraySize = values.Count;
+            for (int i = 0; i < values.Count; i++)
+            {
+                list.GetArrayElementAtIndex(i).enumValueIndex = (int)values[i];
             }
         }
     }
