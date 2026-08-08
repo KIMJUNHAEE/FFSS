@@ -10,6 +10,7 @@ namespace FFSS.Editor
         public static void RefreshCombatDataAndMedia()
         {
             CardBattleSetup.BuildBossCombatProfiles();
+            ProductionFoundationBuilder.RefreshCoreAudioCues();
             ProductionCombatFoundationBuilder.BuildMissingCombatFoundation();
             ProductionEncounterMigrationBuilder.BuildMissingEncounterDefinitions();
             ProductionEnemySeotdaDeckBuilder.BuildEnemySeotdaDecks();

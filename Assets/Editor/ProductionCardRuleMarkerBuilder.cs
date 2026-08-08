@@ -104,7 +104,7 @@ namespace FFSS.Editor
             label.alignment = FFSSTmpEditorUtility.ConvertAlignment(TextAnchor.MiddleCenter);
             label.color = Color.white;
             label.raycastTarget = false;
-            Outline outline = labelObject.GetComponent<Outline>();
+            Outline outline = labelObject.GetComponent<Outline>() ?? labelObject.AddComponent<Outline>();
             outline.effectColor = Color.black;
             outline.effectDistance = new Vector2(1f, -1f);
 

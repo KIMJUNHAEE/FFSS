@@ -23,6 +23,9 @@ namespace FFSS.Framework.Presentation.Audio
         private int nextPlaybackId = 1;
         private bool useFirstMusicSource = true;
         private Coroutine musicFade;
+        private Coroutine musicDuck;
+        private float duckRestoreVolumeA;
+        private float duckRestoreVolumeB;
 
         public int TotalPlayCount { get; private set; }
         public string CurrentMusicCueId { get; private set; } = string.Empty;
@@ -80,6 +83,13 @@ namespace FFSS.Framework.Presentation.Audio
 
         public void PlayMusic(string cueId, float fadeSeconds)
         {
+            if (CurrentMusicCueId == cueId &&
+                ((musicSourceA != null && musicSourceA.isPlaying) ||
+                 (musicSourceB != null && musicSourceB.isPlaying)))
+            {
+                return;
+            }
+
             AudioCueDefinition cue = catalog.Get(cueId);
             AudioClip clip = cue.PickClip();
             if (clip == null)
@@ -101,6 +111,21 @@ namespace FFSS.Framework.Presentation.Audio
             musicFade = StartCoroutine(CrossfadeMusic(outgoing, incoming, cue, clip, fadeSeconds));
         }
 
+        public void DuckMusic(float durationSeconds, float volumeMultiplier = 0.55f)
+        {
+            if (musicDuck != null)
+            {
+                StopCoroutine(musicDuck);
+                SetMusicVolumes(duckRestoreVolumeA, duckRestoreVolumeB);
+            }
+
+            duckRestoreVolumeA = musicSourceA != null ? musicSourceA.volume : 0f;
+            duckRestoreVolumeB = musicSourceB != null ? musicSourceB.volume : 0f;
+            musicDuck = StartCoroutine(DuckMusicRoutine(
+                Mathf.Max(0.02f, durationSeconds),
+                Mathf.Clamp01(volumeMultiplier)));
+        }
+
         protected override void OnInitialize(GameServiceContext context)
         {
             activeSources.Clear();
@@ -110,6 +135,7 @@ namespace FFSS.Framework.Presentation.Audio
             sequencePlayCounts.Clear();
             TotalPlayCount = 0;
             CurrentMusicCueId = string.Empty;
+            musicDuck = null;
         }
 
         protected override void OnShutdown()
@@ -247,6 +273,48 @@ namespace FFSS.Framework.Presentation.Audio
             }
 
             musicFade = null;
+        }
+
+        private IEnumerator DuckMusicRoutine(float durationSeconds, float volumeMultiplier)
+        {
+            float startA = duckRestoreVolumeA;
+            float startB = duckRestoreVolumeB;
+            float attackSeconds = Mathf.Min(0.04f, durationSeconds * 0.25f);
+            float releaseSeconds = Mathf.Max(0.01f, durationSeconds - attackSeconds);
+
+            float elapsed = 0f;
+            while (elapsed < attackSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float multiplier = Mathf.Lerp(1f, volumeMultiplier, Mathf.Clamp01(elapsed / attackSeconds));
+                SetMusicVolumes(startA * multiplier, startB * multiplier);
+                yield return null;
+            }
+
+            elapsed = 0f;
+            while (elapsed < releaseSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float multiplier = Mathf.Lerp(volumeMultiplier, 1f, Mathf.Clamp01(elapsed / releaseSeconds));
+                SetMusicVolumes(startA * multiplier, startB * multiplier);
+                yield return null;
+            }
+
+            SetMusicVolumes(startA, startB);
+            musicDuck = null;
+        }
+
+        private void SetMusicVolumes(float volumeA, float volumeB)
+        {
+            if (musicSourceA != null)
+            {
+                musicSourceA.volume = volumeA;
+            }
+
+            if (musicSourceB != null)
+            {
+                musicSourceB.volume = volumeB;
+            }
         }
 
         private void Release(int playbackId)

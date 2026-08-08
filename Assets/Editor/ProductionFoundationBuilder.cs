@@ -55,6 +55,17 @@ namespace FFSS.Editor
             Debug.Log("FFSS production foundation is ready. Existing assets were left unchanged.");
         }
 
+        [MenuItem("FFSS/Production/Refresh Core Audio Cues")]
+        public static void RefreshCoreAudioCues()
+        {
+            ClockworkTimekeeperEditorUtils.EnsureFolder(DataRoot);
+            ClockworkTimekeeperEditorUtils.EnsureFolder(AudioCueRoot);
+            CreateAudioCatalog();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("Core BGM and SFX cue assets refreshed from the production sound plan.");
+        }
+
         [MenuItem("FFSS/Production/Build Scene Transition")]
         public static void BuildSceneTransition()
         {
@@ -217,7 +228,7 @@ namespace FFSS.Editor
                 CreateAudioCue("bgm.battle", AudioBus.Music, battleMusic, true, 0.78f, Vector2.one, 0f, 1),
                 CreateAudioCue("sfx.card.deal", AudioBus.Interface, deal, false, 0.82f, new Vector2(0.98f, 1.02f), 0.025f, 5, 6, -3f),
                 CreateAudioCue("sfx.card.reveal", AudioBus.Interface, One("card-reveal-01"), false, 0.9f, new Vector2(0.99f, 1.01f), 0.06f, 2),
-                CreateAudioCue("sfx.combat.slash.light", AudioBus.Effects, One("slash-light-01"), false, 0.9f, new Vector2(0.97f, 1.03f), 0.04f, 3),
+                CreateAudioCue("sfx.combat.slash.light", AudioBus.Effects, One("slash-light-01"), false, 0.4f, new Vector2(0.97f, 1.03f), 0.04f, 3),
                 CreateAudioCue("sfx.combat.slash.heavy", AudioBus.Effects, One("slash-heavy-01"), false, 1f, new Vector2(0.98f, 1.01f), 0.08f, 2),
                 CreateAudioCue("sfx.combat.guard", AudioBus.Effects, One("guard-lock-01"), false, 0.92f, new Vector2(0.98f, 1.02f), 0.08f, 2, 1, -5f),
                 CreateAudioCue("sfx.combat.break", AudioBus.Effects, One("break-hit-01"), false, 1f, new Vector2(0.97f, 1.01f), 0.1f, 2),
@@ -227,15 +238,36 @@ namespace FFSS.Editor
                 CreateAudioCue("sfx.footstep.stone.02", AudioBus.Effects, One("footstep-stone-02"), false, 0.22f, new Vector2(0.96f, 1.04f), 0.08f, 2)
             };
 
-            return CreateAssetIfMissing<AudioCueCatalog>(DataRoot + "/AudioCueCatalog.asset", serialized =>
+            string path = DataRoot + "/AudioCueCatalog.asset";
+            AudioCueCatalog catalog = AssetDatabase.LoadAssetAtPath<AudioCueCatalog>(path);
+            if (catalog == null)
             {
-                SerializedProperty list = serialized.FindProperty("cues");
-                list.arraySize = cues.Count;
-                for (int i = 0; i < cues.Count; i++)
+                catalog = ScriptableObject.CreateInstance<AudioCueCatalog>();
+                AssetDatabase.CreateAsset(catalog, path);
+            }
+
+            var serialized = new SerializedObject(catalog);
+            SerializedProperty list = serialized.FindProperty("cues");
+            var existing = new List<AudioCueDefinition>();
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue is AudioCueDefinition cue &&
+                    cues.TrueForAll(item => item.CueId != cue.CueId))
                 {
-                    list.GetArrayElementAtIndex(i).objectReferenceValue = cues[i];
+                    existing.Add(cue);
                 }
-            });
+            }
+
+            existing.AddRange(cues);
+            list.arraySize = existing.Count;
+            for (int i = 0; i < existing.Count; i++)
+            {
+                list.GetArrayElementAtIndex(i).objectReferenceValue = existing[i];
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            return catalog;
         }
 
         private static AudioCueDefinition CreateAudioCue(
@@ -251,26 +283,36 @@ namespace FFSS.Editor
             float repeatedVolumeDb = 0f)
         {
             string fileName = cueId.Replace('.', '_') + ".asset";
-            return CreateAssetIfMissing<AudioCueDefinition>(AudioCueRoot + "/" + fileName, serialized =>
+            string path = AudioCueRoot + "/" + fileName;
+            AudioCueDefinition cue = AssetDatabase.LoadAssetAtPath<AudioCueDefinition>(path);
+            if (cue == null)
             {
-                serialized.FindProperty("cueId").stringValue = cueId;
-                serialized.FindProperty("bus").enumValueIndex = (int)bus;
-                serialized.FindProperty("loop").boolValue = loop;
-                serialized.FindProperty("volume").floatValue = volume;
-                serialized.FindProperty("pitchRange").vector2Value = pitch;
-                serialized.FindProperty("cooldownSeconds").floatValue = cooldown;
-                serialized.FindProperty("maximumInstances").intValue = maximumInstances;
-                serialized.FindProperty("fullVolumePlayCount").intValue = fullVolumePlayCount;
-                serialized.FindProperty("repeatedVolumeDb").floatValue = repeatedVolumeDb;
+                cue = ScriptableObject.CreateInstance<AudioCueDefinition>();
+                AssetDatabase.CreateAsset(cue, path);
+            }
 
-                SerializedProperty clips = serialized.FindProperty("clips");
-                clips.arraySize = clipPaths.Count;
-                for (int i = 0; i < clipPaths.Count; i++)
-                {
-                    clips.GetArrayElementAtIndex(i).objectReferenceValue =
-                        AssetDatabase.LoadAssetAtPath<AudioClip>(clipPaths[i]);
-                }
-            });
+            var serialized = new SerializedObject(cue);
+            serialized.FindProperty("cueId").stringValue = cueId;
+            serialized.FindProperty("bus").enumValueIndex = (int)bus;
+            serialized.FindProperty("loop").boolValue = loop;
+            serialized.FindProperty("volume").floatValue = volume;
+            serialized.FindProperty("pitchRange").vector2Value = pitch;
+            serialized.FindProperty("cooldownSeconds").floatValue = cooldown;
+            serialized.FindProperty("maximumInstances").intValue = maximumInstances;
+            serialized.FindProperty("fullVolumePlayCount").intValue = fullVolumePlayCount;
+            serialized.FindProperty("repeatedVolumeDb").floatValue = repeatedVolumeDb;
+
+            SerializedProperty clips = serialized.FindProperty("clips");
+            clips.arraySize = clipPaths.Count;
+            for (int i = 0; i < clipPaths.Count; i++)
+            {
+                clips.GetArrayElementAtIndex(i).objectReferenceValue =
+                    AssetDatabase.LoadAssetAtPath<AudioClip>(clipPaths[i]);
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(cue);
+            return cue;
         }
 
         private static string[] One(string clipName)

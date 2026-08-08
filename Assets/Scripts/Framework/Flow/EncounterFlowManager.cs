@@ -2,6 +2,7 @@ using System;
 using FFSS.Framework.Core;
 using FFSS.Framework.Combat;
 using FFSS.Framework.Persistence;
+using FFSS.Framework.Presentation.Audio;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using UnityEngine;
@@ -179,6 +180,11 @@ namespace FFSS.Framework.Flow
             runs.Current.result.earnedGold += claimed.gold;
             runs.ClearEncounterNode();
             ui.Hide(UIScreenId.Reward, false);
+
+            if (services.TryGet(out AudioManager audio))
+            {
+                audio.PlayMusic(completedBoss ? "bgm.event" : "bgm.roam", 1.2f);
+            }
 
             if (completedBoss)
             {

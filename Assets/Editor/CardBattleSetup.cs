@@ -559,7 +559,7 @@ namespace CardBattle.EditorTools
                             3, 3));
                     break;
                 case "암행어사":
-                    ConfigureProfile(profile, "암행어사", 198, 64, new Color(0.78f, 0.16f, 0.20f),
+                    ConfigureProfile(profile, "암행어사", 230, 68, new Color(0.78f, 0.16f, 0.20f),
                         Move("magistrate_badge", "도장 찍고 베기", BossMoveType.Attack,
                             "최근 행동 장부에 도장을 찍고 정면을 베어.",
                             "이름 있는 족보가 뜨면 위력이 오르고, 쌓인 죄목마다 공격이 더 강해져.",
@@ -578,7 +578,7 @@ namespace CardBattle.EditorTools
                             3, 4));
                     break;
                 case "땡잡이":
-                    ConfigureProfile(profile, "땡잡이", 178, 60, new Color(0.20f, 0.66f, 0.92f),
+                    ConfigureProfile(profile, "땡잡이", 190, 62, new Color(0.20f, 0.66f, 0.92f),
                         Move("ddengjabi_chain", "같은 숫자 쫓기", BossMoveType.Attack,
                             "이미 본 짝 숫자를 푸른 사슬이 다시 추적해.",
                             "추적 중인 숫자가 다시 짝을 이루면 중첩마다 공격이 강해져.",
@@ -597,7 +597,7 @@ namespace CardBattle.EditorTools
                             4, 3));
                     break;
                 case "멍구사":
-                    ConfigureProfile(profile, "멍구사", 170, 58, new Color(0.30f, 0.78f, 0.66f),
+                    ConfigureProfile(profile, "멍구사", 185, 60, new Color(0.30f, 0.78f, 0.66f),
                         Move("meonggusa_hidden_blade", "빈틈 찌르기", BossMoveType.Attack,
                             "숨긴 패의 빈틈을 이용해 시야 밖에서 비수를 던져.",
                             "갑오 이하에서 더 날카로워지는 저패 특화 공격이야.",
@@ -616,7 +616,7 @@ namespace CardBattle.EditorTools
                             3, 3));
                     break;
                 case "구사":
-                    ConfigureProfile(profile, "구사", 205, 66, new Color(0.48f, 0.76f, 0.58f),
+                    ConfigureProfile(profile, "구사", 230, 68, new Color(0.48f, 0.76f, 0.58f),
                         Move("gusa_charge", "낮은 판 몰기", BossMoveType.Attack,
                             "낮은 패가 깔리면 거대한 무기로 판째 밀고 들어와.",
                             "갑오 이하에서 힘을 얻고, 족보 반전 중에는 하이카드가 가장 강해져.",
@@ -768,7 +768,7 @@ namespace CardBattle.EditorTools
                             3, 3));
                     break;
                 case "8땡":
-                    ConfigureProfile(profile, "8땡", 138, 48, new Color(0.54f, 0.68f, 0.30f),
+                    ConfigureProfile(profile, "8땡", 152, 48, new Color(0.54f, 0.68f, 0.30f),
                         Move("eight_ddeng_goose", "부적 던지기", BossMoveType.Attack,
                             "부적을 접어 기러기 모양의 주문탄으로 날려.",
                             "팔월패가 보이면 주문탄이 되돌아와 HP를 한 번 더 노려.",
@@ -787,7 +787,7 @@ namespace CardBattle.EditorTools
                             4, 4));
                     break;
                 case "9땡":
-                    ConfigureProfile(profile, "9땡", 148, 50, new Color(0.86f, 0.58f, 0.16f),
+                    ConfigureProfile(profile, "9땡", 205, 54, new Color(0.86f, 0.58f, 0.16f),
                         Move("nine_ddeng_throw", "술잔 던지기", BossMoveType.Attack,
                             "술잔을 낮게 튕겨 초승달 궤도로 베어 와.",
                             "9월패가 섞이면 국화주가 터지고, 취기 때문에 표시 위력은 범위로 보여.",
@@ -806,7 +806,7 @@ namespace CardBattle.EditorTools
                             4, 4));
                     break;
                 case "10땡":
-                    ConfigureProfile(profile, "10땡", 156, 52, new Color(0.76f, 0.20f, 0.16f),
+                    ConfigureProfile(profile, "10땡", 218, 60, new Color(0.76f, 0.20f, 0.16f),
                         Move("ten_ddeng_flash", "쓸어 베기", BossMoveType.Attack,
                             "단풍 부채를 접어 붉은 일선을 곧게 그어.",
                             "십월패가 보이면 일섬 뒤의 낙엽이 한 번 더 HP를 파고들어.",

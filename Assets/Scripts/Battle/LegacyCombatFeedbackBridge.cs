@@ -108,6 +108,7 @@ namespace CardBattle
             if (result.CausedStun)
             {
                 PlayAudio(BreakCue);
+                DuckBattleMusic();
                 if (result.EnemyStunned)
                     PlayVfx(BreakVfxCue, EnemyTarget());
                 if (result.PlayerStunned)
@@ -119,14 +120,20 @@ namespace CardBattle
             {
                 if (result.DamageToEnemy > 0)
                 {
-                    PlayAudio(result.DamageToEnemy >= heavyDamageThreshold ? HeavyHitCue : LightHitCue);
+                    bool heavy = result.DamageToEnemy >= heavyDamageThreshold;
+                    PlayAudio(heavy ? HeavyHitCue : LightHitCue);
+                    if (heavy)
+                        DuckBattleMusic();
                     PlayVfx(SlashVfxCue, EnemyTarget());
                 }
                 if (result.DamageToPlayer > 0)
                 {
                     EnemyMoveDefinition move = FindMove(result.EnemyMoveId);
+                    bool heavy = result.DamageToPlayer >= heavyDamageThreshold;
                     PlayAudio(CueOrFallback(move?.impactAudioCue,
-                        result.DamageToPlayer >= heavyDamageThreshold ? HeavyHitCue : LightHitCue));
+                        heavy ? HeavyHitCue : LightHitCue));
+                    if (heavy)
+                        DuckBattleMusic();
                     PlayVfx(CueOrFallback(move?.impactVfxCue, SlashVfxCue), PlayerTarget());
                     PlayTail(move, PlayerTarget());
                 }
@@ -229,6 +236,12 @@ namespace CardBattle
             if (!string.IsNullOrWhiteSpace(cueId) && GameKernel.IsReady &&
                 GameKernel.Services.TryGet(out AudioManager audio))
                 audio.Play(cueId);
+        }
+
+        private static void DuckBattleMusic()
+        {
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out AudioManager audio))
+                audio.DuckMusic(0.2f);
         }
 
         private static string CueOrFallback(string cueId, string fallback)

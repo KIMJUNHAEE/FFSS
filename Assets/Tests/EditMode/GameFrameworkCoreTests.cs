@@ -902,6 +902,9 @@ namespace FFSS.Framework.Tests
             Assert.That(guard.RepeatedVolumeDb, Is.EqualTo(-5f));
             Assert.That(guard.VolumeForSequencePlay(0), Is.EqualTo(guard.Volume).Within(0.0001f));
             Assert.That(guard.VolumeForSequencePlay(1), Is.LessThan(guard.Volume));
+
+            AudioCueDefinition lightHit = catalog.Get("sfx.combat.slash.light");
+            Assert.That(lightHit.Volume, Is.EqualTo(0.4f).Within(0.001f));
         }
 
         [Test]
@@ -2339,13 +2342,13 @@ namespace FFSS.Framework.Tests
                 ["5땡"] = (116, 42, EnemyRuleBehaviorKind.UniqueActionCycle),
                 ["6땡"] = (120, 44, EnemyRuleBehaviorKind.CardPoison),
                 ["7땡"] = (132, 46, EnemyRuleBehaviorKind.BalanceTremor),
-                ["8땡"] = (138, 48, EnemyRuleBehaviorKind.CardSeal),
-                ["9땡"] = (148, 50, EnemyRuleBehaviorKind.Intoxication),
-                ["10땡"] = (156, 52, EnemyRuleBehaviorKind.FinalCountdown),
-                ["땡잡이"] = (178, 60, EnemyRuleBehaviorKind.PairTracking),
-                ["멍구사"] = (170, 58, EnemyRuleBehaviorKind.Suspicion),
-                ["구사"] = (205, 66, EnemyRuleBehaviorKind.LowHandReversal),
-                ["암행어사"] = (198, 64, EnemyRuleBehaviorKind.ActionHistoryCharge),
+                ["8땡"] = (152, 48, EnemyRuleBehaviorKind.CardSeal),
+                ["9땡"] = (205, 54, EnemyRuleBehaviorKind.Intoxication),
+                ["10땡"] = (218, 60, EnemyRuleBehaviorKind.FinalCountdown),
+                ["땡잡이"] = (190, 62, EnemyRuleBehaviorKind.PairTracking),
+                ["멍구사"] = (185, 60, EnemyRuleBehaviorKind.Suspicion),
+                ["구사"] = (230, 68, EnemyRuleBehaviorKind.LowHandReversal),
+                ["암행어사"] = (230, 68, EnemyRuleBehaviorKind.ActionHistoryCharge),
                 ["13"] = (210, 68, EnemyRuleBehaviorKind.TargetAim),
                 ["18"] = (240, 74, EnemyRuleBehaviorKind.SuitWheel),
                 ["38"] = (320, 88, EnemyRuleBehaviorKind.GwangHeat)
