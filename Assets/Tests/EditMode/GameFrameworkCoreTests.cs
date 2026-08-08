@@ -272,6 +272,38 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EnemySeotdaSignaturePairRollHonorsConfiguredBounds()
+        {
+            var host = new GameObject("EnemySeotdaSignaturePairTests");
+            Type controllerType = Type.GetType("CardBattle.SeotdaTableController, Assembly-CSharp");
+            Assert.That(controllerType, Is.Not.Null);
+            Component controller = host.AddComponent(controllerType);
+            FieldInfo ruleStateField = controllerType.GetField("ruleState", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo chanceField = controllerType.GetField("signaturePairChance");
+            MethodInfo shouldPair = controllerType.GetMethod(
+                "ShouldPairSignature",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            try
+            {
+                Assert.That(ruleStateField, Is.Not.Null);
+                Assert.That(chanceField, Is.Not.Null);
+                Assert.That(shouldPair, Is.Not.Null);
+                ruleStateField.SetValue(controller, new EnemyRuleState { enemyId = "1땡" });
+
+                chanceField.SetValue(controller, 0f);
+                Assert.That(shouldPair.Invoke(controller, null), Is.False);
+
+                chanceField.SetValue(controller, 1f);
+                Assert.That(shouldPair.Invoke(controller, null), Is.True);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void LegacyCombatUsesTheCurrentEncounterDataInsteadOfTheSceneCopy()
         {
             var host = new GameObject("RuntimeEncounterProfileTests");
@@ -2245,6 +2277,22 @@ namespace FFSS.Framework.Tests
                 Assert.That(encounter.exclusiveSeotdaCard.enemyId, Is.EqualTo(encounter.enemyId));
                 Assert.That(encounter.signatureCardA, Is.Not.Null, encounter.enemyId);
                 Assert.That(encounter.signatureCardB, Is.Not.Null, encounter.enemyId);
+
+                switch (encounter.rank)
+                {
+                    case EnemyEncounterRank.Normal:
+                        Assert.That(encounter.signatureCardChance, Is.InRange(0.70f, 0.78f), encounter.enemyId);
+                        Assert.That(encounter.signaturePairChance, Is.InRange(0.30f, 0.38f), encounter.enemyId);
+                        break;
+                    case EnemyEncounterRank.MidBoss:
+                        Assert.That(encounter.signatureCardChance, Is.InRange(0.72f, 0.78f), encounter.enemyId);
+                        Assert.That(encounter.signaturePairChance, Is.InRange(0.20f, 0.26f), encounter.enemyId);
+                        break;
+                    case EnemyEncounterRank.Boss:
+                        Assert.That(encounter.signatureCardChance, Is.InRange(0.76f, 0.82f), encounter.enemyId);
+                        Assert.That(encounter.signaturePairChance, Is.InRange(0.22f, 0.28f), encounter.enemyId);
+                        break;
+                }
 
                 var moveIds = new HashSet<string>();
                 bool hasOffense = false;

@@ -483,7 +483,9 @@ namespace CardBattle
             if (useSignature)
             {
                 preparedFaceSprite = signatureSprite;
-                preparedHiddenSprite = ResolveSignaturePartner() ?? DrawBaseCard(signatureSprite);
+                preparedHiddenSprite = ShouldPairSignature()
+                    ? ResolveSignaturePartner() ?? DrawBaseCard(signatureSprite)
+                    : DrawNonTriggeringSignaturePartner() ?? DrawBaseCard(signatureSprite);
                 ruleState.Seotda.TryUseSignature(SignatureUseCap());
             }
             else
@@ -544,6 +546,41 @@ namespace CardBattle
                 EnemyEncounterRank.MidBoss => 2,
                 _ => 1
             };
+        }
+
+        private bool ShouldPairSignature()
+        {
+            int phase = profile != null && profile.encounterRank == EnemyEncounterRank.Boss
+                ? Mathf.Max(1, ruleState.phase)
+                : 1;
+            int attempt = ruleState.Seotda.signatureUseCount + 1;
+            int hash = StableHash($"{ruleState.enemyId}:{phase}:{attempt}:signature-pair");
+            float normalized = (hash & 0x7fffffff) / (float)int.MaxValue;
+            return normalized <= Mathf.Clamp01(signaturePairChance);
+        }
+
+        private Sprite DrawNonTriggeringSignaturePartner()
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                EnsureShoe();
+                for (int i = 0; i < ruleState.Seotda.shoeOrder.Count; i++)
+                {
+                    Sprite candidate = ResolveSprite(ruleState.Seotda.shoeOrder[i]);
+                    if (candidate == null || candidate == signatureSprite ||
+                        Evaluate(signatureSprite, candidate).SignatureTriggered)
+                    {
+                        continue;
+                    }
+
+                    ruleState.Seotda.shoeOrder.RemoveAt(i);
+                    return candidate;
+                }
+
+                RebuildShoe(ruleState.turnNumber + ruleState.Seotda.discardOrder.Count + 701 + pass);
+            }
+
+            return null;
         }
 
         private Sprite ResolveSignaturePartner()
