@@ -306,6 +306,7 @@ namespace CardBattle
         private Coroutine playerBreakRoutine;
         private Coroutine enemyBreakRoutine;
         private bool presentationReady;
+        private BossCombatProfile runtimeEncounterProfile;
 
         public int EnemyHp => enemyHp;
         public int EnemyMaxHp => enemyMaxHp;
@@ -317,6 +318,83 @@ namespace CardBattle
         {
             enemyStunTurns = Mathf.Max(enemyStunTurns, Mathf.Max(0, turns));
             enemyStunned = enemyStunTurns > 0;
+        }
+
+        public void ConfigureEncounterDefinition(EnemyEncounterDefinition encounter)
+        {
+            if (encounter == null)
+                return;
+
+            DestroyRuntimeEncounterProfile();
+
+            runtimeEncounterProfile = ScriptableObject.CreateInstance<BossCombatProfile>();
+            runtimeEncounterProfile.hideFlags = HideFlags.DontSave;
+            runtimeEncounterProfile.bossId = encounter.enemyId;
+            runtimeEncounterProfile.displayName = encounter.displayName;
+            runtimeEncounterProfile.encounterRank = (EnemyEncounterRank)(int)encounter.rank;
+            runtimeEncounterProfile.maxHp = encounter.maximumHp;
+            runtimeEncounterProfile.maxPressure = encounter.maximumPressure;
+            runtimeEncounterProfile.accentColor = encounter.primaryColor;
+            runtimeEncounterProfile.combatTitle = encounter.combatTitle;
+            runtimeEncounterProfile.secondaryAccentColor = encounter.secondaryColor;
+            runtimeEncounterProfile.exclusiveSeotdaDeck = encounter.exclusiveSeotdaDeck;
+            runtimeEncounterProfile.exclusiveSeotdaCard = encounter.exclusiveSeotdaCard;
+            runtimeEncounterProfile.signatureCardA = encounter.signatureCardA;
+            runtimeEncounterProfile.signatureCardB = encounter.signatureCardB;
+            runtimeEncounterProfile.signatureCardChance = encounter.signatureCardChance;
+            runtimeEncounterProfile.signaturePairChance = encounter.signaturePairChance;
+            runtimeEncounterProfile.idleVisualScale = encounter.idleVisualScale;
+            runtimeEncounterProfile.idleVisualOffset = encounter.idleVisualOffset;
+            runtimeEncounterProfile.hurtVisualScale = encounter.hurtVisualScale;
+            runtimeEncounterProfile.hurtVisualOffset = encounter.hurtVisualOffset;
+            runtimeEncounterProfile.deathVisualScale = encounter.deathVisualScale;
+            runtimeEncounterProfile.deathVisualOffset = encounter.deathVisualOffset;
+            for (int i = 0; i < encounter.moves.Count; i++)
+            {
+                EnemyMoveDefinition move = encounter.moves[i];
+                if (move == null)
+                    continue;
+
+                runtimeEncounterProfile.moves.Add(new BossMoveDefinition
+                {
+                    moveId = move.moveId,
+                    displayName = move.displayName,
+                    moveType = move.action switch
+                    {
+                        CombatActionType.Defend => BossMoveType.Defend,
+                        CombatActionType.Skill => BossMoveType.Skill,
+                        _ => BossMoveType.Attack
+                    },
+                    telegraph = move.telegraph,
+                    description = move.description,
+                    power = move.basePower,
+                    breakPower = move.pressurePower,
+                    weight = move.weight,
+                    minimumTurn = move.minimumRound,
+                    cooldownTurns = move.cooldownRounds,
+                    cadenceTurns = move.cadenceRounds,
+                    cadenceOffset = move.cadenceOffset,
+                    seotdaCondition = (BossSeotdaCondition)(int)move.seotdaCondition,
+                    conditionValueA = move.conditionValueA,
+                    conditionValueB = move.conditionValueB,
+                    seotdaPowerBonus = move.seotdaPowerBonus,
+                    seotdaHpDamage = move.seotdaHpDamage,
+                    seotdaBreakDamage = move.seotdaPressureDamage,
+                    seotdaFailurePowerDelta = move.seotdaFailurePowerDelta,
+                    seotdaRule = move.seotdaRule,
+                    icon = move.icon,
+                    actionSprite = move.actionSprite,
+                    actionPoseSeconds = move.actionPoseSeconds,
+                    actionVisualScale = move.actionVisualScale,
+                    actionVisualOffset = move.actionVisualOffset,
+                    actionMotion = (EnemyActionMotion)(int)move.actionMotion,
+                    actionMotionIntensity = move.actionMotionIntensity,
+                    actionMotionRepetitions = move.actionMotionRepetitions
+                });
+            }
+
+            bossProfile = runtimeEncounterProfile;
+            ApplyBossProfile();
         }
 
         private void Start()
@@ -470,6 +548,18 @@ namespace CardBattle
                 pokerHand.HandChanged -= HandleHandChanged;
                 pokerHand.RedrawAvailabilityChanged -= HandleRedrawAvailabilityChanged;
             }
+
+            DestroyRuntimeEncounterProfile();
+        }
+
+        private void DestroyRuntimeEncounterProfile()
+        {
+            if (runtimeEncounterProfile == null)
+                return;
+
+            if (Application.isPlaying) Destroy(runtimeEncounterProfile);
+            else DestroyImmediate(runtimeEncounterProfile);
+            runtimeEncounterProfile = null;
         }
 
         private void HandleRedrawAvailabilityChanged(int remaining, int limit)

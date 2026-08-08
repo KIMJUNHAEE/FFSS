@@ -228,6 +228,55 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void LegacyCombatUsesTheCurrentEncounterDataInsteadOfTheSceneCopy()
+        {
+            var host = new GameObject("RuntimeEncounterProfileTests");
+            CardBattle.RpsCombatController combat = host.AddComponent<CardBattle.RpsCombatController>();
+            EnemyEncounterDefinition encounter = ScriptableObject.CreateInstance<EnemyEncounterDefinition>();
+            EnemySeotdaDeckDefinition deck = ScriptableObject.CreateInstance<EnemySeotdaDeckDefinition>();
+            EnemySeotdaSignatureCardDefinition signature =
+                ScriptableObject.CreateInstance<EnemySeotdaSignatureCardDefinition>();
+            encounter.enemyId = "test.enemy";
+            encounter.displayName = "최신 적";
+            encounter.maximumHp = 123;
+            encounter.maximumPressure = 41;
+            encounter.exclusiveSeotdaDeck = deck;
+            encounter.exclusiveSeotdaCard = signature;
+            encounter.signatureCardChance = 0.78f;
+            encounter.signaturePairChance = 0.34f;
+            encounter.moves.Add(new EnemyMoveDefinition
+            {
+                moveId = "latest.move",
+                displayName = "최신 행동",
+                action = CombatActionType.Defend,
+                basePower = 17,
+                pressurePower = 9
+            });
+
+            try
+            {
+                combat.ConfigureEncounterDefinition(encounter);
+
+                Assert.That(combat.bossProfile.bossId, Is.EqualTo("test.enemy"));
+                Assert.That(combat.bossProfile.displayName, Is.EqualTo("최신 적"));
+                Assert.That(combat.bossProfile.maxHp, Is.EqualTo(123));
+                Assert.That(combat.bossProfile.exclusiveSeotdaDeck, Is.SameAs(deck));
+                Assert.That(combat.bossProfile.exclusiveSeotdaCard, Is.SameAs(signature));
+                Assert.That(combat.bossProfile.signatureCardChance, Is.EqualTo(0.78f));
+                Assert.That(combat.bossProfile.moves, Has.Count.EqualTo(1));
+                Assert.That(combat.bossProfile.moves[0].moveType, Is.EqualTo(CardBattle.BossMoveType.Defend));
+                Assert.That(combat.bossProfile.moves[0].power, Is.EqualTo(17));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+                UnityEngine.Object.DestroyImmediate(encounter);
+                UnityEngine.Object.DestroyImmediate(deck);
+                UnityEngine.Object.DestroyImmediate(signature);
+            }
+        }
+
+        [Test]
         public void EnemyCardRuleMarksPersistPerPokerCard()
         {
             var state = new EnemyRuleState { enemyId = "6땡" };
