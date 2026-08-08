@@ -232,6 +232,11 @@ namespace FFSS.Framework.Tests
             state.Seotda.preview.damageMinimum = 13;
             state.Seotda.preview.damageMaximum = 21;
             state.Seotda.preview.signaturePossible = true;
+            state.Seotda.signatureCheckUsed = true;
+            state.Seotda.signatureSecondCheckUsed = true;
+            state.Seotda.lastSignatureTurn = 8;
+            state.Seotda.consecutiveCorrectResponses = 2;
+            state.Seotda.consecutiveMistakes = 0;
             state.Seotda.StripModifier("heat.bonus");
 
             string json = JsonUtility.ToJson(state);
@@ -242,7 +247,30 @@ namespace FFSS.Framework.Tests
             Assert.That(restored.Seotda.hiddenCard.month, Is.EqualTo(8));
             Assert.That(restored.Seotda.preview.riskBand, Is.EqualTo(EnemySeotdaRiskBand.Signature));
             Assert.That(restored.Seotda.preview.damageMaximum, Is.EqualTo(21));
+            Assert.That(restored.Seotda.signatureCheckUsed, Is.True);
+            Assert.That(restored.Seotda.signatureSecondCheckUsed, Is.True);
+            Assert.That(restored.Seotda.lastSignatureTurn, Is.EqualTo(8));
+            Assert.That(restored.Seotda.consecutiveCorrectResponses, Is.EqualTo(2));
             Assert.That(restored.Seotda.IsModifierStripped("heat.bonus"), Is.True);
+        }
+
+        [Test]
+        public void EnemySeotdaResponseHistoryTracksCorrectAndRepeatedMistakeStreaks()
+        {
+            var state = new EnemySeotdaRuntimeState();
+
+            state.RecordPlayerResponse(false, true);
+            state.RecordPlayerResponse(false, true);
+            Assert.That(state.consecutiveMistakes, Is.EqualTo(2));
+            Assert.That(state.consecutiveCorrectResponses, Is.Zero);
+
+            state.RecordPlayerResponse(true, false);
+            Assert.That(state.consecutiveCorrectResponses, Is.EqualTo(1));
+            Assert.That(state.consecutiveMistakes, Is.Zero);
+
+            state.RecordPlayerResponse(false, false);
+            Assert.That(state.consecutiveCorrectResponses, Is.Zero);
+            Assert.That(state.consecutiveMistakes, Is.Zero);
         }
 
         [Test]
@@ -2600,6 +2628,117 @@ namespace FFSS.Framework.Tests
                     ?.GetValue(controller) as Sprite;
                 Assert.That(preparedFace, Is.Not.Null);
                 Assert.That(expectedDeck.cards.Select(card => card.faceSprite), Does.Contain(preparedFace));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void NormalEnemyRuntimeShoeUsesSixToEightCardsAndExcludesSignature()
+        {
+            UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
+                "Assets/Data/BossProfiles/1땡.asset");
+            Assert.That(profile, Is.Not.Null);
+
+            Type controllerType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
+                .FirstOrDefault(type => type != null);
+            Assert.That(controllerType, Is.Not.Null);
+
+            var root = new GameObject("NormalSeotdaShoeTest");
+            try
+            {
+                Component controller = root.AddComponent(controllerType);
+                controllerType.GetMethod("ConfigureBossProfile", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new[] { profile });
+
+                var state = new EnemyRuleState { enemyId = "1땡", encounterSeed = 18421 };
+                controllerType.GetMethod("BindRuleState", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new object[] { state });
+                controllerType.GetMethod("RebuildShoe", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.Invoke(controller, new object[] { 0 });
+
+                Sprite signature = controllerType.GetProperty("ExclusiveCardSprite")?.GetValue(controller) as Sprite;
+                Assert.That(state.Seotda.shoeOrder.Count, Is.InRange(6, 8));
+                Assert.That(state.Seotda.shoeOrder, Is.Unique);
+                if (signature != null)
+                    Assert.That(state.Seotda.shoeOrder, Does.Not.Contain(signature.name));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void NormalEnemySignatureCheckIsConsumedOnceAtTurnFour()
+        {
+            UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
+                "Assets/Data/BossProfiles/1땡.asset");
+            Type controllerType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
+                .FirstOrDefault(type => type != null);
+            Assert.That(profile, Is.Not.Null);
+            Assert.That(controllerType, Is.Not.Null);
+
+            var root = new GameObject("NormalSeotdaSignatureWindowTest");
+            try
+            {
+                Component controller = root.AddComponent(controllerType);
+                controllerType.GetMethod("ConfigureBossProfile", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new[] { profile });
+                var state = new EnemyRuleState
+                {
+                    enemyId = "1땡",
+                    encounterSeed = 73108,
+                    turnNumber = 3
+                };
+                controllerType.GetMethod("BindRuleState", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new object[] { state });
+
+                MethodInfo shouldUse = controllerType.GetMethod(
+                    "ShouldUseSignature",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.That(shouldUse, Is.Not.Null);
+                shouldUse.Invoke(controller, null);
+                Assert.That(state.Seotda.signatureCheckUsed, Is.True);
+                Assert.That((bool)shouldUse.Invoke(controller, null), Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [TestCase("Assets/Data/BossProfiles/1땡.asset", 1)]
+        [TestCase("Assets/Data/BossProfiles/구사.asset", 2)]
+        [TestCase("Assets/Data/BossProfiles/13.asset", 2)]
+        [TestCase("Assets/Data/BossProfiles/18.asset", 2)]
+        [TestCase("Assets/Data/BossProfiles/38.asset", 3)]
+        public void EnemySignatureCapMatchesLatestEncounterRule(string profilePath, int expectedCap)
+        {
+            UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(profilePath);
+            Type controllerType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("CardBattle.SeotdaTableController"))
+                .FirstOrDefault(type => type != null);
+            Assert.That(profile, Is.Not.Null, profilePath);
+            Assert.That(controllerType, Is.Not.Null);
+
+            var root = new GameObject("SeotdaSignatureCapTest");
+            try
+            {
+                Component controller = root.AddComponent(controllerType);
+                controllerType.GetMethod("ConfigureBossProfile", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new[] { profile });
+                controllerType.GetMethod("BindRuleState", BindingFlags.Public | BindingFlags.Instance)
+                    ?.Invoke(controller, new object[] { new EnemyRuleState() });
+                MethodInfo cap = controllerType.GetMethod(
+                    "SignatureUseCap",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.That(cap, Is.Not.Null);
+                Assert.That((int)cap.Invoke(controller, null), Is.EqualTo(expectedCap));
             }
             finally
             {

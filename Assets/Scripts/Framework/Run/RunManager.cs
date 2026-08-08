@@ -69,10 +69,29 @@ namespace FFSS.Framework.Run
         public EnemyRuleState BeginEncounter(string enemyId, string nodeId = null)
         {
             RequireRun();
-            Current.activeEnemyRule = new EnemyRuleState { enemyId = enemyId };
+            Current.activeEnemyRule = new EnemyRuleState
+            {
+                enemyId = enemyId,
+                encounterSeed = BuildEncounterSeed(Current.seed, Current.encounterIndex, enemyId)
+            };
             Current.activeEncounterNodeId = nodeId ?? string.Empty;
             NotifyStateChanged("encounter.started");
             return Current.activeEnemyRule;
+        }
+
+        private static int BuildEncounterSeed(int runSeed, int encounterIndex, string enemyId)
+        {
+            unchecked
+            {
+                uint hash = 2166136261;
+                string value = enemyId ?? string.Empty;
+                for (int i = 0; i < value.Length; i++)
+                    hash = (hash ^ value[i]) * 16777619;
+
+                hash ^= (uint)runSeed;
+                hash ^= (uint)(encounterIndex + 1) * 2654435761u;
+                return (int)hash;
+            }
         }
 
         public void CompleteEncounter()

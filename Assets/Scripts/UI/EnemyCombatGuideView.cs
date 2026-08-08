@@ -101,7 +101,42 @@ namespace CardBattle
             string effect = string.IsNullOrWhiteSpace(signature.effectText)
                 ? "예고된 짝패 조건을 만족하면 적 기술이 강화돼."
                 : signature.effectText;
-            return $"<color=#F6B4FF><b>{signature.displayName}</b></color>  ·  {signature.month}월패\n{effect}";
+            return $"<color=#F6B4FF><b>{signature.displayName}</b></color>  ·  {signature.month}월패\n" +
+                   $"{SignatureFrequencyDescription(encounter)}\n{effect}";
+        }
+
+        private static string SignatureFrequencyDescription(EnemyEncounterDefinition encounter)
+        {
+            if (encounter.rank == FrameworkEnemyEncounterRank.Normal)
+            {
+                int act = NormalAct(encounter.enemyId);
+                string chance = act switch
+                {
+                    1 => "25% / 대응 10% / 반복 실수 55%",
+                    2 => "35% / 대응 20% / 반복 실수 65%",
+                    _ => "45% / 대응 30% / 반복 실수 75%"
+                };
+                return $"4턴 시작에 한 번만 판정 · 등장률 {chance} · 실패 시 재시도 없음";
+            }
+
+            if (encounter.rank == FrameworkEnemyEncounterRank.MidBoss)
+                return "4턴 첫 등장 확정 · 반복 실수 중이면 8턴에 50% 재판정 · 최대 2회";
+
+            if (encounter.enemyId == "38")
+                return "HP 75%·45%·25% 페이즈 진입 2턴 뒤 등장 · 전투당 최대 3회";
+
+            return "4턴과 HP 페이즈 전환 뒤 등장 · 최소 3턴 간격 · 전투당 최대 2회";
+        }
+
+        private static int NormalAct(string enemyId)
+        {
+            int number = 0;
+            string value = enemyId ?? string.Empty;
+            for (int i = 0; i < value.Length && char.IsDigit(value[i]); i++)
+                number = number * 10 + (value[i] - '0');
+
+            if (number <= 4) return 1;
+            return number <= 8 ? 2 : 3;
         }
 
         private static string BuildTermText(EnemyEncounterDefinition encounter, EnemyPlayerGuideDefinition guide)
@@ -109,6 +144,7 @@ namespace CardBattle
             var terms = new List<string>();
             AddUnique(terms, "전용패");
             AddUnique(terms, "격파");
+            AddUnique(terms, encounter.ruleMeter?.displayName);
             if (guide.relatedTerms != null)
             {
                 for (int i = 0; i < guide.relatedTerms.Count; i++)

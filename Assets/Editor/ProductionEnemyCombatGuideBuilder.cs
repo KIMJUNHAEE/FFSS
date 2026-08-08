@@ -142,11 +142,11 @@ namespace FFSS.Editor
 
                 TextMeshProUGUI gimmick = CreateText("Gimmick", panel.transform, font, 24,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(gimmick.rectTransform, new Vector2(0.10f, 0.36f), new Vector2(0.48f, 0.51f));
+                SetAnchored(gimmick.rectTransform, new Vector2(0.10f, 0.42f), new Vector2(0.48f, 0.51f));
 
                 TextMeshProUGUI signature = CreateText("Signature", panel.transform, font, 22,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(signature.rectTransform, new Vector2(0.10f, 0.12f), new Vector2(0.48f, 0.34f));
+                SetAnchored(signature.rectTransform, new Vector2(0.10f, 0.12f), new Vector2(0.48f, 0.405f));
 
                 TextMeshProUGUI counterplay = CreateText("Counterplay", panel.transform, font, 24,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));

@@ -506,6 +506,8 @@ namespace FFSS.Framework.Tests
                 failures.Add($"{sceneName}: enemy gimmick explanation is missing");
             if (!signature.text.Contains("전용패"))
                 failures.Add($"{sceneName}: signature-card explanation is missing");
+            if (!signature.text.Contains("턴"))
+                failures.Add($"{sceneName}: signature-card timing is missing");
             if (!counterplay.text.Contains("대응법"))
                 failures.Add($"{sceneName}: counterplay explanation is missing");
             if (!terms.text.Contains("관련 용어") || !terms.text.Contains("격파"))

@@ -90,6 +90,11 @@ namespace FFSS.Framework.Run
         public int signatureClock;
         public int signatureUseCount;
         public int signaturePhase = 1;
+        public bool signatureCheckUsed;
+        public bool signatureSecondCheckUsed;
+        public int lastSignatureTurn;
+        public int consecutiveCorrectResponses;
+        public int consecutiveMistakes;
         public List<string> strippedModifierIds = new List<string>();
         public EnemyIntentPreviewState preview = new EnemyIntentPreviewState();
 
@@ -115,7 +120,7 @@ namespace FFSS.Framework.Run
             }
         }
 
-        public bool TryUseSignature(int maximumUses)
+        public bool TryUseSignature(int maximumUses, int battleTurn = 0)
         {
             if (maximumUses <= 0 || signatureUseCount >= maximumUses)
             {
@@ -123,8 +128,31 @@ namespace FFSS.Framework.Run
             }
 
             signatureUseCount++;
-            signatureClock = 0;
+            if (battleTurn > 0)
+            {
+                lastSignatureTurn = battleTurn;
+            }
             return true;
+        }
+
+        public void RecordPlayerResponse(bool correct, bool mistake)
+        {
+            if (correct)
+            {
+                consecutiveCorrectResponses++;
+                consecutiveMistakes = 0;
+                return;
+            }
+
+            if (mistake)
+            {
+                consecutiveMistakes++;
+                consecutiveCorrectResponses = 0;
+                return;
+            }
+
+            consecutiveCorrectResponses = 0;
+            consecutiveMistakes = 0;
         }
 
         public void StripModifier(string modifierId)
@@ -175,6 +203,7 @@ namespace FFSS.Framework.Run
     public sealed class EnemyRuleState
     {
         public string enemyId;
+        public int encounterSeed;
         public int phase = 1;
         public int turnNumber;
         public string lastMoveId;

@@ -181,6 +181,9 @@ namespace CardBattle
 
             state.turnNumber++;
             state.lastMoveId = result.EnemyMoveId;
+            source?.seotdaTable?.RecordPlayerResponse(
+                IsCorrectSeotdaResponse(result),
+                IsRepeatedMistakeCandidate(result));
             int previousPhase = state.phase;
             UpdateEncounterPhase();
             switch (encounter.ruleRuntime.kind)
@@ -914,6 +917,28 @@ namespace CardBattle
         private static bool IsOffense(RpsAction action)
         {
             return action is RpsAction.Attack or RpsAction.Skill;
+        }
+
+        private static bool IsCorrectSeotdaResponse(RpsCombatExchangeResult result)
+        {
+            if (result.EnemyAction == RpsAction.Stunned)
+                return false;
+
+            bool blockedOffense = IsOffense(result.EnemyAction) &&
+                                  result.PlayerAction == RpsAction.Defend &&
+                                  result.DamageToPlayer == 0;
+            bool brokeDefense = result.EnemyAction == RpsAction.Defend &&
+                                IsOffense(result.PlayerAction) &&
+                                result.DamageToEnemy > 0;
+            return blockedOffense || brokeDefense;
+        }
+
+        private static bool IsRepeatedMistakeCandidate(RpsCombatExchangeResult result)
+        {
+            if (result.EnemyAction == RpsAction.Stunned)
+                return false;
+
+            return result.DamageToPlayer > 0 || result.PlayerStunned;
         }
 
         private static bool ContainsMoveId(RpsCombatExchangeResult result, string value)
