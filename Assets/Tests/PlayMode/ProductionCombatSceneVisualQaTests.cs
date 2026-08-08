@@ -69,6 +69,113 @@ namespace FFSS.Framework.Tests
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
+        [UnityTest]
+        public IEnumerator EveryProductionCombatSceneUsesOneDdaengSharedUiGeometry()
+        {
+            SceneManager.LoadScene("Combat_Ddaeng_01", LoadSceneMode.Single);
+            yield return WaitFrames(3);
+            IReadOnlyDictionary<string, RectGeometry> reference = CaptureSharedUiGeometry();
+
+            var failures = new List<string>();
+            for (int i = 0; i < SceneNames.Length; i++)
+            {
+                string sceneName = SceneNames[i];
+                SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+                yield return WaitFrames(3);
+                IReadOnlyDictionary<string, RectGeometry> current = CaptureSharedUiGeometry();
+                foreach (KeyValuePair<string, RectGeometry> pair in reference)
+                {
+                    if (!current.TryGetValue(pair.Key, out RectGeometry actual))
+                    {
+                        failures.Add($"{sceneName}: shared UI {pair.Key} is missing");
+                        continue;
+                    }
+
+                    if (!pair.Value.ApproximatelyEquals(actual))
+                    {
+                        failures.Add(
+                            $"{sceneName}: {pair.Key} differs from 1 Ddaeng. " +
+                            $"expected {pair.Value}, actual {actual}");
+                    }
+                }
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        private readonly struct RectGeometry
+        {
+            public RectGeometry(RectTransform rect)
+            {
+                AnchorMin = rect.anchorMin;
+                AnchorMax = rect.anchorMax;
+                Pivot = rect.pivot;
+                Position = rect.anchoredPosition;
+                Size = rect.sizeDelta;
+                Scale = rect.localScale;
+            }
+
+            private Vector2 AnchorMin { get; }
+            private Vector2 AnchorMax { get; }
+            private Vector2 Pivot { get; }
+            private Vector2 Position { get; }
+            private Vector2 Size { get; }
+            private Vector3 Scale { get; }
+
+            public bool ApproximatelyEquals(RectGeometry other)
+            {
+                const float tolerance = 0.05f;
+                return Vector2.Distance(AnchorMin, other.AnchorMin) <= tolerance &&
+                       Vector2.Distance(AnchorMax, other.AnchorMax) <= tolerance &&
+                       Vector2.Distance(Pivot, other.Pivot) <= tolerance &&
+                       Vector2.Distance(Position, other.Position) <= tolerance &&
+                       Vector2.Distance(Size, other.Size) <= tolerance &&
+                       Vector3.Distance(Scale, other.Scale) <= tolerance;
+            }
+
+            public override string ToString()
+            {
+                return $"pos={Position}, size={Size}, scale={Scale}";
+            }
+        }
+
+        private static IReadOnlyDictionary<string, RectGeometry> CaptureSharedUiGeometry()
+        {
+            var result = new Dictionary<string, RectGeometry>();
+            string[] names =
+            {
+                "PlayerHUD",
+                "EnemyHUD",
+                "EnemyIntentBadge",
+                "PokerTableV2",
+                "HwatuTableV2",
+                "AttackButton",
+                "DefendButton",
+                "SkillButton",
+                "RedrawButton",
+                "EndTurnButton"
+            };
+            for (int i = 0; i < names.Length; i++)
+            {
+                RectTransform rect = FindNamedRect(names[i]);
+                if (rect != null)
+                    result[names[i]] = new RectGeometry(rect);
+            }
+
+            MonoBehaviour[] meters = SceneComponentsByTypeName(
+                SceneManager.GetActiveScene(),
+                "EnemyRuleMeterView");
+            if (meters.Length == 1 && meters[0].transform is RectTransform meterRect)
+                result["EnemyRuleMeter"] = new RectGeometry(meterRect);
+            return result;
+        }
+
+        private static RectTransform FindNamedRect(string objectName)
+        {
+            RectTransform[] rects = SceneComponents<RectTransform>(SceneManager.GetActiveScene());
+            return rects.FirstOrDefault(rect => rect.name == objectName);
+        }
+
         private static void ValidateSceneStructure(string sceneName, ICollection<string> failures)
         {
             Scene scene = SceneManager.GetActiveScene();

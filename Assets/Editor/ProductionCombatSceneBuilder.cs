@@ -203,6 +203,149 @@ namespace FFSS.Editor
             Debug.Log("Rebuilt the production 38 battle copy and normalized command prefab instances in all production combat scenes.");
         }
 
+        [MenuItem("FFSS/Production/Match All Combat UI Layouts To 1 Ddaeng")]
+        public static void MatchAllCombatUiLayoutsToOneDdaeng()
+        {
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            const string referenceSceneName = "Combat_Ddaeng_01";
+            string referencePath = $"Assets/Scenes/{ProductionRelativeRoot}/{referenceSceneName}.unity";
+            try
+            {
+                Scene referenceScene = EditorSceneManager.OpenScene(referencePath, OpenSceneMode.Single);
+                IReadOnlyDictionary<string, RectLayoutSnapshot> reference = CaptureSharedCombatLayouts(referenceScene);
+
+                for (int i = 0; i < Seeds.Count; i++)
+                {
+                    BattleSeed seed = Seeds[i];
+                    if (seed.SceneName == referenceSceneName)
+                        continue;
+
+                    string scenePath = $"Assets/Scenes/{ProductionRelativeRoot}/{seed.SceneName}.unity";
+                    Scene targetScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                    ApplySharedCombatLayouts(targetScene, reference);
+                    EditorSceneManager.SaveScene(targetScene);
+                }
+            }
+            finally
+            {
+                if (!Application.isBatchMode && previousSetup.Length > 0)
+                    EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Matched {Seeds.Count - 1} production combat UI layouts to {referenceSceneName}.");
+        }
+
+        private readonly struct RectLayoutSnapshot
+        {
+            public RectLayoutSnapshot(RectTransform rect)
+            {
+                AnchorMin = rect.anchorMin;
+                AnchorMax = rect.anchorMax;
+                Pivot = rect.pivot;
+                AnchoredPosition = rect.anchoredPosition;
+                SizeDelta = rect.sizeDelta;
+                LocalScale = rect.localScale;
+            }
+
+            public Vector2 AnchorMin { get; }
+            public Vector2 AnchorMax { get; }
+            public Vector2 Pivot { get; }
+            public Vector2 AnchoredPosition { get; }
+            public Vector2 SizeDelta { get; }
+            public Vector3 LocalScale { get; }
+
+            public void Apply(RectTransform rect)
+            {
+                rect.anchorMin = AnchorMin;
+                rect.anchorMax = AnchorMax;
+                rect.pivot = Pivot;
+                rect.anchoredPosition = AnchoredPosition;
+                rect.sizeDelta = SizeDelta;
+                rect.localScale = LocalScale;
+                EditorUtility.SetDirty(rect);
+                if (PrefabUtility.IsPartOfPrefabInstance(rect))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(rect);
+            }
+        }
+
+        private static IReadOnlyDictionary<string, RectLayoutSnapshot> CaptureSharedCombatLayouts(Scene scene)
+        {
+            Dictionary<string, RectTransform> rects = ResolveSharedCombatRects(scene);
+            var snapshots = new Dictionary<string, RectLayoutSnapshot>(rects.Count);
+            foreach (KeyValuePair<string, RectTransform> pair in rects)
+                snapshots.Add(pair.Key, new RectLayoutSnapshot(pair.Value));
+            return snapshots;
+        }
+
+        private static void ApplySharedCombatLayouts(
+            Scene scene,
+            IReadOnlyDictionary<string, RectLayoutSnapshot> reference)
+        {
+            Dictionary<string, RectTransform> targets = ResolveSharedCombatRects(scene);
+            foreach (KeyValuePair<string, RectLayoutSnapshot> pair in reference)
+            {
+                if (!targets.TryGetValue(pair.Key, out RectTransform target))
+                    throw new InvalidOperationException($"{scene.path}: shared combat UI '{pair.Key}' is missing.");
+                pair.Value.Apply(target);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static Dictionary<string, RectTransform> ResolveSharedCombatRects(Scene scene)
+        {
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            if (combat == null)
+                throw new InvalidOperationException($"{scene.path}: RpsCombatController is missing.");
+
+            var result = new Dictionary<string, RectTransform>
+            {
+                ["PlayerHUD"] = RequireNamedRect(scene, "PlayerHUD"),
+                ["EnemyHUD"] = RequireNamedRect(scene, "EnemyHUD"),
+                ["EnemyIntentBadge"] = RequireNamedRect(scene, "EnemyIntentBadge"),
+                ["PokerTableV2"] = RequireNamedRect(scene, "PokerTableV2"),
+                ["HwatuTableV2"] = RequireNamedRect(scene, "HwatuTableV2"),
+                ["AttackButton"] = RequireButtonRoot(combat.attackButton, scene, "AttackButton"),
+                ["DefendButton"] = RequireButtonRoot(combat.defendButton, scene, "DefendButton"),
+                ["SkillButton"] = RequireButtonRoot(combat.skillButton, scene, "SkillButton"),
+                ["RedrawButton"] = RequireButtonRoot(combat.redrawButton, scene, "RedrawButton"),
+                ["EndTurnButton"] = RequireButtonRoot(combat.endTurnButton, scene, "EndTurnButton")
+            };
+
+            EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
+            if (meter == null || meter.transform is not RectTransform meterRect)
+                throw new InvalidOperationException($"{scene.path}: EnemyRuleMeterView is missing.");
+            result["EnemyRuleMeter"] = meterRect;
+            return result;
+        }
+
+        private static RectTransform RequireNamedRect(Scene scene, string objectName)
+        {
+            RectTransform[] rects = FindAllInScene<RectTransform>(scene);
+            for (int i = 0; i < rects.Length; i++)
+            {
+                if (rects[i].name == objectName)
+                    return rects[i];
+            }
+
+            throw new InvalidOperationException($"{scene.path}: RectTransform '{objectName}' is missing.");
+        }
+
+        private static RectTransform RequireButtonRoot(Button button, Scene scene, string objectName)
+        {
+            if (button == null)
+                throw new InvalidOperationException($"{scene.path}: button '{objectName}' is missing.");
+            GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(button.gameObject) ?? button.gameObject;
+            if (root.transform is not RectTransform rect)
+                throw new InvalidOperationException($"{scene.path}: button root '{objectName}' has no RectTransform.");
+            return rect;
+        }
+
         private static void NormalizeCommandButtons(Scene scene)
         {
             RpsCombatController combat = FindInScene<RpsCombatController>(scene);
