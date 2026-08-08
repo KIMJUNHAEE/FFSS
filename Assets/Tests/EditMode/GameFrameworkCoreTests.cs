@@ -1239,7 +1239,7 @@ namespace FFSS.Framework.Tests
                 "Assets/Data/Framework/AudioCueCatalog.asset");
             var audioSerialized = new SerializedObject(audio);
             SerializedProperty audioCues = audioSerialized.FindProperty("cues");
-            Assert.That(audioCues.arraySize, Is.EqualTo(67));
+            Assert.That(audioCues.arraySize, Is.EqualTo(71));
             var audioIds = new HashSet<string>();
             for (int i = 0; i < audioCues.arraySize; i++)
             {
