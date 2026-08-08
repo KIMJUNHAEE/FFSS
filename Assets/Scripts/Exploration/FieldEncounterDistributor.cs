@@ -471,7 +471,7 @@ namespace CardBattle.Exploration
             for (int i = 0; i < tiles.Count; i++)
             {
                 GeneratedHexTile tile = tiles[i];
-                if (tile.Tile == null || tile.Order < 2 || tile.IsInteraction || tile.IsBoss ||
+                if (tile.Tile == null || tile.Order < 2 || tile.IsBoss ||
                     occupiedTileRoots.Contains(tile.Tile.transform))
                     continue;
 
