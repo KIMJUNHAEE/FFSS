@@ -305,9 +305,9 @@ namespace FFSS.Editor
 
             var result = new Dictionary<string, RectTransform>
             {
-                ["PlayerHUD"] = RequireNamedRect(scene, "PlayerHUD"),
-                ["EnemyHUD"] = RequireNamedRect(scene, "EnemyHUD"),
-                ["EnemyIntentBadge"] = RequireNamedRect(scene, "EnemyIntentBadge"),
+                ["PlayerHUD"] = RequirePrefabRoot(combat.playerHpText, scene, "PlayerHUD"),
+                ["EnemyHUD"] = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD"),
+                ["EnemyIntentBadge"] = RequirePrefabRoot(combat.enemyActionText, scene, "EnemyIntentBadge"),
                 ["PokerTableV2"] = RequireNamedRect(scene, "PokerTableV2"),
                 ["HwatuTableV2"] = RequireNamedRect(scene, "HwatuTableV2"),
                 ["AttackButton"] = RequireButtonRoot(combat.attackButton, scene, "AttackButton"),
@@ -322,6 +322,21 @@ namespace FFSS.Editor
                 throw new InvalidOperationException($"{scene.path}: EnemyRuleMeterView is missing.");
             result["EnemyRuleMeter"] = meterRect;
             return result;
+        }
+
+        private static RectTransform RequirePrefabRoot(
+            Component component,
+            Scene scene,
+            string objectName)
+        {
+            if (component == null)
+                throw new InvalidOperationException($"{scene.path}: component root '{objectName}' is missing.");
+            GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(component.gameObject) ?? component.gameObject;
+            if (root.transform is not RectTransform rect)
+                throw new InvalidOperationException($"{scene.path}: component root '{objectName}' has no RectTransform.");
+            root.name = objectName;
+            EditorUtility.SetDirty(root);
+            return rect;
         }
 
         private static RectTransform RequireNamedRect(Scene scene, string objectName)

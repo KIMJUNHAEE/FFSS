@@ -144,9 +144,6 @@ namespace FFSS.Framework.Tests
             var result = new Dictionary<string, RectGeometry>();
             string[] names =
             {
-                "PlayerHUD",
-                "EnemyHUD",
-                "EnemyIntentBadge",
                 "PokerTableV2",
                 "HwatuTableV2",
                 "AttackButton",
@@ -162,12 +159,35 @@ namespace FFSS.Framework.Tests
                     result[names[i]] = new RectGeometry(rect);
             }
 
+            MonoBehaviour[] combats = SceneComponentsByTypeName(
+                SceneManager.GetActiveScene(),
+                "RpsCombatController");
+            if (combats.Length == 1)
+            {
+                AddReferencedRootGeometry(result, "PlayerHUD", ReadField<Component>(combats[0], "playerHpText"));
+                AddReferencedRootGeometry(result, "EnemyHUD", ReadField<Component>(combats[0], "enemyHpText"));
+                AddReferencedRootGeometry(result, "EnemyIntentBadge", ReadField<Component>(combats[0], "enemyActionText"));
+            }
+
             MonoBehaviour[] meters = SceneComponentsByTypeName(
                 SceneManager.GetActiveScene(),
                 "EnemyRuleMeterView");
             if (meters.Length == 1 && meters[0].transform is RectTransform meterRect)
                 result["EnemyRuleMeter"] = new RectGeometry(meterRect);
             return result;
+        }
+
+        private static void AddReferencedRootGeometry(
+            IDictionary<string, RectGeometry> result,
+            string key,
+            Component component)
+        {
+            if (component == null)
+                return;
+            RectTransform root = component.GetComponentsInParent<RectTransform>(true).LastOrDefault(
+                rect => rect.GetComponentInParent<Canvas>() != null && rect.GetComponent<Canvas>() == null);
+            if (root != null)
+                result[key] = new RectGeometry(root);
         }
 
         private static RectTransform FindNamedRect(string objectName)
