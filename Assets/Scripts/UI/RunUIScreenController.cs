@@ -10,6 +10,8 @@ using FFSS.Framework.UI;
 using Text = TMPro.TMP_Text;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace CardBattle.UI
@@ -21,6 +23,32 @@ namespace CardBattle.UI
         public Text label;
         public Text detail;
         public Image icon;
+    }
+
+    public enum RunOptionBinding
+    {
+        Fullscreen,
+        TextScale,
+        MasterVolume,
+        MusicVolume,
+        EffectsVolume,
+        ReduceMotion,
+        ScreenShake,
+        HighContrast,
+        ControlsInfo,
+        DataInfo
+    }
+
+    [Serializable]
+    public sealed class RunScreenOptionSlot
+    {
+        public GameObject root;
+        public int page;
+        public RunOptionBinding binding;
+        public Text label;
+        public Text value;
+        public Toggle toggle;
+        public Slider slider;
     }
 
     [DisallowMultipleComponent]
@@ -51,13 +79,24 @@ namespace CardBattle.UI
         [SerializeField] private Button nextPageButton;
         [SerializeField] private List<RunScreenActionSlot> actions = new List<RunScreenActionSlot>();
 
+        [Header("Options")]
+        [SerializeField] private List<Button> optionTabs = new List<Button>();
+        [SerializeField] private List<Text> optionTabLabels = new List<Text>();
+        [SerializeField] private List<RunScreenOptionSlot> optionSlots = new List<RunScreenOptionSlot>();
+
         private readonly List<UnityAction> actionCallbacks = new List<UnityAction>();
+        private readonly List<UnityAction> optionTabCallbacks = new List<UnityAction>();
+        private readonly List<UnityAction<bool>> optionToggleCallbacks = new List<UnityAction<bool>>();
+        private readonly List<UnityAction<float>> optionSliderCallbacks = new List<UnityAction<float>>();
         private string sourceId;
         private string progressNodeId;
         private int selectedAction;
         private int page;
         private Coroutine refreshRoutine;
         private IDisposable screenShownSubscription;
+        private int selectedOptionTab;
+        private int lastSavedSlot = -1;
+        private DateTime lastSavedAt;
 
         public UIScreenId ScreenId => screen != null ? screen.Id : UIScreenId.Title;
         public string SourceId => sourceId;
@@ -96,7 +135,10 @@ namespace CardBattle.UI
                 actions[i].button?.onClick.AddListener(callback);
             }
 
+            WireOptionControls();
+
             refreshRoutine = StartCoroutine(RefreshWhenReady());
+            StartCoroutine(SelectDefaultControlNextFrame());
         }
 
         private void OnDisable()
@@ -112,6 +154,7 @@ namespace CardBattle.UI
             }
 
             actionCallbacks.Clear();
+            UnwireOptionControls();
             screenShownSubscription?.Dispose();
             screenShownSubscription = null;
             if (refreshRoutine != null)
@@ -140,6 +183,15 @@ namespace CardBattle.UI
             {
                 Refresh();
             }
+        }
+
+        private void Update()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+                return;
+            if (closeButton != null && closeButton.gameObject.activeInHierarchy && ScreenId != UIScreenId.Reward)
+                Close();
         }
 
         public void Refresh()
@@ -525,39 +577,53 @@ namespace CardBattle.UI
         private void RefreshRunStatus()
         {
             RunState run = CurrentRun();
+            SaveManager saves = GameKernel.Services.Get<SaveManager>();
             SetText(subtitle, $"제{run.act}막 · {FormatTime(run.elapsedSeconds)} · 시드 {run.seed}");
             SetText(body, $"HP {run.player.currentHp}/{run.player.maxHp}\n공격 {run.player.AttackForTurn(2)} · 방어 {run.player.DefenseForTurn(2)} · 압박 {run.player.currentPressure}/{run.player.maxPressure}\n덱 {run.pokerDeck.cards.Count}장 · 장비 {run.equippedItemIds.Count + run.inventoryItemIds.Count}개");
             for (int i = 0; i < actions.Count; i++)
             {
-                SetAction(i, $"슬롯 {i + 1}에 저장", i == 0 ? "자동 저장 슬롯" : "수동 저장 슬롯", i < 3);
+                SaveGameData saved = i < saves.SlotCount ? saves.Peek(i) : null;
+                string detail = saved?.run == null
+                    ? (i == 0 ? "자동 저장 · 비어 있음" : "수동 저장 · 비어 있음")
+                    : $"제{saved.run.act}막 · HP {saved.run.player.currentHp}/{saved.run.player.maxHp} · {FormatSavedAt(saved.savedAtUtc)}";
+                SetAction(i, $"슬롯 {i + 1}에 저장", detail, i < 3);
             }
+
+            SetText(status, lastSavedSlot >= 0
+                ? $"저장 완료 · 슬롯 {lastSavedSlot + 1} · {lastSavedAt:HH:mm:ss}"
+                : "저장할 슬롯을 선택해.");
         }
 
         private void RefreshOptions()
         {
             PlayerSettingsData settings = PlayerSettingsData.FromPreferences();
-            SetText(body, "화면과 전투 연출, 읽기 편의 설정은 즉시 적용되고 저장된다.");
-            string[] labels =
+            string[] descriptions =
             {
-                "전체화면",
-                "전체 음량",
-                "모션 감소",
-                "화면 흔들림",
-                "의도 고대비",
-                "글자 배율"
+                "화면 표시 방식과 글자 크기를 조절해.",
+                "전체·배경음악·효과음 음량을 따로 조절해.",
+                "전투 연출의 움직임과 흔들림을 정해.",
+                "전투 의도와 정보 대비를 더 또렷하게 만들어.",
+                "방향키로 이동하고 Enter로 선택해. Esc는 현재 창을 닫아.",
+                "설정은 바꾸는 즉시 저장돼. 런 저장은 런 현황에서 관리해."
             };
-            string[] values =
+            selectedOptionTab = Mathf.Clamp(selectedOptionTab, 0, descriptions.Length - 1);
+            SetText(body, descriptions[selectedOptionTab]);
+
+            for (int i = 0; i < optionTabLabels.Count; i++)
             {
-                settings.fullscreen ? "켜짐" : "꺼짐",
-                $"{Mathf.RoundToInt(settings.masterVolume * 100f)}%",
-                settings.reduceMotion ? "켜짐" : "꺼짐",
-                settings.screenShake ? "켜짐" : "꺼짐",
-                settings.highContrastIntents ? "켜짐" : "꺼짐",
-                $"{Mathf.RoundToInt(settings.textScale * 100f)}%"
-            };
-            for (int i = 0; i < actions.Count; i++)
+                if (optionTabLabels[i] != null)
+                    optionTabLabels[i].color = i == selectedOptionTab
+                        ? new Color(1f, 0.84f, 0.3f)
+                        : new Color(0.82f, 0.86f, 0.94f);
+            }
+
+            for (int i = 0; i < optionSlots.Count; i++)
             {
-                SetAction(i, i < labels.Length ? labels[i] : string.Empty, i < values.Length ? values[i] : string.Empty, i < labels.Length);
+                RunScreenOptionSlot slot = optionSlots[i];
+                if (slot == null)
+                    continue;
+                slot.root?.SetActive(slot.page == selectedOptionTab);
+                RefreshOptionSlot(slot, settings);
             }
         }
 
@@ -599,7 +665,6 @@ namespace CardBattle.UI
                     SaveSlot(index);
                     return;
                 case UIScreenId.Options:
-                    ChangeOption(index);
                     return;
                 case UIScreenId.FieldHud:
                     OpenFieldCommand(index);
@@ -727,7 +792,9 @@ namespace CardBattle.UI
         private void SaveSlot(int slot)
         {
             GameKernel.Services.Get<SaveManager>().Save(slot);
-            SetText(status, $"슬롯 {slot + 1}에 저장했다.");
+            lastSavedSlot = slot;
+            lastSavedAt = DateTime.Now;
+            RefreshRunStatus();
         }
 
         private void Purchase(int index)
@@ -845,30 +912,56 @@ namespace CardBattle.UI
             SetText(status, $"{label} · 발견 {nodes.Count} · 지도는 위치 확인용이며 순간이동하지 않는다");
         }
 
-        private void ChangeOption(int index)
+        private void SetOptionTab(int index)
+        {
+            selectedOptionTab = Mathf.Clamp(index, 0, Mathf.Max(0, optionTabs.Count - 1));
+            RefreshOptions();
+            if (EventSystem.current != null && selectedOptionTab < optionTabs.Count)
+                EventSystem.current.SetSelectedGameObject(optionTabs[selectedOptionTab].gameObject);
+        }
+
+        private void SetOptionToggle(RunOptionBinding binding, bool value)
         {
             PlayerSettingsData settings = PlayerSettingsData.FromPreferences();
-            switch (index)
+            switch (binding)
             {
-                case 0:
-                    settings.fullscreen = !settings.fullscreen;
+                case RunOptionBinding.Fullscreen:
+                    settings.fullscreen = value;
                     break;
-                case 1:
-                    settings.masterVolume = settings.masterVolume <= 0.26f
-                        ? 1f
-                        : Mathf.Max(0.25f, settings.masterVolume - 0.25f);
+                case RunOptionBinding.ReduceMotion:
+                    settings.reduceMotion = value;
                     break;
-                case 2:
-                    settings.reduceMotion = !settings.reduceMotion;
+                case RunOptionBinding.ScreenShake:
+                    settings.screenShake = value;
                     break;
-                case 3:
-                    settings.screenShake = !settings.screenShake;
+                case RunOptionBinding.HighContrast:
+                    settings.highContrastIntents = value;
                     break;
-                case 4:
-                    settings.highContrastIntents = !settings.highContrastIntents;
+                default:
+                    return;
+            }
+
+            settings.Apply(true);
+            RefreshOptions();
+        }
+
+        private void SetOptionSlider(RunOptionBinding binding, float value)
+        {
+            PlayerSettingsData settings = PlayerSettingsData.FromPreferences();
+            switch (binding)
+            {
+                case RunOptionBinding.TextScale:
+                    settings.textScale = Mathf.Clamp(value, 0.85f, 1.5f);
                     break;
-                case 5:
-                    settings.textScale = settings.textScale >= 1.49f ? 1f : settings.textScale + 0.25f;
+                case RunOptionBinding.MasterVolume:
+                    settings.masterVolume = Mathf.Clamp01(value);
+                    break;
+                case RunOptionBinding.MusicVolume:
+                    settings.musicVolume = Mathf.Clamp01(value);
+                    break;
+                case RunOptionBinding.EffectsVolume:
+                    settings.effectsVolume = Mathf.Clamp01(value);
+                    settings.interfaceVolume = settings.effectsVolume;
                     break;
                 default:
                     return;
@@ -1097,6 +1190,131 @@ namespace CardBattle.UI
                 hover.Clear();
         }
 
+        private void WireOptionControls()
+        {
+            optionTabCallbacks.Clear();
+            optionToggleCallbacks.Clear();
+            optionSliderCallbacks.Clear();
+
+            for (int i = 0; i < optionTabs.Count; i++)
+            {
+                int index = i;
+                UnityAction callback = () => SetOptionTab(index);
+                optionTabCallbacks.Add(callback);
+                optionTabs[i]?.onClick.AddListener(callback);
+            }
+
+            for (int i = 0; i < optionSlots.Count; i++)
+            {
+                RunScreenOptionSlot slot = optionSlots[i];
+                if (slot == null)
+                {
+                    optionToggleCallbacks.Add(null);
+                    optionSliderCallbacks.Add(null);
+                    continue;
+                }
+                UnityAction<bool> toggleCallback = value => SetOptionToggle(slot.binding, value);
+                UnityAction<float> sliderCallback = value => SetOptionSlider(slot.binding, value);
+                optionToggleCallbacks.Add(toggleCallback);
+                optionSliderCallbacks.Add(sliderCallback);
+                slot.toggle?.onValueChanged.AddListener(toggleCallback);
+                slot.slider?.onValueChanged.AddListener(sliderCallback);
+            }
+        }
+
+        private void UnwireOptionControls()
+        {
+            for (int i = 0; i < optionTabs.Count && i < optionTabCallbacks.Count; i++)
+                optionTabs[i]?.onClick.RemoveListener(optionTabCallbacks[i]);
+            for (int i = 0; i < optionSlots.Count; i++)
+            {
+                if (optionSlots[i] == null)
+                    continue;
+                if (i < optionToggleCallbacks.Count && optionToggleCallbacks[i] != null)
+                    optionSlots[i].toggle?.onValueChanged.RemoveListener(optionToggleCallbacks[i]);
+                if (i < optionSliderCallbacks.Count && optionSliderCallbacks[i] != null)
+                    optionSlots[i].slider?.onValueChanged.RemoveListener(optionSliderCallbacks[i]);
+            }
+
+            optionTabCallbacks.Clear();
+            optionToggleCallbacks.Clear();
+            optionSliderCallbacks.Clear();
+        }
+
+        private void RefreshOptionSlot(RunScreenOptionSlot slot, PlayerSettingsData settings)
+        {
+            if (slot == null)
+                return;
+
+            if (slot.toggle != null)
+            {
+                bool toggleValue = slot.binding switch
+                {
+                    RunOptionBinding.Fullscreen => settings.fullscreen,
+                    RunOptionBinding.ReduceMotion => settings.reduceMotion,
+                    RunOptionBinding.ScreenShake => settings.screenShake,
+                    RunOptionBinding.HighContrast => settings.highContrastIntents,
+                    _ => false
+                };
+                slot.toggle.SetIsOnWithoutNotify(toggleValue);
+                SetText(slot.value, toggleValue ? "ON" : "OFF");
+                if (slot.value != null)
+                    slot.value.color = toggleValue
+                        ? new Color(0.42f, 1f, 0.72f)
+                        : new Color(0.72f, 0.76f, 0.84f);
+                return;
+            }
+
+            if (slot.slider != null)
+            {
+                float sliderValue = slot.binding switch
+                {
+                    RunOptionBinding.TextScale => settings.textScale,
+                    RunOptionBinding.MasterVolume => settings.masterVolume,
+                    RunOptionBinding.MusicVolume => settings.musicVolume,
+                    RunOptionBinding.EffectsVolume => settings.effectsVolume,
+                    _ => 0f
+                };
+                slot.slider.SetValueWithoutNotify(sliderValue);
+                SetText(slot.value, $"{Mathf.RoundToInt(sliderValue * 100f)}%");
+                return;
+            }
+
+            if (slot.binding == RunOptionBinding.ControlsInfo)
+                SetText(slot.value, "이동: WASD / 방향키   ·   선택: Enter   ·   닫기: Esc");
+            else if (slot.binding == RunOptionBinding.DataInfo)
+                SetText(slot.value, "설정 자동 저장 ON   ·   런 저장 슬롯 3개");
+        }
+
+        private IEnumerator SelectDefaultControlNextFrame()
+        {
+            yield return null;
+            if (EventSystem.current == null)
+                yield break;
+
+            Button target = null;
+            if (ScreenId == UIScreenId.Options && optionTabs.Count > 0)
+                target = optionTabs[Mathf.Clamp(selectedOptionTab, 0, optionTabs.Count - 1)];
+            if (target == null)
+            {
+                for (int i = 0; i < actions.Count; i++)
+                {
+                    if (actions[i].button != null && actions[i].button.gameObject.activeInHierarchy &&
+                        actions[i].button.interactable)
+                    {
+                        target = actions[i].button;
+                        break;
+                    }
+                }
+            }
+
+            target ??= primaryButton;
+            target ??= secondaryButton;
+            target ??= closeButton;
+            if (target != null && target.gameObject.activeInHierarchy)
+                EventSystem.current.SetSelectedGameObject(target.gameObject);
+        }
+
         private static void SetText(Text target, string value)
         {
             CardBattle.KeywordTooltipSource.Apply(target, value);
@@ -1126,6 +1344,13 @@ namespace CardBattle.UI
         {
             TimeSpan time = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
             return $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
+        }
+
+        private static string FormatSavedAt(string savedAtUtc)
+        {
+            return DateTime.TryParse(savedAtUtc, out DateTime savedAt)
+                ? savedAt.ToLocalTime().ToString("MM/dd HH:mm")
+                : "저장 기록";
         }
 
         private static string EquipmentSlotName(int index)

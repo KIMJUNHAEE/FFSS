@@ -56,6 +56,9 @@ namespace FFSS.Editor
             public Button PreviousPageButton;
             public Button NextPageButton;
             public readonly List<RunScreenActionSlot> Actions = new List<RunScreenActionSlot>();
+            public readonly List<Button> OptionTabs = new List<Button>();
+            public readonly List<Text> OptionTabLabels = new List<Text>();
+            public readonly List<RunScreenOptionSlot> OptionSlots = new List<RunScreenOptionSlot>();
         }
 
         private readonly struct ScreenSpec
@@ -99,6 +102,8 @@ namespace FFSS.Editor
                 ScreenSpec spec = specs[i];
                 GameObject prefab = spec.Id == UIScreenId.FieldHud
                     ? BuildFieldHud(spec)
+                    : spec.Id == UIScreenId.Options
+                        ? BuildOptionsScreen(spec)
                     : spec.Id == UIScreenId.Combat
                         ? BuildTransparentCombat(spec)
                         : spec.Id == UIScreenId.Break
@@ -175,6 +180,63 @@ namespace FFSS.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS equipment-only shop screen rebuilt with inspectable item artwork and hover details.");
+        }
+
+        [MenuItem("FFSS/Production/Rebuild Interaction And Settings Screens")]
+        public static void RebuildInteractionAndSettingsScreens()
+        {
+            ConfigureUiFontHinting();
+            ScreenSpec[] specs = CreateSpecs();
+            BuildStandardScreen(specs.First(spec => spec.Id == UIScreenId.RunStatus));
+            BuildStandardScreen(specs.First(spec => spec.Id == UIScreenId.Event));
+            BuildOptionsScreen(specs.First(spec => spec.Id == UIScreenId.Options));
+            ReplaceFieldHudRegionArtwork();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("FFSS run status, event, options, and field region UI rebuilt as inspectable prefabs.");
+        }
+
+        private static void ReplaceFieldHudRegionArtwork()
+        {
+            const string artworkPath =
+                "Assets/Art/Production/UI/FieldAI/field_hud_chapter_poker_ai_v3.png";
+            const string prefabPath = ScreenRoot + "/FieldHudScreen.prefab";
+
+            AssetDatabase.ImportAsset(artworkPath, ImportAssetOptions.ForceSynchronousImport);
+            TextureImporter importer = AssetImporter.GetAtPath(artworkPath) as TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.maxTextureSize = 4096;
+                importer.SaveAndReimport();
+            }
+
+            Sprite artwork = SpriteAt(artworkPath);
+            if (artwork == null)
+                throw new InvalidOperationException($"Field region artwork could not be imported: {artworkPath}");
+
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                Transform region = root.transform.Find("Field Region");
+                Image image = region != null ? region.GetComponent<Image>() : null;
+                if (image == null)
+                    throw new InvalidOperationException("FieldHudScreen/Field Region image is missing.");
+
+                image.sprite = artwork;
+                image.color = Color.white;
+                image.preserveAspect = false;
+                EditorUtility.SetDirty(image);
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         [MenuItem("FFSS/Production/Tune Run UI Text Clarity")]
@@ -354,7 +416,7 @@ namespace FFSS.Editor
                 new ScreenSpec(UIScreenId.BossDoor, "BossDoorScreen", "보스문", "마지막 점검", "086_panel_battle_result", 0, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.ActTransition, "ActTransitionScreen", "막 돌파", "막 사이 휴식과 정비", "086_panel_battle_result", 3, UILayer.Screen, false),
                 new ScreenSpec(UIScreenId.RunStatus, "RunStatusScreen", "런 현황", "저장과 현재 빌드", "086_panel_battle_result", 3, UILayer.Modal, true),
-                new ScreenSpec(UIScreenId.Options, "OptionsScreen", "설정", "플레이 환경", "084_panel_event", 6, UILayer.Modal, true),
+                new ScreenSpec(UIScreenId.Options, "OptionsScreen", "설정", "플레이 환경", "084_panel_event", 0, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Result, "ResultScreen", "판의 끝", "이번 런의 기록", "086_panel_battle_result", 0, UILayer.Screen, false)
             };
         }
@@ -373,19 +435,19 @@ namespace FFSS.Editor
             Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.82f));
             Stretch(dim.rectTransform);
 
-            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1260f, 690f), Vector2.zero);
+            RectTransform frame = CreateRect("Art Frame", build.Root.transform, StandardFrameSize(spec.Id), Vector2.zero);
             Image frameImage = frame.gameObject.AddComponent<Image>();
             frameImage.sprite = StandardPanelSprite(spec.Id);
-            frameImage.preserveAspect = false;
+            frameImage.preserveAspect = true;
             frameImage.raycastTarget = true;
 
             Sprite bannerSprite = BannerSprite(spec.Id);
             if (bannerSprite != null)
             {
                 Image banner = CreateImage("Screen Banner", frame, bannerSprite, Color.white);
-                banner.rectTransform.sizeDelta = new Vector2(680f, 106f);
+                banner.rectTransform.sizeDelta = new Vector2(684f, 117f);
                 banner.rectTransform.anchoredPosition = new Vector2(0f, 264f);
-                banner.preserveAspect = false;
+                banner.preserveAspect = true;
             }
 
             build.Heading = CreateText("Heading", frame, spec.Heading, 36, TextAnchor.MiddleCenter,
@@ -410,8 +472,21 @@ namespace FFSS.Editor
             }
 
             CreateActionSlots(frame, build, spec.Id, spec.Actions);
-            build.Status = CreateText("Status", frame, string.Empty, 18, TextAnchor.MiddleLeft,
-                new Color(0.72f, 0.79f, 0.9f), new Vector2(620f, 36f), new Vector2(-220f, -294f));
+            if (spec.Id == UIScreenId.RunStatus)
+            {
+                Image feedback = CreateImage("Save Feedback", frame,
+                    SpriteAt("Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_wide.png"), Color.white);
+                feedback.rectTransform.sizeDelta = new Vector2(440f, 62f);
+                feedback.rectTransform.anchoredPosition = new Vector2(-235f, -294f);
+                feedback.preserveAspect = true;
+                build.Status = CreateText("Status", feedback.transform, string.Empty, 20, TextAnchor.MiddleCenter,
+                    new Color(1f, 0.84f, 0.34f), new Vector2(360f, 36f), Vector2.zero);
+            }
+            else
+            {
+                build.Status = CreateText("Status", frame, string.Empty, 18, TextAnchor.MiddleLeft,
+                    new Color(0.72f, 0.79f, 0.9f), new Vector2(620f, 36f), new Vector2(-220f, -294f));
+            }
 
             bool hasPrimary = spec.Id == UIScreenId.Reward || spec.Id == UIScreenId.BossDoor ||
                               spec.Id == UIScreenId.ActTransition || spec.Id == UIScreenId.Result;
@@ -453,6 +528,211 @@ namespace FFSS.Editor
                 AddShopItemHoverPreview(build.Root.transform);
             ConfigureController(build);
             return Save(build.Root, spec.Path);
+        }
+
+        private static GameObject BuildOptionsScreen(ScreenSpec spec)
+        {
+            ScreenBuild build = CreateRoot(spec);
+            Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.86f));
+            Stretch(dim.rectTransform);
+
+            RectTransform frame = CreateRect("Art Frame", build.Root.transform, new Vector2(1220f, 760f), Vector2.zero);
+            Image frameImage = frame.gameObject.AddComponent<Image>();
+            frameImage.sprite = StandardPanelSprite(UIScreenId.Options);
+            frameImage.preserveAspect = true;
+            frameImage.raycastTarget = true;
+
+            build.Heading = CreateText("Heading", frame, spec.Heading, 42, TextAnchor.MiddleCenter,
+                new Color(1f, 0.84f, 0.38f), new Vector2(420f, 56f), new Vector2(0f, 314f));
+            build.Body = CreateText("Body", frame, DefaultBody(UIScreenId.Options), 23, TextAnchor.MiddleCenter,
+                new Color(0.9f, 0.93f, 0.98f), new Vector2(980f, 58f), new Vector2(0f, 174f));
+            build.Body.enableWordWrapping = true;
+            build.CloseButton = CreateIconButton("Close", frame, "X", new Vector2(548f, 314f));
+
+            string[] tabNames = { "화면", "음량", "전투", "접근성", "조작", "데이터" };
+            string[] tabSprites =
+            {
+                "tab_spade.png", "tab_heart.png", "tab_diamond.png",
+                "tab_club.png", "tab_flower.png", "tab_spade.png"
+            };
+            for (int i = 0; i < tabNames.Length; i++)
+            {
+                float x = -435f + i * 174f;
+                CreateOptionTab(frame, build, tabNames[i], tabSprites[i], new Vector2(x, 238f));
+            }
+
+            CreateOptionToggleSlot(frame, build, 0, RunOptionBinding.Fullscreen, "전체화면", 52f, "blue", false);
+            CreateOptionSliderSlot(frame, build, 0, RunOptionBinding.TextScale, "글자 배율", -92f, "gold", 0.85f, 1.5f, 1f);
+
+            CreateOptionSliderSlot(frame, build, 1, RunOptionBinding.MasterVolume, "전체 음량", 82f, "gold", 0f, 1f, 0.85f);
+            CreateOptionSliderSlot(frame, build, 1, RunOptionBinding.MusicVolume, "배경음악", -62f, "blue", 0f, 1f, 0.8f);
+            CreateOptionSliderSlot(frame, build, 1, RunOptionBinding.EffectsVolume, "효과음", -206f, "green", 0f, 1f, 1f);
+
+            CreateOptionToggleSlot(frame, build, 2, RunOptionBinding.ReduceMotion, "모션 감소", 52f, "green", false);
+            CreateOptionToggleSlot(frame, build, 2, RunOptionBinding.ScreenShake, "화면 흔들림", -92f, "darkred", true);
+            CreateOptionToggleSlot(frame, build, 3, RunOptionBinding.HighContrast, "의도 고대비", -20f, "blue", false);
+            CreateOptionInfoSlot(frame, build, 4, RunOptionBinding.ControlsInfo, "키보드 조작", -20f, "gold");
+            CreateOptionInfoSlot(frame, build, 5, RunOptionBinding.DataInfo, "저장 방식", -20f, "green");
+
+            for (int i = 0; i < build.OptionSlots.Count; i++)
+                build.OptionSlots[i].root.SetActive(build.OptionSlots[i].page == 0);
+
+            ConfigureController(build);
+            return Save(build.Root, spec.Path);
+        }
+
+        private static void CreateOptionTab(
+            RectTransform parent,
+            ScreenBuild build,
+            string labelText,
+            string spriteName,
+            Vector2 position)
+        {
+            RectTransform host = CreateRect(labelText + " Tab", parent, new Vector2(168f, 70f), position);
+            Image image = host.gameObject.AddComponent<Image>();
+            image.sprite = SpriteAt("Assets/Art/Production/UI/Atlas/11_banners_tabs/" + spriteName);
+            image.preserveAspect = true;
+            Button button = host.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock colors = button.colors;
+            colors.normalColor = new Color(0.72f, 0.78f, 0.9f, 1f);
+            colors.highlightedColor = Color.white;
+            colors.pressedColor = new Color(1f, 0.78f, 0.28f, 1f);
+            button.colors = colors;
+            Text label = CreateText("Label", host, labelText, 21, TextAnchor.MiddleCenter, Color.white,
+                new Vector2(118f, 34f), Vector2.zero);
+            build.OptionTabs.Add(button);
+            build.OptionTabLabels.Add(label);
+        }
+
+        private static void CreateOptionToggleSlot(
+            RectTransform parent,
+            ScreenBuild build,
+            int page,
+            RunOptionBinding binding,
+            string labelText,
+            float y,
+            string color,
+            bool defaultValue)
+        {
+            RectTransform host = CreateOptionRow(parent, labelText, y, color);
+            Text label = CreateText("Label", host, labelText, 28, TextAnchor.MiddleLeft, Color.white,
+                new Vector2(330f, 48f), new Vector2(-155f, 0f));
+
+            RectTransform switchRoot = CreateRect("ON OFF Toggle", host, new Vector2(154f, 51f), new Vector2(232f, 0f));
+            Image offImage = switchRoot.gameObject.AddComponent<Image>();
+            offImage.sprite = SpriteAt("Assets/Art/Production/UI/Atlas/01_buttons/black/button_black_small.png");
+            offImage.preserveAspect = true;
+            Image onImage = CreateImage("ON State", switchRoot,
+                SpriteAt("Assets/Art/Production/UI/Atlas/01_buttons/green/button_green_small_selected.png"), Color.white);
+            Stretch(onImage.rectTransform);
+            onImage.preserveAspect = true;
+            Toggle toggle = switchRoot.gameObject.AddComponent<Toggle>();
+            toggle.targetGraphic = offImage;
+            toggle.graphic = onImage;
+            toggle.transition = Selectable.Transition.ColorTint;
+            toggle.isOn = defaultValue;
+            Text value = CreateText("Value", switchRoot, defaultValue ? "ON" : "OFF", 23, TextAnchor.MiddleCenter, Color.white,
+                new Vector2(112f, 38f), Vector2.zero);
+
+            build.OptionSlots.Add(new RunScreenOptionSlot
+            {
+                root = host.gameObject,
+                page = page,
+                binding = binding,
+                label = label,
+                value = value,
+                toggle = toggle
+            });
+        }
+
+        private static void CreateOptionSliderSlot(
+            RectTransform parent,
+            ScreenBuild build,
+            int page,
+            RunOptionBinding binding,
+            string labelText,
+            float y,
+            string color,
+            float minimum,
+            float maximum,
+            float defaultValue)
+        {
+            RectTransform host = CreateOptionRow(parent, labelText, y, color);
+            Text label = CreateText("Label", host, labelText, 27, TextAnchor.MiddleLeft, Color.white,
+                new Vector2(275f, 48f), new Vector2(-182f, 0f));
+
+            RectTransform sliderRoot = CreateRect("Slider", host, new Vector2(420f, 48f), new Vector2(126f, 0f));
+            Slider slider = sliderRoot.gameObject.AddComponent<Slider>();
+            slider.minValue = minimum;
+            slider.maxValue = maximum;
+            slider.direction = Slider.Direction.LeftToRight;
+            Image track = CreateImage("Track", sliderRoot,
+                SpriteAt("Assets/Art/Production/UI/Atlas/05_gauges/gauge_empty_medium.png"), Color.white);
+            Stretch(track.rectTransform);
+            track.preserveAspect = false;
+            RectTransform fillArea = CreateRect("Fill Area", sliderRoot, new Vector2(390f, 34f), new Vector2(-4f, 0f));
+            RectTransform fill = CreateRect("Fill", fillArea, Vector2.zero, Vector2.zero);
+            Stretch(fill);
+            Image fillImage = fill.gameObject.AddComponent<Image>();
+            fillImage.sprite = SpriteAt("Assets/Art/Production/UI/Atlas/05_gauges/gauge_energy_blue_medium.png");
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = Image.FillMethod.Horizontal;
+            RectTransform handleArea = CreateRect("Handle Slide Area", sliderRoot, new Vector2(390f, 48f), new Vector2(-4f, 0f));
+            RectTransform handle = CreateRect("Handle", handleArea, new Vector2(42f, 42f), Vector2.zero);
+            Image handleImage = handle.gameObject.AddComponent<Image>();
+            handleImage.sprite = SpriteAt("Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_06_coin.png");
+            handleImage.preserveAspect = true;
+            slider.fillRect = fill;
+            slider.handleRect = handle;
+            slider.targetGraphic = handleImage;
+            slider.value = Mathf.Clamp(defaultValue, minimum, maximum);
+            Text value = CreateText("Value", host, $"{Mathf.RoundToInt(defaultValue * 100f)}%", 22, TextAnchor.MiddleRight,
+                new Color(1f, 0.86f, 0.42f), new Vector2(110f, 42f), new Vector2(306f, 0f));
+
+            build.OptionSlots.Add(new RunScreenOptionSlot
+            {
+                root = host.gameObject,
+                page = page,
+                binding = binding,
+                label = label,
+                value = value,
+                slider = slider
+            });
+        }
+
+        private static void CreateOptionInfoSlot(
+            RectTransform parent,
+            ScreenBuild build,
+            int page,
+            RunOptionBinding binding,
+            string labelText,
+            float y,
+            string color)
+        {
+            RectTransform host = CreateOptionRow(parent, labelText, y, color);
+            Text label = CreateText("Label", host, labelText, 27, TextAnchor.MiddleLeft, Color.white,
+                new Vector2(250f, 48f), new Vector2(-210f, 0f));
+            Text value = CreateText("Value", host, string.Empty, 20, TextAnchor.MiddleLeft,
+                new Color(0.86f, 0.9f, 0.98f), new Vector2(470f, 54f), new Vector2(128f, 0f));
+            build.OptionSlots.Add(new RunScreenOptionSlot
+            {
+                root = host.gameObject,
+                page = page,
+                binding = binding,
+                label = label,
+                value = value
+            });
+        }
+
+        private static RectTransform CreateOptionRow(RectTransform parent, string name, float y, string color)
+        {
+            RectTransform host = CreateRect(name + " Option", parent, new Vector2(760f, 112f), new Vector2(0f, y));
+            Image image = host.gameObject.AddComponent<Image>();
+            image.sprite = SpriteAt($"Assets/Art/Production/UI/Atlas/01_buttons/{color}/button_{color}_long.png");
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return host;
         }
 
         private static GameObject BuildFieldHud(ScreenSpec spec)
@@ -985,13 +1265,13 @@ namespace FFSS.Editor
                 int column = count <= 3 ? 0 : i % 2;
                 int row = count <= 3 ? i : i / 2;
                 float x = count <= 3 ? 0f : (column == 0 ? -285f : 285f);
-                float y = count <= 3 ? 20f - row * 100f : 20f - row * (reward ? 104f : 92f);
-                float width = count <= 3 ? 900f : 530f;
-                float height = count <= 3 ? 82f : reward ? 94f : 78f;
+                float y = count <= 3 ? 40f - row * 118f : 20f - row * (reward ? 104f : 92f);
+                float width = count <= 3 ? 760f : 530f;
+                float height = count <= 3 ? 112f : reward ? 94f : 78f;
                 RectTransform host = CreateRect($"Action {i + 1}", frame, new Vector2(width, height), new Vector2(x, y));
                 Image image = host.gameObject.AddComponent<Image>();
                 image.sprite = ActionButtonSprite(screenId, i);
-                image.preserveAspect = false;
+                image.preserveAspect = count <= 3;
                 Button button = host.gameObject.AddComponent<Button>();
                 ColorBlock colors = button.colors;
                 colors.normalColor = new Color(0.78f, 0.84f, 1f, 1f);
@@ -1001,15 +1281,15 @@ namespace FFSS.Editor
                 button.colors = colors;
 
                 float textWidth = width - (count <= 3 ? 300f : reward ? 178f : 150f);
-                Text label = CreateText("Label", host, $"선택 {i + 1}", 21, TextAnchor.MiddleLeft,
+                Text label = CreateText("Label", host, $"선택 {i + 1}", count <= 3 ? 24 : 21, TextAnchor.MiddleLeft,
                     Color.white, new Vector2(textWidth, 30f), new Vector2(55f, 14f));
-                Text detail = CreateText("Detail", host, string.Empty, 14, TextAnchor.MiddleLeft,
+                Text detail = CreateText("Detail", host, string.Empty, count <= 3 ? 17 : 14, TextAnchor.MiddleLeft,
                     new Color(0.75f, 0.82f, 0.92f), new Vector2(textWidth, 26f), new Vector2(55f, -15f));
                 detail.enableWordWrapping = true;
                 detail.overflowMode = TextOverflowModes.Truncate;
                 Image icon = CreateImage("Icon", host, ScreenActionIcon(screenId, i), Color.white);
                 icon.rectTransform.sizeDelta = reward ? new Vector2(64f, 78f) : new Vector2(44f, 44f);
-                icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -320f : reward ? -210f : -214f, 0f);
+                icon.rectTransform.anchoredPosition = new Vector2(count <= 3 ? -280f : reward ? -210f : -214f, 0f);
                 icon.preserveAspect = true;
                 if (reward)
                     host.gameObject.AddComponent<CardBattle.CardHoverSource>();
@@ -1174,6 +1454,31 @@ namespace FFSS.Editor
                 target.FindPropertyRelative("label").objectReferenceValue = build.Actions[i].label;
                 target.FindPropertyRelative("detail").objectReferenceValue = build.Actions[i].detail;
                 target.FindPropertyRelative("icon").objectReferenceValue = build.Actions[i].icon;
+            }
+
+            SerializedProperty optionTabs = serialized.FindProperty("optionTabs");
+            optionTabs.arraySize = build.OptionTabs.Count;
+            for (int i = 0; i < build.OptionTabs.Count; i++)
+                optionTabs.GetArrayElementAtIndex(i).objectReferenceValue = build.OptionTabs[i];
+
+            SerializedProperty optionTabLabels = serialized.FindProperty("optionTabLabels");
+            optionTabLabels.arraySize = build.OptionTabLabels.Count;
+            for (int i = 0; i < build.OptionTabLabels.Count; i++)
+                optionTabLabels.GetArrayElementAtIndex(i).objectReferenceValue = build.OptionTabLabels[i];
+
+            SerializedProperty optionSlots = serialized.FindProperty("optionSlots");
+            optionSlots.arraySize = build.OptionSlots.Count;
+            for (int i = 0; i < build.OptionSlots.Count; i++)
+            {
+                RunScreenOptionSlot source = build.OptionSlots[i];
+                SerializedProperty target = optionSlots.GetArrayElementAtIndex(i);
+                target.FindPropertyRelative("root").objectReferenceValue = source.root;
+                target.FindPropertyRelative("page").intValue = source.page;
+                target.FindPropertyRelative("binding").enumValueIndex = (int)source.binding;
+                target.FindPropertyRelative("label").objectReferenceValue = source.label;
+                target.FindPropertyRelative("value").objectReferenceValue = source.value;
+                target.FindPropertyRelative("toggle").objectReferenceValue = source.toggle;
+                target.FindPropertyRelative("slider").objectReferenceValue = source.slider;
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -1483,6 +1788,17 @@ namespace FFSS.Editor
             return SpriteAt("Assets/Art/Production/UI/Atlas/03_panels_modals/" + fileName);
         }
 
+        private static Vector2 StandardFrameSize(UIScreenId id)
+        {
+            return id switch
+            {
+                UIScreenId.Event => new Vector2(1248f, 624f),
+                UIScreenId.Reward => new Vector2(1216f, 672f),
+                UIScreenId.Shop => new Vector2(1040f, 700f),
+                _ => new Vector2(1220f, 760f)
+            };
+        }
+
         private static Sprite BannerSprite(UIScreenId id)
         {
             string fileName = id switch
@@ -1507,7 +1823,8 @@ namespace FFSS.Editor
                 UIScreenId.Rest => "green",
                 UIScreenId.Equipment => "blue",
                 UIScreenId.CardWorkshop => "blue",
-                UIScreenId.Event => index == 0 ? "blue" : "darkred",
+                UIScreenId.Event => index switch { 0 => "blue", 1 => "darkred", _ => "gold" },
+                UIScreenId.RunStatus => index switch { 0 => "blue", 1 => "green", _ => "gold" },
                 UIScreenId.BossDoor => "red",
                 _ => "black"
             };

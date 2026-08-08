@@ -1323,6 +1323,61 @@ namespace FFSS.Framework.Tests
             Assert.That(
                 new SerializedObject(controller).FindProperty("secondaryButton").objectReferenceValue,
                 Is.Not.Null);
+            Assert.That(prefab.transform.Find("Art Frame/Save Feedback"), Is.Not.Null);
+        }
+
+        [Test]
+        public void OptionsPrefabKeepsTabsTogglesAndSlidersInspectable()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/OptionsScreen.prefab");
+
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<Toggle>(true), Has.Length.EqualTo(4));
+            Assert.That(prefab.GetComponentsInChildren<Slider>(true), Has.Length.EqualTo(4));
+
+            Component controller = prefab.GetComponent("RunUIScreenController");
+            Assert.That(controller, Is.Not.Null);
+            var serialized = new SerializedObject(controller);
+            Assert.That(serialized.FindProperty("optionTabs").arraySize, Is.EqualTo(6));
+            Assert.That(serialized.FindProperty("optionTabLabels").arraySize, Is.EqualTo(6));
+            Assert.That(serialized.FindProperty("optionSlots").arraySize, Is.EqualTo(10));
+
+            Image frame = prefab.transform.Find("Art Frame").GetComponent<Image>();
+            Assert.That(frame.preserveAspect, Is.True);
+            Assert.That(frame.rectTransform.sizeDelta, Is.EqualTo(new Vector2(1220f, 760f)));
+        }
+
+        [Test]
+        public void FieldRegionUsesTheBorderlessPokerArtworkWithoutMovingThePanel()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/FieldHudScreen.prefab");
+            Transform region = prefab.transform.Find("Field Region");
+
+            Assert.That(region, Is.Not.Null);
+            Image image = region.GetComponent<Image>();
+            Assert.That(image.sprite, Is.Not.Null);
+            Assert.That(image.sprite.name, Is.EqualTo("field_hud_chapter_poker_ai_v3"));
+            Assert.That(region.Find("Act"), Is.Not.Null);
+            Assert.That(region.Find("Region"), Is.Not.Null);
+            Assert.That(region.Find("Risk"), Is.Not.Null);
+        }
+
+        [Test]
+        public void EventChoicesUseThreeDistinctUndistortedFrames()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/EventScreen.prefab");
+            var spriteNames = new HashSet<string>();
+            for (int i = 1; i <= 3; i++)
+            {
+                Image image = prefab.transform.Find($"Art Frame/Action {i}").GetComponent<Image>();
+                Assert.That(image.preserveAspect, Is.True);
+                spriteNames.Add(image.sprite.name);
+            }
+
+            Assert.That(spriteNames, Has.Count.EqualTo(3));
         }
 
         [Test]

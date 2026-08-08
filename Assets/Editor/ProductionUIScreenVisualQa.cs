@@ -48,7 +48,25 @@ namespace FFSS.Editor
             Debug.Log($"FFSS UI visual QA rendered to {output}");
         }
 
-        private static void RenderPrefab(string id, string prefabPath, int width, int height, string output)
+        [MenuItem("FFSS/Production/Render Options Tabs Visual QA")]
+        public static void RenderOptionsTabs()
+        {
+            string output = Path.GetFullPath("Artifacts/UIQA");
+            Directory.CreateDirectory(output);
+            string prefabPath = ScreenRoot + "/OptionsScreen.prefab";
+            string[] names = { "display", "audio", "combat", "accessibility", "controls", "data" };
+            for (int page = 0; page < names.Length; page++)
+                RenderPrefab("options_" + names[page], prefabPath, 1920, 1080, output, page);
+            Debug.Log($"FFSS options tab visual QA rendered to {output}");
+        }
+
+        private static void RenderPrefab(
+            string id,
+            string prefabPath,
+            int width,
+            int height,
+            string output,
+            int optionPage = -1)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var cameraObject = new GameObject("QA Camera", typeof(Camera));
@@ -75,6 +93,8 @@ namespace FFSS.Editor
             Behaviour controller = instance.GetComponent("RunUIScreenController") as Behaviour;
             if (controller != null)
             {
+                if (optionPage >= 0)
+                    ShowOptionPage(controller, optionPage);
                 controller.enabled = false;
             }
             instance.GetComponent<UIScreen>().SetVisible(true, false);
@@ -94,6 +114,40 @@ namespace FFSS.Editor
             camera.targetTexture = null;
             Object.DestroyImmediate(image);
             Object.DestroyImmediate(texture);
+        }
+
+        private static void ShowOptionPage(Behaviour controller, int page)
+        {
+            var serialized = new SerializedObject(controller);
+            SerializedProperty slots = serialized.FindProperty("optionSlots");
+            for (int i = 0; i < slots.arraySize; i++)
+            {
+                SerializedProperty slot = slots.GetArrayElementAtIndex(i);
+                GameObject root = slot.FindPropertyRelative("root").objectReferenceValue as GameObject;
+                if (root != null)
+                    root.SetActive(slot.FindPropertyRelative("page").intValue == page);
+            }
+
+            SerializedProperty tabLabels = serialized.FindProperty("optionTabLabels");
+            for (int i = 0; i < tabLabels.arraySize; i++)
+            {
+                TMPro.TMP_Text label = tabLabels.GetArrayElementAtIndex(i).objectReferenceValue as TMPro.TMP_Text;
+                if (label != null)
+                    label.color = i == page ? new Color(1f, 0.84f, 0.3f) : new Color(0.82f, 0.86f, 0.94f);
+            }
+
+            string[] descriptions =
+            {
+                "화면 표시 방식과 글자 크기를 조절해.",
+                "전체·배경음악·효과음 음량을 따로 조절해.",
+                "전투 연출의 움직임과 흔들림을 정해.",
+                "전투 의도와 정보 대비를 더 또렷하게 만들어.",
+                "방향키로 이동하고 Enter로 선택해. Esc는 현재 창을 닫아.",
+                "설정은 바꾸는 즉시 저장돼. 런 저장은 런 현황에서 관리해."
+            };
+            TMPro.TMP_Text body = controller.transform.Find("Art Frame/Body")?.GetComponent<TMPro.TMP_Text>();
+            if (body != null && page >= 0 && page < descriptions.Length)
+                body.text = descriptions[page];
         }
     }
 }

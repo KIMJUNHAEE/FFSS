@@ -17,6 +17,8 @@ namespace FFSS.Framework.Presentation.Audio
 
         private readonly Dictionary<int, AudioSource> activeSources = new Dictionary<int, AudioSource>();
         private readonly Dictionary<int, string> activeCueIds = new Dictionary<int, string>();
+        private readonly Dictionary<int, float> activeBaseVolumes = new Dictionary<int, float>();
+        private readonly Dictionary<int, AudioBus> activeBuses = new Dictionary<int, AudioBus>();
         private readonly Dictionary<string, float> lastPlayedAt = new Dictionary<string, float>();
         private readonly Dictionary<string, AudioClip> lastPlayedClips = new Dictionary<string, AudioClip>();
         private readonly Dictionary<string, int> sequencePlayCounts = new Dictionary<string, int>();
@@ -26,6 +28,10 @@ namespace FFSS.Framework.Presentation.Audio
         private Coroutine musicDuck;
         private float duckRestoreVolumeA;
         private float duckRestoreVolumeB;
+        private float musicBusVolume = 0.8f;
+        private float effectsBusVolume = 1f;
+        private float interfaceBusVolume = 1f;
+        private float currentMusicBaseVolume = 1f;
 
         public int TotalPlayCount { get; private set; }
         public string CurrentMusicCueId { get; private set; } = string.Empty;
@@ -54,9 +60,12 @@ namespace FFSS.Framework.Presentation.Audio
 
             int playbackId = nextPlaybackId++;
             sequencePlayCounts.TryGetValue(cue.CueId, out int sequencePlayIndex);
-            ConfigureSource(source, cue, clip, cue.VolumeForSequencePlay(sequencePlayIndex), worldPosition);
+            float baseVolume = cue.VolumeForSequencePlay(sequencePlayIndex);
+            ConfigureSource(source, cue, clip, baseVolume * VolumeForBus(cue.Bus), worldPosition);
             activeSources[playbackId] = source;
             activeCueIds[playbackId] = cue.CueId;
+            activeBaseVolumes[playbackId] = baseVolume;
+            activeBuses[playbackId] = cue.Bus;
             lastPlayedAt[cue.CueId] = Time.unscaledTime;
             lastPlayedClips[cue.CueId] = clip;
             sequencePlayCounts[cue.CueId] = sequencePlayIndex + 1;
@@ -98,6 +107,7 @@ namespace FFSS.Framework.Presentation.Audio
             }
 
             CurrentMusicCueId = cueId;
+            currentMusicBaseVolume = cue.Volume;
 
             AudioSource incoming = useFirstMusicSource ? musicSourceA : musicSourceB;
             AudioSource outgoing = useFirstMusicSource ? musicSourceB : musicSourceA;
@@ -126,16 +136,53 @@ namespace FFSS.Framework.Presentation.Audio
                 Mathf.Clamp01(volumeMultiplier)));
         }
 
+        public void SetBusVolumes(float music, float effects, float interfaceVolume)
+        {
+            float previousMusic = musicBusVolume;
+            musicBusVolume = Mathf.Clamp01(music);
+            effectsBusVolume = Mathf.Clamp01(effects);
+            interfaceBusVolume = Mathf.Clamp01(interfaceVolume);
+
+            if (previousMusic > 0.0001f)
+            {
+                float musicRatio = musicBusVolume / previousMusic;
+                if (musicSourceA != null) musicSourceA.volume *= musicRatio;
+                if (musicSourceB != null) musicSourceB.volume *= musicRatio;
+            }
+            else if (musicBusVolume > 0f)
+            {
+                if (musicSourceA != null && musicSourceA.isPlaying)
+                    musicSourceA.volume = currentMusicBaseVolume * musicBusVolume;
+                if (musicSourceB != null && musicSourceB.isPlaying)
+                    musicSourceB.volume = currentMusicBaseVolume * musicBusVolume;
+            }
+
+            foreach (KeyValuePair<int, AudioSource> pair in activeSources)
+            {
+                if (pair.Value == null || !activeBaseVolumes.TryGetValue(pair.Key, out float baseVolume) ||
+                    !activeBuses.TryGetValue(pair.Key, out AudioBus bus))
+                    continue;
+                pair.Value.volume = baseVolume * VolumeForBus(bus);
+            }
+        }
+
         protected override void OnInitialize(GameServiceContext context)
         {
             activeSources.Clear();
             activeCueIds.Clear();
+            activeBaseVolumes.Clear();
+            activeBuses.Clear();
             lastPlayedAt.Clear();
             lastPlayedClips.Clear();
             sequencePlayCounts.Clear();
             TotalPlayCount = 0;
             CurrentMusicCueId = string.Empty;
+            currentMusicBaseVolume = 1f;
             musicDuck = null;
+            SetBusVolumes(
+                PlayerPrefs.GetFloat("settings.musicVolume", 0.8f),
+                PlayerPrefs.GetFloat("settings.effectsVolume", 1f),
+                PlayerPrefs.GetFloat("settings.interfaceVolume", 1f));
         }
 
         protected override void OnShutdown()
@@ -153,6 +200,8 @@ namespace FFSS.Framework.Presentation.Audio
             musicSourceB?.Stop();
             activeSources.Clear();
             activeCueIds.Clear();
+            activeBaseVolumes.Clear();
+            activeBuses.Clear();
             lastPlayedAt.Clear();
             lastPlayedClips.Clear();
             sequencePlayCounts.Clear();
@@ -256,7 +305,7 @@ namespace FFSS.Framework.Presentation.Audio
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                incoming.volume = Mathf.Lerp(0f, cue.Volume, t);
+                incoming.volume = Mathf.Lerp(0f, cue.Volume * musicBusVolume, t);
                 if (outgoing != null)
                 {
                     outgoing.volume = Mathf.Lerp(outgoingVolume, 0f, t);
@@ -265,7 +314,7 @@ namespace FFSS.Framework.Presentation.Audio
                 yield return null;
             }
 
-            incoming.volume = cue.Volume;
+            incoming.volume = cue.Volume * musicBusVolume;
             if (outgoing != null)
             {
                 outgoing.Stop();
@@ -321,6 +370,21 @@ namespace FFSS.Framework.Presentation.Audio
         {
             activeSources.Remove(playbackId);
             activeCueIds.Remove(playbackId);
+            activeBaseVolumes.Remove(playbackId);
+            activeBuses.Remove(playbackId);
+        }
+
+        private float VolumeForBus(AudioBus bus)
+        {
+            return bus switch
+            {
+                AudioBus.Music => musicBusVolume,
+                AudioBus.Interface => interfaceBusVolume,
+                AudioBus.Effects => effectsBusVolume,
+                AudioBus.Ambience => effectsBusVolume,
+                AudioBus.Voice => effectsBusVolume,
+                _ => 1f
+            };
         }
     }
 }
