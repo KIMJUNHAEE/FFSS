@@ -103,6 +103,102 @@ namespace FFSS.Framework.Tests
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
+        [UnityTest]
+        public IEnumerator EveryProductionCombatSceneShowsAReadableEnemyGuide()
+        {
+            var failures = new List<string>();
+            string[] captureScenes =
+            {
+                "Combat_Ddaeng_01",
+                "Combat_Midboss_Gusa",
+                "Combat_Boss_Gwang_38"
+            };
+
+            for (int i = 0; i < SceneNames.Length; i++)
+            {
+                string sceneName = SceneNames[i];
+                SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+                yield return WaitFrames(4);
+
+                MonoBehaviour[] guides = SceneComponentsByTypeName(
+                    SceneManager.GetActiveScene(),
+                    "EnemyCombatGuideView");
+                ExpectCount(sceneName, "EnemyCombatGuideView", guides.Length, 1, failures);
+                if (guides.Length != 1)
+                    continue;
+
+                MonoBehaviour guide = guides[0];
+                Button openButton = ReadField<Button>(guide, "openButton");
+                Button closeButton = ReadField<Button>(guide, "closeButton");
+                GameObject modal = ReadField<GameObject>(guide, "modalRoot");
+                TMP_Text buttonLabel = ReadField<TMP_Text>(guide, "buttonLabel");
+                TMP_Text title = ReadField<TMP_Text>(guide, "titleText");
+                TMP_Text gimmick = ReadField<TMP_Text>(guide, "gimmickText");
+                TMP_Text signature = ReadField<TMP_Text>(guide, "signatureText");
+                TMP_Text counterplay = ReadField<TMP_Text>(guide, "counterplayText");
+                TMP_Text terms = ReadField<TMP_Text>(guide, "termsText");
+                if (openButton == null || closeButton == null || modal == null ||
+                    buttonLabel == null || title == null || gimmick == null ||
+                    signature == null || counterplay == null || terms == null)
+                {
+                    failures.Add($"{sceneName}: enemy guide prefab references are incomplete");
+                    continue;
+                }
+
+                if (buttonLabel.text != "적 정보")
+                    failures.Add($"{sceneName}: left guide button label is '{buttonLabel.text}'");
+                if (modal.activeSelf)
+                    failures.Add($"{sceneName}: enemy guide should begin closed");
+
+                Vector2Int[] resolutions =
+                {
+                    new(1280, 720),
+                    new(1920, 1080)
+                };
+                for (int resolutionIndex = 0; resolutionIndex < resolutions.Length; resolutionIndex++)
+                {
+                    Vector2Int resolution = resolutions[resolutionIndex];
+                    Screen.SetResolution(resolution.x, resolution.y, false);
+                    yield return new WaitForSecondsRealtime(0.4f);
+                    openButton.onClick.Invoke();
+                    yield return WaitFrames(2);
+
+                    if (!modal.activeSelf)
+                    {
+                        failures.Add($"{sceneName}: left guide button did not open the guide");
+                        continue;
+                    }
+
+                    ValidateGuideText(sceneName, title, gimmick, signature, counterplay, terms, failures);
+                    ValidateVisibleText($"{sceneName} enemy guide", failures);
+                    ValidateRectInsideViewport(
+                        $"{sceneName}: left enemy guide button",
+                        openButton.transform as RectTransform,
+                        failures);
+                    ValidateRectInsideViewport(
+                        $"{sceneName}: enemy guide panel",
+                        modal.transform.Find("GuidePanel") as RectTransform,
+                        failures);
+
+                    if (captureScenes.Contains(sceneName) && Camera.main != null)
+                    {
+                        yield return Capture(
+                            $"{sceneName}_EnemyGuide",
+                            Camera.main,
+                            resolution.x,
+                            resolution.y);
+                    }
+
+                    closeButton.onClick.Invoke();
+                    yield return WaitFrames(1);
+                    if (modal.activeSelf)
+                        failures.Add($"{sceneName}: close button did not close the enemy guide");
+                }
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
         private readonly struct RectGeometry
         {
             public RectGeometry(RectTransform rect)
@@ -214,6 +310,7 @@ namespace FFSS.Framework.Tests
                 .Where(item => item.transform.parent == null)
                 .ToArray();
             MonoBehaviour[] commands = SceneComponentsByTypeName(scene, "CombatCommandSelectionView");
+            MonoBehaviour[] guides = SceneComponentsByTypeName(scene, "EnemyCombatGuideView");
 
             ExpectCount(sceneName, "RpsCombatController", combats.Length, 1, failures);
             ExpectCount(sceneName, "BattleManager", managers.Length, 1, failures);
@@ -221,6 +318,7 @@ namespace FFSS.Framework.Tests
             ExpectCount(sceneName, "SeotdaTableController", seotdaTables.Length, 1, failures);
             ExpectCount(sceneName, "root Canvas", rootCanvases.Length, 1, failures);
             ExpectCount(sceneName, "CombatCommandSelectionView", commands.Length, 5, failures);
+            ExpectCount(sceneName, "EnemyCombatGuideView", guides.Length, 1, failures);
             ValidatePlayerHudFixedLabels(sceneName, scene, failures);
 
             if (combats.Length != 1)
@@ -390,6 +488,55 @@ namespace FFSS.Framework.Tests
                 text.ForceMeshUpdate();
                 if (text.isTextOverflowing)
                     failures.Add($"{sceneName}: {path} text overflow: {text.GetParsedText()}");
+            }
+        }
+
+        private static void ValidateGuideText(
+            string sceneName,
+            TMP_Text title,
+            TMP_Text gimmick,
+            TMP_Text signature,
+            TMP_Text counterplay,
+            TMP_Text terms,
+            ICollection<string> failures)
+        {
+            if (!title.text.Contains("전투 정보"))
+                failures.Add($"{sceneName}: enemy guide title is missing");
+            if (string.IsNullOrWhiteSpace(gimmick.text) || !gimmick.text.Contains("<b>"))
+                failures.Add($"{sceneName}: enemy gimmick explanation is missing");
+            if (!signature.text.Contains("전용패"))
+                failures.Add($"{sceneName}: signature-card explanation is missing");
+            if (!counterplay.text.Contains("대응법"))
+                failures.Add($"{sceneName}: counterplay explanation is missing");
+            if (!terms.text.Contains("관련 용어") || !terms.text.Contains("격파"))
+                failures.Add($"{sceneName}: named-term explanations are missing");
+        }
+
+        private static void ValidateRectInsideViewport(
+            string label,
+            RectTransform rect,
+            ICollection<string> failures)
+        {
+            if (rect == null)
+            {
+                failures.Add($"{label} is missing");
+                return;
+            }
+
+            Canvas canvas = rect.GetComponentInParent<Canvas>();
+            Camera canvasCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 minimum = RectTransformUtility.WorldToScreenPoint(canvasCamera, corners[0]);
+            Vector2 maximum = RectTransformUtility.WorldToScreenPoint(canvasCamera, corners[2]);
+            if (minimum.x < -1f || minimum.y < -1f ||
+                maximum.x > Screen.width + 1f || maximum.y > Screen.height + 1f)
+            {
+                failures.Add(
+                    $"{label} outside viewport " +
+                    $"({minimum.x:0},{minimum.y:0})-({maximum.x:0},{maximum.y:0})");
             }
         }
 
