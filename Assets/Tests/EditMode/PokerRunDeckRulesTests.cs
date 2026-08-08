@@ -129,6 +129,26 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [Test]
+        public void RedJokerOnlySubstitutesHeartOrDiamond()
+        {
+            AssertPokerRank("Straight", "X-R", "S-9", "S-10", "S-11", "S-12");
+            AssertPokerRank("RoyalFlush", "X-R", "H-10", "H-11", "H-12", "H-13");
+        }
+
+        [Test]
+        public void BlackJokerOnlySubstitutesSpadeOrClub()
+        {
+            AssertPokerRank("FullHouse", "X-B", "S-7", "C-7", "H-7", "D-2");
+            AssertPokerRank("StraightFlush", "X-B", "S-9", "S-10", "S-11", "S-12");
+        }
+
+        [Test]
+        public void EachJokerKeepsItsOwnColorWhenBothArePresent()
+        {
+            AssertPokerRank("Straight", "X-R", "X-B", "S-9", "S-10", "S-11");
+        }
+
         private static RunPokerDeckState BuildDeck(int count)
         {
             var deck = new RunPokerDeckState();
@@ -151,6 +171,27 @@ namespace FFSS.Framework.Tests
                 sprite.name = name;
                 return sprite;
             }).ToList();
+        }
+
+        private static void AssertPokerRank(string expectedRank, params string[] cardNames)
+        {
+            List<Sprite> cards = MakeSprites(cardNames);
+            try
+            {
+                Type evaluator = Type.GetType("CardBattle.PokerHandEvaluator, Assembly-CSharp");
+                MethodInfo evaluate = evaluator?.GetMethod(
+                    "EvaluateDetails",
+                    BindingFlags.Public | BindingFlags.Static);
+                Assert.That(evaluate, Is.Not.Null);
+
+                object result = evaluate.Invoke(null, new object[] { cards });
+                PropertyInfo rank = result.GetType().GetProperty("Rank");
+                Assert.That(rank?.GetValue(result).ToString(), Is.EqualTo(expectedRank));
+            }
+            finally
+            {
+                cards.ForEach(UnityEngine.Object.DestroyImmediate);
+            }
         }
     }
 }

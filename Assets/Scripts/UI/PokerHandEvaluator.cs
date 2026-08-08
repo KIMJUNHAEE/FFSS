@@ -95,7 +95,7 @@ namespace CardBattle
             if (cards == null || cards.Count != 5) return default;
 
             var naturalCards = new List<(int rank, char suit)>();
-            int jokerCount = 0;
+            var jokerColors = new List<char>(2);
             bool hasRedJoker = false;
             bool hasBlackJoker = false;
             int redCount = 0;
@@ -108,7 +108,7 @@ namespace CardBattle
                 if (!TryParse(sprite, out int parsedRank, out char suit)) return default;
                 if (parsedRank == 0)
                 {
-                    jokerCount++;
+                    jokerColors.Add(suit);
                     hasRedJoker |= suit == 'R';
                     hasBlackJoker |= suit == 'B';
                     if (suit == 'R') redCount++;
@@ -124,11 +124,12 @@ namespace CardBattle
                 if (rank >= 11 && rank <= 13) courtCardCount++;
             }
 
+            int jokerCount = jokerColors.Count;
             if (jokerCount > 2 || naturalCards.Count + jokerCount != 5) return default;
 
             var usedCards = new HashSet<(int rank, char suit)>(naturalCards);
             CandidateResult best = default;
-            ResolveJokers(naturalCards, jokerCount, usedCards, ref best);
+            ResolveJokers(naturalCards, jokerColors, 0, usedCards, ref best);
             if (!best.IsValid) return default;
 
             string name = jokerCount > 0 ? $"{best.DisplayName} · 조커" : best.DisplayName;
@@ -137,24 +138,28 @@ namespace CardBattle
                 aceCount, courtCardCount);
         }
 
-        private static void ResolveJokers(List<(int rank, char suit)> cards, int remaining,
+        private static void ResolveJokers(List<(int rank, char suit)> cards, IReadOnlyList<char> jokerColors,
+            int jokerIndex,
             HashSet<(int rank, char suit)> usedCards, ref CandidateResult best)
         {
-            if (remaining == 0)
+            if (jokerIndex >= jokerColors.Count)
             {
                 var candidate = EvaluateNatural(cards);
                 if (!best.IsValid || Compare(candidate, best) > 0) best = candidate;
                 return;
             }
 
-            foreach (char suit in new[] { 'S', 'C', 'H', 'D' })
+            char[] allowedSuits = jokerColors[jokerIndex] == 'R'
+                ? new[] { 'H', 'D' }
+                : new[] { 'S', 'C' };
+            foreach (char suit in allowedSuits)
             {
                 for (int rank = 2; rank <= 14; rank++)
                 {
                     var card = (rank, suit);
                     if (!usedCards.Add(card)) continue;
                     cards.Add(card);
-                    ResolveJokers(cards, remaining - 1, usedCards, ref best);
+                    ResolveJokers(cards, jokerColors, jokerIndex + 1, usedCards, ref best);
                     cards.RemoveAt(cards.Count - 1);
                     usedCards.Remove(card);
                 }

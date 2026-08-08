@@ -28,11 +28,13 @@ internal static class Program
         Assert(redJokerRoyal.SuitCounts[CardSuit.Heart] == 5, "joker resolves to winning suit");
 
         var blackJokerQuads = Evaluate("X-B", "S-7", "C-7", "H-7", "D-2");
-        Assert(blackJokerQuads.Rank == PokerHandRank.FourKind, "black joker completes four of a kind");
+        Assert(blackJokerQuads.Rank == PokerHandRank.FullHouse,
+            "black joker cannot complete four of a kind and instead pairs the deuce");
         Assert(blackJokerQuads.HasBlackJoker, "black joker metadata");
 
         var doubleJokerStraightFlush = Evaluate("X-R", "X-B", "S-9", "S-10", "S-11");
-        Assert(doubleJokerStraightFlush.Rank == PokerHandRank.StraightFlush, "two jokers complete straight flush");
+        Assert(doubleJokerStraightFlush.Rank == PokerHandRank.Straight,
+            "red and black jokers cannot both become spades to complete a straight flush");
         Assert(doubleJokerStraightFlush.JokerCount == 2, "two joker count");
     }
 
