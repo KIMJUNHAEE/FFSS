@@ -121,6 +121,10 @@ namespace CardBattle.Exploration
         [SerializeField] private int minInteractionHexDistance = 4;
         [SerializeField, Range(0f, 1f)] private float interactionTileChance = 0f;
         [SerializeField, Min(1)] private int plannedContentNodeCount = 8;
+        [SerializeField, Min(1)] private int layoutValidationAttempts = 24;
+        [SerializeField, Range(0.1f, 0.5f)] private float maximumNarrowTileRatio = 0.33f;
+        [SerializeField, Min(0)] private int maximumDeadEndTiles = 2;
+        [SerializeField, Min(1)] private int maximumSingleWidthCorridorLength = 3;
         [SerializeField] private bool generateOnStart = true;
         [SerializeField] private bool generatePreviewInEditMode = true;
 
@@ -429,10 +433,47 @@ namespace CardBattle.Exploration
 
         private List<Vector2Int> BuildCellPath(out HashSet<Vector2Int> interactionCells, out Vector2Int bossCell)
         {
-            var random = new System.Random(GetEffectiveSeed());
+            int baseSeed = GetEffectiveSeed();
             int targetCount = ResolveTargetTileCount();
+            HashSet<Vector2Int> bestCells = null;
+            List<Vector2Int> bestAreaCenters = null;
+            System.Random bestRandom = null;
+            float bestQuality = float.NegativeInfinity;
+            int attempts = Mathf.Max(1, layoutValidationAttempts);
+
+            for (int attempt = 0; attempt < attempts; attempt++)
+            {
+                var random = new System.Random(unchecked(baseSeed + attempt * 48611));
+                HashSet<Vector2Int> cells = BuildCellCandidate(random, targetCount, out List<Vector2Int> areaCenters);
+                float quality = CalculateLayoutQuality(cells, targetCount);
+                if (quality > bestQuality)
+                {
+                    bestCells = cells;
+                    bestAreaCenters = areaCenters;
+                    bestRandom = random;
+                    bestQuality = quality;
+                }
+
+                if (!IsLayoutValid(cells, targetCount))
+                    continue;
+
+                return FinalizeCellPath(random, cells, areaCenters, out interactionCells, out bossCell);
+            }
+
+            Debug.LogWarning(
+                $"{nameof(HexTileMapGenerator)} could not satisfy every layout rule after {attempts} attempts. " +
+                "Using the strongest connected candidate.",
+                this);
+            return FinalizeCellPath(bestRandom, bestCells, bestAreaCenters, out interactionCells, out bossCell);
+        }
+
+        private HashSet<Vector2Int> BuildCellCandidate(
+            System.Random random,
+            int targetCount,
+            out List<Vector2Int> areaCenters)
+        {
             var cells = new HashSet<Vector2Int>();
-            List<Vector2Int> areaCenters = BuildAreaCenters(random, targetCount, districtLayoutPattern);
+            areaCenters = BuildAreaCenters(random, targetCount, districtLayoutPattern);
 
             for (int i = 0; i < areaCenters.Count; i++)
             {
@@ -447,6 +488,16 @@ namespace CardBattle.Exploration
             WidenFieldUntilTarget(random, cells, targetCount);
             TrimFieldToTarget(cells, targetCount);
 
+            return cells;
+        }
+
+        private List<Vector2Int> FinalizeCellPath(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            IReadOnlyList<Vector2Int> areaCenters,
+            out HashSet<Vector2Int> interactionCells,
+            out Vector2Int bossCell)
+        {
             List<Vector2Int> orderedCells = SortCellsForProgression(cells);
             bossCell = FindFarthestCell(cells);
             interactionCells = PickInteractionCells(random, orderedCells, areaCenters, bossCell);
@@ -455,6 +506,112 @@ namespace CardBattle.Exploration
             interactionCells.Remove(Vector2Int.zero);
 
             return orderedCells;
+        }
+
+        private bool IsLayoutValid(HashSet<Vector2Int> cells, int targetCount)
+        {
+            if (cells == null || cells.Count != targetCount || !cells.Contains(Vector2Int.zero))
+                return false;
+
+            int deadEnds = 0;
+            int narrowTiles = 0;
+            foreach (Vector2Int cell in cells)
+            {
+                int neighbors = CountExistingNeighbors(cell, cells);
+                if (neighbors <= 1)
+                    deadEnds++;
+                if (neighbors <= 2)
+                    narrowTiles++;
+            }
+
+            return CountReachableCells(cells) == cells.Count &&
+                   deadEnds <= maximumDeadEndTiles &&
+                   narrowTiles / (float)cells.Count < maximumNarrowTileRatio &&
+                   FindLongestSingleWidthCorridor(cells) <= maximumSingleWidthCorridorLength;
+        }
+
+        private float CalculateLayoutQuality(HashSet<Vector2Int> cells, int targetCount)
+        {
+            if (cells == null || cells.Count == 0)
+                return float.NegativeInfinity;
+
+            int deadEnds = 0;
+            int narrowTiles = 0;
+            foreach (Vector2Int cell in cells)
+            {
+                int neighbors = CountExistingNeighbors(cell, cells);
+                if (neighbors <= 1)
+                    deadEnds++;
+                if (neighbors <= 2)
+                    narrowTiles++;
+            }
+
+            int disconnected = cells.Count - CountReachableCells(cells);
+            int corridorLength = FindLongestSingleWidthCorridor(cells);
+            return -Mathf.Abs(cells.Count - targetCount) * 1000f -
+                   disconnected * 1000f -
+                   deadEnds * 100f -
+                   narrowTiles * 10f -
+                   corridorLength;
+        }
+
+        private static int CountReachableCells(HashSet<Vector2Int> cells)
+        {
+            if (cells == null || !cells.Contains(Vector2Int.zero))
+                return 0;
+
+            var visited = new HashSet<Vector2Int> { Vector2Int.zero };
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(Vector2Int.zero);
+            while (queue.Count > 0)
+            {
+                Vector2Int current = queue.Dequeue();
+                foreach (Vector2Int direction in Directions)
+                {
+                    Vector2Int next = current + direction;
+                    if (cells.Contains(next) && visited.Add(next))
+                        queue.Enqueue(next);
+                }
+            }
+
+            return visited.Count;
+        }
+
+        private static int FindLongestSingleWidthCorridor(HashSet<Vector2Int> cells)
+        {
+            var narrowCells = new HashSet<Vector2Int>();
+            foreach (Vector2Int cell in cells)
+            {
+                if (CountExistingNeighbors(cell, cells) <= 2)
+                    narrowCells.Add(cell);
+            }
+
+            int longest = 0;
+            var visited = new HashSet<Vector2Int>();
+            foreach (Vector2Int start in narrowCells)
+            {
+                if (!visited.Add(start))
+                    continue;
+
+                int length = 0;
+                var queue = new Queue<Vector2Int>();
+                queue.Enqueue(start);
+                while (queue.Count > 0)
+                {
+                    Vector2Int current = queue.Dequeue();
+                    length++;
+                    foreach (Vector2Int direction in Directions)
+                    {
+                        Vector2Int next = current + direction;
+                        if (narrowCells.Contains(next) && visited.Add(next))
+                            queue.Enqueue(next);
+                    }
+                }
+
+                longest = Mathf.Max(longest, length);
+            }
+
+            return longest;
         }
 
         private int ResolveTargetTileCount()

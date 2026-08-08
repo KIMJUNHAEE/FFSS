@@ -685,11 +685,15 @@ namespace FFSS.Framework.Tests
             MethodInfo build = generatorType?.GetMethod(
                 "BuildCellPath",
                 BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo validate = generatorType?.GetMethod(
+                "IsLayoutValid",
+                BindingFlags.Instance | BindingFlags.NonPublic);
 
             Assert.That(campaign, Is.Not.Null);
             Assert.That(generatorType, Is.Not.Null);
             Assert.That(configure, Is.Not.Null);
             Assert.That(build, Is.Not.Null);
+            Assert.That(validate, Is.Not.Null);
 
             for (int act = 1; act <= 3; act++)
             {
@@ -704,45 +708,48 @@ namespace FFSS.Framework.Tests
 
                 for (int sample = 0; sample < targets.Length; sample++)
                 {
-                    var host = new GameObject($"Act {act} Layout {sample}");
-                    try
+                    for (int seedSample = 0; seedSample < 10; seedSample++)
                     {
-                        Component generator = host.AddComponent(generatorType);
-                        generatorType.GetMethod("SetRuntimeSeed")?.Invoke(
-                            generator,
-                            new object[] { 8701 + act * 100 + sample });
-                        configure.Invoke(
-                            generator,
-                            new object[]
-                            {
-                                targets[sample],
-                                nodeCount,
-                                act,
-                                definition.layoutPattern
-                            });
+                        var host = new GameObject($"Act {act} Layout {sample} Seed {seedSample}");
+                        try
+                        {
+                            Component generator = host.AddComponent(generatorType);
+                            generatorType.GetMethod("SetRuntimeSeed")?.Invoke(
+                                generator,
+                                new object[] { 8701 + act * 1000 + sample * 100 + seedSample });
+                            configure.Invoke(
+                                generator,
+                                new object[]
+                                {
+                                    targets[sample],
+                                    nodeCount,
+                                    act,
+                                    definition.layoutPattern
+                                });
 
-                        object[] arguments = { null, Vector2Int.zero };
-                        var cells = (List<Vector2Int>)build.Invoke(generator, arguments);
-                        var interactions = (HashSet<Vector2Int>)arguments[0];
-                        var bossCell = (Vector2Int)arguments[1];
-                        var cellSet = new HashSet<Vector2Int>(cells);
-                        int leafCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 1);
-                        int narrowCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 2);
+                            object[] arguments = { null, Vector2Int.zero };
+                            var cells = (List<Vector2Int>)build.Invoke(generator, arguments);
+                            var interactions = (HashSet<Vector2Int>)arguments[0];
+                            var bossCell = (Vector2Int)arguments[1];
+                            var cellSet = new HashSet<Vector2Int>(cells);
+                            int leafCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 1);
+                            int narrowCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 2);
+                            string context = $"act {act}, sample {sample}, seed {seedSample}";
 
-                        Assert.That(cells, Has.Count.EqualTo(targets[sample]), $"act {act}, sample {sample}");
-                        Assert.That(interactions.Count, Is.GreaterThanOrEqualTo(nodeCount),
-                            $"act {act}, sample {sample}");
-                        Assert.That(interactions, Does.Contain(bossCell), $"act {act}, sample {sample}");
-                        Assert.That(cellSet, Does.Contain(Vector2Int.zero), $"act {act}, sample {sample}");
-                        Assert.That(ReachableHexCount(Vector2Int.zero, cellSet), Is.EqualTo(cells.Count),
-                            $"act {act}, sample {sample}");
-                        Assert.That(leafCount, Is.LessThanOrEqualTo(2), $"act {act}, sample {sample}");
-                        Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.34f),
-                            $"act {act}, sample {sample}");
-                    }
-                    finally
-                    {
-                        UnityEngine.Object.DestroyImmediate(host);
+                            Assert.That(cells, Has.Count.EqualTo(targets[sample]), context);
+                            Assert.That(interactions.Count, Is.GreaterThanOrEqualTo(nodeCount), context);
+                            Assert.That(interactions, Does.Contain(bossCell), context);
+                            Assert.That(cellSet, Does.Contain(Vector2Int.zero), context);
+                            Assert.That(ReachableHexCount(Vector2Int.zero, cellSet), Is.EqualTo(cells.Count), context);
+                            Assert.That(leafCount, Is.LessThanOrEqualTo(2), context);
+                            Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.34f), context);
+                            Assert.That(validate.Invoke(generator, new object[] { cellSet, targets[sample] }),
+                                Is.EqualTo(true), context);
+                        }
+                        finally
+                        {
+                            UnityEngine.Object.DestroyImmediate(host);
+                        }
                     }
                 }
             }
