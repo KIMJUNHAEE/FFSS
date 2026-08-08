@@ -149,6 +149,86 @@ namespace FFSS.Framework.Tests
             AssertPokerRank("Straight", "X-R", "X-B", "S-9", "S-10", "S-11");
         }
 
+        [Test]
+        public void RankJokerCannotAlsoCountAsAColorBonus()
+        {
+            List<Sprite> cards = MakeSprites("S-11", "H-1", "C-10", "X-R", "H-12");
+            try
+            {
+                object result = EvaluatePoker(cards);
+                Type resultType = result.GetType();
+                object rank = resultType.GetProperty("Rank")?.GetValue(result);
+
+                Assert.That(rank?.ToString(), Is.EqualTo("Straight"));
+                Assert.That(resultType.GetProperty("JokersUsedForRank")?.GetValue(result), Is.EqualTo(1));
+                Assert.That(resultType.GetProperty("EffectiveRedCount")?.GetValue(result), Is.EqualTo(2));
+
+                Type balance = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
+                MethodInfo contest = balance?.GetMethod("CalculateAttackContest",
+                    BindingFlags.Public | BindingFlags.Static);
+                MethodInfo damage = balance?.GetMethod("CalculateHpDamage",
+                    BindingFlags.Public | BindingFlags.Static);
+                Assert.That(contest, Is.Not.Null);
+                Assert.That(damage, Is.Not.Null);
+
+                int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, 2, 0 });
+                int hpDamage = (int)damage.Invoke(null, new object[] { 10, contestValue, 10 });
+                Assert.That(contestValue, Is.EqualTo(14));
+                Assert.That(hpDamage, Is.EqualTo(7));
+            }
+            finally
+            {
+                cards.ForEach(UnityEngine.Object.DestroyImmediate);
+            }
+        }
+
+        [TestCase("HighCard", 3, 11, 5)]
+        [TestCase("OnePair", 3, 12, 6)]
+        [TestCase("TwoPair", 3, 13, 6)]
+        [TestCase("Flush", 5, 16, 8)]
+        [TestCase("FullHouse", 3, 17, 8)]
+        [TestCase("FourKind", 3, 18, 9)]
+        [TestCase("StraightFlush", 5, 21, 10)]
+        public void StartingHandDamageMatchesTheProductionBalanceTable(
+            string rankName,
+            int effectiveRedCount,
+            int expectedContest,
+            int expectedDamage)
+        {
+            Type balance = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
+            Type rankType = Type.GetType("CardBattle.PokerHandRank, Assembly-CSharp");
+            MethodInfo contest = balance?.GetMethod("CalculateAttackContest",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo damage = balance?.GetMethod("CalculateHpDamage",
+                BindingFlags.Public | BindingFlags.Static);
+            object rank = Enum.Parse(rankType, rankName);
+
+            int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, effectiveRedCount, 0 });
+            int hpDamage = (int)damage.Invoke(null, new object[] { 10, contestValue, 10 });
+
+            Assert.That(contestValue, Is.EqualTo(expectedContest));
+            Assert.That(hpDamage, Is.EqualTo(expectedDamage));
+        }
+
+        [Test]
+        public void AttackDamageCapsConvertOverflowIntoBalanceDamage()
+        {
+            Type balance = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
+            MethodInfo cap = balance?.GetMethod("ApplyHpDamageCap",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(cap, Is.Not.Null);
+
+            object[] normalArgs = { 34, 92, false, 0 };
+            object[] breakArgs = { 34, 92, true, 0 };
+            int normalDamage = (int)cap.Invoke(null, normalArgs);
+            int breakDamage = (int)cap.Invoke(null, breakArgs);
+
+            Assert.That(normalDamage, Is.EqualTo(14));
+            Assert.That(normalArgs[3], Is.EqualTo(20));
+            Assert.That(breakDamage, Is.EqualTo(20));
+            Assert.That(breakArgs[3], Is.EqualTo(14));
+        }
+
         private static RunPokerDeckState BuildDeck(int count)
         {
             var deck = new RunPokerDeckState();
@@ -192,6 +272,16 @@ namespace FFSS.Framework.Tests
             {
                 cards.ForEach(UnityEngine.Object.DestroyImmediate);
             }
+        }
+
+        private static object EvaluatePoker(IReadOnlyList<Sprite> cards)
+        {
+            Type evaluator = Type.GetType("CardBattle.PokerHandEvaluator, Assembly-CSharp");
+            MethodInfo evaluate = evaluator?.GetMethod(
+                "EvaluateDetails",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(evaluate, Is.Not.Null);
+            return evaluate.Invoke(null, new object[] { cards });
         }
     }
 }

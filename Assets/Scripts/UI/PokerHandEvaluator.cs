@@ -24,7 +24,8 @@ namespace CardBattle
     {
         public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount,
             int highRank, bool isSpecial, IReadOnlyDictionary<CardSuit, int> suitCounts, int jokerCount,
-            bool hasRedJoker, bool hasBlackJoker, int aceCount, int courtCardCount)
+            bool hasRedJoker, bool hasBlackJoker, int aceCount, int courtCardCount, int jokersUsedForRank,
+            IReadOnlyDictionary<CardSuit, int> rankJokerSuitCounts)
         {
             Rank = rank;
             DisplayName = displayName;
@@ -39,6 +40,8 @@ namespace CardBattle
             HasBlackJoker = hasBlackJoker;
             AceCount = aceCount;
             CourtCardCount = courtCardCount;
+            JokersUsedForRank = jokersUsedForRank;
+            RankJokerSuitCounts = rankJokerSuitCounts;
         }
 
         public PokerHandRank Rank { get; }
@@ -54,8 +57,23 @@ namespace CardBattle
         public bool HasBlackJoker { get; }
         public int AceCount { get; }
         public int CourtCardCount { get; }
+        public int JokersUsedForRank { get; }
+        public IReadOnlyDictionary<CardSuit, int> RankJokerSuitCounts { get; }
+        public int RedJokersUsedForRank => JokersUsedForRank > 0 && HasRedJoker ? 1 : 0;
+        public int BlackJokersUsedForRank => JokersUsedForRank > 0 && HasBlackJoker ? 1 : 0;
+        public int EffectiveRedCount => Math.Max(0, RedCount - RedJokersUsedForRank);
+        public int EffectiveBlackCount => Math.Max(0, BlackCount - BlackJokersUsedForRank);
         public bool IsJokerAssisted => JokerCount > 0;
         public bool IsValid => Rank != PokerHandRank.None;
+
+        public int EffectiveSuitCount(CardSuit suit)
+        {
+            int count = SuitCounts != null && SuitCounts.TryGetValue(suit, out int total) ? total : 0;
+            int rankJokers = RankJokerSuitCounts != null && RankJokerSuitCounts.TryGetValue(suit, out int used)
+                ? used
+                : 0;
+            return Math.Max(0, count - rankJokers);
+        }
     }
 
     public static class PokerHandEvaluator
@@ -63,13 +81,16 @@ namespace CardBattle
         private readonly struct CandidateResult
         {
             public CandidateResult(PokerHandRank rank, string displayName, int tier, int highRank,
-                IReadOnlyDictionary<CardSuit, int> suitCounts, int[] tieBreak)
+                IReadOnlyDictionary<CardSuit, int> suitCounts,
+                IReadOnlyDictionary<CardSuit, int> jokerSuitCounts,
+                int[] tieBreak)
             {
                 Rank = rank;
                 DisplayName = displayName;
                 Tier = tier;
                 HighRank = highRank;
                 SuitCounts = suitCounts;
+                JokerSuitCounts = jokerSuitCounts;
                 TieBreak = tieBreak;
             }
 
@@ -78,6 +99,7 @@ namespace CardBattle
             public int Tier { get; }
             public int HighRank { get; }
             public IReadOnlyDictionary<CardSuit, int> SuitCounts { get; }
+            public IReadOnlyDictionary<CardSuit, int> JokerSuitCounts { get; }
             public int[] TieBreak { get; }
             public bool IsValid => Rank != PokerHandRank.None;
         }
@@ -87,7 +109,7 @@ namespace CardBattle
         {
             if (weakness == CardSuit.None || !result.IsValid || result.Tier < 1 || result.SuitCounts == null)
                 return 0f;
-            return result.SuitCounts.TryGetValue(weakness, out var count) ? count / 5f : 0f;
+            return result.EffectiveSuitCount(weakness) / 5f;
         }
 
         public static PokerHandResult EvaluateDetails(IReadOnlyList<Sprite> cards)
@@ -128,23 +150,28 @@ namespace CardBattle
             if (jokerCount > 2 || naturalCards.Count + jokerCount != 5) return default;
 
             var usedCards = new HashSet<(int rank, char suit)>(naturalCards);
+            var resolvedJokerSuits = new List<char>(jokerCount);
             CandidateResult best = default;
-            ResolveJokers(naturalCards, jokerColors, 0, usedCards, ref best);
+            ResolveJokers(naturalCards, jokerColors, 0, usedCards, resolvedJokerSuits, ref best);
             if (!best.IsValid) return default;
 
             string name = jokerCount > 0 ? $"{best.DisplayName} · 조커" : best.DisplayName;
+            int jokersUsedForRank = best.Rank == PokerHandRank.HighCard ? 0 : jokerCount;
+            IReadOnlyDictionary<CardSuit, int> rankJokerSuitCounts = jokersUsedForRank > 0
+                ? best.JokerSuitCounts
+                : new Dictionary<CardSuit, int>();
             return new PokerHandResult(best.Rank, name, best.Tier, redCount, blackCount, best.HighRank,
                 best.Tier >= 1 || jokerCount > 0, best.SuitCounts, jokerCount, hasRedJoker, hasBlackJoker,
-                aceCount, courtCardCount);
+                aceCount, courtCardCount, jokersUsedForRank, rankJokerSuitCounts);
         }
 
         private static void ResolveJokers(List<(int rank, char suit)> cards, IReadOnlyList<char> jokerColors,
             int jokerIndex,
-            HashSet<(int rank, char suit)> usedCards, ref CandidateResult best)
+            HashSet<(int rank, char suit)> usedCards, List<char> resolvedJokerSuits, ref CandidateResult best)
         {
             if (jokerIndex >= jokerColors.Count)
             {
-                var candidate = EvaluateNatural(cards);
+                var candidate = EvaluateNatural(cards, resolvedJokerSuits);
                 if (!best.IsValid || Compare(candidate, best) > 0) best = candidate;
                 return;
             }
@@ -159,14 +186,18 @@ namespace CardBattle
                     var card = (rank, suit);
                     if (!usedCards.Add(card)) continue;
                     cards.Add(card);
-                    ResolveJokers(cards, jokerColors, jokerIndex + 1, usedCards, ref best);
+                    resolvedJokerSuits.Add(suit);
+                    ResolveJokers(cards, jokerColors, jokerIndex + 1, usedCards, resolvedJokerSuits, ref best);
+                    resolvedJokerSuits.RemoveAt(resolvedJokerSuits.Count - 1);
                     cards.RemoveAt(cards.Count - 1);
                     usedCards.Remove(card);
                 }
             }
         }
 
-        private static CandidateResult EvaluateNatural(IReadOnlyList<(int rank, char suit)> cards)
+        private static CandidateResult EvaluateNatural(
+            IReadOnlyList<(int rank, char suit)> cards,
+            IReadOnlyList<char> resolvedJokerSuits)
         {
             var ranks = cards.Select(card => card.rank).OrderBy(rank => rank).ToList();
             var suits = cards.Select(card => card.suit).ToList();
@@ -273,7 +304,10 @@ namespace CardBattle
 
             var suitCounts = cards.GroupBy(card => ParseSuit(card.suit))
                 .ToDictionary(group => group.Key, group => group.Count());
-            return new CandidateResult(handRank, name, tier, highRank, suitCounts, tieBreak);
+            var jokerSuitCounts = resolvedJokerSuits
+                .GroupBy(ParseSuit)
+                .ToDictionary(group => group.Key, group => group.Count());
+            return new CandidateResult(handRank, name, tier, highRank, suitCounts, jokerSuitCounts, tieBreak);
         }
 
         private static int Compare(CandidateResult left, CandidateResult right)

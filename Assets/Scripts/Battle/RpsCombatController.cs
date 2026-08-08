@@ -53,10 +53,13 @@ namespace CardBattle
 
         private readonly struct CombatNumbers
         {
-            public CombatNumbers(string rankName, int attack, int defense, int skill, int breakPower, bool canSkill,
+            public CombatNumbers(string rankName, int baseAttack, int baseDefense, int attack, int defense,
+                int skill, int breakPower, bool canSkill,
                 string attackFormula, string defenseFormula, string skillFormula)
             {
                 RankName = rankName;
+                BaseAttack = baseAttack;
+                BaseDefense = baseDefense;
                 Attack = attack;
                 Defense = defense;
                 Skill = skill;
@@ -68,6 +71,8 @@ namespace CardBattle
             }
 
             public string RankName { get; }
+            public int BaseAttack { get; }
+            public int BaseDefense { get; }
             public int Attack { get; }
             public int Defense { get; }
             public int Skill { get; }
@@ -82,7 +87,8 @@ namespace CardBattle
         {
             public CombatIntent(string owner, IntentKind kind, string sourceName, int power, int breakPower,
                 string formula, int effectHpDamage = 0, int effectBreakDamage = 0, string effectLabel = "",
-                float weaknessRatio = 0f, float penetrationThreshold = 0f, float weaknessBreakBonus = 0f)
+                float weaknessRatio = 0f, float penetrationThreshold = 0f, float weaknessBreakBonus = 0f,
+                int basePower = 0, int guardPower = 0)
             {
                 Owner = owner;
                 Kind = kind;
@@ -96,6 +102,8 @@ namespace CardBattle
                 WeaknessRatio = weaknessRatio;
                 PenetrationThreshold = penetrationThreshold;
                 WeaknessBreakBonus = weaknessBreakBonus;
+                BasePower = basePower;
+                GuardPower = guardPower;
             }
 
             public string Owner { get; }
@@ -119,6 +127,8 @@ namespace CardBattle
             public bool HasWeakness => WeaknessRatio > 0f;
             public float PenetrationThreshold { get; }
             public float WeaknessBreakBonus { get; }
+            public int BasePower { get; }
+            public int GuardPower { get; }
 
             public CombatIntent WithRuleModifiers(int powerDelta, int breakDelta, int powerFloor = 0)
             {
@@ -136,7 +146,9 @@ namespace CardBattle
                     EffectLabel,
                     WeaknessRatio,
                     PenetrationThreshold,
-                    WeaknessBreakBonus);
+                    WeaknessBreakBonus,
+                    BasePower,
+                    GuardPower);
             }
         }
 
@@ -382,8 +394,8 @@ namespace CardBattle
                 playerMaxHp,
                 playerBreakCharge,
                 playerMaxBreak,
-                playerNumbers.Attack,
-                playerNumbers.Defense,
+                playerNumbers.BaseAttack,
+                playerNumbers.BaseDefense,
                 enemyDisplayName,
                 enemyHp,
                 enemyMaxHp,
@@ -651,6 +663,7 @@ namespace CardBattle
             yield return new WaitForSeconds(revealDelay);
 
             var outcome = ResolveIntents(playerIntent, enemyIntent);
+            ApplyPlayerAttackDamageContract(ref outcome, playerIntent, enemyIntent, enemyWasStunned);
             bool seotdaModifierStripped = ApplyEnemySeotdaBreakInterference(ref outcome, playerIntent);
             ApplyEnemySeotdaEffect(ref outcome, enemyIntent, !seotdaModifierStripped);
             ApplyEnemyRuleOutcome(ref outcome, ruleContext);
@@ -790,21 +803,61 @@ namespace CardBattle
 
             if (diff < 0)
             {
+                int guardedDamage = Mathf.Max(1,
+                    enemy.Power - PokerCombatBalance.DefenseWhileAttacking(player.GuardPower));
                 return new CombatOutcome
                 {
-                    DamageToPlayer = enemy.Power,
+                    DamageToPlayer = guardedDamage,
                     BreakToPlayer = enemy.Kind == IntentKind.Skill ? enemy.BreakPower : 0,
-                    Message = $"<b>{enemy.Power} > {player.Power}</b>  공격 충돌 패배\n플레이어 HP <color=#FF6B6B>-{enemy.Power}</color>",
+                    Message = $"<b>{enemy.Power} > {player.Power}</b>  공격 충돌 패배\n플레이어 HP <color=#FF6B6B>-{guardedDamage}</color>",
                 };
             }
 
-            int tradeDamage = Mathf.Max(1, player.Power / 2);
+            int incomingTradeDamage = Mathf.Max(1,
+                enemy.Power - PokerCombatBalance.DefenseWhileAttacking(player.GuardPower));
             return new CombatOutcome
             {
-                DamageToPlayer = tradeDamage,
-                DamageToEnemy = tradeDamage,
-                Message = $"<b>{player.Power} = {enemy.Power}</b>  정면 충돌\n양쪽 HP <color=#FF6B6B>-{tradeDamage}</color>",
+                DamageToPlayer = incomingTradeDamage,
+                DamageToEnemy = player.Power,
+                Message = $"<b>{player.Power} = {enemy.Power}</b>  정면 충돌\n플레이어 HP <color=#FF6B6B>-{incomingTradeDamage}</color>",
             };
+        }
+
+        private void ApplyPlayerAttackDamageContract(
+            ref CombatOutcome outcome,
+            CombatIntent player,
+            CombatIntent enemy,
+            bool breakWindow)
+        {
+            if (player.Kind != IntentKind.Attack)
+                return;
+
+            bool connected = enemy.IsStunned || enemy.IsDefense ||
+                             (enemy.IsOffense && player.Power >= enemy.Power);
+            if (!connected)
+            {
+                outcome.DamageToEnemy = 0;
+                return;
+            }
+
+            int targetDefense = CalculateEnemyNumbers().BaseDefense;
+            int rawDamage = PokerCombatBalance.CalculateHpDamage(
+                player.BasePower,
+                player.Power,
+                targetDefense);
+            if (breakWindow)
+                rawDamage = Mathf.FloorToInt(rawDamage * PokerCombatBalance.BreakWindowDamageMultiplier);
+
+            outcome.DamageToEnemy = PokerCombatBalance.ApplyHpDamageCap(
+                rawDamage,
+                enemyMaxHp,
+                breakWindow,
+                out int excessBalanceDamage);
+            outcome.BreakToEnemy += excessBalanceDamage;
+            outcome.Message = $"공격 대결 <b>{player.Power}</b> / 적 방어 <b>{targetDefense}</b>\n" +
+                              $"적 HP <color=#FF6B6B>-{outcome.DamageToEnemy}</color>";
+            if (excessBalanceDamage > 0)
+                outcome.Message += $"  ·  초과 균형 <color=#FFD34E>+{excessBalanceDamage}</color>";
         }
 
         private CombatOutcome ResolveAttackIntoDefense(CombatIntent attacker, CombatIntent defender, bool attackerIsPlayer)
@@ -943,11 +996,14 @@ namespace CardBattle
             return action switch
             {
                 RpsAction.Defend => new CombatIntent("플레이어", IntentKind.Defend, values.RankName, values.Defense, values.BreakPower, values.DefenseFormula,
-                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus),
-                RpsAction.Skill => new CombatIntent("플레이어", IntentKind.Skill, values.RankName, values.Skill, values.BreakPower + values.Skill / 4, values.SkillFormula),
+                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus,
+                    basePower: values.BaseDefense, guardPower: values.BaseDefense),
+                RpsAction.Skill => new CombatIntent("플레이어", IntentKind.Skill, values.RankName, values.Skill, values.BreakPower + values.Skill / 4, values.SkillFormula,
+                    basePower: values.BaseAttack, guardPower: values.BaseDefense),
                 RpsAction.Stunned => new CombatIntent("플레이어", IntentKind.Stunned, "스턴", 0, 0, ""),
                 _ => new CombatIntent("플레이어", IntentKind.Attack, values.RankName, values.Attack, values.BreakPower, values.AttackFormula,
-                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus),
+                    weaknessRatio: weaknessRatio, penetrationThreshold: penetrationThreshold, weaknessBreakBonus: weaknessBreakBonus,
+                    basePower: values.BaseAttack, guardPower: values.BaseDefense),
             };
         }
 
@@ -1020,7 +1076,7 @@ namespace CardBattle
 
         private static int SuitCount(PokerHandResult hand, CardSuit suit)
         {
-            return hand.SuitCounts != null && hand.SuitCounts.TryGetValue(suit, out int count) ? count : 0;
+            return hand.EffectiveSuitCount(suit);
         }
 
         private static CombatActionType ToFrameworkAction(IntentKind kind)
@@ -1057,47 +1113,31 @@ namespace CardBattle
             string rankName = result.IsValid ? result.DisplayName : "손패 없음";
             int tier = result.IsValid ? result.Tier : 0;
             (int red, int black) = EffectiveColorCounts(result);
-            int firstTurnAttack = appliedRunPlayerState != null && enemyIntentTurn <= 1
-                ? Mathf.Max(0, appliedRunPlayerState.firstTurnAttackBonus)
-                : 0;
-            int firstTurnDefense = appliedRunPlayerState != null && enemyIntentTurn <= 1
-                ? Mathf.Max(0, appliedRunPlayerState.firstTurnDefenseBonus)
-                : 0;
-            int highRankKick = result.IsValid ? Mathf.Clamp(result.HighRank - 10, 0, 4) : 0;
             float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
             var context = BuildEquipmentContext(result, weaknessRatio);
-            int equipmentAttack = EquipmentModifier(EquipmentStat.Attack, context);
-            int equipmentDefense = EquipmentModifier(EquipmentStat.Defense, context);
+            var baseContext = BuildEquipmentContext(default, 0f);
+            int equipmentBaseAttack = EquipmentModifier(EquipmentStat.Attack, baseContext);
+            int equipmentBaseDefense = EquipmentModifier(EquipmentStat.Defense, baseContext);
+            int equipmentAttack = EquipmentModifier(EquipmentStat.Attack, context) - equipmentBaseAttack;
+            int equipmentDefense = EquipmentModifier(EquipmentStat.Defense, context) - equipmentBaseDefense;
             int equipmentSkill = EquipmentModifier(EquipmentStat.Skill, context);
             int equipmentBreak = EquipmentModifier(EquipmentStat.BreakPower, context);
-            int redPower = redSuitAttackBonus + EquipmentModifier(EquipmentStat.RedCardAttack, context);
-            int blackPower = blackSuitDefenseBonus + EquipmentModifier(EquipmentStat.BlackCardDefense, context);
-            int tierPowerPerLevel = handTierPowerBonus + EquipmentModifier(EquipmentStat.HandTierPower, context);
-            int acePower = result.AceCount * aceAllPowerBonus;
+            int baseAttack = playerBaseAttack + equipmentBaseAttack;
+            int baseDefense = playerBaseDefense + equipmentBaseDefense;
+            int attackBonus = equipmentAttack + EquipmentModifier(EquipmentStat.RedCardAttack, context) +
+                              EquipmentModifier(EquipmentStat.HandTierPower, context);
+            int defenseBonus = equipmentDefense + EquipmentModifier(EquipmentStat.BlackCardDefense, context) +
+                               EquipmentModifier(EquipmentStat.HandTierPower, context);
             int courtSkill = result.CourtCardCount * courtCardSkillBonus;
-            int redJokerPower = result.HasRedJoker ? redJokerAttackBonus : 0;
-            int blackJokerPower = result.HasBlackJoker ? blackJokerDefenseBonus : 0;
-            int jokerSkill = result.JokerCount * jokerSkillBonus;
-            int rawAttack = playerBaseAttack + firstTurnAttack + equipmentAttack + red * redPower + tier * tierPowerPerLevel +
-                            highRankKick + acePower + redJokerPower;
-            int attack = result.IsValid
-                ? PokerCombatBalance.ScaleAttackForHand(result.Rank, rawAttack)
-                : rawAttack;
-            int defense = playerBaseDefense + firstTurnDefense + equipmentDefense + black * blackPower + tier * tierPowerPerLevel +
-                          acePower + blackJokerPower;
-            int breakPower = baseBreakPower + equipmentBreak + black + tier * 2;
-            int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill + jokerSkill;
-            int redBonus = red * redPower;
-            int blackBonus = black * blackPower;
-            int tierPower = tier * tierPowerPerLevel;
-            string attackFormula = $"기{playerBaseAttack}+선{firstTurnAttack}+장{equipmentAttack}+빨{redBonus}+족{tierPower}+높{highRankKick}+A{acePower}+적J{redJokerPower}";
-            if (result.IsValid && attack != rawAttack)
-            {
-                attackFormula += $" -> {PokerCombatBalance.AttackScaleLabel(result.Rank)} {attack}";
-            }
-            string defenseFormula = $"기{playerBaseDefense}+선{firstTurnDefense}+장{equipmentDefense}+검{blackBonus}+족{tierPower}+A{acePower}+흑J{blackJokerPower}";
-            string skillFormula = $"{attack}+스{skillBaseBonus}+족{tier * skillTierBonus}+장{equipmentSkill}+궁{courtSkill}+J{jokerSkill}";
-            return new CombatNumbers(rankName, attack, defense, skill, breakPower, result.IsSpecial,
+            int attack = PokerCombatBalance.CalculateAttackContest(baseAttack, result.Rank, red, attackBonus);
+            int defense = PokerCombatBalance.CalculateDefenseContest(baseDefense, result.Rank, black, defenseBonus);
+            int breakPower = baseBreakPower + equipmentBreak + Mathf.Max(0, 2 - tier) +
+                             Mathf.Max(0, black - 2);
+            int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill;
+            string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 컬러 {PokerCombatBalance.ColorContestBonus(red)} + 장비 {attackBonus}";
+            string defenseFormula = $"기본 {baseDefense} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 흑 {PokerCombatBalance.ColorContestBonus(black)} + 장비 {defenseBonus}";
+            string skillFormula = $"대결 {attack} + 기술 {skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill}";
+            return new CombatNumbers(rankName, baseAttack, baseDefense, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
         }
 
@@ -1108,7 +1148,7 @@ namespace CardBattle
             if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count != 5 ||
                 !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
             {
-                return (result.RedCount, result.BlackCount);
+                return (result.EffectiveRedCount, result.EffectiveBlackCount);
             }
 
             int red = 0;
@@ -1118,12 +1158,14 @@ namespace CardBattle
             {
                 RunCardState card = deck.FindCard(pokerHand.CurrentCardInstanceIds[i]);
                 if (card == null)
-                    return (result.RedCount, result.BlackCount);
+                    return (result.EffectiveRedCount, result.EffectiveBlackCount);
                 if (PokerRunDeckRules.IsEffectivelyRed(card)) red++;
                 else black++;
             }
 
-            return (red, black);
+            return (
+                Mathf.Max(0, red - result.RedJokersUsedForRank),
+                Mathf.Max(0, black - result.BlackJokersUsedForRank));
         }
 
         private static float NextCombatRandomValue()
@@ -1190,7 +1232,8 @@ namespace CardBattle
 
         private CombatNumbers CalculateEnemyNumbers()
         {
-            return new CombatNumbers("기본 행동", enemyBaseAttack, enemyBaseDefense, 0, baseBreakPower, false,
+            return new CombatNumbers("기본 행동", enemyBaseAttack, enemyBaseDefense,
+                enemyBaseAttack, enemyBaseDefense, 0, baseBreakPower, false,
                 $"기본 {enemyBaseAttack}", $"기본 {enemyBaseDefense}", "");
         }
 
@@ -1710,11 +1753,11 @@ namespace CardBattle
             var values = CalculatePlayerNumbers(hand);
 
             if (playerStatText)
-                playerStatText.text = $"<color=#FF746B><b>공격 {values.Attack}</b></color>     <color=#77C8FF><b>방어 {values.Defense}</b></color>";
+                playerStatText.text = $"<color=#FF746B><b>공격 {values.BaseAttack}</b></color>     <color=#77C8FF><b>방어 {values.BaseDefense}</b></color>";
 
             var weaknessPreview = EvaluateWeaknessPreview(hand, values);
-            if (playerAttackValueText) playerAttackValueText.text = values.Attack.ToString();
-            if (playerDefenseValueText) playerDefenseValueText.text = values.Defense.ToString();
+            if (playerAttackValueText) playerAttackValueText.text = values.BaseAttack.ToString();
+            if (playerDefenseValueText) playerDefenseValueText.text = values.BaseDefense.ToString();
             if (playerAttackFormulaText)
             {
                 playerAttackFormulaText.text = string.Empty;
@@ -1728,8 +1771,8 @@ namespace CardBattle
             if (playerStatusText != null && selectedAction == null)
             {
                 playerStatusText.text = values.CanSkill
-                    ? $"<color=#FFD85A><b>스킬 {values.Skill}</b></color>  ·  <b>{values.RankName}</b>"
-                    : $"족보  <color=#FFE3A0><b>{values.RankName}</b></color>";
+                    ? $"<color=#FFD85A><b>공격 대결 {values.Attack}</b></color>  ·  <b>{values.RankName}</b>"
+                    : $"<b>{values.RankName}</b>  ·  공격 대결 {values.Attack}  ·  방어 대결 {values.Defense}";
             }
 
             UpdateWeaknessEffectPanel(weaknessPreview);
