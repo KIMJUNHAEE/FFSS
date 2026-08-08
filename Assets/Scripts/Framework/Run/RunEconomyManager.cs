@@ -5,6 +5,15 @@ using UnityEngine;
 
 namespace FFSS.Framework.Run
 {
+    public enum RunPurchaseResult
+    {
+        Purchased,
+        Unavailable,
+        AlreadyPurchased,
+        InsufficientGold,
+        AlreadyOwned
+    }
+
     public readonly struct RunTransactionEvent
     {
         public RunTransactionEvent(string sourceId, string actionId, int goldAfter)
@@ -78,24 +87,39 @@ namespace FFSS.Framework.Run
 
         public bool TryPurchase(string shopId, string offerId)
         {
+            return TryPurchaseDetailed(shopId, offerId) == RunPurchaseResult.Purchased;
+        }
+
+        public RunPurchaseResult TryPurchaseDetailed(string shopId, string offerId)
+        {
             RunState run = RequireRun();
             RunShopState shop = GetOrCreateShop(shopId);
-            if (!shop.stockIds.Contains(offerId) || shop.purchasedIds.Contains(offerId))
+            if (!shop.stockIds.Contains(offerId))
             {
-                return false;
+                return RunPurchaseResult.Unavailable;
+            }
+
+            if (shop.purchasedIds.Contains(offerId))
+            {
+                return RunPurchaseResult.AlreadyPurchased;
             }
 
             RunShopOfferDefinition offer = catalog.GetOffer(offerId);
-            if (run.gold < offer.price || !CanApplyOffer(run, offer))
+            if (run.gold < offer.price)
             {
-                return false;
+                return RunPurchaseResult.InsufficientGold;
+            }
+
+            if (!CanApplyOffer(run, offer))
+            {
+                return RunPurchaseResult.AlreadyOwned;
             }
 
             run.gold -= offer.price;
             ApplyShopOffer(run, offer);
             shop.purchasedIds.Add(offerId);
             Publish(shopId, offerId, run.gold);
-            return true;
+            return RunPurchaseResult.Purchased;
         }
 
         public bool ResolveEvent(string eventId, string choiceId)

@@ -175,6 +175,22 @@ namespace CardBattle.Exploration
             return found;
         }
 
+        public bool TryGetWorldPosition(Vector2Int cell, out Vector3 worldPosition)
+        {
+            for (int i = 0; i < generatedTileDescriptors.Count; i++)
+            {
+                GeneratedHexTile descriptor = generatedTileDescriptors[i];
+                if (descriptor.Cell != cell || descriptor.Tile == null)
+                    continue;
+
+                worldPosition = descriptor.Tile.transform.position;
+                return true;
+            }
+
+            worldPosition = default;
+            return false;
+        }
+
         public Vector3 ConstrainMovement(Vector3 currentWorldPosition, Vector3 desiredWorldPosition)
         {
             if (generatedTileDescriptors.Count == 0 || IsWalkable(desiredWorldPosition, 0f))

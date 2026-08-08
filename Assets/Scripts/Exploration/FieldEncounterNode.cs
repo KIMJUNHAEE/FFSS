@@ -38,6 +38,7 @@ namespace CardBattle.Exploration
             patrolOrigin = transform.localPosition;
             patrolTarget = patrolOrigin;
             nextPatrolAt = Time.time + patrolPause;
+            HideIfResolved();
         }
 
         public void Configure(string id, Transform playerTarget, float radius, string encounterNodeId = "")
@@ -53,6 +54,9 @@ namespace CardBattle.Exploration
         private void Update()
         {
             if (!Application.isPlaying || loading || player == null || string.IsNullOrWhiteSpace(enemyId))
+                return;
+
+            if (HideIfResolved())
                 return;
 
             if (!GameKernel.IsReady ||
@@ -84,6 +88,28 @@ namespace CardBattle.Exploration
             loading = FFSS.Framework.Core.GameKernel.Services
                 .Get<EncounterFlowManager>()
                 .TryEnterEncounter(enemyId, nodeId);
+        }
+
+        private bool HideIfResolved()
+        {
+            if (string.IsNullOrWhiteSpace(nodeId) || !GameKernel.IsReady ||
+                !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return false;
+            }
+
+            RunState run = runs.Current;
+            RunFieldNodeState fieldNode = run.CurrentActProgress.fieldNodes.Find(
+                value => value != null && value.nodeId == nodeId);
+            bool resolved = run.completedEncounterIds.Contains(nodeId) ||
+                            run.completedEventIds.Contains(nodeId) ||
+                            (fieldNode != null && fieldNode.resolved);
+            if (!resolved)
+                return false;
+
+            markerView?.SetFocused(false);
+            gameObject.SetActive(false);
+            return true;
         }
 
         private void UpdatePatrol(float playerDistance)

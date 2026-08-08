@@ -799,11 +799,20 @@ namespace CardBattle.UI
 
         private void Purchase(int index)
         {
-            RunShopState shop = GameKernel.Services.Get<RunEconomyManager>().GetOrCreateShop(sourceId);
+            RunEconomyManager economy = GameKernel.Services.Get<RunEconomyManager>();
+            RunShopState shop = economy.GetOrCreateShop(sourceId);
             if (index < shop.stockIds.Count)
             {
-                GameKernel.Services.Get<RunEconomyManager>().TryPurchase(sourceId, shop.stockIds[index]);
+                RunPurchaseResult result = economy.TryPurchaseDetailed(sourceId, shop.stockIds[index]);
                 Refresh();
+                SetText(status, result switch
+                {
+                    RunPurchaseResult.Purchased => "구매했다. 장비 가방에서 바로 확인할 수 있다.",
+                    RunPurchaseResult.InsufficientGold => "엽전이 부족하다.",
+                    RunPurchaseResult.AlreadyOwned => "이미 보유하거나 장착한 장비다.",
+                    RunPurchaseResult.AlreadyPurchased => "이미 판매가 끝난 물건이다.",
+                    _ => "지금은 구매할 수 없는 물건이다."
+                });
             }
         }
 
@@ -861,7 +870,7 @@ namespace CardBattle.UI
                     Show(UIScreenId.FieldMap);
                     break;
                 case 1:
-                    Show(UIScreenId.Equipment);
+                    InventoryScreenController.Open();
                     break;
                 case 2:
                     Show(UIScreenId.RunStatus);

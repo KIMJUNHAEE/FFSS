@@ -2088,7 +2088,7 @@ namespace CardBattle.EditorTools
                 enemyAnimator.attack = new SpriteSequence { frames = enemyAttackFrames, frameRate = 16f, loop = false };
                 bool isDdaengNormal = NormalDdaengIds.Contains(enemyId);
                 enemyAnimator.hurt = new SpriteSequence { frames = enemyHurtFrames, frameRate = isDdaengNormal ? 2.5f : 18f, loop = false };
-                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = isDdaengNormal ? 2.4f : 10f, loop = !isDdaengNormal };
+                enemyAnimator.death = new SpriteSequence { frames = enemyDeathFrames, frameRate = isDdaengNormal ? 2.4f : 10f, loop = false };
                 EditorUtility.SetDirty(enemyAnimator);
             }
 
