@@ -71,7 +71,7 @@ namespace CardBattle
 
             SetText(buttonLabel, "적 정보");
             SetText(titleText, $"{enemyName} 전투 정보");
-            SetText(roleText, Section("역할", Fallback(guide.role, RankLabel(encounter.rank))));
+            SetText(roleText, InlineSection("역할", Fallback(guide.role, RankLabel(encounter.rank))));
             SetText(gimmickText, Section(
                 string.IsNullOrWhiteSpace(encounter.ruleMeter?.displayName) ? "고유 기믹" : encounter.ruleMeter.displayName,
                 Fallback(guide.gimmick, encounter.ruleMeter?.description)));
@@ -160,6 +160,11 @@ namespace CardBattle
         private static string Section(string heading, string body)
         {
             return $"<color=#FFD96A><b>{heading}</b></color>\n{GameTermGlossary.Decorate(body ?? string.Empty)}";
+        }
+
+        private static string InlineSection(string heading, string body)
+        {
+            return $"<color=#FFD96A><b>{heading}</b></color>  {GameTermGlossary.Decorate(body ?? string.Empty)}";
         }
 
         private static string Fallback(string value, string fallback)

@@ -129,32 +129,32 @@ namespace FFSS.Editor
                 modal.GetComponent<Image>().raycastTarget = true;
 
                 GameObject panel = CreateImageObject("GuidePanel", modal.transform, panelSprite, Color.white);
-                SetCentered(panel.GetComponent<RectTransform>(), new Vector2(980f, 600f));
+                SetCentered(panel.GetComponent<RectTransform>(), new Vector2(1320f, 760f));
 
-                TextMeshProUGUI title = CreateText("Title", panel.transform, font, 34,
+                TextMeshProUGUI title = CreateText("Title", panel.transform, font, 38,
                     TextAlignmentOptions.Center, new Color32(255, 218, 102, 255));
-                SetAnchored(title.rectTransform, new Vector2(0.08f, 0.86f), new Vector2(0.92f, 0.96f));
+                SetAnchored(title.rectTransform, new Vector2(0.20f, 0.69f), new Vector2(0.80f, 0.81f));
                 title.fontStyle = FontStyles.Bold;
 
                 TextMeshProUGUI role = CreateText("Role", panel.transform, font, 21,
-                    TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(role.rectTransform, new Vector2(0.08f, 0.72f), new Vector2(0.92f, 0.84f));
+                    TextAlignmentOptions.Center, new Color32(239, 242, 248, 255));
+                SetAnchored(role.rectTransform, new Vector2(0.17f, 0.545f), new Vector2(0.83f, 0.655f));
 
-                TextMeshProUGUI gimmick = CreateText("Gimmick", panel.transform, font, 21,
+                TextMeshProUGUI gimmick = CreateText("Gimmick", panel.transform, font, 24,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(gimmick.rectTransform, new Vector2(0.08f, 0.40f), new Vector2(0.48f, 0.70f));
+                SetAnchored(gimmick.rectTransform, new Vector2(0.10f, 0.31f), new Vector2(0.48f, 0.51f));
 
-                TextMeshProUGUI signature = CreateText("Signature", panel.transform, font, 20,
+                TextMeshProUGUI signature = CreateText("Signature", panel.transform, font, 22,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(signature.rectTransform, new Vector2(0.08f, 0.10f), new Vector2(0.48f, 0.38f));
+                SetAnchored(signature.rectTransform, new Vector2(0.10f, 0.13f), new Vector2(0.48f, 0.29f));
 
-                TextMeshProUGUI counterplay = CreateText("Counterplay", panel.transform, font, 21,
+                TextMeshProUGUI counterplay = CreateText("Counterplay", panel.transform, font, 24,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(counterplay.rectTransform, new Vector2(0.52f, 0.48f), new Vector2(0.92f, 0.70f));
+                SetAnchored(counterplay.rectTransform, new Vector2(0.52f, 0.31f), new Vector2(0.90f, 0.51f));
 
-                TextMeshProUGUI terms = CreateText("Terms", panel.transform, font, 19,
+                TextMeshProUGUI terms = CreateText("Terms", panel.transform, font, 21,
                     TextAlignmentOptions.TopLeft, new Color32(229, 235, 244, 255));
-                SetAnchored(terms.rectTransform, new Vector2(0.52f, 0.10f), new Vector2(0.92f, 0.46f));
+                SetAnchored(terms.rectTransform, new Vector2(0.52f, 0.13f), new Vector2(0.90f, 0.29f));
 
                 Button closeButton = CreateButton("Close", panel.transform, buttonSprite,
                     new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-46f, -40f), new Vector2(62f, 56f));
