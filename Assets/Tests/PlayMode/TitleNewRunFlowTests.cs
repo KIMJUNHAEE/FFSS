@@ -314,6 +314,121 @@ namespace FFSS.Framework.Tests
         }
 
         [UnityTest]
+        public IEnumerator RunChangesReachTheVeryNextCombatWithoutReloadingTheRun()
+        {
+            SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+            yield return WaitUntil(
+                () => GameKernel.IsReady &&
+                      GameKernel.Services.Get<RunManager>().HasActiveRun &&
+                      !GameKernel.Services.Get<SceneFlowManager>().IsLoading,
+                300,
+                "Production field did not become ready for run-state synchronization QA.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            RunEconomyManager economy = GameKernel.Services.Get<RunEconomyManager>();
+            EncounterFlowManager encounters = GameKernel.Services.Get<EncounterFlowManager>();
+            RunState run = runs.Current;
+
+            run.player.currentHp = 40;
+            Assert.That(economy.ResolveEvent("event.act1.lost_wager", "return"), Is.True,
+                "The field event could not update the active run.");
+
+            RunCardState upgradedCard = run.pokerDeck.cards.First(card =>
+                card != null && card.cardId == "poker.heart.05");
+            run.gold = 500;
+            Assert.That(economy.TryUpgradeCard(upgradedCard.instanceId, 20), Is.True,
+                "The card workshop could not upgrade the active run card.");
+            Assert.That(economy.TryChooseGrowthPath(upgradedCard.instanceId, CardGrowthPath.Reverse, 30), Is.True,
+                "The card workshop could not assign the active run card's growth path.");
+            run.pokerDeck.ReserveDraw(upgradedCard.instanceId);
+
+            Type equipmentStatsType = Type.GetType(
+                "CardBattle.EquipmentStatsCalculator, Assembly-CSharp");
+            Type equipmentSlotType = Type.GetType(
+                "CardBattle.EquipmentSlotType, Assembly-CSharp");
+            Assert.That(equipmentStatsType, Is.Not.Null);
+            Assert.That(equipmentSlotType, Is.Not.Null);
+            object weaponSlot = Enum.Parse(equipmentSlotType, "Weapon");
+            equipmentStatsType.GetMethod("EnsureSlots")?.Invoke(null, new object[] { run });
+            const string replacementWeapon = "weapon_gold_war_hammer";
+            run.equippedItemIds[Convert.ToInt32(weaponSlot)] = replacementWeapon;
+            equipmentStatsType.GetMethod("Recalculate")?.Invoke(null, new object[] { run });
+            run.player.currentPressure = 7;
+            runs.NotifyStateChanged("test.state-sync.before-combat");
+
+            int expectedHp = run.player.currentHp;
+            int expectedMaxHp = run.player.maxHp;
+            int expectedPressure = run.player.currentPressure;
+            int expectedMaxPressure = run.player.maxPressure;
+
+            Assert.That(encounters.TryEnterEncounter("1땡"), Is.True,
+                "The synchronized run could not enter combat.");
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == "Combat_Ddaeng_01",
+                300,
+                "The synchronized run did not load the combat scene.");
+            yield return WaitUntil(
+                IsCombatInputReady,
+                600,
+                "Combat did not become playable after applying run changes.");
+
+            Type combatType = Type.GetType("CardBattle.RpsCombatController, Assembly-CSharp");
+            Assert.That(combatType, Is.Not.Null);
+            Object[] combatControllers = Object.FindObjectsByType(
+                combatType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(combatControllers, Has.Length.EqualTo(1));
+            object combat = combatControllers[0];
+            object[] snapshotArguments = { null };
+            bool hasSnapshot = (bool)combatType.GetMethod("TryGetPresentationSnapshot")
+                .Invoke(combat, snapshotArguments);
+            Assert.That(hasSnapshot, Is.True);
+            object snapshot = snapshotArguments[0];
+            Assert.That(ReadIntProperty(snapshot, "PlayerHp"), Is.EqualTo(expectedHp));
+            Assert.That(ReadIntProperty(snapshot, "PlayerMaxHp"), Is.EqualTo(expectedMaxHp));
+            Assert.That(ReadIntProperty(snapshot, "PlayerPressure"), Is.EqualTo(expectedPressure));
+            Assert.That(ReadIntProperty(snapshot, "PlayerMaxPressure"), Is.EqualTo(expectedMaxPressure));
+
+            object equipmentLoadout = combatType.GetField("equipmentLoadout")?.GetValue(combat);
+            Assert.That(equipmentLoadout, Is.Not.Null);
+            object equippedWeapon = equipmentLoadout.GetType()
+                .GetMethod("GetEquipped")
+                ?.Invoke(equipmentLoadout, new[] { weaponSlot });
+            Assert.That(ReadStringProperty(equippedWeapon, "Id"), Is.EqualTo(replacementWeapon),
+                "The equipment selected on the field was replaced by the scene default.");
+
+            Type handType = Type.GetType("CardBattle.PokerHandController, Assembly-CSharp");
+            Assert.That(handType, Is.Not.Null);
+            Object[] hands = Object.FindObjectsByType(
+                handType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(hands, Has.Length.EqualTo(1));
+            object hand = hands[0];
+            List<string> instanceIds = ((IEnumerable<string>)handType
+                    .GetProperty("CurrentCardInstanceIds")
+                    ?.GetValue(hand))
+                .ToList();
+            Assert.That(instanceIds, Does.Contain(upgradedCard.instanceId),
+                "The reserved upgraded card did not reach the next combat hand.");
+            int cardIndex = instanceIds.IndexOf(upgradedCard.instanceId);
+            var cardViews = ((IEnumerable)handType.GetProperty("Cards")?.GetValue(hand))
+                .Cast<object>()
+                .ToList();
+            Sprite actualArtwork = cardViews[cardIndex].GetType()
+                .GetProperty("CardSprite")
+                ?.GetValue(cardViews[cardIndex]) as Sprite;
+            Type presentationType = Type.GetType("CardBattle.PokerCardPresentation, Assembly-CSharp");
+            Assert.That(presentationType, Is.Not.Null);
+            Sprite expectedArtwork = presentationType
+                .GetMethod("LoadArtwork", new[] { typeof(RunCardState) })
+                ?.Invoke(null, new object[] { upgradedCard }) as Sprite;
+            Assert.That(actualArtwork, Is.SameAs(expectedArtwork),
+                "The combat hand used the base artwork instead of the upgraded card artwork.");
+        }
+
+        [UnityTest]
         public IEnumerator EquipmentShopRevealsTextOnlyWhileHoveringArtwork()
         {
             SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
@@ -1226,6 +1341,22 @@ namespace FFSS.Framework.Tests
             Assert.That(minimum.y, Is.GreaterThanOrEqualTo(0f), $"{context} is below the viewport.");
             Assert.That(maximum.x, Is.LessThanOrEqualTo(Screen.width), $"{context} is right of the viewport.");
             Assert.That(maximum.y, Is.LessThanOrEqualTo(Screen.height), $"{context} is above the viewport.");
+        }
+
+        private static int ReadIntProperty(object target, string propertyName)
+        {
+            Assert.That(target, Is.Not.Null, $"Cannot read {propertyName} from a null object.");
+            PropertyInfo property = target.GetType().GetProperty(propertyName);
+            Assert.That(property, Is.Not.Null, $"Missing runtime property: {propertyName}");
+            return (int)property.GetValue(target);
+        }
+
+        private static string ReadStringProperty(object target, string propertyName)
+        {
+            Assert.That(target, Is.Not.Null, $"Cannot read {propertyName} from a null object.");
+            PropertyInfo property = target.GetType().GetProperty(propertyName);
+            Assert.That(property, Is.Not.Null, $"Missing runtime property: {propertyName}");
+            return property.GetValue(target) as string;
         }
 
         private static float VisiblePixelRatio(Texture2D texture)
