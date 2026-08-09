@@ -42,58 +42,89 @@ namespace CardBattle.Exploration
         [SerializeField] private string tileResourceFolder = "ClockworkTimekeeper/HexTiles";
         [SerializeField] private string plainRoadTextureName = "hex_plain_road";
         [SerializeField] private string cityTileResourceFolder = "ClockworkTimekeeper/HexTiles/City";
+        [SerializeField] private string actOneTileResourceFolder = "ClockworkTimekeeper/HexTiles/FieldV6/Act1";
+        [SerializeField] private string actTwoTileResourceFolder = "ClockworkTimekeeper/HexTiles/FieldV6/Act2";
+        [SerializeField] private string actThreeTileResourceFolder = "ClockworkTimekeeper/HexTiles/FieldV6/Act3";
         [SerializeField]
         private string[] actOneRoadTextureNames =
         {
-            "hex_city_01_basic",
-            "hex_city_02_ruined_homes",
-            "hex_city_03_heart",
-            "hex_city_04_spade",
-            "hex_city_05_diamond",
-            "hex_city_06_club",
-            "hex_city_13_market",
+            "hex_act1_v6_01",
+            "hex_act1_v6_02",
+            "hex_act1_v6_03",
+            "hex_act1_v6_04",
+            "hex_act1_v6_05",
+            "hex_act1_v6_06",
+            "hex_act1_v6_07",
+            "hex_act1_v6_08",
+            "hex_act1_v6_09",
+            "hex_act1_v6_10",
+            "hex_act1_v6_11",
+            "hex_act1_v6_13",
+            "hex_act1_v6_14",
+            "hex_act1_v6_16",
+            "hex_act1_v6_17",
         };
         [SerializeField]
         private string[] actTwoRoadTextureNames =
         {
-            "hex_city_07_rain",
-            "hex_city_12_moss",
-            "hex_city_14_shrine",
-            "hex_city_15_workshop",
+            "hex_act2_v6_01",
+            "hex_act2_v6_02",
+            "hex_act2_v6_03",
+            "hex_act2_v6_04",
+            "hex_act2_v6_05",
+            "hex_act2_v6_06",
+            "hex_act2_v6_07",
+            "hex_act2_v6_08",
+            "hex_act2_v6_09",
+            "hex_act2_v6_10",
+            "hex_act2_v6_11",
+            "hex_act2_v6_12",
+            "hex_act2_v6_14",
+            "hex_act2_v6_16",
         };
         [SerializeField]
         private string[] actThreeRoadTextureNames =
         {
-            "hex_city_08_scorched",
-            "hex_city_09_rubble",
-            "hex_city_10_time_crack",
-            "hex_city_11_kintsugi",
-            "hex_city_17_ash",
-            "hex_city_18_blockade",
+            "hex_act3_v6_01",
+            "hex_act3_v6_02",
+            "hex_act3_v6_03",
+            "hex_act3_v6_04",
+            "hex_act3_v6_05",
+            "hex_act3_v6_06",
+            "hex_act3_v6_07",
+            "hex_act3_v6_08",
+            "hex_act3_v6_09",
+            "hex_act3_v6_10",
+            "hex_act3_v6_11",
+            "hex_act3_v6_12",
+            "hex_act3_v6_13",
+            "hex_act3_v6_15",
+            "hex_act3_v6_16",
         };
         [SerializeField]
         private string[] actOneInteractionTextureNames =
         {
-            "hex_city_03_heart",
-            "hex_city_04_spade",
-            "hex_city_05_diamond",
-            "hex_city_06_club",
+            "hex_act1_v6_12",
+            "hex_act1_v6_14",
+            "hex_act1_v6_15",
+            "hex_act1_v6_18",
         };
         [SerializeField]
         private string[] actTwoInteractionTextureNames =
         {
-            "hex_city_07_rain",
-            "hex_city_12_moss",
-            "hex_city_14_shrine",
-            "hex_city_15_workshop",
+            "hex_act2_v6_10",
+            "hex_act2_v6_13",
+            "hex_act2_v6_15",
+            "hex_act2_v6_17",
+            "hex_act2_v6_18",
         };
         [SerializeField]
         private string[] actThreeInteractionTextureNames =
         {
-            "hex_city_10_time_crack",
-            "hex_city_11_kintsugi",
-            "hex_city_16_clock",
-            "hex_city_18_blockade",
+            "hex_act3_v6_05",
+            "hex_act3_v6_14",
+            "hex_act3_v6_17",
+            "hex_act3_v6_18",
         };
         [SerializeField]
         private string[] interactionTextureNames =
@@ -279,11 +310,12 @@ namespace CardBattle.Exploration
                 return;
             }
 
+            string districtTileResourceFolder = ResolveDistrictTileResourceFolder();
             Texture2D[] districtRoadTextures = LoadTileTextures(
-                cityTileResourceFolder,
+                districtTileResourceFolder,
                 ResolveDistrictRoadTextureNames());
             Texture2D[] districtInteractionTextures = LoadTileTextures(
-                cityTileResourceFolder,
+                districtTileResourceFolder,
                 ResolveDistrictInteractionTextureNames());
             Texture2D[] legacyInteractionTextures = LoadTileTextures(interactionTextureNames);
             ClearGeneratedMeshes();
@@ -720,6 +752,18 @@ namespace CardBattle.Exploration
             }
 
             return centers;
+        }
+
+        private string ResolveDistrictTileResourceFolder()
+        {
+            string folder = districtAct switch
+            {
+                2 => actTwoTileResourceFolder,
+                3 => actThreeTileResourceFolder,
+                _ => actOneTileResourceFolder,
+            };
+
+            return string.IsNullOrWhiteSpace(folder) ? cityTileResourceFolder : folder;
         }
 
         private static void CarveDistrictRoadNetwork(

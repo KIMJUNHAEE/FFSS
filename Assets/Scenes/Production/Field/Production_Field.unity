@@ -20,7 +20,7 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.55, g: 0.58, b: 0.64, a: 1}
+  m_AmbientSkyColor: {r: 0.19, g: 0.17, b: 0.18, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
@@ -258,14 +258,14 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 0.94, b: 0.84, a: 1}
-  m_Intensity: 1.25
+  m_Color: {r: 1, g: 0.86, b: 0.68, a: 1}
+  m_Intensity: 1.15
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -404,6 +404,75 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: 1828909545}
   m_ActionId: 9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be
+--- !u!1001 &1124533845
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 653903666530663919, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_Name
+      value: Field Atmosphere
+      objectReference: {fileID: 0}
+    - target: {fileID: 1163059079488003644, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: keyLight
+      value: 
+      objectReference: {fileID: 334177027}
+    - target: {fileID: 1163059079488003644, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 1457999031}
+    - target: {fileID: 1163059079488003644, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: volumeTrigger
+      value: 
+      objectReference: {fileID: 1457999032}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4262514712101020053, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fbe5824fc32c7c04cb484dc2762a7e6b, type: 3}
 --- !u!114 &1157773229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -613,13 +682,13 @@ MonoBehaviour:
   m_VolumeLayerMask:
     serializedVersion: 2
     m_Bits: 1
-  m_VolumeTrigger: {fileID: 0}
+  m_VolumeTrigger: {fileID: 1457999032}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
+  m_RenderPostProcessing: 1
+  m_Antialiasing: 2
   m_AntialiasingQuality: 2
-  m_StopNaN: 0
-  m_Dithering: 0
+  m_StopNaN: 1
+  m_Dithering: 1
   m_ClearDepth: 1
   m_AllowXRRendering: 1
   m_AllowHDROutput: 1
@@ -1613,41 +1682,72 @@ MonoBehaviour:
   tileResourceFolder: ClockworkTimekeeper/HexTiles
   plainRoadTextureName: hex_plain_road
   cityTileResourceFolder: ClockworkTimekeeper/HexTiles/City
+  actOneTileResourceFolder: ClockworkTimekeeper/HexTiles/FieldV6/Act1
+  actTwoTileResourceFolder: ClockworkTimekeeper/HexTiles/FieldV6/Act2
+  actThreeTileResourceFolder: ClockworkTimekeeper/HexTiles/FieldV6/Act3
   actOneRoadTextureNames:
-  - hex_city_01_basic
-  - hex_city_02_ruined_homes
-  - hex_city_03_heart
-  - hex_city_04_spade
-  - hex_city_05_diamond
-  - hex_city_06_club
-  - hex_city_13_market
+  - hex_act1_v6_01
+  - hex_act1_v6_02
+  - hex_act1_v6_03
+  - hex_act1_v6_04
+  - hex_act1_v6_05
+  - hex_act1_v6_06
+  - hex_act1_v6_07
+  - hex_act1_v6_08
+  - hex_act1_v6_09
+  - hex_act1_v6_10
+  - hex_act1_v6_11
+  - hex_act1_v6_13
+  - hex_act1_v6_14
+  - hex_act1_v6_16
+  - hex_act1_v6_17
   actTwoRoadTextureNames:
-  - hex_city_07_rain
-  - hex_city_12_moss
-  - hex_city_14_shrine
-  - hex_city_15_workshop
+  - hex_act2_v6_01
+  - hex_act2_v6_02
+  - hex_act2_v6_03
+  - hex_act2_v6_04
+  - hex_act2_v6_05
+  - hex_act2_v6_06
+  - hex_act2_v6_07
+  - hex_act2_v6_08
+  - hex_act2_v6_09
+  - hex_act2_v6_10
+  - hex_act2_v6_11
+  - hex_act2_v6_12
+  - hex_act2_v6_14
+  - hex_act2_v6_16
   actThreeRoadTextureNames:
-  - hex_city_08_scorched
-  - hex_city_09_rubble
-  - hex_city_10_time_crack
-  - hex_city_11_kintsugi
-  - hex_city_17_ash
-  - hex_city_18_blockade
+  - hex_act3_v6_01
+  - hex_act3_v6_02
+  - hex_act3_v6_03
+  - hex_act3_v6_04
+  - hex_act3_v6_05
+  - hex_act3_v6_06
+  - hex_act3_v6_07
+  - hex_act3_v6_08
+  - hex_act3_v6_09
+  - hex_act3_v6_10
+  - hex_act3_v6_11
+  - hex_act3_v6_12
+  - hex_act3_v6_13
+  - hex_act3_v6_15
+  - hex_act3_v6_16
   actOneInteractionTextureNames:
-  - hex_city_03_heart
-  - hex_city_04_spade
-  - hex_city_05_diamond
-  - hex_city_06_club
+  - hex_act1_v6_12
+  - hex_act1_v6_14
+  - hex_act1_v6_15
+  - hex_act1_v6_18
   actTwoInteractionTextureNames:
-  - hex_city_07_rain
-  - hex_city_12_moss
-  - hex_city_14_shrine
-  - hex_city_15_workshop
+  - hex_act2_v6_10
+  - hex_act2_v6_13
+  - hex_act2_v6_15
+  - hex_act2_v6_17
+  - hex_act2_v6_18
   actThreeInteractionTextureNames:
-  - hex_city_10_time_crack
-  - hex_city_11_kintsugi
-  - hex_city_16_clock
-  - hex_city_18_blockade
+  - hex_act3_v6_05
+  - hex_act3_v6_14
+  - hex_act3_v6_17
+  - hex_act3_v6_18
   interactionTextureNames:
   - hex_heart_plaza
   - hex_spade_plaza
@@ -1717,49 +1817,49 @@ MonoBehaviour:
     contentType: 0
     variant: 1
     displayName: "\uBD81\uBB38 \uC9C4\uC785\uBB38"
-    sprite: {fileID: 21300000, guid: d7e4e5c4a5d24cd4aac4c44bbf1f714c, type: 3}
+    sprite: {fileID: 21300000, guid: 9fee86bb7e96231458dd9ac730963c91, type: 3}
     targetHeight: 3.8
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 0
     variant: 2
     displayName: "\uC7A5\uD130 \uC57D\uBC29"
-    sprite: {fileID: 21300000, guid: 3e8042dabad4cca4f8389ddb9ddd9a92, type: 3}
+    sprite: {fileID: 21300000, guid: d0d8a9d6359f60348aee3a10bab37f77, type: 3}
     targetHeight: 3.35
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 1
     variant: 1
     displayName: "\uC18C\uB098\uBB34 \uAC80\uBB38\uC18C"
-    sprite: {fileID: 21300000, guid: d7e4e5c4a5d24cd4aac4c44bbf1f714c, type: 3}
+    sprite: {fileID: 21300000, guid: c8b6220c2baae7f458ac0c81d55c53d7, type: 3}
     targetHeight: 3.15
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 1
     variant: 2
     displayName: "\uB9E4\uD654 \uD328\uAC70\uB9AC \uC8FC\uB454\uC9C0"
-    sprite: {fileID: 21300000, guid: 3e8042dabad4cca4f8389ddb9ddd9a92, type: 3}
+    sprite: {fileID: 21300000, guid: c8884426c7f10a24dab9569504f65b46, type: 3}
     targetHeight: 3.15
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 1
     variant: 3
     displayName: "\uBC9A\uAF43 \uD328\uAC70\uB9AC \uC8FC\uB454\uC9C0"
-    sprite: {fileID: 21300000, guid: 5478f6e319aa9724db6a245abf372283, type: 3}
+    sprite: {fileID: 21300000, guid: 9d68e6592d1f5ed4d8e4c133a80d1ffb, type: 3}
     targetHeight: 3.15
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 1
     variant: 4
     displayName: "\uB4F1\uB098\uBB34 \uD328\uAC70\uB9AC \uC8FC\uB454\uC9C0"
-    sprite: {fileID: 21300000, guid: 78f3481b2936d6049a7e83cfa74c0b2b, type: 3}
+    sprite: {fileID: 21300000, guid: b2af7fa4bdfcdc8418ed6edc9e773586, type: 3}
     targetHeight: 3.15
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 5
     variant: 1
     displayName: "\uC911\uAC04\uBCF4\uC2A4 \uC8FC\uB454\uC9C0"
-    sprite: {fileID: 21300000, guid: aa2d850bf40bf09488ab850971a2be26, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 3.5
     localOffset: {x: 0, y: 0}
   - act: 1
@@ -1787,63 +1887,63 @@ MonoBehaviour:
     contentType: 3
     variant: 1
     displayName: "\uC7A5\uD130 \uC0C1\uC778 \uCC9C\uB9C9"
-    sprite: {fileID: 21300000, guid: 5478f6e319aa9724db6a245abf372283, type: 3}
+    sprite: {fileID: 21300000, guid: b2af7fa4bdfcdc8418ed6edc9e773586, type: 3}
     targetHeight: 3.15
     localOffset: {x: 0, y: 0}
   - act: 1
     contentType: 6
     variant: 1
     displayName: "13\uAD11\uB561 \uB3D9\uCABD \uB9DD\uB8E8"
-    sprite: {fileID: 21300000, guid: 0ac0201c86f6a714ab97d48c3f8f07fc, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 4.15
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 0
     variant: 1
     displayName: "\uC218\uB85C \uC9C4\uB8CC\uC18C"
-    sprite: {fileID: 21300000, guid: 86502d519d2047141a4594b43e425f36, type: 3}
+    sprite: {fileID: 21300000, guid: 695f1aa2f9f34ec4da5feca996f28552, type: 3}
     targetHeight: 3.45
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 0
     variant: 2
     displayName: "\uAD00\uC544 \uCC3D\uACE0"
-    sprite: {fileID: 21300000, guid: 8752e20a236973c4585b83eb04642fca, type: 3}
+    sprite: {fileID: 21300000, guid: d0fedc8f1a26c0949aa77681bda29e4d, type: 3}
     targetHeight: 3.35
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 1
     variant: 1
     displayName: "\uC624\uB3D9 \uD328\uAC70\uB9AC \uC9C4\uB8CC\uC18C"
-    sprite: {fileID: 21300000, guid: 86502d519d2047141a4594b43e425f36, type: 3}
+    sprite: {fileID: 21300000, guid: 695f1aa2f9f34ec4da5feca996f28552, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 1
     variant: 2
     displayName: "\uBAA8\uB780 \uD328\uAC70\uB9AC \uB300\uC7A5\uAC04"
-    sprite: {fileID: 21300000, guid: e96696f5a12cff24d86b7e9c276d230f, type: 3}
+    sprite: {fileID: 21300000, guid: 9d68e6592d1f5ed4d8e4c133a80d1ffb, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 1
     variant: 3
     displayName: "\uC2F8\uB9AC \uD328\uAC70\uB9AC \uCC3D\uACE0"
-    sprite: {fileID: 21300000, guid: 8752e20a236973c4585b83eb04642fca, type: 3}
+    sprite: {fileID: 21300000, guid: d0fedc8f1a26c0949aa77681bda29e4d, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 1
     variant: 4
     displayName: "\uC5B5\uC0C8 \uD328\uAC70\uB9AC \uC218\uBB38"
-    sprite: {fileID: 21300000, guid: 5ea77e544e96e834eba5aecbf2aaf481, type: 3}
+    sprite: {fileID: 21300000, guid: 59e9fd78d7fc8e24f830810621728255, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 5
     variant: 1
     displayName: "\uB3C5\uC218\uB85C \uC911\uAC04\uBCF4\uC2A4 \uAD00\uC544"
-    sprite: {fileID: 21300000, guid: 11895cdf249b64948b4a9e3b8d748aef, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 3.55
     localOffset: {x: 0, y: 0}
   - act: 2
@@ -1878,70 +1978,70 @@ MonoBehaviour:
     contentType: 3
     variant: 1
     displayName: "\uC218\uB85C \uC9C4\uB8CC\uC18C"
-    sprite: {fileID: 21300000, guid: 86502d519d2047141a4594b43e425f36, type: 3}
+    sprite: {fileID: 21300000, guid: d0d8a9d6359f60348aee3a10bab37f77, type: 3}
     targetHeight: 3.45
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 3
     variant: 2
     displayName: "\uD64D\uC2F8\uB9AC \uB300\uC7A5\uAC04"
-    sprite: {fileID: 21300000, guid: e96696f5a12cff24d86b7e9c276d230f, type: 3}
+    sprite: {fileID: 21300000, guid: 9d68e6592d1f5ed4d8e4c133a80d1ffb, type: 3}
     targetHeight: 3.4
     localOffset: {x: 0, y: 0}
   - act: 2
     contentType: 6
     variant: 1
     displayName: "18\uAD11\uB561 \uC911\uC559 \uC885\uD0D1"
-    sprite: {fileID: 21300000, guid: bc6476536fa5d6946b6dd48fc461a5af, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 4.15
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 0
     variant: 1
     displayName: "\uAD6C\uC0AC \uBD89\uC740 \uAD81\uBB38"
-    sprite: {fileID: 21300000, guid: 1f362f6745606504890f3302bb1b585a, type: 3}
+    sprite: {fileID: 21300000, guid: d9917ba380165cc46991d90efa9dc998, type: 3}
     targetHeight: 3.8
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 0
     variant: 2
     displayName: "\uC554\uD589\uC5B4\uC0AC \uAC80\uC740 \uAD00\uC544"
-    sprite: {fileID: 21300000, guid: fb5715c8fca940f4cba2a1f977c3aabd, type: 3}
+    sprite: {fileID: 21300000, guid: f720687d585413b41bb0152eec5babc8, type: 3}
     targetHeight: 3.45
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 1
     variant: 1
     displayName: "\uAD6D\uD654 \uD328\uAC70\uB9AC \uAD81\uBB38"
-    sprite: {fileID: 21300000, guid: 1f362f6745606504890f3302bb1b585a, type: 3}
+    sprite: {fileID: 21300000, guid: 59e9fd78d7fc8e24f830810621728255, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 1
     variant: 2
     displayName: "\uB2E8\uD48D \uD328\uAC70\uB9AC \uAD00\uC544"
-    sprite: {fileID: 21300000, guid: fb5715c8fca940f4cba2a1f977c3aabd, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 1
     variant: 3
     displayName: "\uD3D0\uAD81 \uB3D9\uCABD \uD68C\uB791"
-    sprite: {fileID: 21300000, guid: 5fa63dcafed003645914db965e822237, type: 3}
+    sprite: {fileID: 21300000, guid: d9917ba380165cc46991d90efa9dc998, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 1
     variant: 4
     displayName: "\uD3D0\uAD81 \uC11C\uCABD \uD68C\uB791"
-    sprite: {fileID: 21300000, guid: 4bfb7dcbb33421841a1aa8f4ac7a783f, type: 3}
+    sprite: {fileID: 21300000, guid: f720687d585413b41bb0152eec5babc8, type: 3}
     targetHeight: 3.2
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 5
     variant: 1
     displayName: "\uD3D0\uAD81 \uC911\uAC04\uBCF4\uC2A4 \uC815\uC804"
-    sprite: {fileID: 21300000, guid: 7149b41ee4ba4c54cbf0a38705af5ba4, type: 3}
+    sprite: {fileID: 21300000, guid: 87fe84ea3a555dc4a8322ef39e2b8c67, type: 3}
     targetHeight: 3.6
     localOffset: {x: 0, y: 0}
   - act: 3
@@ -1983,21 +2083,21 @@ MonoBehaviour:
     contentType: 3
     variant: 1
     displayName: "\uB9C8\uC9C0\uB9C9 \uC8FC\uB9C9"
-    sprite: {fileID: 21300000, guid: 4bfb7dcbb33421841a1aa8f4ac7a783f, type: 3}
+    sprite: {fileID: 21300000, guid: b2af7fa4bdfcdc8418ed6edc9e773586, type: 3}
     targetHeight: 3.35
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 3
     variant: 2
     displayName: "\uCD5C\uC885 \uC0C1\uC810 \uD68C\uB791"
-    sprite: {fileID: 21300000, guid: 7149b41ee4ba4c54cbf0a38705af5ba4, type: 3}
+    sprite: {fileID: 21300000, guid: b2af7fa4bdfcdc8418ed6edc9e773586, type: 3}
     targetHeight: 3.35
     localOffset: {x: 0, y: 0}
   - act: 3
     contentType: 6
     variant: 1
     displayName: "38\uAD11\uB561 \uCD5C\uC885 \uC815\uC804"
-    sprite: {fileID: 21300000, guid: a6876aacc2dce124a9d9097501f0ac43, type: 3}
+    sprite: {fileID: 21300000, guid: f720687d585413b41bb0152eec5babc8, type: 3}
     targetHeight: 4.3
     localOffset: {x: 0, y: 0}
 --- !u!1660057539 &9223372036854775807
@@ -2011,3 +2111,4 @@ SceneRoots:
   - {fileID: 1741917495}
   - {fileID: 1812092251}
   - {fileID: 1261964926}
+  - {fileID: 1124533845}

@@ -2004,6 +2004,12 @@ namespace FFSS.Framework.Tests
                 var map = new SerializedObject(generator);
                 Assert.That(map.FindProperty("cityTileResourceFolder").stringValue,
                     Is.EqualTo("ClockworkTimekeeper/HexTiles/City"));
+                Assert.That(map.FindProperty("actOneTileResourceFolder").stringValue,
+                    Is.EqualTo("ClockworkTimekeeper/HexTiles/FieldV6/Act1"));
+                Assert.That(map.FindProperty("actTwoTileResourceFolder").stringValue,
+                    Is.EqualTo("ClockworkTimekeeper/HexTiles/FieldV6/Act2"));
+                Assert.That(map.FindProperty("actThreeTileResourceFolder").stringValue,
+                    Is.EqualTo("ClockworkTimekeeper/HexTiles/FieldV6/Act3"));
                 Assert.That(map.FindProperty("actOneRoadTextureNames").arraySize, Is.GreaterThanOrEqualTo(6));
                 Assert.That(map.FindProperty("plainRoadUvPadding").floatValue, Is.Zero);
                 Assert.That(map.FindProperty("interactionUvPadding").floatValue, Is.Zero);
@@ -2064,6 +2070,10 @@ namespace FFSS.Framework.Tests
                     "actThreeRoadTextureNames",
                     "actThreeInteractionTextureNames");
 
+                Assert.That(actOne, Has.Count.EqualTo(18));
+                Assert.That(actTwo, Has.Count.EqualTo(18));
+                Assert.That(actThree, Has.Count.EqualTo(18));
+
                 Assert.That(actOne.Overlaps(actTwo), Is.False, "Act 1 and Act 2 share visible floor art.");
                 Assert.That(actOne.Overlaps(actThree), Is.False, "Act 1 and Act 3 share visible floor art.");
                 Assert.That(actTwo.Overlaps(actThree), Is.False, "Act 2 and Act 3 share visible floor art.");
@@ -2071,18 +2081,84 @@ namespace FFSS.Framework.Tests
                 var allTiles = new HashSet<string>(actOne);
                 allTiles.UnionWith(actTwo);
                 allTiles.UnionWith(actThree);
-                Assert.That(allTiles, Has.Count.EqualTo(18));
-                foreach (string tileName in allTiles)
+                Assert.That(allTiles, Has.Count.EqualTo(54));
+                foreach ((HashSet<string> palette, string folder) in new[]
                 {
-                    Assert.That(
-                        Resources.Load<Texture2D>($"ClockworkTimekeeper/HexTiles/City/{tileName}"),
-                        Is.Not.Null,
-                        tileName);
+                    (actOne, "ClockworkTimekeeper/HexTiles/FieldV6/Act1"),
+                    (actTwo, "ClockworkTimekeeper/HexTiles/FieldV6/Act2"),
+                    (actThree, "ClockworkTimekeeper/HexTiles/FieldV6/Act3")
+                })
+                {
+                    foreach (string tileName in palette)
+                    {
+                        Assert.That(
+                            Resources.Load<Texture2D>($"{folder}/{tileName}"),
+                            Is.Not.Null,
+                            $"{folder}/{tileName}");
+                    }
                 }
             }
             finally
             {
                 EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void ProductionFieldAtmosphereIsPrefabDrivenAndDangerVolumesAreInspectable()
+        {
+            const string fieldPath = "Assets/Scenes/Production/Field/Production_Field.unity";
+            Scene scene = EditorSceneManager.OpenScene(fieldPath, OpenSceneMode.Additive);
+            try
+            {
+                Component atmosphere = FindInScene(scene, "FieldActAtmosphere");
+                Assert.That(atmosphere, Is.Not.Null);
+                var serialized = new SerializedObject(atmosphere);
+                Assert.That(serialized.FindProperty("globalVolume").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("actOneProfile").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("actTwoProfile").objectReferenceValue, Is.Not.Null);
+                Assert.That(serialized.FindProperty("actThreeProfile").objectReferenceValue, Is.Not.Null);
+
+                Camera camera = scene.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Camera>(true))
+                    .Single(value => value.CompareTag("MainCamera"));
+                Component cameraData = camera.GetComponents<Component>()
+                    .SingleOrDefault(value => value != null &&
+                        value.GetType().FullName ==
+                        "UnityEngine.Rendering.Universal.UniversalAdditionalCameraData");
+                Assert.That(cameraData, Is.Not.Null);
+                var cameraSerialized = new SerializedObject(cameraData);
+                Assert.That(cameraSerialized.FindProperty("m_RenderPostProcessing").boolValue, Is.True);
+                Assert.That(
+                    cameraSerialized.FindProperty("m_VolumeTrigger").objectReferenceValue,
+                    Is.Not.Null);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+
+            foreach (string prefabPath in new[]
+            {
+                "Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_MidBoss.prefab",
+                "Assets/Prefabs/Production/Field/FieldEncounter_Boss.prefab"
+            })
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                Assert.That(prefab, Is.Not.Null, prefabPath);
+                Component volume = prefab.GetComponentsInChildren<Component>(true)
+                    .SingleOrDefault(value => value != null &&
+                        value.GetType().FullName == "UnityEngine.Rendering.Volume");
+                Assert.That(volume, Is.Not.Null, prefabPath);
+                var volumeSerialized = new SerializedObject(volume);
+                Assert.That(volumeSerialized.FindProperty("m_IsGlobal").boolValue, Is.False, prefabPath);
+                Assert.That(
+                    volumeSerialized.FindProperty("sharedProfile").objectReferenceValue,
+                    Is.Not.Null,
+                    prefabPath);
+                Assert.That(prefab.GetComponentInChildren<SphereCollider>(true), Is.Not.Null, prefabPath);
+                Assert.That(prefab.GetComponentInChildren<Light>(true), Is.Not.Null, prefabPath);
             }
         }
 

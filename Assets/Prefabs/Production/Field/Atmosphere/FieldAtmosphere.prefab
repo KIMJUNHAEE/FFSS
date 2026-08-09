@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &653903666530663919
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4262514712101020053}
+  - component: {fileID: 1163059079488003644}
+  m_Layer: 0
+  m_Name: FieldAtmosphere
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4262514712101020053
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 653903666530663919}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7398539788623711082}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1163059079488003644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 653903666530663919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 133eed07abfad0b4faec17b4011943fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardBattle.Exploration.FieldActAtmosphere
+  previewAct: 1
+  globalVolume: {fileID: 8689755990354229581}
+  targetCamera: {fileID: 0}
+  volumeTrigger: {fileID: 0}
+  keyLight: {fileID: 0}
+  actOneProfile: {fileID: 11400000, guid: ed3c7836439810d4da5a13a9ac912055, type: 2}
+  actTwoProfile: {fileID: 11400000, guid: fd8b5de3ed38a98449869f7e209044fe, type: 2}
+  actThreeProfile: {fileID: 11400000, guid: 177078e5982c2a9429a54cdf9f599244, type: 2}
+  actOneLighting:
+    keyLightColor: {r: 1, g: 0.86, b: 0.68, a: 1}
+    keyLightIntensity: 1.15
+    ambientColor: {r: 0.19, g: 0.17, b: 0.18, a: 1}
+  actTwoLighting:
+    keyLightColor: {r: 0.58, g: 0.9, b: 0.84, a: 1}
+    keyLightIntensity: 1.05
+    ambientColor: {r: 0.1, g: 0.18, b: 0.18, a: 1}
+  actThreeLighting:
+    keyLightColor: {r: 1, g: 0.48, b: 0.42, a: 1}
+    keyLightIntensity: 1.28
+    ambientColor: {r: 0.18, g: 0.08, b: 0.11, a: 1}
+--- !u!1 &1585004405111418616
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7398539788623711082}
+  - component: {fileID: 8689755990354229581}
+  m_Layer: 0
+  m_Name: Act Atmosphere Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7398539788623711082
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585004405111418616}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4262514712101020053}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8689755990354229581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585004405111418616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: -10
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: ed3c7836439810d4da5a13a9ac912055, type: 2}
