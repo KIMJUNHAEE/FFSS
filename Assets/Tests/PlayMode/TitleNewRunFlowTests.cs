@@ -123,7 +123,9 @@ namespace FFSS.Framework.Tests
                 Assert.That(
                     assetPath,
                     Does.StartWith("Assets/Art/Production/Field/Buildings/")
-                        .Or.StartWith("Assets/Art/Production/Field/BuildingsV6/"),
+                        .Or.StartWith("Assets/Art/Production/Field/BuildingsV6/")
+                        .Or.StartWith("Assets/Art/Production/Field/SituationBuildingsV7/")
+                        .Or.StartWith("Assets/Art/Production/Field/SpecialLandmarksV6/"),
                     $"{landmarks[i].name} is not using dedicated transparent building artwork.");
             }
         }

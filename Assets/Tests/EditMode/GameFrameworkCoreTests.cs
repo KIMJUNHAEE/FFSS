@@ -2163,6 +2163,83 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionFieldUsesInspectableSituationBuildingsForEveryContentRole()
+        {
+            const string fieldPath = "Assets/Scenes/Production/Field/Production_Field.unity";
+            Scene scene = EditorSceneManager.OpenScene(fieldPath, OpenSceneMode.Additive);
+            try
+            {
+                Component distributor = FindInScene(scene, "FieldEncounterDistributor");
+                Assert.That(distributor, Is.Not.Null);
+                var serialized = new SerializedObject(distributor);
+                SerializedProperty landmarks = serialized.FindProperty("landmarkVisuals");
+                Assert.That(landmarks.arraySize, Is.EqualTo(54));
+
+                var definitions = new Dictionary<(int act, RunFieldContentType type, int variant),
+                    (string spritePath, string prefabPath)>();
+                for (int i = 0; i < landmarks.arraySize; i++)
+                {
+                    SerializedProperty entry = landmarks.GetArrayElementAtIndex(i);
+                    int act = entry.FindPropertyRelative("act").intValue;
+                    var type = (RunFieldContentType)entry
+                        .FindPropertyRelative("contentType").enumValueIndex;
+                    int variant = entry.FindPropertyRelative("variant").intValue;
+                    string displayName = entry.FindPropertyRelative("displayName").stringValue;
+                    Sprite sprite = entry.FindPropertyRelative("sprite").objectReferenceValue as Sprite;
+                    GameObject visualPrefab = entry.FindPropertyRelative("visualPrefab")
+                        .objectReferenceValue as GameObject;
+
+                    Assert.That(type, Is.Not.EqualTo(RunFieldContentType.Rest));
+                    Assert.That(displayName, Is.Not.Empty, $"Act {act} {type} {variant}");
+                    Assert.That(sprite, Is.Not.Null, $"Act {act} {type} {variant}");
+                    Assert.That(entry.FindPropertyRelative("targetHeight").floatValue,
+                        Is.GreaterThan(1f), $"Act {act} {type} {variant}");
+
+                    string spritePath = AssetDatabase.GetAssetPath(sprite);
+                    string prefabPath = AssetDatabase.GetAssetPath(visualPrefab);
+                    if (type == RunFieldContentType.Event)
+                    {
+                        Assert.That(spritePath,
+                            Does.StartWith("Assets/Art/Production/Field/EventProps/"));
+                    }
+                    else
+                    {
+                        Assert.That(visualPrefab, Is.Not.Null,
+                            $"Act {act} {type} {variant} has no inspectable visual prefab.");
+                        Assert.That(prefabPath,
+                            Does.StartWith("Assets/Prefabs/Production/Field/SituationBuildings/"));
+                        Assert.That(spritePath,
+                            Does.StartWith("Assets/Art/Production/Field/SituationBuildingsV7/")
+                                .Or.StartWith("Assets/Art/Production/Field/SpecialLandmarksV6/"));
+                    }
+
+                    Assert.That(definitions.TryAdd((act, type, variant), (spritePath, prefabPath)),
+                        Is.True, $"Duplicate field visual: Act {act} {type} {variant}");
+                }
+
+                Assert.That(definitions[(1, RunFieldContentType.BossDoor, 1)].spritePath,
+                    Does.EndWith("SpecialLandmarksV6/special_landmark_v6_04.png"));
+                Assert.That(definitions[(2, RunFieldContentType.MidBoss, 1)].spritePath,
+                    Does.EndWith("SpecialLandmarksV6/special_landmark_v6_14.png"));
+                Assert.That(definitions[(2, RunFieldContentType.BossDoor, 1)].spritePath,
+                    Does.EndWith("SituationBuildingsV7/situation_building_v7_12.png"));
+                Assert.That(definitions[(3, RunFieldContentType.BossDoor, 1)].spritePath,
+                    Does.EndWith("SpecialLandmarksV6/special_landmark_v6_18.png"));
+
+                foreach ((int act, int supplyCount) in new[] { (1, 2), (2, 2), (3, 3) })
+                {
+                    Assert.That(definitions.Keys.Count(key =>
+                        key.act == act && key.type == RunFieldContentType.Supply),
+                        Is.EqualTo(supplyCount), $"Act {act} supply building count");
+                }
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
         public void PokerGrowthPathsUseDedicatedCardArtwork()
         {
             Type presentation = Type.GetType("CardBattle.PokerCardPresentation, Assembly-CSharp");
