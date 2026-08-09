@@ -138,13 +138,31 @@ namespace FFSS.Framework.Tests
 
             Button openDebug = FindButton("Boss Debug Button");
             Assert.That(openDebug, Is.Not.Null, "The title screen boss debug button is missing.");
+            yield return CaptureScreenshot("flow_title_without_taglines_1920x1080", 1920, 1080);
             openDebug.onClick.Invoke();
             yield return WaitFrames(1);
+
+            Text[] titleTexts = Object.FindObjectsByType<Text>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+            Assert.That(titleTexts.Any(text => text.text == "패로 운명을 꺾는 덱빌딩 RPG"), Is.False,
+                "The removed title subtitle is still present in the title prefab.");
+            Assert.That(titleTexts.Any(text => text.text == "POKER x SEOTDA"), Is.False,
+                "The removed English title label is still present in the title prefab.");
+
+            RectTransform debugContent = Object.FindObjectsByType<RectTransform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .SingleOrDefault(rect => rect.name == "Boss Debug Content");
+            Assert.That(debugContent, Is.Not.Null, "The redesigned boss debug content is missing.");
+            Assert.That(debugContent.rect.width, Is.GreaterThanOrEqualTo(1100f));
+            Assert.That(debugContent.rect.height, Is.GreaterThanOrEqualTo(620f));
 
             Button boss13 = FindButton("Debug Boss 13");
             Assert.That(boss13, Is.Not.Null, "The 13 Gwangddaeng debug button is missing.");
             Assert.That(boss13.gameObject.activeInHierarchy, Is.True,
                 "The boss debug panel did not open.");
+            yield return CaptureScreenshot("flow_boss_debug_1920x1080", 1920, 1080);
             boss13.onClick.Invoke();
 
             yield return WaitUntil(

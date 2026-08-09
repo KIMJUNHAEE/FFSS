@@ -22,6 +22,15 @@ namespace FFSS.Editor
         private const string GuidePath = "Assets/Art/Production/UI/Generated/enemy_guide_paged_v1.png";
         private const string ManualPath = "Assets/Art/Production/UI/Generated/tutorial_manual_v1.png";
         private const string ButtonPath = "Assets/Art/Production/UI/Atlas/01_buttons/black/button_black_medium.png";
+        private const string ModalLargePath = "Assets/Art/Production/UI/Atlas/03_panels_modals/modal_large.png";
+        private const string BossBannerPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/banner_boss_phase.png";
+        private const string BlackLargeButtonPath = "Assets/Art/Production/UI/Atlas/01_buttons/black/button_black_large.png";
+        private const string BlackLargeButtonSelectedPath = "Assets/Art/Production/UI/Atlas/01_buttons/black/button_black_large_selected.png";
+        private const string DarkRedLargeButtonPath = "Assets/Art/Production/UI/Atlas/01_buttons/darkred/button_darkred_large.png";
+        private const string DarkRedLargeButtonSelectedPath = "Assets/Art/Production/UI/Atlas/01_buttons/darkred/button_darkred_large_selected.png";
+        private const string RedLargeButtonPath = "Assets/Art/Production/UI/Atlas/01_buttons/red/button_red_large.png";
+        private const string RedLargeButtonSelectedPath = "Assets/Art/Production/UI/Atlas/01_buttons/red/button_red_large_selected.png";
+        private const string CloseIconPath = "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_11_x.png";
 
         [MenuItem("Tools/FFSS/Apply Requested Presentation Migration")]
         private static void RunFromMenu()
@@ -54,6 +63,15 @@ namespace FFSS.Editor
             ImportUiSprite(MaskPath);
             ImportUiSprite(GuidePath);
             ImportUiSprite(ManualPath);
+            ImportUiSprite(ModalLargePath);
+            ImportUiSprite(BossBannerPath);
+            ImportUiSprite(BlackLargeButtonPath);
+            ImportUiSprite(BlackLargeButtonSelectedPath);
+            ImportUiSprite(DarkRedLargeButtonPath);
+            ImportUiSprite(DarkRedLargeButtonSelectedPath);
+            ImportUiSprite(RedLargeButtonPath);
+            ImportUiSprite(RedLargeButtonSelectedPath);
+            ImportUiSprite(CloseIconPath);
 
             AddConditionPortrait(
                 "Assets/Prefabs/UI/Screens/FieldHudScreen.prefab",
@@ -579,6 +597,9 @@ namespace FFSS.Editor
                 if (source == null)
                     return;
 
+                RemoveTitleTagline(root.transform, "Subtitle Text");
+                RemoveTitleTagline(root.transform, "Build Label");
+
                 Transform oldButton = Find(root.transform, "Boss Debug Button");
                 if (oldButton != null)
                     UnityEngine.Object.DestroyImmediate(oldButton.gameObject);
@@ -608,35 +629,61 @@ namespace FFSS.Editor
                 RectTransform panelRect = panel.GetComponent<RectTransform>();
                 Stretch(panelRect, Vector2.zero, Vector2.zero);
                 Image dim = panel.AddComponent<Image>();
-                dim.color = new Color(0.005f, 0.008f, 0.016f, 0.94f);
+                dim.color = new Color(0.005f, 0.008f, 0.016f, 0.86f);
 
-                GameObject artwork = NewUiObject("Debug Panel Artwork", panel.transform);
-                RectTransform artworkRect = artwork.GetComponent<RectTransform>();
-                SetRect(artworkRect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180f, 650f));
-                Image artworkImage = artwork.AddComponent<Image>();
-                artworkImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ManualPath);
-                artworkImage.preserveAspect = false;
+                GameObject content = NewUiObject("Boss Debug Content", panel.transform);
+                RectTransform contentRect = content.GetComponent<RectTransform>();
+                SetRect(contentRect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1120f, 640f));
+                Image contentImage = content.AddComponent<Image>();
+                contentImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ModalLargePath);
+                contentImage.preserveAspect = true;
+                contentImage.raycastTarget = true;
 
-                TMP_Text title = CreateText(artwork.transform, "Debug Title", "보스 전투 디버그", font, 46f,
+                GameObject header = NewUiObject("Boss Debug Header", content.transform);
+                RectTransform headerRect = header.GetComponent<RectTransform>();
+                SetRect(headerRect, new Vector2(0.5f, 0.5f), new Vector2(0f, 214f), new Vector2(690f, 118f));
+                Image headerImage = header.AddComponent<Image>();
+                headerImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(BossBannerPath);
+                headerImage.preserveAspect = true;
+                headerImage.raycastTarget = false;
+
+                TMP_Text title = CreateText(header.transform, "Debug Title", "보스 전투 디버그", font, 42f,
                     TextAlignmentOptions.Center);
-                SetRect(title.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 216f),
-                    new Vector2(760f, 72f));
-                title.color = new Color(1f, 0.84f, 0.35f);
+                Stretch(title.rectTransform, new Vector2(30f, 14f), new Vector2(-30f, -14f));
+                title.fontStyle = FontStyles.Bold;
+                title.color = new Color(1f, 0.9f, 0.54f);
 
-                TMP_Text body = CreateText(artwork.transform, "Debug Description",
-                    "모든 장비를 보유하고 전설 장비 4부위를 장착한 상태로 바로 시작해.",
-                    font, 28f, TextAlignmentOptions.Center);
-                SetRect(body.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 125f),
-                    new Vector2(920f, 64f));
+                TMP_Text body = CreateText(content.transform, "Debug Description",
+                    "모든 장비 해금 · 전설 장비 4부위 장착 · 최대 체력으로 시작",
+                    font, 25f, TextAlignmentOptions.Center);
+                SetRect(body.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 126f),
+                    new Vector2(880f, 50f));
+                body.color = new Color(0.86f, 0.9f, 0.95f);
 
-                Button boss13 = CreateButton(artwork.transform, "Debug Boss 13", "13광땡", font,
-                    new Vector2(-330f, -20f), new Vector2(250f, 94f));
-                Button boss18 = CreateButton(artwork.transform, "Debug Boss 18", "18광땡", font,
-                    new Vector2(0f, -20f), new Vector2(250f, 94f));
-                Button boss38 = CreateButton(artwork.transform, "Debug Boss 38", "38광땡", font,
-                    new Vector2(330f, -20f), new Vector2(250f, 94f));
-                Button close = CreateButton(artwork.transform, "Debug Close", "닫기", font,
-                    new Vector2(0f, -206f), new Vector2(250f, 76f));
+                Button boss13 = CreateBossDebugChoice(content.transform, "Debug Boss 13",
+                    "13광땡", "제1 보스", font, new Vector2(-340f, -20f),
+                    BlackLargeButtonPath, BlackLargeButtonSelectedPath);
+                Button boss18 = CreateBossDebugChoice(content.transform, "Debug Boss 18",
+                    "18광땡", "제2 보스", font, new Vector2(0f, -20f),
+                    DarkRedLargeButtonPath, DarkRedLargeButtonSelectedPath);
+                Button boss38 = CreateBossDebugChoice(content.transform, "Debug Boss 38",
+                    "38광땡", "최종 보스", font, new Vector2(340f, -20f),
+                    RedLargeButtonPath, RedLargeButtonSelectedPath);
+
+                TMP_Text note = CreateText(content.transform, "Debug Start Note",
+                    "보스를 선택하면 즉시 전투를 시작해.", font, 22f, TextAlignmentOptions.Center);
+                SetRect(note.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -158f),
+                    new Vector2(620f, 42f));
+                note.color = new Color(0.76f, 0.8f, 0.86f);
+
+                GameObject closeObject = NewUiObject("Debug Close", content.transform);
+                RectTransform closeRect = closeObject.GetComponent<RectTransform>();
+                SetRect(closeRect, new Vector2(1f, 1f), new Vector2(-54f, -54f), new Vector2(64f, 64f));
+                Image closeImage = closeObject.AddComponent<Image>();
+                closeImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(CloseIconPath);
+                closeImage.preserveAspect = true;
+                Button close = closeObject.AddComponent<Button>();
+                close.targetGraphic = closeImage;
 
                 SetObject(serialized, "bossDebugButton", buttonObject.GetComponent<Button>());
                 SetObject(serialized, "bossDebugPanel", panel);
@@ -653,6 +700,58 @@ namespace FFSS.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static void RemoveTitleTagline(Transform root, string objectName)
+        {
+            Transform tagline = Find(root, objectName);
+            if (tagline != null)
+                UnityEngine.Object.DestroyImmediate(tagline.gameObject);
+        }
+
+        private static Button CreateBossDebugChoice(
+            Transform parent,
+            string name,
+            string title,
+            string subtitle,
+            TMP_FontAsset font,
+            Vector2 position,
+            string normalSpritePath,
+            string selectedSpritePath)
+        {
+            GameObject buttonObject = NewUiObject(name, parent);
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            SetRect(rect, new Vector2(0.5f, 0.5f), position, new Vector2(300f, 102f));
+
+            Image image = buttonObject.AddComponent<Image>();
+            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(normalSpritePath);
+            image.preserveAspect = true;
+
+            Button button = buttonObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.SpriteSwap;
+            Sprite selectedSprite = AssetDatabase.LoadAssetAtPath<Sprite>(selectedSpritePath);
+            button.spriteState = new SpriteState
+            {
+                highlightedSprite = selectedSprite,
+                pressedSprite = selectedSprite,
+                selectedSprite = selectedSprite,
+                disabledSprite = image.sprite
+            };
+
+            TMP_Text titleText = CreateText(buttonObject.transform, "Boss Name", title, font, 29f,
+                TextAlignmentOptions.Center);
+            SetRect(titleText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 17f),
+                new Vector2(260f, 40f));
+            titleText.fontStyle = FontStyles.Bold;
+            titleText.color = new Color(1f, 0.91f, 0.62f);
+
+            TMP_Text subtitleText = CreateText(buttonObject.transform, "Boss Tier", subtitle, font, 17f,
+                TextAlignmentOptions.Center);
+            SetRect(subtitleText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f),
+                new Vector2(250f, 28f));
+            subtitleText.color = new Color(0.82f, 0.86f, 0.92f);
+            return button;
         }
 
         private static Button CreateButton(
