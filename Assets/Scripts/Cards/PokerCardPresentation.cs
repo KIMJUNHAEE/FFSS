@@ -98,7 +98,8 @@ namespace CardBattle
                 CardGrowthPath.Reverse => "성장: 반전 · 전용 원화 적용",
                 _ => "성장 방향 미선택"
             };
-            return $"{colorRule}\n연마 +{card.enhancementLevel}\n{growth}";
+            string effect = PokerGrowthEffectRules.Detail(card);
+            return $"{colorRule}\n연마 +{card.enhancementLevel}\n{growth}\n\n{effect}";
         }
     }
 }

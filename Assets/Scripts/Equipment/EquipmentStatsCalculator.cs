@@ -1,4 +1,5 @@
 using FFSS.Framework.Run;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CardBattle
@@ -34,19 +35,21 @@ namespace CardBattle
             var later = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 2, 0f);
             var first = new EquipmentContext(default, run.player.currentHp, run.player.maxHp, 1, 0f);
 
+            var equipped = new List<EquipmentDefinition>();
             for (int i = 0; i < run.equippedItemIds.Count; i++)
             {
                 EquipmentDefinition item = EquipmentCatalog.Get(run.equippedItemIds[i]);
                 if (item == null)
                     continue;
-
-                hpBonus += item.Modifier(EquipmentStat.MaxHp, later);
-                pressureBonus += item.Modifier(EquipmentStat.MaxBreak, later);
-                attackAfterFirstTurn += item.Modifier(EquipmentStat.Attack, later);
-                defenseAfterFirstTurn += item.Modifier(EquipmentStat.Defense, later);
-                attackFirstTurn += item.Modifier(EquipmentStat.Attack, first);
-                defenseFirstTurn += item.Modifier(EquipmentStat.Defense, first);
+                equipped.Add(item);
             }
+
+            hpBonus = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.MaxHp, later);
+            pressureBonus = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.MaxBreak, later);
+            attackAfterFirstTurn = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.Attack, later);
+            defenseAfterFirstTurn = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.Defense, later);
+            attackFirstTurn = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.Attack, first);
+            defenseFirstTurn = EquipmentLoadout.CalculateModifier(equipped, EquipmentStat.Defense, first);
 
             int baseHp = oldHpMaximum - run.player.equipmentMaxHpBonus;
             int basePressure = oldPressureMaximum - run.player.equipmentMaxPressureBonus;

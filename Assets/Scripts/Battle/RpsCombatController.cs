@@ -174,6 +174,7 @@ namespace CardBattle
             public int DamageToEnemy;
             public int BreakToPlayer;
             public int BreakToEnemy;
+            public int HealingToPlayer;
             public string Message;
         }
 
@@ -304,6 +305,8 @@ namespace CardBattle
         private PlayerRunState appliedRunPlayerState;
         private readonly Dictionary<string, int> enemyMoveReadyTurns = new();
         private readonly List<string> committedPlayerCardIds = new();
+        private PokerGrowthCombatBonuses committedGrowthBonuses;
+        private int combatRewardBonusPercent;
         private Coroutine playerBreakRoutine;
         private Coroutine enemyBreakRoutine;
         private bool presentationReady;
@@ -638,6 +641,11 @@ namespace CardBattle
                     .Where(sprite => sprite != null)
                     .Select(sprite => sprite.name));
             }
+            committedGrowthBonuses = CurrentGrowthBonuses();
+            combatRewardBonusPercent = Mathf.Max(
+                combatRewardBonusPercent,
+                committedGrowthBonuses.RewardPercent);
+            PrepareGrowthNextTurn();
 
             if (pokerHand != null)
             {
@@ -756,8 +764,13 @@ namespace CardBattle
             var outcome = ResolveIntents(playerIntent, enemyIntent);
             ApplyPlayerAttackDamageContract(ref outcome, playerIntent, enemyIntent, enemyWasStunned);
             bool seotdaModifierStripped = ApplyEnemySeotdaBreakInterference(ref outcome, playerIntent);
-            ApplyEnemySeotdaEffect(ref outcome, enemyIntent, !seotdaModifierStripped);
+            bool growthStrippedEnemyEffect = committedGrowthBonuses.RemoveEnemyBuff;
+            ApplyEnemySeotdaEffect(
+                ref outcome,
+                enemyIntent,
+                !seotdaModifierStripped && !growthStrippedEnemyEffect);
             ApplyEnemyRuleOutcome(ref outcome, ruleContext);
+            ApplyPlayerGrowthOutcome(ref outcome);
             int highCardPressure = PokerCombatBalance.ConsecutiveHighCardPressureDamage(highCardAttackStreak);
             if (highCardPressure > 0)
             {
@@ -1046,6 +1059,12 @@ namespace CardBattle
                 Pulse(playerHpFill);
             }
 
+            if (outcome.HealingToPlayer > 0)
+            {
+                playerHp = Mathf.Min(playerMaxHp, playerHp + outcome.HealingToPlayer);
+                Pulse(playerHpFill);
+            }
+
             if (outcome.BreakToEnemy > 0)
             {
                 enemyBreakCharge = Mathf.Min(enemyMaxBreak, enemyBreakCharge + outcome.BreakToEnemy);
@@ -1219,14 +1238,18 @@ namespace CardBattle
             int baseAttack = playerBaseAttack + equipmentBaseAttack;
             int baseDefense = playerBaseDefense + equipmentBaseDefense;
             (int enhancementAttack, int enhancementDefense) = CurrentEnhancementBonuses();
-            int attackBonus = enhancementAttack + equipmentAttack + EquipmentModifier(EquipmentStat.RedCardAttack, context) +
+            PokerGrowthCombatBonuses growth = CurrentGrowthBonuses();
+            int redEquipmentBonus = Mathf.Min(6, EquipmentModifier(EquipmentStat.RedCardAttack, context) * red);
+            int blackEquipmentBonus = Mathf.Min(6, EquipmentModifier(EquipmentStat.BlackCardDefense, context) * black);
+            int attackBonus = enhancementAttack + growth.Attack + equipmentAttack + redEquipmentBonus +
                               EquipmentModifier(EquipmentStat.HandTierPower, context);
-            int defenseBonus = enhancementDefense + equipmentDefense + EquipmentModifier(EquipmentStat.BlackCardDefense, context) +
+            int defenseBonus = enhancementDefense + growth.Defense + equipmentDefense + blackEquipmentBonus +
                                EquipmentModifier(EquipmentStat.HandTierPower, context);
-            int courtSkill = result.CourtCardCount * courtCardSkillBonus;
+            int courtSkill = result.CourtCardCount * courtCardSkillBonus + growth.Skill;
             int attack = PokerCombatBalance.CalculateAttackContest(baseAttack, result.Rank, red, attackBonus);
+            attack = Mathf.CeilToInt(attack * (1f + growth.AttackPercent / 100f));
             int defense = PokerCombatBalance.CalculateDefenseContest(baseDefense, result.Rank, black, defenseBonus);
-            int breakPower = baseBreakPower + equipmentBreak + Mathf.Max(0, 2 - tier) +
+            int breakPower = baseBreakPower + equipmentBreak + growth.BreakPower + Mathf.Max(0, 2 - tier) +
                              Mathf.Max(0, black - 2);
             int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill;
             string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 컬러 {PokerCombatBalance.ColorContestBonus(red)} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
@@ -1274,6 +1297,74 @@ namespace CardBattle
             return PokerRunDeckRules.CalculateEnhancementContestBonuses(
                 runs.Current.pokerDeck,
                 pokerHand.CurrentCardInstanceIds);
+        }
+
+        private PokerGrowthCombatBonuses CurrentGrowthBonuses()
+        {
+            if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count == 0 ||
+                !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return default;
+            }
+
+            return PokerGrowthEffectRules.CalculateCombatBonuses(
+                runs.Current.pokerDeck,
+                pokerHand.CurrentCardInstanceIds,
+                playerHp,
+                playerMaxHp);
+        }
+
+        private void PrepareGrowthNextTurn()
+        {
+            if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count == 0 ||
+                !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
+            {
+                return;
+            }
+
+            DeterministicRng rng = runs.Current.CreateRng();
+            PokerGrowthEffectRules.PrepareNextTurn(
+                runs.Current.pokerDeck,
+                pokerHand.CurrentCardInstanceIds,
+                rng);
+            runs.Current.StoreRng(rng);
+        }
+
+        private void ApplyPlayerGrowthOutcome(ref CombatOutcome outcome)
+        {
+            if (!committedGrowthBonuses.HasTurnResolution)
+                return;
+
+            if (committedGrowthBonuses.DamageReductionPercent > 0 && outcome.DamageToPlayer > 0)
+            {
+                int originalDamage = outcome.DamageToPlayer;
+                outcome.DamageToPlayer = Mathf.Max(0, Mathf.CeilToInt(
+                    originalDamage * (100 - committedGrowthBonuses.DamageReductionPercent) / 100f));
+                int prevented = originalDamage - outcome.DamageToPlayer;
+                if (prevented > 0)
+                    outcome.Message += $"\n<color=#75D8FF>시간각성 방벽: HP 피해 -{prevented}</color>";
+            }
+
+            if (committedGrowthBonuses.HealPercent > 0 && playerHp > 0)
+            {
+                int missingHp = Mathf.Max(0, playerMaxHp - playerHp);
+                int healing = Mathf.Min(missingHp, Mathf.CeilToInt(
+                    playerMaxHp * committedGrowthBonuses.HealPercent / 100f));
+                outcome.HealingToPlayer += healing;
+                if (healing > 0)
+                    outcome.Message += $"\n<color=#7FE6A2>시간각성 회복: HP +{healing}</color>";
+            }
+
+            if (committedGrowthBonuses.EnemyDelayPercent > 0)
+            {
+                int pressure = Mathf.Max(1, Mathf.CeilToInt(
+                    enemyMaxBreak * committedGrowthBonuses.EnemyDelayPercent / 100f));
+                outcome.BreakToEnemy += pressure;
+                outcome.Message += $"\n<color=#FFD979>시간각성 지연: 적 압박 +{pressure}</color>";
+            }
+
+            if (committedGrowthBonuses.RemoveEnemyBuff && outcome.Message.Contains("패 변주 추가 피해는"))
+                outcome.Message += "\n<color=#FFD979>시간각성: 이번 적 패의 추가 효과를 제거했다.</color>";
         }
 
         private static float NextCombatRandomValue()
@@ -1805,7 +1896,8 @@ namespace CardBattle
                 enemyDisplayName,
                 playerHp,
                 playerBreakCharge,
-                enemyBreaksTriggered));
+                enemyBreaksTriggered,
+                combatRewardBonusPercent));
         }
 
         private static string ActionLabel(RpsAction action) => action switch

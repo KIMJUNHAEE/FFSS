@@ -114,6 +114,81 @@ namespace FFSS.Framework.Tests
             Assert.That(defense, Is.EqualTo(4));
         }
 
+        [Test]
+        public void EveryCanonicalPokerCardHasAReadableGrowthEffect()
+        {
+            Assert.That(PokerGrowthEffectRules.AllCardIds, Has.Count.EqualTo(54));
+            Assert.That(PokerGrowthEffectRules.AllCardIds, Is.Unique);
+
+            foreach (string cardId in PokerGrowthEffectRules.AllCardIds)
+            {
+                var card = new RunCardState(cardId, cardId)
+                {
+                    enhancementLevel = 2,
+                    growthPath = CardGrowthPath.TimeAwakened,
+                    isHoned = true
+                };
+
+                Assert.That(PokerGrowthEffectRules.Detail(card), Is.Not.Empty, cardId);
+            }
+        }
+
+        [Test]
+        public void TimeAwakenedCardsChangeCombatAndQueueTheNextDraw()
+        {
+            RunPokerDeckState deck = BuildDeck(13);
+            RunCardState spade = deck.cards[0];
+            spade.cardId = "poker.spade.11";
+            spade.enhancementLevel = 2;
+            spade.growthPath = CardGrowthPath.TimeAwakened;
+            RunCardState diamond = deck.cards[1];
+            diamond.cardId = "poker.diamond.12";
+            diamond.enhancementLevel = 3;
+            diamond.growthPath = CardGrowthPath.TimeAwakened;
+
+            string[] hand = { spade.instanceId, diamond.instanceId, deck.cards[2].instanceId };
+            PokerGrowthCombatBonuses bonuses = PokerGrowthEffectRules.CalculateCombatBonuses(
+                deck,
+                hand,
+                50,
+                100);
+
+            Assert.That(bonuses.Attack, Is.GreaterThan(0));
+            Assert.That(bonuses.AttackPercent, Is.GreaterThan(0));
+            Assert.That(bonuses.ExtraCandidates, Is.EqualTo(2));
+            Assert.That(PokerGrowthEffectRules.PrepareNextTurn(
+                deck,
+                hand,
+                new DeterministicRng(20260810)), Is.True);
+            Assert.That(deck.nextTurnTopOrder, Has.Count.EqualTo(2));
+
+            deck.BeginTurn();
+
+            Assert.That(deck.nextTurnTopOrder, Is.Empty);
+            Assert.That(deck.revealedTopOrder, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void ReverseCardsDoNotAlsoTriggerTimeAwakenedEffects()
+        {
+            var deck = new RunPokerDeckState();
+            deck.cards.Add(new RunCardState("reverse-heart", "poker.heart.01")
+            {
+                enhancementLevel = 3,
+                growthPath = CardGrowthPath.Reverse,
+                isHoned = true
+            });
+
+            PokerGrowthCombatBonuses bonuses = PokerGrowthEffectRules.CalculateCombatBonuses(
+                deck,
+                new[] { "reverse-heart" },
+                10,
+                100);
+
+            Assert.That(bonuses.HealPercent, Is.Zero);
+            Assert.That(PokerRunDeckRules.IsEffectivelyRed(deck.cards[0]), Is.False);
+        }
+
         [TestCase("poker.club.01", "C-1")]
         [TestCase("poker.diamond.13", "D-13")]
         [TestCase("poker.joker.black", "X-B")]

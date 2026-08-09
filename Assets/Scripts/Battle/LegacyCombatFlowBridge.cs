@@ -86,7 +86,8 @@ namespace CardBattle
             RunRewardState reward = flow.CompleteVictory(
                 result.PlayerHp,
                 result.PlayerPressure,
-                result.EnemyBreaksTriggered);
+                result.EnemyBreaksTriggered,
+                result.RewardBonusPercent);
             resultView?.ShowWithAction(
                 true,
                 $"{result.EnemyName} 격파  ·  엽전 +{reward.gold}\n전리품을 챙기고 필드로 돌아가자",

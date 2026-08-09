@@ -197,6 +197,21 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void PokerDeckMovesQueuedCandidatesIntoTheNextTurnOnly()
+        {
+            var deck = new RunPokerDeckState();
+            deck.QueueRevealedTopOrder(new[] { "next.1", "next.2" });
+
+            Assert.That(deck.revealedTopOrder, Is.Empty);
+            Assert.That(deck.nextTurnTopOrder, Is.EqualTo(new[] { "next.1", "next.2" }));
+
+            deck.BeginTurn();
+
+            Assert.That(deck.revealedTopOrder, Is.EqualTo(new[] { "next.1", "next.2" }));
+            Assert.That(deck.nextTurnTopOrder, Is.Empty);
+        }
+
+        [Test]
         public void EnemyRuleCountersAreClampedAndSerializable()
         {
             var state = new EnemyRuleState { enemyId = "38_gwang" };

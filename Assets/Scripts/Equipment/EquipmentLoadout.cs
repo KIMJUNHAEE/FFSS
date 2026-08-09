@@ -52,11 +52,83 @@ namespace CardBattle
 
         public int Modifier(EquipmentStat stat, EquipmentContext context)
         {
+            return CalculateModifier(Equipped, stat, context);
+        }
+
+        public static int CalculateModifier(
+            IEnumerable<EquipmentDefinition> equipped,
+            EquipmentStat stat,
+            EquipmentContext context)
+        {
+            if (equipped == null)
+                return 0;
+
             int total = 0;
-            foreach (var item in Equipped)
-                if (item != null)
-                    total += item.Modifier(stat, context);
-            return total;
+            var conditional = new Dictionary<EquipmentCondition, List<int>>();
+            foreach (EquipmentDefinition item in equipped)
+            {
+                if (item == null)
+                    continue;
+                foreach (EquipmentEffectDefinition effect in item.Effects)
+                {
+                    if (effect.Stat != stat || !context.Matches(effect.Condition))
+                        continue;
+                    if (effect.Condition == EquipmentCondition.Always)
+                    {
+                        total += effect.Value;
+                        continue;
+                    }
+
+                    if (!conditional.TryGetValue(effect.Condition, out List<int> values))
+                    {
+                        values = new List<int>();
+                        conditional.Add(effect.Condition, values);
+                    }
+                    values.Add(effect.Value);
+                }
+            }
+
+            foreach (KeyValuePair<EquipmentCondition, List<int>> pair in conditional)
+            {
+                List<int> values = pair.Value;
+                values.Sort((left, right) => Math.Abs(right).CompareTo(Math.Abs(left)));
+                int contribution = 0;
+                if (values.Count > 0)
+                    contribution += values[0];
+                if (values.Count > 1)
+                    contribution += (int)Math.Round(values[1] * 0.5f, MidpointRounding.AwayFromZero);
+                total += ApplyConditionCap(stat, pair.Key, contribution);
+            }
+
+            return ApplyGlobalCap(stat, total);
+        }
+
+        private static int ApplyConditionCap(
+            EquipmentStat stat,
+            EquipmentCondition condition,
+            int value)
+        {
+            if (condition == EquipmentCondition.HighCard)
+            {
+                if (stat == EquipmentStat.Attack) return Math.Min(6, value);
+                if (stat == EquipmentStat.Defense) return Math.Min(8, value);
+            }
+            if (condition == EquipmentCondition.FirstTurn)
+            {
+                if (stat == EquipmentStat.Attack) return Math.Min(5, value);
+                if (stat == EquipmentStat.Defense) return Math.Min(6, value);
+                if (stat == EquipmentStat.Skill) return Math.Min(4, value);
+            }
+            return value;
+        }
+
+        private static int ApplyGlobalCap(EquipmentStat stat, int value)
+        {
+            if (stat == EquipmentStat.PenetrationThresholdPercent)
+                return Math.Max(-30, value);
+            if (stat == EquipmentStat.WeaknessBreakPercent)
+                return Math.Min(40, value);
+            return value;
         }
 
         public bool TryEquip(string equipmentId)

@@ -36,6 +36,7 @@ namespace FFSS.Framework.Run
         public List<string> reservedDraws = new List<string>();
         public List<string> storedCards = new List<string>();
         public List<string> revealedTopOrder = new List<string>();
+        public List<string> nextTurnTopOrder = new List<string>();
         public List<string> resolvedEquipmentIds = new List<string>();
         public bool redrawUsedThisTurn;
         public bool reservedDrawUsedThisTurn;
@@ -51,6 +52,11 @@ namespace FFSS.Framework.Run
         {
             heldCardInstanceIds.Clear();
             revealedTopOrder.Clear();
+            for (int i = 0; i < nextTurnTopOrder.Count; i++)
+            {
+                AddUnique(revealedTopOrder, nextTurnTopOrder[i]);
+            }
+            nextTurnTopOrder.Clear();
             resolvedEquipmentIds.Clear();
             redrawUsedThisTurn = false;
             reservedDrawUsedThisTurn = false;
@@ -161,6 +167,25 @@ namespace FFSS.Framework.Run
             }
         }
 
+        public void QueueRevealedTopOrder(IEnumerable<string> instanceIds)
+        {
+            EnsureCollections();
+            nextTurnTopOrder.Clear();
+            if (instanceIds == null)
+            {
+                return;
+            }
+
+            foreach (string instanceId in instanceIds)
+            {
+                AddUnique(nextTurnTopOrder, instanceId);
+                if (nextTurnTopOrder.Count >= MaximumManipulationCandidates)
+                {
+                    break;
+                }
+            }
+        }
+
         public bool MarkEquipmentResolved(string equipmentId)
         {
             EnsureCollections();
@@ -180,6 +205,7 @@ namespace FFSS.Framework.Run
             reservedDraws ??= new List<string>();
             storedCards ??= new List<string>();
             revealedTopOrder ??= new List<string>();
+            nextTurnTopOrder ??= new List<string>();
             resolvedEquipmentIds ??= new List<string>();
         }
 

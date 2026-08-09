@@ -99,7 +99,11 @@ namespace FFSS.Framework.Flow
             return true;
         }
 
-        public RunRewardState CompleteVictory(int playerHp, int playerPressure, int enemyBreaksTriggered = 0)
+        public RunRewardState CompleteVictory(
+            int playerHp,
+            int playerPressure,
+            int enemyBreaksTriggered = 0,
+            int rewardBonusPercent = 0)
         {
             RunManager runs = services.Get<RunManager>();
             if (runs.Current?.activeEnemyRule == null)
@@ -126,7 +130,7 @@ namespace FFSS.Framework.Flow
             runs.CompleteEncounter();
             RunRewardState reward = runs.PrepareReward(
                 entry.enemyId,
-                entry.rewardGold,
+                Mathf.CeilToInt(entry.rewardGold * (100 + Mathf.Clamp(rewardBonusPercent, 0, 100)) / 100f),
                 BuildRewardItemChoices(run, entry, enemyBreaksTriggered),
                 BuildRewardCardChoices(run, RewardCardChoiceCount));
             services.Get<GameFlowManager>().TryChangeState(GameFlowState.Reward);
