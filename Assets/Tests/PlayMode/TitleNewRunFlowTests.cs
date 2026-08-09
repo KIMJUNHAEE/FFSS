@@ -11,6 +11,7 @@ using FFSS.Framework.Presentation.Vfx;
 using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -99,8 +100,31 @@ namespace FFSS.Framework.Tests
                 "The title screen is still covering the field after New Run.");
             Assert.That(GeneratedTileCount(), Is.GreaterThan(0),
                 "The field scene loaded without generating its playable map.");
+            AssertAmbientLandmarksUseBuildingArtwork();
 
             yield return CaptureFieldScreenshot();
+        }
+
+        private static void AssertAmbientLandmarksUseBuildingArtwork()
+        {
+            GameObject[] landmarks = Object.FindObjectsByType<GameObject>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(value => value.name.StartsWith("Field Landmark -", StringComparison.Ordinal))
+                .ToArray();
+            Assert.That(landmarks, Is.Not.Empty, "The generated field has no ambient city buildings.");
+
+            for (int i = 0; i < landmarks.Length; i++)
+            {
+                SpriteRenderer renderer = landmarks[i].GetComponentsInChildren<SpriteRenderer>(true)
+                    .FirstOrDefault(value => value.sprite != null);
+                Assert.That(renderer, Is.Not.Null, $"{landmarks[i].name} has no visible building sprite.");
+                string assetPath = AssetDatabase.GetAssetPath(renderer.sprite);
+                Assert.That(
+                    assetPath,
+                    Does.StartWith("Assets/Art/Production/Field/Buildings/"),
+                    $"{landmarks[i].name} is not using dedicated transparent building artwork.");
+            }
         }
 
         [UnityTest]

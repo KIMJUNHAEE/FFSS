@@ -113,6 +113,7 @@ namespace FFSS.Editor
         public static void BuildFieldEncounters()
         {
             ClockworkTimekeeperEditorUtils.EnsureFolder(MarkerRoot);
+            ReimportFieldArtwork();
             PrepareFieldArt();
             AssignFieldEncounterSprites();
             GameObject normal = BuildMarkerPrefab(
@@ -152,6 +153,26 @@ namespace FFSS.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("FFSS production field encounters are configured as direct world interactions.");
+        }
+
+        [MenuItem("FFSS/Production/Reimport Field Artwork")]
+        public static void ReimportFieldArtwork()
+        {
+            string[] folders = { BuildingRoot, EventPropRoot };
+            for (int folderIndex = 0; folderIndex < folders.Length; folderIndex++)
+            {
+                string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { folders[folderIndex] });
+                for (int i = 0; i < guids.Length; i++)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                    AssetDatabase.ImportAsset(
+                        path,
+                        ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+                }
+            }
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            Debug.Log("FFSS field artwork was reimported from the current source PNG files.");
         }
 
         [MenuItem("FFSS/Production/Apply City Layout Settings")]
