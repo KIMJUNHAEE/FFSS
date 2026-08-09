@@ -760,14 +760,14 @@ namespace FFSS.Editor
                 "HP",
                 playerHud,
                 "gauge_hp_red_small.png",
-                new Vector2(252f, 24f),
-                new Vector2(56f, 16f));
+                new Vector2(277f, 26f),
+                new Vector2(61f, 16f));
             build.PressureGaugeFill = CreateFieldGauge(
                 "Balance",
                 playerHud,
                 "gauge_pressure_gold_small.png",
-                new Vector2(205f, 21f),
-                new Vector2(33f, -25f));
+                new Vector2(252f, 24f),
+                new Vector2(56f, -36.2f));
             build.HpGaugeText = CreateText(
                 "HP Text",
                 playerHud,
@@ -775,8 +775,8 @@ namespace FFSS.Editor
                 13,
                 TextAnchor.MiddleCenter,
                 Color.white,
-                new Vector2(226f, 22f),
-                new Vector2(56f, 16f));
+                new Vector2(277f, 26f),
+                new Vector2(61f, 16f));
 
             RectTransform goldPanel = CreateRect(
                 "Gold Counter",
