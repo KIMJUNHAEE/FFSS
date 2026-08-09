@@ -134,6 +134,88 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void EveryCanonicalTimeAwakenedCardProducesARuntimeEffect()
+        {
+            foreach (string cardId in PokerGrowthEffectRules.AllCardIds)
+            {
+                RunPokerDeckState deck = BuildGrowthTestDeck(cardId);
+                string[] hand = deck.cards.Take(5).Select(card => card.instanceId).ToArray();
+
+                PokerGrowthCombatBonuses bonuses = PokerGrowthEffectRules.CalculateCombatBonuses(
+                    deck,
+                    hand,
+                    20,
+                    100);
+                bool changedNextTurn = PokerGrowthEffectRules.PrepareNextTurn(
+                    deck,
+                    hand,
+                    new DeterministicRng(20260810));
+
+                Assert.That(bonuses.HasAnyEffect || changedNextTurn, Is.True,
+                    $"{cardId} has no executable combat or next-turn effect.");
+            }
+        }
+
+        [TestCase("poker.spade.01", true)]
+        [TestCase("poker.spade.13", true)]
+        [TestCase("poker.diamond.01", true)]
+        [TestCase("poker.club.01", false)]
+        [TestCase("poker.heart.01", false)]
+        [TestCase("poker.heart.13", false)]
+        [TestCase("poker.diamond.13", false)]
+        public void OnlyCardsWithReserveEffectsReturnToTheNextHand(string cardId, bool shouldReserve)
+        {
+            RunPokerDeckState deck = BuildGrowthTestDeck(cardId);
+            string targetInstanceId = deck.cards[0].instanceId;
+
+            PokerGrowthEffectRules.PrepareNextTurn(
+                deck,
+                deck.cards.Take(5).Select(card => card.instanceId).ToArray(),
+                new DeterministicRng(8181));
+
+            Assert.That(deck.reservedDraws.Contains(targetInstanceId), Is.EqualTo(shouldReserve), cardId);
+        }
+
+        [Test]
+        public void TurnEffectsResolveDamageHealingDelayAndEnemyEffectRemovalTogether()
+        {
+            var bonuses = new PokerGrowthCombatBonuses(
+                0, 0, 0, 0, 0,
+                20, 25, 0, 0, 0, 10,
+                true);
+
+            PokerGrowthTurnResolution result = PokerGrowthEffectRules.ResolveTurn(
+                bonuses,
+                100,
+                100,
+                36,
+                20);
+
+            Assert.That(result.DamageToPlayer, Is.EqualTo(15));
+            Assert.That(result.HealingToPlayer, Is.EqualTo(15));
+            Assert.That(result.PressureToEnemy, Is.EqualTo(4));
+            Assert.That(result.RemoveEnemyExtraEffect, Is.True);
+        }
+
+        [Test]
+        public void TurnHealingDoesNotReviveLethalDamage()
+        {
+            var bonuses = new PokerGrowthCombatBonuses(
+                0, 0, 0, 0, 0,
+                50, 0, 0, 0, 0, 0,
+                false);
+
+            PokerGrowthTurnResolution result = PokerGrowthEffectRules.ResolveTurn(
+                bonuses,
+                10,
+                100,
+                36,
+                10);
+
+            Assert.That(result.HealingToPlayer, Is.Zero);
+        }
+
+        [Test]
         public void TimeAwakenedCardsChangeCombatAndQueueTheNextDraw()
         {
             RunPokerDeckState deck = BuildDeck(13);
@@ -346,6 +428,29 @@ namespace FFSS.Framework.Tests
             {
                 string cardId = $"poker.club.{i:D2}";
                 deck.cards.Add(new RunCardState($"instance.{i:D2}", cardId));
+            }
+            return deck;
+        }
+
+        private static RunPokerDeckState BuildGrowthTestDeck(string targetCardId)
+        {
+            var deck = new RunPokerDeckState();
+            deck.cards.Add(new RunCardState("target", targetCardId)
+            {
+                enhancementLevel = 3,
+                growthPath = CardGrowthPath.TimeAwakened,
+                isHoned = true
+            });
+
+            string supportSuit = targetCardId.Contains(".heart.") ? "heart" :
+                targetCardId.Contains(".diamond.") ? "diamond" :
+                targetCardId.Contains(".spade.") ? "spade" : "club";
+            for (int i = 0; i < 8; i++)
+            {
+                int rank = i + 2;
+                deck.cards.Add(new RunCardState(
+                    $"support.{i}",
+                    $"poker.{supportSuit}.{rank:D2}"));
             }
             return deck;
         }
