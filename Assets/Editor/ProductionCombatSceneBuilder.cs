@@ -26,9 +26,9 @@ namespace FFSS.Editor
         private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
-        private static readonly Vector2 PokerDeckPresentationSize = new(114f, 164f);
-        private static readonly Vector2 SeotdaDeckPresentationSize = new(114f, 183f);
-        private static readonly Vector3 PokerHandPresentationScale = new(1.25f, 1.25f, 1f);
+        private static readonly Vector2 PokerDeckPresentationSize = new(140f, 202f);
+        private static readonly Vector2 SeotdaDeckPresentationSize = new(140f, 225f);
+        private static readonly Vector3 PokerHandPresentationScale = new(1.5f, 1.5f, 1f);
         private static readonly Vector2 PokerHandPresentationPosition = new(-145f, 0f);
 
         private readonly struct BattleSeed
@@ -237,6 +237,7 @@ namespace FFSS.Editor
                     Scene targetScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
                     MoveWeaknessToEnemyInfo(targetScene);
                     ApplySharedCombatLayouts(targetScene, reference);
+                    ApplyReadableCardPresentation(targetScene);
                     EditorSceneManager.SaveScene(targetScene);
                 }
             }
@@ -373,7 +374,37 @@ namespace FFSS.Editor
             if (meter == null || meter.transform is not RectTransform meterRect)
                 throw new InvalidOperationException($"{scene.path}: EnemyRuleMeterView is missing.");
             result["EnemyRuleMeter"] = meterRect;
+
+            AddSharedDescendantRects(result, "PlayerHUD");
+            AddSharedDescendantRects(result, "EnemyIntentBadge");
+            AddSharedDescendantRects(result, "PokerTableV2");
+            AddSharedDescendantRects(result, "AttackButton");
+            AddSharedDescendantRects(result, "DefendButton");
+            AddSharedDescendantRects(result, "SkillButton");
+            AddSharedDescendantRects(result, "RedrawButton");
+            AddSharedDescendantRects(result, "EndTurnButton");
+            AddSharedDescendantRects(result, "EnemyCombatGuideOpenButton");
             return result;
+        }
+
+        private static void AddSharedDescendantRects(
+            IDictionary<string, RectTransform> result,
+            string rootKey)
+        {
+            if (!result.TryGetValue(rootKey, out RectTransform root) || root == null)
+                return;
+
+            RectTransform[] descendants = root.GetComponentsInChildren<RectTransform>(true);
+            for (int i = 0; i < descendants.Length; i++)
+            {
+                RectTransform descendant = descendants[i];
+                if (descendant == root)
+                    continue;
+
+                string relativePath = AnimationUtility.CalculateTransformPath(descendant, root);
+                if (!string.IsNullOrEmpty(relativePath))
+                    result[$"{rootKey}/{relativePath}"] = descendant;
+            }
         }
 
         private static RectTransform RequireRect(RectTransform rect, Scene scene, string objectName)

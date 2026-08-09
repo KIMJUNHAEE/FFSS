@@ -145,13 +145,13 @@ namespace FFSS.Framework.Tests
                 }
 
                 ExpectVector(sceneName, "Poker hand scale", pokerHand.localScale,
-                    new Vector3(1.25f, 1.25f, 1f), failures);
+                    new Vector3(1.5f, 1.5f, 1f), failures);
                 ExpectVector(sceneName, "Poker hand position", pokerHand.anchoredPosition,
                     new Vector2(-145f, 0f), failures);
                 ExpectVector(sceneName, "Poker deck size", pokerDeck.sizeDelta,
-                    new Vector2(114f, 164f), failures);
+                    new Vector2(140f, 202f), failures);
                 ExpectVector(sceneName, "Seotda deck size", seotdaDeck.sizeDelta,
-                    new Vector2(114f, 183f), failures);
+                    new Vector2(140f, 225f), failures);
             }
 
             Assert.That(failures, Is.Empty, string.Join("\n", failures));

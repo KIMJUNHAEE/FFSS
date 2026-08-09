@@ -2129,9 +2129,6 @@ namespace CardBattle.EditorTools
                     new Vector2(1f, 1f), new Vector2(1f, 1f), enemyHudPosition);
                 enemyPanel = enemyHud.GetComponent<Image>();
                 FindUi<Text>(enemyHud, "NameText").text = BossDisplayName(enemyId);
-                Text enemyTitle = FindUi<Text>(enemyHud, "TitleText");
-                if (enemyTitle != null)
-                    enemyTitle.text = $"{enemyTitle.text}  ·  약점 {weakness.ToSymbol()}";
                 enemyHpFill = FindUi<Image>(enemyHud, "HpBarBg/HpBarFill");
                 enemyHpText = FindUi<Text>(enemyHud, "HpText");
                 enemyBreakFill = FindUi<Image>(enemyHud, "PressureBarBg/PressureBarFill");
@@ -2166,10 +2163,6 @@ namespace CardBattle.EditorTools
                 playerStatText.lineSpacing = 1f;
                 AddTextOutline(playerStatText, new Color(0f, 0f, 0f, 0.95f), new Vector2(2f, -2f));
                 playerStatusText = CreateText("PlayerStatusText", canvasT, new Vector2(0.70f, 0.335f), new Vector2(0.82f, 0.365f), "", 16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.3f));
-                Text weaknessSubtitle = CreateText("EnemyWeaknessSubtitle", enemyPanel.transform,
-                    new Vector2(0.03f, 0.69f), new Vector2(0.97f, 0.82f),
-                    $"약점 {weakness.ToSymbol()}", 13, TextAnchor.MiddleRight, weakness.ToDisplayColor());
-                weaknessSubtitle.fontStyle = FontStyle.Bold;
             }
 
             // 약점 효과 미리보기 패널 - 테이블 위(포커 테이블 상단과 적 초상화 하단 사이 빈 공간),
