@@ -27,13 +27,13 @@ namespace FFSS.Editor
         private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
-        private static readonly Vector2 PokerDeckPresentationAnchor = new(0.06f, 0.4619f);
+        private static readonly Vector2 PokerDeckPresentationAnchor = new(0.09f, 0.4619f);
         private static readonly Vector2 SeotdaDeckPresentationAnchor = new(0.1153f, 0.4619f);
-        private static readonly Vector2 PokerDeckPresentationSize = new(150f, 216f);
-        private static readonly Vector2 SeotdaDeckPresentationSize = new(300f, 480f);
+        private static readonly Vector2 PokerDeckPresentationSize = new(140f, 202f);
+        private static readonly Vector2 SeotdaCardPresentationSize = new(167f, 268f);
         private static readonly Vector3 PokerHandPresentationScale = Vector3.one;
-        private static readonly Vector2 PokerHandPresentationPosition = new(100f, 0f);
-        private const float PokerHandCardSpacing = 30f;
+        private static readonly Vector2 PokerHandPresentationPosition = Vector2.zero;
+        private const float PokerHandCardSpacing = 45f;
         private static readonly Vector2 Boss38HudVisibleMatchSize = new(541f, 211f);
         private static readonly Vector2 Boss38HudVisibleMatchPosition = new(0f, -3.4f);
         private static readonly string[] SharedRightSideTextRoots =
@@ -654,7 +654,8 @@ namespace FFSS.Editor
             RpsCombatController combat = FindInScene<RpsCombatController>(scene);
             SeotdaTableController seotda = FindInScene<SeotdaTableController>(scene);
             if (combat == null || combat.pokerHand == null || combat.pokerHand.handContainer == null ||
-                combat.pokerHand.deckPileTransform == null || seotda == null || seotda.drawOrigin == null)
+                combat.pokerHand.deckPileTransform == null || seotda == null || seotda.drawOrigin == null ||
+                seotda.cardSlotA == null || seotda.cardSlotB == null)
             {
                 throw new InvalidOperationException($"{scene.path}: card presentation references are incomplete.");
             }
@@ -674,12 +675,16 @@ namespace FFSS.Editor
             ConfigureCardPile(
                 seotda.drawOrigin,
                 SeotdaDeckPresentationAnchor,
-                SeotdaDeckPresentationSize);
+                SeotdaCardPresentationSize);
+            seotda.cardSlotA.rectTransform.sizeDelta = SeotdaCardPresentationSize;
+            seotda.cardSlotB.rectTransform.sizeDelta = SeotdaCardPresentationSize;
 
             EditorUtility.SetDirty(hand);
             EditorUtility.SetDirty(handLayout);
             EditorUtility.SetDirty(combat.pokerHand.deckPileTransform);
             EditorUtility.SetDirty(seotda.drawOrigin);
+            EditorUtility.SetDirty(seotda.cardSlotA.rectTransform);
+            EditorUtility.SetDirty(seotda.cardSlotB.rectTransform);
             EditorSceneManager.MarkSceneDirty(scene);
         }
 

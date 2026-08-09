@@ -67,6 +67,8 @@ namespace FFSS.Framework.Tests
             PropertyInfo redrawsRemaining = handType.GetProperty("RedrawsRemaining");
             PropertyInfo sprites = handType.GetProperty("CurrentCardSprites");
             PropertyInfo instances = handType.GetProperty("CurrentCardInstanceIds");
+            PropertyInfo cards = handType.GetProperty("Cards");
+            PropertyInfo phase = controllerType.GetProperty("CurrentPhase");
             yield return new WaitForSeconds(4f);
             yield return WaitUntilSeconds(
                 () => (bool)ready.GetValue(hand) && attack.interactable,
@@ -120,9 +122,23 @@ namespace FFSS.Framework.Tests
             Assert.That(endTurn.interactable, Is.True);
             endTurn.onClick.Invoke();
             yield return WaitUntilSeconds(
-                () => !(bool)ready.GetValue(hand),
+                () => phase.GetValue(controller).ToString() == "RetractingPoker",
+                3f,
+                "Combat never entered the poker retract phase.");
+            yield return new WaitForSeconds(0.12f);
+            yield return Capture("combat_turn_poker_retract_gather", 1280, 720);
+            yield return new WaitForSeconds(0.34f);
+            yield return Capture("combat_turn_poker_retract_to_deck", 1280, 720);
+            yield return WaitUntilSeconds(
+                () => PokerVisualsNearDeck(handType, hand, 75f),
+                2f,
+                "Poker cards never reached the poker deck during retraction.");
+            yield return Capture("combat_turn_poker_retract_at_deck", 1280, 720);
+            yield return WaitUntilSeconds(
+                () => phase.GetValue(controller).ToString() != "RetractingPoker" &&
+                      PokerCardCount(cards, hand) == 0,
                 5f,
-                "Turn end did not gather the poker cards into the deck.");
+                "Turn end did not finish returning the poker cards into the deck.");
             yield return WaitUntilSeconds(
                 () => enemyAction.gameObject.activeInHierarchy &&
                       !string.IsNullOrWhiteSpace(enemyAction.text),
@@ -138,6 +154,14 @@ namespace FFSS.Framework.Tests
             Assert.That(face, Is.Not.Null);
             Assert.That(hidden, Is.Not.Null);
             Assert.That(exclusiveDeck, Is.Not.Null, "The enemy-exclusive Seotda deck was not bound.");
+            yield return WaitUntilSeconds(
+                () => phase.GetValue(controller).ToString() == "RevealingSeotda" &&
+                      face.gameObject.activeInHierarchy,
+                8f,
+                "Seotda cards never started drawing from the deck.");
+            yield return Capture("combat_turn_seotda_draw_from_deck", 1280, 720);
+            yield return new WaitForSeconds(0.18f);
+            yield return Capture("combat_turn_seotda_draw_mid", 1280, 720);
             yield return WaitForSeotdaFace(face, back, seotda, controllerType, controller, 10f);
             yield return WaitUntilSeconds(
                 () => face.gameObject.activeInHierarchy && hidden.gameObject.activeInHierarchy &&
@@ -146,7 +170,31 @@ namespace FFSS.Framework.Tests
                 "Both Seotda cards were not fully placed on the table.");
             yield return Capture("combat_turn_seotda_face", 1280, 720);
 
-            yield return new WaitForSeconds(5f);
+            yield return WaitUntilSeconds(
+                () => phase.GetValue(controller).ToString() == "RetractingSeotda",
+                12f,
+                "Combat never entered the Seotda retract phase.");
+            yield return new WaitForSeconds(0.12f);
+            yield return Capture("combat_turn_seotda_retract_gather", 1280, 720);
+            yield return new WaitForSeconds(0.34f);
+            yield return Capture("combat_turn_seotda_retract_to_deck", 1280, 720);
+            yield return WaitUntilSeconds(
+                () => SeotdaVisualsNearDeck(seotda, 60f),
+                2f,
+                "Seotda cards never reached the Seotda deck during retraction.");
+            yield return Capture("combat_turn_seotda_retract_at_deck", 1280, 720);
+            yield return WaitUntilSeconds(
+                () => !face.gameObject.activeSelf && !hidden.gameObject.activeSelf,
+                4f,
+                "Seotda cards did not finish retracting into their deck.");
+            yield return WaitUntilSeconds(
+                () => phase.GetValue(controller).ToString() == "PlayerTurnBanner" &&
+                      PokerCardCount(cards, hand) == 5 && !(bool)ready.GetValue(hand),
+                10f,
+                "The next poker hand never started drawing from its deck.");
+            yield return Capture("combat_turn_poker_draw_from_deck", 1280, 720);
+            yield return new WaitForSeconds(0.18f);
+            yield return Capture("combat_turn_poker_draw_mid", 1280, 720);
             yield return WaitUntilSeconds(
                 () => (bool)ready.GetValue(hand) &&
                       (int)redrawsRemaining.GetValue(hand) == 1,
@@ -168,8 +216,8 @@ namespace FFSS.Framework.Tests
                 .FirstOrDefault(text => text.name == "Redraw Counter");
             Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
             Assert.That(redrawCounter.text, Does.Contain("1/1"));
-            AssertPokerCardsDoNotOverlapDeck(handType, hand);
             yield return Capture("combat_turn_next_player", 1280, 720);
+            AssertPokerCardsDoNotOverlapDeck(handType, hand);
         }
 
         private static void AssertPokerCardsDoNotOverlapDeck(Type handType, object hand)
@@ -180,6 +228,8 @@ namespace FFSS.Framework.Tests
             var cards = handType.GetProperty("Cards")?.GetValue(hand) as System.Collections.IEnumerable;
             Assert.That(cards, Is.Not.Null, "Poker hand cards are unavailable.");
             Rect deckRect = ScreenRect(deck);
+            Rect previousCardRect = default;
+            var adjacentGaps = new List<float>();
             int cardCount = 0;
             foreach (object item in cards)
             {
@@ -193,10 +243,63 @@ namespace FFSS.Framework.Tests
                     Assert.That(cardRect.xMin - deckRect.xMax, Is.GreaterThanOrEqualTo(24f),
                         $"Poker deck and first card need a visible gap. card={cardRect}, deck={deckRect}");
                 }
+                else
+                {
+                    float gap = cardRect.xMin - previousCardRect.xMax;
+                    Assert.That(gap, Is.GreaterThanOrEqualTo(19.9f),
+                        $"Poker cards {cardCount - 1} and {cardCount} overlap or sit too close. gap={gap}");
+                    adjacentGaps.Add(gap);
+                }
+                previousCardRect = cardRect;
                 cardCount++;
             }
 
             Assert.That(cardCount, Is.EqualTo(5), "The resolved poker hand does not contain five cards.");
+            Assert.That(adjacentGaps.Max() - adjacentGaps.Min(), Is.LessThanOrEqualTo(2f),
+                $"Poker card spacing is inconsistent: {string.Join(", ", adjacentGaps)}");
+        }
+
+        private static int PokerCardCount(PropertyInfo cards, object hand)
+        {
+            var values = cards?.GetValue(hand) as System.Collections.IEnumerable;
+            return values == null ? 0 : values.Cast<object>().Count();
+        }
+
+        private static bool PokerVisualsNearDeck(Type handType, object hand, float maximumDistance)
+        {
+            RectTransform deck = handType.GetField("deckPileTransform")?.GetValue(hand) as RectTransform;
+            var cards = handType.GetProperty("Cards")?.GetValue(hand) as System.Collections.IEnumerable;
+            if (deck == null || cards == null) return false;
+
+            Vector2 deckCenter = ScreenRect(deck).center;
+            int cardIndex = 0;
+            foreach (object item in cards)
+            {
+                var component = item as Component;
+                RectTransform visual = component?.GetType().GetField(
+                    "visual",
+                    BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(component) as RectTransform;
+                if (visual == null || Vector2.Distance(ScreenRect(visual).center, deckCenter) >= maximumDistance)
+                    return false;
+                cardIndex++;
+            }
+
+            return cardIndex == 5;
+        }
+
+        private static bool SeotdaVisualsNearDeck(object seotda, float maximumDistance)
+        {
+            Type type = seotda.GetType();
+            RectTransform deck = type.GetField("drawOrigin")?.GetValue(seotda) as RectTransform;
+            Image face = type.GetField("cardSlotA")?.GetValue(seotda) as Image;
+            Image hidden = type.GetField("cardSlotB")?.GetValue(seotda) as Image;
+            if (deck == null || face == null || hidden == null ||
+                !face.gameObject.activeSelf || !hidden.gameObject.activeSelf)
+                return false;
+
+            Vector2 deckCenter = ScreenRect(deck).center;
+            return Vector2.Distance(ScreenRect(face.rectTransform).center, deckCenter) < maximumDistance &&
+                   Vector2.Distance(ScreenRect(hidden.rectTransform).center, deckCenter) < maximumDistance;
         }
 
         private static Rect ScreenRect(RectTransform rect)

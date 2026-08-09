@@ -175,7 +175,10 @@ namespace FFSS.Framework.Tests
                 RectTransform pokerHand = ReadField<RectTransform>(poker, "handContainer");
                 RectTransform pokerDeck = ReadField<RectTransform>(poker, "deckPileTransform");
                 RectTransform seotdaDeck = ReadField<RectTransform>(seotda, "drawOrigin");
-                if (pokerHand == null || pokerDeck == null || seotdaDeck == null)
+                Image seotdaCardA = ReadField<Image>(seotda, "cardSlotA");
+                Image seotdaCardB = ReadField<Image>(seotda, "cardSlotB");
+                if (pokerHand == null || pokerDeck == null || seotdaDeck == null ||
+                    seotdaCardA == null || seotdaCardB == null)
                 {
                     failures.Add($"{sceneName}: card presentation references are incomplete");
                     continue;
@@ -184,19 +187,23 @@ namespace FFSS.Framework.Tests
                 ExpectVector(sceneName, "Poker hand scale", pokerHand.localScale,
                     Vector3.one, failures);
                 ExpectVector(sceneName, "Poker hand position", pokerHand.anchoredPosition,
-                    new Vector2(100f, 0f), failures);
+                    Vector2.zero, failures);
                 ExpectVector(sceneName, "Poker deck size", pokerDeck.sizeDelta,
-                    new Vector2(150f, 216f), failures);
+                    new Vector2(140f, 202f), failures);
                 ExpectVector(sceneName, "Poker deck anchor", pokerDeck.anchorMin,
-                    new Vector2(0.06f, 0.4619f), failures);
+                    new Vector2(0.09f, 0.4619f), failures);
                 ExpectVector(sceneName, "Seotda deck size", seotdaDeck.sizeDelta,
-                    new Vector2(300f, 480f), failures);
+                    new Vector2(167f, 268f), failures);
+                ExpectVector(sceneName, "Seotda first card size", seotdaCardA.rectTransform.sizeDelta,
+                    seotdaDeck.sizeDelta, failures);
+                ExpectVector(sceneName, "Seotda second card size", seotdaCardB.rectTransform.sizeDelta,
+                    seotdaDeck.sizeDelta, failures);
                 ExpectVector(sceneName, "Seotda deck anchor", seotdaDeck.anchorMin,
                     new Vector2(0.1153f, 0.4619f), failures);
 
                 HorizontalLayoutGroup handLayout = pokerHand.GetComponent<HorizontalLayoutGroup>();
-                if (handLayout == null || Mathf.Abs(handLayout.spacing - 30f) > 0.05f)
-                    failures.Add($"{sceneName}: Poker hand spacing is not 30");
+                if (handLayout == null || Mathf.Abs(handLayout.spacing - 45f) > 0.05f)
+                    failures.Add($"{sceneName}: Poker hand spacing is not 45");
             }
 
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
