@@ -10,6 +10,8 @@ namespace FFSS.Editor
     {
         private const string TitleScenePath =
             "Assets/Scenes/Production/Frontend/Production_Title.unity";
+        private const string OneDdaengScenePath =
+            "Assets/Scenes/Production/Battles/Combat_Ddaeng_01.unity";
 
         static ProductionPlayModeStartScene()
         {
@@ -47,6 +49,18 @@ namespace FFSS.Editor
             EnsureTitleStartScene();
             EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
             Debug.Log("Opened Production_Title as the active editor scene.");
+        }
+
+        [MenuItem("FFSS/Production/Open 1 Ddaeng Combat Scene")]
+        public static void OpenOneDdaengCombatScene()
+        {
+            SceneAsset scene = AssetDatabase.LoadAssetAtPath<SceneAsset>(OneDdaengScenePath);
+            if (scene == null)
+                throw new System.InvalidOperationException($"Production combat scene is missing: {OneDdaengScenePath}");
+
+            EnsureTitleStartScene();
+            EditorSceneManager.OpenScene(OneDdaengScenePath, OpenSceneMode.Single);
+            Debug.Log("Opened Combat_Ddaeng_01 as the active production combat scene.");
         }
     }
 }

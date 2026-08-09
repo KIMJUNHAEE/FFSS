@@ -70,36 +70,15 @@ namespace CardBattle.EditorTools
         private static readonly Vector2 StandardSkillDetailSize = new Vector2(780f, 438f);
         private static readonly Vector2 CompactEnemySkillDetailSize = new Vector2(430f, 500f);
 
-        [MenuItem("Card Battle/Setup/Run All (Content + Prefab + Scenes)")]
+        [MenuItem("Card Battle/Setup/Run All (Production Safe)")]
         public static void RunAll()
         {
-            CreateExampleContent();
-            BuildCardPrefab();
-            BuildPokerCardPrefab();
-            BuildBossCombatProfiles();
-            BuildBoss38CombatUiPrefabs();
-            BuildBattleScene38();
-            BuildBattleScene18();
-            BuildBattleScene13();
-            BuildBattleSceneAmhaengeosa();
-            BuildBattleSceneDdengjabi();
-            BuildBattleSceneMeonggusa();
-            BuildBattleSceneGusa();
-            BuildBattleSceneOneDdaeng();
-            BuildBattleSceneTwoDdaeng();
-            BuildBattleSceneThreeDdaeng();
-            BuildBattleSceneFourDdaeng();
-            BuildBattleSceneFiveDdaeng();
-            BuildBattleSceneSixDdaeng();
-            BuildBattleSceneSevenDdaeng();
-            BuildBattleSceneEightDdaeng();
-            BuildBattleSceneNineDdaeng();
-            BuildBattleSceneTenDdaeng();
-            BuildBootstrapScene();
-            RegisterScenesInBuildSettings();
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            Debug.Log("[CardBattleSetup] 완료: 예시 카드/적 데이터, Card 프리팹, Bootstrap과 전체 전투 씬 생성.");
+            // Production scenes are hand-adjustable assets. Rebuilding the legacy scenes here used to
+            // replace the active build list and made the preserved production layout appear to revert.
+            FFSS.Editor.ProductionBuildSettingsBuilder.Configure();
+            FFSS.Editor.ProductionPlayModeStartScene.EnsureTitleStartScene();
+            Debug.Log(
+                "[CardBattleSetup] Production-safe setup complete. Existing production prefabs and scene layouts were preserved.");
         }
 
         [MenuItem("Card Battle/Setup/1. Create Example Card And Enemy Data")]
