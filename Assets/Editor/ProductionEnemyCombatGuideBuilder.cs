@@ -136,28 +136,40 @@ namespace FFSS.Editor
                 SetAnchored(title.rectTransform, new Vector2(0.20f, 0.69f), new Vector2(0.80f, 0.81f));
                 title.fontStyle = FontStyles.Bold;
 
-                TextMeshProUGUI role = CreateText("Role", panel.transform, font, 21,
+                TextMeshProUGUI role = CreateText("Role", panel.transform, font, 19,
                     TextAlignmentOptions.Center, new Color32(239, 242, 248, 255));
-                SetAnchored(role.rectTransform, new Vector2(0.17f, 0.545f), new Vector2(0.83f, 0.655f));
+                SetAnchored(role.rectTransform, new Vector2(0.14f, 0.535f), new Vector2(0.86f, 0.665f));
+                role.enableAutoSizing = true;
+                role.fontSizeMin = 16f;
+                role.fontSizeMax = 19f;
 
-                TextMeshProUGUI gimmick = CreateText("Gimmick", panel.transform, font, 24,
+                TextMeshProUGUI gimmick = CreateText("Gimmick", panel.transform, font, 21,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(gimmick.rectTransform, new Vector2(0.10f, 0.42f), new Vector2(0.48f, 0.51f));
+                SetAnchored(gimmick.rectTransform, new Vector2(0.10f, 0.41f), new Vector2(0.48f, 0.515f));
+                gimmick.enableAutoSizing = true;
+                gimmick.fontSizeMin = 17f;
+                gimmick.fontSizeMax = 21f;
 
-                TextMeshProUGUI signature = CreateText("Signature", panel.transform, font, 22,
+                TextMeshProUGUI signature = CreateText("Signature", panel.transform, font, 19,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(signature.rectTransform, new Vector2(0.10f, 0.12f), new Vector2(0.48f, 0.405f));
+                SetAnchored(signature.rectTransform, new Vector2(0.10f, 0.085f), new Vector2(0.48f, 0.395f));
+                signature.enableAutoSizing = true;
+                signature.fontSizeMin = 15f;
+                signature.fontSizeMax = 19f;
 
-                TextMeshProUGUI counterplay = CreateText("Counterplay", panel.transform, font, 24,
+                TextMeshProUGUI counterplay = CreateText("Counterplay", panel.transform, font, 21,
                     TextAlignmentOptions.TopLeft, new Color32(239, 242, 248, 255));
-                SetAnchored(counterplay.rectTransform, new Vector2(0.52f, 0.40f), new Vector2(0.90f, 0.51f));
+                SetAnchored(counterplay.rectTransform, new Vector2(0.52f, 0.39f), new Vector2(0.90f, 0.515f));
+                counterplay.enableAutoSizing = true;
+                counterplay.fontSizeMin = 17f;
+                counterplay.fontSizeMax = 21f;
 
-                TextMeshProUGUI terms = CreateText("Terms", panel.transform, font, 21,
+                TextMeshProUGUI terms = CreateText("Terms", panel.transform, font, 18,
                     TextAlignmentOptions.TopLeft, new Color32(229, 235, 244, 255));
-                SetAnchored(terms.rectTransform, new Vector2(0.52f, 0.12f), new Vector2(0.90f, 0.39f));
+                SetAnchored(terms.rectTransform, new Vector2(0.52f, 0.085f), new Vector2(0.90f, 0.375f));
                 terms.enableAutoSizing = true;
-                terms.fontSizeMin = 18f;
-                terms.fontSizeMax = 21f;
+                terms.fontSizeMin = 14f;
+                terms.fontSizeMax = 18f;
 
                 Button closeButton = CreateButton("Close", panel.transform, buttonSprite,
                     new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-46f, -40f), new Vector2(62f, 56f));

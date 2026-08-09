@@ -15,6 +15,21 @@ namespace FFSS.Framework.Tests
 {
     public sealed class ProductionCombatSceneVisualQaTests
     {
+        private static readonly HashSet<string> RequiredSharedUiNames = new HashSet<string>
+        {
+            "PlayerHUD",
+            "EnemyHUD",
+            "EnemyIntentBadge",
+            "PokerTableV2",
+            "HwatuTableV2",
+            "AttackButton",
+            "DefendButton",
+            "SkillButton",
+            "RedrawButton",
+            "EndTurnButton",
+            "EnemyRuleMeter"
+        };
+
         private static readonly string[] SceneNames =
         {
             "Combat_Ddaeng_01",
@@ -87,7 +102,8 @@ namespace FFSS.Framework.Tests
                 {
                     if (!current.TryGetValue(pair.Key, out RectGeometry actual))
                     {
-                        failures.Add($"{sceneName}: shared UI {pair.Key} is missing");
+                        if (RequiredSharedUiNames.Contains(pair.Key))
+                            failures.Add($"{sceneName}: shared UI {pair.Key} is missing");
                         continue;
                     }
 
@@ -98,6 +114,44 @@ namespace FFSS.Framework.Tests
                             $"expected {pair.Value}, actual {actual}");
                     }
                 }
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator EveryProductionCombatSceneUsesReadablePokerAndSeotdaDeckSizes()
+        {
+            var failures = new List<string>();
+            for (int i = 0; i < SceneNames.Length; i++)
+            {
+                string sceneName = SceneNames[i];
+                SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+                yield return WaitFrames(3);
+
+                MonoBehaviour poker = SceneComponentsByTypeName(
+                    SceneManager.GetActiveScene(),
+                    "PokerHandController").FirstOrDefault();
+                MonoBehaviour seotda = SceneComponentsByTypeName(
+                    SceneManager.GetActiveScene(),
+                    "SeotdaTableController").FirstOrDefault();
+                RectTransform pokerHand = ReadField<RectTransform>(poker, "handContainer");
+                RectTransform pokerDeck = ReadField<RectTransform>(poker, "deckPileTransform");
+                RectTransform seotdaDeck = ReadField<RectTransform>(seotda, "drawOrigin");
+                if (pokerHand == null || pokerDeck == null || seotdaDeck == null)
+                {
+                    failures.Add($"{sceneName}: card presentation references are incomplete");
+                    continue;
+                }
+
+                ExpectVector(sceneName, "Poker hand scale", pokerHand.localScale,
+                    new Vector3(1.25f, 1.25f, 1f), failures);
+                ExpectVector(sceneName, "Poker hand position", pokerHand.anchoredPosition,
+                    new Vector2(-145f, 0f), failures);
+                ExpectVector(sceneName, "Poker deck size", pokerDeck.sizeDelta,
+                    new Vector2(114f, 164f), failures);
+                ExpectVector(sceneName, "Seotda deck size", seotdaDeck.sizeDelta,
+                    new Vector2(114f, 183f), failures);
             }
 
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
@@ -133,12 +187,13 @@ namespace FFSS.Framework.Tests
                 GameObject modal = ReadField<GameObject>(guide, "modalRoot");
                 TMP_Text buttonLabel = ReadField<TMP_Text>(guide, "buttonLabel");
                 TMP_Text title = ReadField<TMP_Text>(guide, "titleText");
+                TMP_Text role = ReadField<TMP_Text>(guide, "roleText");
                 TMP_Text gimmick = ReadField<TMP_Text>(guide, "gimmickText");
                 TMP_Text signature = ReadField<TMP_Text>(guide, "signatureText");
                 TMP_Text counterplay = ReadField<TMP_Text>(guide, "counterplayText");
                 TMP_Text terms = ReadField<TMP_Text>(guide, "termsText");
                 if (openButton == null || closeButton == null || modal == null ||
-                    buttonLabel == null || title == null || gimmick == null ||
+                    buttonLabel == null || title == null || role == null || gimmick == null ||
                     signature == null || counterplay == null || terms == null)
                 {
                     failures.Add($"{sceneName}: enemy guide prefab references are incomplete");
@@ -147,6 +202,12 @@ namespace FFSS.Framework.Tests
 
                 if (buttonLabel.text != "적 정보")
                     failures.Add($"{sceneName}: left guide button label is '{buttonLabel.text}'");
+                Text enemyHudTitle = SceneComponents<Text>(SceneManager.GetActiveScene())
+                    .FirstOrDefault(text => text.name == "TitleText");
+                if (enemyHudTitle != null && enemyHudTitle.text.Contains("약점"))
+                    failures.Add($"{sceneName}: enemy HUD title still contains weakness text");
+                if (!role.text.Contains("약점") || !terms.text.Contains("약점"))
+                    failures.Add($"{sceneName}: enemy guide does not explain the serialized weakness");
                 if (modal.activeSelf)
                     failures.Add($"{sceneName}: enemy guide should begin closed");
 
@@ -246,7 +307,9 @@ namespace FFSS.Framework.Tests
                 "RedrawButton",
                 "EndTurnButton",
                 "PokerTableV2",
-                "HwatuTableV2"
+                "HwatuTableV2",
+                "CardHoverPreview",
+                "WeaknessEffectPanel"
             };
             for (int i = 0; i < names.Length; i++)
             {
@@ -264,13 +327,37 @@ namespace FFSS.Framework.Tests
                 AddReferencedRootGeometry(result, "EnemyHUD", ReadField<Component>(combats[0], "enemyHpText"));
                 AddReferencedRootGeometry(result, "EnemyIntentBadge", ReadField<Component>(combats[0], "enemyActionText"));
                 AddReferencedRootGeometry(result, "PokerTableV2", ReadField<Component>(combats[0], "pokerHand"));
+                AddReferencedRootGeometry(result, "PlayerSkillDetail", ReadField<GameObject>(combats[0], "playerSkillDetailRoot"));
+
+                MonoBehaviour poker = ReadField<MonoBehaviour>(combats[0], "pokerHand");
+                if (poker != null)
+                {
+                    AddDirectGeometry(result, "PokerHandPanel", ReadField<RectTransform>(poker, "handContainer"));
+                    AddDirectGeometry(result, "PokerDeckPile", ReadField<RectTransform>(poker, "deckPileTransform"));
+                }
             }
 
             MonoBehaviour[] seotdaTables = SceneComponentsByTypeName(
                 SceneManager.GetActiveScene(),
                 "SeotdaTableController");
             if (seotdaTables.Length == 1)
+            {
                 AddReferencedRootGeometry(result, "HwatuTableV2", seotdaTables[0]);
+                AddDirectGeometry(
+                    result,
+                    "SeotdaDeckPile",
+                    ReadField<RectTransform>(seotdaTables[0], "drawOrigin"));
+            }
+
+            MonoBehaviour[] guides = SceneComponentsByTypeName(
+                SceneManager.GetActiveScene(),
+                "EnemyCombatGuideView");
+            if (guides.Length == 1)
+            {
+                AddReferencedRootGeometry(result, "EnemyCombatGuide", guides[0]);
+                AddNamedChildGeometry(result, "EnemyCombatGuideOpenButton", guides[0].transform, "OpenEnemyGuide");
+                AddNamedChildGeometry(result, "EnemyCombatGuidePanel", guides[0].transform, "GuidePanel");
+            }
 
             MonoBehaviour[] meters = SceneComponentsByTypeName(
                 SceneManager.GetActiveScene(),
@@ -291,6 +378,46 @@ namespace FFSS.Framework.Tests
                 rect => rect.GetComponentInParent<Canvas>() != null && rect.GetComponent<Canvas>() == null);
             if (root != null)
                 result[key] = new RectGeometry(root);
+        }
+
+        private static void AddReferencedRootGeometry(
+            IDictionary<string, RectGeometry> result,
+            string key,
+            GameObject gameObject)
+        {
+            if (gameObject != null)
+                AddReferencedRootGeometry(result, key, gameObject.transform);
+        }
+
+        private static void AddDirectGeometry(
+            IDictionary<string, RectGeometry> result,
+            string key,
+            RectTransform rect)
+        {
+            if (rect != null)
+                result[key] = new RectGeometry(rect);
+        }
+
+        private static void AddNamedChildGeometry(
+            IDictionary<string, RectGeometry> result,
+            string key,
+            Transform root,
+            string objectName)
+        {
+            RectTransform rect = root.GetComponentsInChildren<RectTransform>(true)
+                .FirstOrDefault(item => item.name == objectName);
+            AddDirectGeometry(result, key, rect);
+        }
+
+        private static void ExpectVector(
+            string sceneName,
+            string label,
+            Vector3 actual,
+            Vector3 expected,
+            ICollection<string> failures)
+        {
+            if (Vector3.Distance(actual, expected) > 0.05f)
+                failures.Add($"{sceneName}: {label} expected {expected}, actual {actual}");
         }
 
         private static RectTransform FindNamedRect(string objectName)
@@ -435,6 +562,9 @@ namespace FFSS.Framework.Tests
 
         private static T ReadField<T>(object target, string fieldName) where T : class
         {
+            if (target == null)
+                return null;
+
             return target.GetType()
                 .GetField(fieldName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                 ?.GetValue(target) as T;

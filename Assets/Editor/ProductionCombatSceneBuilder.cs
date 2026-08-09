@@ -26,6 +26,10 @@ namespace FFSS.Editor
         private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
+        private static readonly Vector2 PokerDeckPresentationSize = new(114f, 164f);
+        private static readonly Vector2 SeotdaDeckPresentationSize = new(114f, 183f);
+        private static readonly Vector3 PokerHandPresentationScale = new(1.25f, 1.25f, 1f);
+        private static readonly Vector2 PokerHandPresentationPosition = new(-145f, 0f);
 
         private readonly struct BattleSeed
         {
@@ -218,6 +222,9 @@ namespace FFSS.Editor
             try
             {
                 Scene referenceScene = EditorSceneManager.OpenScene(referencePath, OpenSceneMode.Single);
+                MoveWeaknessToEnemyInfo(referenceScene);
+                ApplyReadableCardPresentation(referenceScene);
+                EditorSceneManager.SaveScene(referenceScene);
                 IReadOnlyDictionary<string, RectLayoutSnapshot> reference = CaptureSharedCombatLayouts(referenceScene);
 
                 for (int i = 0; i < Seeds.Count; i++)
@@ -228,6 +235,7 @@ namespace FFSS.Editor
 
                     string scenePath = $"Assets/Scenes/{ProductionRelativeRoot}/{seed.SceneName}.unity";
                     Scene targetScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                    MoveWeaknessToEnemyInfo(targetScene);
                     ApplySharedCombatLayouts(targetScene, reference);
                     EditorSceneManager.SaveScene(targetScene);
                 }
@@ -293,7 +301,10 @@ namespace FFSS.Editor
             foreach (KeyValuePair<string, RectLayoutSnapshot> pair in reference)
             {
                 if (!targets.TryGetValue(pair.Key, out RectTransform target))
-                    throw new InvalidOperationException($"{scene.path}: shared combat UI '{pair.Key}' is missing.");
+                {
+                    Debug.LogWarning($"{scene.path}: optional combat UI '{pair.Key}' is missing; layout was skipped.");
+                    continue;
+                }
                 pair.Value.Apply(target);
             }
 
@@ -324,14 +335,112 @@ namespace FFSS.Editor
                 ["DefendButton"] = RequireButtonRoot(combat.defendButton, scene, "DefendButton"),
                 ["SkillButton"] = RequireButtonRoot(combat.skillButton, scene, "SkillButton"),
                 ["RedrawButton"] = RequireButtonRoot(combat.redrawButton, scene, "RedrawButton"),
-                ["EndTurnButton"] = RequireButtonRoot(combat.endTurnButton, scene, "EndTurnButton")
+                ["EndTurnButton"] = RequireButtonRoot(combat.endTurnButton, scene, "EndTurnButton"),
+                ["PokerHandPanel"] = RequireRect(
+                    combat.pokerHand != null ? combat.pokerHand.handContainer : null,
+                    scene,
+                    "PokerHandPanel"),
+                ["PokerDeckPile"] = RequireRect(
+                    combat.pokerHand != null ? combat.pokerHand.deckPileTransform : null,
+                    scene,
+                    "PokerDeckPile"),
+                ["SeotdaDeckPile"] = RequireRect(
+                    seotda != null ? seotda.drawOrigin : null,
+                    scene,
+                    "SeotdaDeckPile")
             };
+
+            AddOptionalRoot(result, "PlayerSkillDetail", combat.playerSkillDetailRoot);
+            AddOptionalRoot(result, "BattleIntro", combat.battleIntro);
+            AddOptionalRoot(result, "TurnBanner", combat.turnBanner);
+            AddOptionalRoot(result, "CombatImpact", combat.combatImpactView);
+            AddOptionalRoot(result, "BattleResult", combat.battleResultView);
+            AddOptionalRoot(result, "CombatReadout", combat.combatReadout);
+            AddOptionalRoot(result, "WeaknessEffect", combat.weaknessEffectPanel);
+            AddOptionalRoot(result, "EnemyIntentTooltip", combat.enemyIntentTooltip);
+
+            EnemyCombatGuideView guide = FindInScene<EnemyCombatGuideView>(scene);
+            AddOptionalRoot(result, "EnemyCombatGuide", guide);
+            if (guide != null)
+            {
+                AddNamedChildRect(result, "EnemyCombatGuideOpenButton", guide.transform, "OpenEnemyGuide");
+                AddNamedChildRect(result, "EnemyCombatGuidePanel", guide.transform, "GuidePanel");
+            }
+            CardHoverPreview hoverPreview = FindInScene<CardHoverPreview>(scene);
+            AddOptionalRoot(result, "CardHoverPreview", hoverPreview);
 
             EnemyRuleMeterView meter = FindInScene<EnemyRuleMeterView>(scene);
             if (meter == null || meter.transform is not RectTransform meterRect)
                 throw new InvalidOperationException($"{scene.path}: EnemyRuleMeterView is missing.");
             result["EnemyRuleMeter"] = meterRect;
             return result;
+        }
+
+        private static RectTransform RequireRect(RectTransform rect, Scene scene, string objectName)
+        {
+            if (rect == null)
+                throw new InvalidOperationException($"{scene.path}: RectTransform '{objectName}' is missing.");
+            return rect;
+        }
+
+        private static void AddOptionalRoot(
+            IDictionary<string, RectTransform> result,
+            string key,
+            Component component)
+        {
+            if (component != null)
+                AddOptionalRoot(result, key, component.gameObject);
+        }
+
+        private static void AddOptionalRoot(
+            IDictionary<string, RectTransform> result,
+            string key,
+            GameObject gameObject)
+        {
+            if (gameObject == null)
+                return;
+
+            GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(gameObject) ?? gameObject;
+            if (root.transform is RectTransform rect)
+                result[key] = rect;
+        }
+
+        private static void AddNamedChildRect(
+            IDictionary<string, RectTransform> result,
+            string key,
+            Transform root,
+            string objectName)
+        {
+            RectTransform[] rects = root.GetComponentsInChildren<RectTransform>(true);
+            for (int i = 0; i < rects.Length; i++)
+            {
+                if (rects[i].name != objectName)
+                    continue;
+                result[key] = rects[i];
+                return;
+            }
+        }
+
+        private static void ApplyReadableCardPresentation(Scene scene)
+        {
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            SeotdaTableController seotda = FindInScene<SeotdaTableController>(scene);
+            if (combat == null || combat.pokerHand == null || combat.pokerHand.handContainer == null ||
+                combat.pokerHand.deckPileTransform == null || seotda == null || seotda.drawOrigin == null)
+            {
+                throw new InvalidOperationException($"{scene.path}: card presentation references are incomplete.");
+            }
+
+            RectTransform hand = combat.pokerHand.handContainer;
+            hand.localScale = PokerHandPresentationScale;
+            hand.anchoredPosition = PokerHandPresentationPosition;
+            combat.pokerHand.deckPileTransform.sizeDelta = PokerDeckPresentationSize;
+            seotda.drawOrigin.sizeDelta = SeotdaDeckPresentationSize;
+
+            EditorUtility.SetDirty(hand);
+            EditorUtility.SetDirty(combat.pokerHand.deckPileTransform);
+            EditorUtility.SetDirty(seotda.drawOrigin);
+            EditorSceneManager.MarkSceneDirty(scene);
         }
 
         private static RectTransform RequirePrefabRoot(
@@ -527,8 +636,8 @@ namespace FFSS.Editor
             meterView.Bind(encounter, null);
 
             EnsureCardHoverPreview(canvas, combat);
-            EnsureWeaknessSubtitle(canvas, seed.Weakness);
             ProductionEnemyCombatGuideBuilder.EnsureInScene(scene, canvas, encounter);
+            MoveWeaknessToEnemyInfo(scene);
 
             LegacyCombatFeedbackBridge feedback = combat.GetComponent<LegacyCombatFeedbackBridge>();
             if (feedback == null)
@@ -729,29 +838,47 @@ namespace FFSS.Editor
                 card.gameObject.AddComponent<CardHoverSource>();
         }
 
-        private static void EnsureWeaknessSubtitle(Canvas canvas, CardSuit weakness)
+        private static void MoveWeaknessToEnemyInfo(Scene scene)
         {
+            Canvas canvas = FindInScene<Canvas>(scene);
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            if (canvas == null || combat == null)
+                return;
+
             GameObject[] sceneRoots = canvas.gameObject.scene.GetRootGameObjects();
             for (int rootIndex = 0; rootIndex < sceneRoots.Length; rootIndex++)
             {
                 Transform[] transforms = sceneRoots[rootIndex].GetComponentsInChildren<Transform>(true);
                 for (int childIndex = transforms.Length - 1; childIndex >= 0; childIndex--)
                 {
-                    if (transforms[childIndex].name == "EnemyWeaknessText")
+                    if (transforms[childIndex].name is "EnemyWeaknessText" or "EnemyWeaknessSubtitle")
                         UnityEngine.Object.DestroyImmediate(transforms[childIndex].gameObject);
                 }
             }
 
             Transform enemyHud = canvas.transform.Find("EnemyHUD");
             Text title = FindNamedComponent<Text>(enemyHud, "TitleText");
-            if (title == null)
-                return;
+            if (title != null)
+            {
+                string baseTitle = title.text ?? string.Empty;
+                int weaknessIndex = baseTitle.IndexOf("약점", System.StringComparison.Ordinal);
+                if (weaknessIndex >= 0)
+                {
+                    int separator = baseTitle.LastIndexOf('·', weaknessIndex);
+                    int cutIndex = separator >= 0 ? separator : weaknessIndex;
+                    title.text = baseTitle.Substring(0, cutIndex).TrimEnd();
+                    EditorUtility.SetDirty(title);
+                }
+            }
 
-            string baseTitle = title.text;
-            int separator = baseTitle.IndexOf("  ·  약점", System.StringComparison.Ordinal);
-            if (separator >= 0)
-                baseTitle = baseTitle.Substring(0, separator);
-            title.text = $"{baseTitle}  ·  약점 {weakness.ToSymbol()}";
+            EnemyCombatGuideView guide = FindInScene<EnemyCombatGuideView>(scene);
+            if (guide != null)
+            {
+                guide.ConfigureWeakness(combat.enemyWeakness);
+                EditorUtility.SetDirty(guide);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
         }
 
         private static T FindNamedComponent<T>(Transform root, string objectName) where T : Component

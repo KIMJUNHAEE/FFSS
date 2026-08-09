@@ -25,8 +25,10 @@ namespace CardBattle
 
         [Header("Scene preview")]
         [SerializeField] private EnemyEncounterDefinition previewEncounter;
+        [SerializeField] private CardSuit previewWeakness = CardSuit.None;
 
         public EnemyEncounterDefinition PreviewEncounter => previewEncounter;
+        public CardSuit PreviewWeakness => previewWeakness;
         public bool IsOpen => modalRoot != null && modalRoot.activeSelf;
 
         private void Awake()
@@ -60,6 +62,12 @@ namespace CardBattle
             Bind(encounter);
         }
 
+        public void ConfigureWeakness(CardSuit weakness)
+        {
+            previewWeakness = weakness;
+            Bind(previewEncounter);
+        }
+
         public void Bind(EnemyEncounterDefinition encounter)
         {
             if (encounter == null)
@@ -71,13 +79,15 @@ namespace CardBattle
 
             SetText(buttonLabel, "적 정보");
             SetText(titleText, $"{enemyName} 전투 정보");
-            SetText(roleText, InlineSection("역할", Fallback(guide.role, RankLabel(encounter.rank))));
+            SetText(roleText,
+                InlineSection("역할", Fallback(guide.role, RankLabel(encounter.rank))) +
+                WeaknessDescription(previewWeakness));
             SetText(gimmickText, Section(
                 string.IsNullOrWhiteSpace(encounter.ruleMeter?.displayName) ? "고유 기믹" : encounter.ruleMeter.displayName,
                 Fallback(guide.gimmick, encounter.ruleMeter?.description)));
             SetText(signatureText, Section("전용패", SignatureDescription(encounter)));
             SetText(counterplayText, Section("대응법", Fallback(guide.counterplay, "적의 예고와 수치를 확인하고 공격·방어·다시뽑기를 선택해.")));
-            SetText(termsText, BuildTermText(encounter, guide));
+            SetText(termsText, BuildTermText(encounter, guide, previewWeakness));
         }
 
         public void Toggle()
@@ -139,11 +149,16 @@ namespace CardBattle
             return number <= 8 ? 2 : 3;
         }
 
-        private static string BuildTermText(EnemyEncounterDefinition encounter, EnemyPlayerGuideDefinition guide)
+        private static string BuildTermText(
+            EnemyEncounterDefinition encounter,
+            EnemyPlayerGuideDefinition guide,
+            CardSuit weakness)
         {
             var terms = new List<string>();
             AddUnique(terms, "전용패");
             AddUnique(terms, "격파");
+            if (weakness != CardSuit.None)
+                AddUnique(terms, "약점");
             AddUnique(terms, encounter.ruleMeter?.displayName);
             if (guide.relatedTerms != null)
             {
@@ -175,6 +190,14 @@ namespace CardBattle
                     builder.Append('\n');
             }
             return builder.ToString();
+        }
+
+        private static string WeaknessDescription(CardSuit weakness)
+        {
+            if (weakness == CardSuit.None)
+                return string.Empty;
+
+            return $"\n<color=#FFD96A><b>약점</b></color>  {weakness.ToSymbol()} 문양";
         }
 
         private static void AddUnique(List<string> terms, string term)
