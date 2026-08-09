@@ -15,6 +15,7 @@ namespace CardBattle.Exploration
         public RunFieldContentType contentType = RunFieldContentType.Event;
         [Min(1)] public int variant = 1;
         public string displayName;
+        public GameObject visualPrefab;
         public Sprite sprite;
         [Min(0.25f)] public float targetHeight = 3.2f;
         public Vector2 localOffset;
@@ -424,13 +425,13 @@ namespace CardBattle.Exploration
                 marker.hideFlags = HideFlags.DontSave;
 
             FieldEncounterMarkerView view = marker.GetComponent<FieldEncounterMarkerView>();
-            FieldLandmarkVisualDefinition landmark = planned.type == RunFieldContentType.Supply
-                ? FindSupplyLandmark(GetCurrentAct(), planned.variant)
-                : FindLandmark(GetCurrentAct(), planned.type, planned.variant);
-            if (landmark?.sprite != null)
+            FieldLandmarkVisualDefinition landmark = FindLandmark(
+                GetCurrentAct(), planned.type, planned.variant);
+            Sprite landmarkSprite = ResolveLandmarkSprite(landmark);
+            if (landmarkSprite != null)
             {
                 view?.ConfigureLandmark(
-                    landmark.sprite,
+                    landmarkSprite,
                     landmark.displayName,
                     landmark.targetHeight,
                     landmark.localOffset);
@@ -489,7 +490,8 @@ namespace CardBattle.Exploration
             {
                 FieldLandmarkVisualDefinition visual = landmarkVisuals[i];
                 if (visual != null && visual.act == act &&
-                    visual.contentType == RunFieldContentType.Road && visual.sprite != null)
+                    visual.contentType == RunFieldContentType.Road &&
+                    ResolveLandmarkSprite(visual) != null)
                 {
                     landmarks.Add(visual);
                 }
@@ -549,7 +551,7 @@ namespace CardBattle.Exploration
                     marker.hideFlags = HideFlags.DontSave;
 
                 marker.GetComponent<FieldEncounterMarkerView>()?.ConfigureLandmark(
-                    landmark.sprite,
+                    ResolveLandmarkSprite(landmark),
                     landmark.displayName,
                     landmark.targetHeight,
                     landmark.localOffset);
@@ -761,19 +763,19 @@ namespace CardBattle.Exploration
             return fallback;
         }
 
-        private FieldLandmarkVisualDefinition FindSupplyLandmark(int act, int variant)
+        private static Sprite ResolveLandmarkSprite(FieldLandmarkVisualDefinition landmark)
         {
-            (RunFieldContentType type, int sourceVariant) source = act switch
+            if (landmark == null)
+                return null;
+
+            if (landmark.visualPrefab != null)
             {
-                1 when variant <= 1 => (RunFieldContentType.Road, 2),
-                1 => (RunFieldContentType.Event, 1),
-                2 when variant <= 1 => (RunFieldContentType.Road, 1),
-                2 => (RunFieldContentType.Road, 2),
-                3 when variant <= 1 => (RunFieldContentType.Event, 1),
-                3 when variant == 2 => (RunFieldContentType.Event, 4),
-                _ => (RunFieldContentType.Event, 5)
-            };
-            return FindLandmark(act, source.type, source.sourceVariant);
+                SpriteRenderer renderer = landmark.visualPrefab.GetComponentInChildren<SpriteRenderer>(true);
+                if (renderer != null && renderer.sprite != null)
+                    return renderer.sprite;
+            }
+
+            return landmark.sprite;
         }
 
         private int GetCurrentAct()

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using CardBattle.Exploration;
+using FFSS.Framework.Run;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -14,17 +15,23 @@ namespace CardBattle.Editor
     {
         private const string ScenePath = "Assets/Scenes/Production/Field/Production_Field.unity";
         private const string TileRoot = "Assets/Resources/ClockworkTimekeeper/HexTiles/FieldV6";
-        private const string BuildingRoot = "Assets/Art/Production/Field/BuildingsV6";
+        private const string AmbientBuildingRoot = "Assets/Art/Production/Field/BuildingsV6";
+        private const string SituationBuildingRoot = "Assets/Art/Production/Field/SituationBuildingsV7";
+        private const string SpecialLandmarkRoot = "Assets/Art/Production/Field/SpecialLandmarksV6";
+        private const string EventPropRoot = "Assets/Art/Production/Field/EventProps";
         private const string SettingsRoot = "Assets/Settings/FieldAtmosphere";
         private const string PrefabRoot = "Assets/Prefabs/Production/Field/Atmosphere";
+        private const string SituationPrefabRoot = "Assets/Prefabs/Production/Field/SituationBuildings";
         private const string GlobalPrefabPath = PrefabRoot + "/FieldAtmosphere.prefab";
 
-        [MenuItem("Card Battle/Setup/Configure Production Field V6 + Atmosphere")]
+        [MenuItem("Card Battle/Setup/Configure Production Field V7 Situation Buildings + Atmosphere")]
         public static void Configure()
         {
             EnsureFolder(SettingsRoot);
             EnsureFolder(PrefabRoot);
+            EnsureFolder(SituationPrefabRoot);
             ConfigureTextureImporters();
+            CreateSituationBuildingPrefabs();
 
             VolumeProfile actOne = CreateActProfile(
                 SettingsRoot + "/FieldAct1Volume.asset",
@@ -64,7 +71,7 @@ namespace CardBattle.Editor
             ConfigureScene(actOne);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("FFSS production field V6 artwork and atmosphere configured.");
+            Debug.Log("FFSS production field V7 situation buildings and atmosphere configured.");
         }
 
         public static void ConfigureFromCommandLine()
@@ -95,7 +102,9 @@ namespace CardBattle.Editor
                 importer.SaveAndReimport();
             }
 
-            string[] buildingGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { BuildingRoot });
+            string[] buildingGuids = AssetDatabase.FindAssets(
+                "t:Texture2D",
+                new[] { AmbientBuildingRoot, SituationBuildingRoot, SpecialLandmarkRoot, EventPropRoot });
             foreach (string guid in buildingGuids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -114,6 +123,47 @@ namespace CardBattle.Editor
                 importer.maxTextureSize = 1024;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.SaveAndReimport();
+            }
+        }
+
+        private static void CreateSituationBuildingPrefabs()
+        {
+            for (int index = 1; index <= 18; index++)
+            {
+                CreateVisualPrefab(
+                    SituationBuildingPath(index),
+                    SituationPrefabPath(false, index),
+                    $"Situation Building V7 {index:D2}");
+            }
+
+            foreach (int index in new[] { 4, 6, 7, 9, 10, 11, 12, 14, 18 })
+            {
+                CreateVisualPrefab(
+                    SpecialLandmarkPath(index),
+                    SituationPrefabPath(true, index),
+                    $"Special Landmark V6 {index:D2}");
+            }
+        }
+
+        private static void CreateVisualPrefab(string spritePath, string prefabPath, string objectName)
+        {
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+            if (sprite == null)
+                throw new InvalidOperationException($"Situation building sprite is missing: {spritePath}");
+
+            var root = new GameObject(objectName);
+            try
+            {
+                SpriteRenderer renderer = root.AddComponent<SpriteRenderer>();
+                renderer.sprite = sprite;
+                renderer.color = Color.white;
+                renderer.sortingOrder = 4;
+                renderer.allowOcclusionWhenDynamic = false;
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
             }
         }
 
@@ -293,6 +343,12 @@ namespace CardBattle.Editor
             try
             {
                 Transform existing = root.transform.Find("Danger Atmosphere");
+                if (existing != null &&
+                    PrefabUtility.GetCorrespondingObjectFromSource(existing.gameObject) == dangerPrefab)
+                {
+                    return;
+                }
+
                 if (existing != null)
                     UnityEngine.Object.DestroyImmediate(existing.gameObject);
 
@@ -313,13 +369,20 @@ namespace CardBattle.Editor
         {
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            GameObject existing = GameObject.Find("Field Atmosphere");
-            if (existing != null)
-                UnityEngine.Object.DestroyImmediate(existing);
-
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GlobalPrefabPath);
-            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-            instance.name = "Field Atmosphere";
+            FieldActAtmosphere atmosphere = UnityEngine.Object
+                .FindFirstObjectByType<FieldActAtmosphere>();
+            GameObject instance;
+            if (atmosphere != null)
+            {
+                instance = atmosphere.gameObject;
+            }
+            else
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GlobalPrefabPath);
+                instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+                instance.name = "Field Atmosphere";
+                atmosphere = instance.GetComponent<FieldActAtmosphere>();
+            }
 
             Camera camera = Camera.main;
             GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
@@ -332,7 +395,6 @@ namespace CardBattle.Editor
                     : camera?.transform;
             GameObject keyLightObject = GameObject.Find("Key Light");
             Light keyLight = keyLightObject != null ? keyLightObject.GetComponent<Light>() : null;
-            FieldActAtmosphere atmosphere = instance.GetComponent<FieldActAtmosphere>();
             var atmosphereSerialized = new SerializedObject(atmosphere);
             atmosphereSerialized.FindProperty("globalVolume").objectReferenceValue =
                 instance.GetComponentInChildren<Volume>();
@@ -395,51 +457,260 @@ namespace CardBattle.Editor
         {
             var serialized = new SerializedObject(distributor);
             SerializedProperty landmarks = serialized.FindProperty("landmarkVisuals");
+            EnsureSituationDefinitions(landmarks);
             for (int i = 0; i < landmarks.arraySize; i++)
             {
                 SerializedProperty landmark = landmarks.GetArrayElementAtIndex(i);
                 int act = landmark.FindPropertyRelative("act").intValue;
-                int contentType = landmark.FindPropertyRelative("contentType").enumValueIndex;
+                var contentType = (RunFieldContentType)landmark
+                    .FindPropertyRelative("contentType").enumValueIndex;
                 int variant = landmark.FindPropertyRelative("variant").intValue;
-                int buildingIndex = ResolveBuildingIndex(act, contentType, variant);
-                if (buildingIndex <= 0)
+                LandmarkArtwork artwork = ResolveLandmarkArtwork(act, contentType, variant);
+                if (string.IsNullOrWhiteSpace(artwork.spritePath))
                     continue;
 
-                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                    $"{BuildingRoot}/field_building_v6_{buildingIndex:D2}.png");
-                if (sprite != null)
-                    landmark.FindPropertyRelative("sprite").objectReferenceValue = sprite;
+                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(artwork.spritePath);
+                if (sprite == null)
+                    throw new InvalidOperationException($"Mapped field artwork is missing: {artwork.spritePath}");
+
+                GameObject visualPrefab = string.IsNullOrWhiteSpace(artwork.prefabPath)
+                    ? null
+                    : AssetDatabase.LoadAssetAtPath<GameObject>(artwork.prefabPath);
+                landmark.FindPropertyRelative("displayName").stringValue = artwork.displayName;
+                landmark.FindPropertyRelative("visualPrefab").objectReferenceValue = visualPrefab;
+                landmark.FindPropertyRelative("sprite").objectReferenceValue = sprite;
+                landmark.FindPropertyRelative("targetHeight").floatValue = artwork.targetHeight;
+                landmark.FindPropertyRelative("localOffset").vector2Value = Vector2.zero;
             }
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static int ResolveBuildingIndex(int act, int contentType, int variant)
+        private static void EnsureSituationDefinitions(SerializedProperty landmarks)
         {
+            for (int act = 1; act <= 3; act++)
+            {
+                EnsureDefinitions(landmarks, act, RunFieldContentType.Road, 2);
+                EnsureDefinitions(landmarks, act, RunFieldContentType.Combat, act switch
+                {
+                    1 => 5,
+                    2 => 6,
+                    _ => 7
+                });
+                EnsureDefinitions(landmarks, act, RunFieldContentType.Event, act switch
+                {
+                    1 => 3,
+                    2 => 4,
+                    _ => 5
+                });
+                EnsureDefinitions(landmarks, act, RunFieldContentType.Shop, act == 1 ? 1 : 2);
+                EnsureDefinitions(landmarks, act, RunFieldContentType.Supply, act switch
+                {
+                    1 => 2,
+                    2 => 2,
+                    _ => 3
+                });
+                EnsureDefinitions(landmarks, act, RunFieldContentType.MidBoss, 1);
+                EnsureDefinitions(landmarks, act, RunFieldContentType.BossDoor, 1);
+            }
+        }
+
+        private static void EnsureDefinitions(
+            SerializedProperty landmarks,
+            int act,
+            RunFieldContentType contentType,
+            int count)
+        {
+            for (int variant = 1; variant <= count; variant++)
+            {
+                bool exists = false;
+                for (int i = 0; i < landmarks.arraySize; i++)
+                {
+                    SerializedProperty candidate = landmarks.GetArrayElementAtIndex(i);
+                    if (candidate.FindPropertyRelative("act").intValue == act &&
+                        candidate.FindPropertyRelative("contentType").enumValueIndex == (int)contentType &&
+                        candidate.FindPropertyRelative("variant").intValue == variant)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists)
+                    continue;
+
+                int index = landmarks.arraySize;
+                landmarks.InsertArrayElementAtIndex(index);
+                SerializedProperty added = landmarks.GetArrayElementAtIndex(index);
+                added.FindPropertyRelative("act").intValue = act;
+                added.FindPropertyRelative("contentType").enumValueIndex = (int)contentType;
+                added.FindPropertyRelative("variant").intValue = variant;
+                added.FindPropertyRelative("displayName").stringValue = string.Empty;
+                added.FindPropertyRelative("visualPrefab").objectReferenceValue = null;
+                added.FindPropertyRelative("sprite").objectReferenceValue = null;
+                added.FindPropertyRelative("targetHeight").floatValue = 3.2f;
+                added.FindPropertyRelative("localOffset").vector2Value = Vector2.zero;
+            }
+        }
+
+        private static LandmarkArtwork ResolveLandmarkArtwork(
+            int act,
+            RunFieldContentType contentType,
+            int variant)
+        {
+            int safeVariant = Mathf.Max(1, variant);
             return contentType switch
             {
-                0 => act switch
+                RunFieldContentType.Road => act switch
                 {
-                    1 => variant % 2 == 0 ? 4 : 1,
-                    2 => variant % 2 == 0 ? 9 : 8,
-                    _ => variant % 2 == 0 ? 12 : 7
+                    1 => Situation(safeVariant % 2 == 0 ? 2 : 1,
+                        safeVariant % 2 == 0 ? "장터 약방" : "북문 진입문", 3.45f),
+                    2 => Situation(safeVariant % 2 == 0 ? 9 : 7,
+                        safeVariant % 2 == 0 ? "관아 창고" : "수로 진료소", 3.45f),
+                    _ => Situation(safeVariant % 2 == 0 ? 16 : 15,
+                        safeVariant % 2 == 0 ? "마지막 주막" : "폐궁 사당 쉼터", 3.45f)
                 },
-                1 => act switch
+                RunFieldContentType.Combat => act switch
                 {
-                    1 => new[] { 2, 3, 5, 6 }[Mathf.Abs(variant - 1) % 4],
-                    2 => new[] { 8, 5, 9, 10 }[Mathf.Abs(variant - 1) % 4],
-                    _ => new[] { 10, 11, 7, 12 }[Mathf.Abs(variant - 1) % 4]
+                    1 => Situation(5, "추격 마당 전투문", 3.45f),
+                    2 => safeVariant % 2 == 0
+                        ? Situation(9, "관아 창고 전투동", 3.4f)
+                        : Situation(11, "수로 찻집 전투동", 3.4f),
+                    _ => safeVariant % 2 == 0
+                        ? Situation(14, "검은 관아 전투동", 3.5f)
+                        : Situation(13, "붉은 궁문 전투동", 3.55f)
                 },
-                3 => act switch
+                RunFieldContentType.Event => ResolveEventArtwork(act, safeVariant),
+                RunFieldContentType.Shop => act switch
                 {
-                    1 => 6,
-                    2 => variant % 2 == 0 ? 5 : 4,
-                    _ => 6
+                    1 => Situation(3, "장터 상인 천막", 3.15f),
+                    2 => safeVariant % 2 == 0
+                        ? Special(10, "금속 공방", 3.35f)
+                        : Situation(8, "홍싸리 대장간", 3.35f),
+                    _ => safeVariant % 2 == 0
+                        ? Situation(17, "최종 상점 회랑", 3.25f)
+                        : Situation(16, "마지막 주막", 3.35f)
                 },
-                5 => 11,
-                6 => act == 3 ? 12 : 11,
-                _ => 0
+                RunFieldContentType.Supply => act switch
+                {
+                    1 => safeVariant % 2 == 0
+                        ? Situation(4, "우물 보급소", 3.15f)
+                        : Situation(2, "장터 약방 보급소", 3.3f),
+                    2 => safeVariant % 2 == 0
+                        ? Situation(10, "배수구 보급소", 3.2f)
+                        : Special(11, "수로 치료소", 3.3f),
+                    _ => safeVariant switch
+                    {
+                        1 => Situation(15, "폐궁 사당 보급소", 3.3f),
+                        2 => Situation(16, "마지막 주막 보급소", 3.35f),
+                        _ => Special(11, "최종 치료소", 3.3f)
+                    }
+                },
+                RunFieldContentType.MidBoss => act switch
+                {
+                    1 => Situation(5, "추격 마당 문루", 3.65f),
+                    2 => Special(14, "섯다패관", 3.75f),
+                    _ => Situation(14, "검은 관아", 3.7f)
+                },
+                RunFieldContentType.BossDoor => act switch
+                {
+                    1 => Special(4, "시계탑 최종 관문", 4.2f),
+                    2 => Situation(12, "중앙 종탑 봉인당", 4.2f),
+                    _ => Special(18, "붉은달청사 정전", 4.35f)
+                },
+                _ => default
             };
+        }
+
+        private static LandmarkArtwork ResolveEventArtwork(int act, int variant)
+        {
+            return act switch
+            {
+                1 => variant switch
+                {
+                    1 => EventProp(1, "무너진 장터 수레", 1.8f),
+                    2 => EventProp(2, "잠긴 약방 약궤", 1.9f),
+                    _ => EventProp(4, "부서진 시계탑 종", 2f)
+                },
+                2 => variant switch
+                {
+                    1 => EventProp(6, "독물길 밸브", 1.7f),
+                    2 => EventProp(7, "젖은 장부 책상", 1.6f),
+                    3 => EventProp(8, "대장간 화로", 1.7f),
+                    _ => EventProp(9, "접힌 다리", 1.65f)
+                },
+                _ => variant switch
+                {
+                    1 => EventProp(11, "사당 등불", 1.7f),
+                    2 => EventProp(12, "관아 검문 장벽", 1.8f),
+                    3 => EventProp(14, "광패 균열 장치", 1.8f),
+                    4 => EventProp(17, "무너진 시간 다리", 1.8f),
+                    _ => EventProp(18, "카지노 판정기", 1.85f)
+                }
+            };
+        }
+
+        private static LandmarkArtwork Situation(int index, string displayName, float targetHeight)
+        {
+            return new LandmarkArtwork(
+                SituationBuildingPath(index),
+                SituationPrefabPath(false, index),
+                displayName,
+                targetHeight);
+        }
+
+        private static LandmarkArtwork Special(int index, string displayName, float targetHeight)
+        {
+            return new LandmarkArtwork(
+                SpecialLandmarkPath(index),
+                SituationPrefabPath(true, index),
+                displayName,
+                targetHeight);
+        }
+
+        private static LandmarkArtwork EventProp(int index, string displayName, float targetHeight)
+        {
+            return new LandmarkArtwork(
+                $"{EventPropRoot}/event_prop_{index:D2}.png",
+                null,
+                displayName,
+                targetHeight);
+        }
+
+        private static string SituationBuildingPath(int index)
+        {
+            return $"{SituationBuildingRoot}/situation_building_v7_{index:D2}.png";
+        }
+
+        private static string SpecialLandmarkPath(int index)
+        {
+            return $"{SpecialLandmarkRoot}/special_landmark_v6_{index:D2}.png";
+        }
+
+        private static string SituationPrefabPath(bool special, int index)
+        {
+            string prefix = special ? "SpecialLandmarkV6" : "SituationBuildingV7";
+            return $"{SituationPrefabRoot}/{prefix}_{index:D2}.prefab";
+        }
+
+        private readonly struct LandmarkArtwork
+        {
+            public readonly string spritePath;
+            public readonly string prefabPath;
+            public readonly string displayName;
+            public readonly float targetHeight;
+
+            public LandmarkArtwork(
+                string spritePath,
+                string prefabPath,
+                string displayName,
+                float targetHeight)
+            {
+                this.spritePath = spritePath;
+                this.prefabPath = prefabPath;
+                this.displayName = displayName;
+                this.targetHeight = targetHeight;
+            }
         }
 
         private static string[] BuildNames(int act, params int[] indices)
