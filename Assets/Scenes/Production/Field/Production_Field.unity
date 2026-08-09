@@ -1589,17 +1589,26 @@ MonoBehaviour:
   interactionUvPadding: 0
   tileMaterialTemplate: {fileID: 2100000, guid: 53b7053b7be35a840978e692168639dd, type: 2}
   randomSeed: 1701
-  targetTileCount: 40
-  mainPathLength: 18
-  branchCount: 6
+  targetTileCount: 78
+  mainPathLength: 7
+  branchCount: 10
   minBranchLength: 3
   maxBranchLength: 4
-  softRadiusLimit: 5
+  softRadiusLimit: 15
   minInteractionHexDistance: 4
   interactionTileChance: 0
-  plannedContentNodeCount: 8
+  plannedContentNodeCount: 13
+  layoutValidationAttempts: 24
+  maximumNarrowTileRatio: 0.33
+  maximumDeadEndTiles: 2
+  maximumSingleWidthCorridorLength: 3
   generateOnStart: 1
   generatePreviewInEditMode: 1
+  districtSpacing: 5
+  minimumDistrictCount: 5
+  maximumDistrictCount: 10
+  cityLoopConnections: 3
+  alleyExpansionChance: 0.34
   playerTarget: {fileID: 503973407}
   placePlayerAtStart: 1
 --- !u!114 &2400000003
@@ -1628,6 +1637,9 @@ MonoBehaviour:
   bossDoorMarkerPrefab: {fileID: 8867689967054464166, guid: 485dcacba9145b7429641984b0459c1e, type: 3}
   ambientLandmarkPrefab: {fileID: 1970966151959688245, guid: 1348397330dade0458c7fb7aaeacbcb8, type: 3}
   activationRadius: 0.85
+  routePlacementJitter: 0.12
+  ambientLandmarkDensity: 0.08
+  maximumAmbientLandmarks: 14
   landmarkVisuals:
   - act: 1
     contentType: 0

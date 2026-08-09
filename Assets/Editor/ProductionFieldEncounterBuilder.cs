@@ -154,6 +154,53 @@ namespace FFSS.Editor
             Debug.Log("FFSS production field encounters are configured as direct world interactions.");
         }
 
+        [MenuItem("FFSS/Production/Apply City Layout Settings")]
+        public static void ApplyCityLayoutSettings()
+        {
+            Scene scene = EditorSceneManager.OpenScene(FieldScenePath, OpenSceneMode.Single);
+            HexTileMapGenerator generator = UnityEngine.Object.FindFirstObjectByType<HexTileMapGenerator>();
+            if (generator == null)
+                throw new InvalidOperationException("Production_Field is missing HexTileMapGenerator.");
+
+            FieldEncounterDistributor distributor = generator.GetComponent<FieldEncounterDistributor>();
+            if (distributor == null)
+                throw new InvalidOperationException("Production_Field is missing FieldEncounterDistributor.");
+
+            ApplyInspectableCitySettings(generator, distributor);
+            generator.Generate();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, FieldScenePath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("FFSS city layout settings are applied to the inspectable field scene.");
+        }
+
+        private static void ApplyInspectableCitySettings(
+            HexTileMapGenerator generator,
+            FieldEncounterDistributor distributor)
+        {
+            SerializedObject field = new SerializedObject(distributor);
+            field.FindProperty("routePlacementJitter").floatValue = 0.12f;
+            field.FindProperty("ambientLandmarkDensity").floatValue = 0.08f;
+            field.FindProperty("maximumAmbientLandmarks").intValue = 14;
+            field.ApplyModifiedPropertiesWithoutUndo();
+
+            SerializedObject map = new SerializedObject(generator);
+            map.FindProperty("randomSeed").intValue = 1701;
+            map.FindProperty("targetTileCount").intValue = 78;
+            map.FindProperty("mainPathLength").intValue = 7;
+            map.FindProperty("branchCount").intValue = 10;
+            map.FindProperty("softRadiusLimit").intValue = 15;
+            map.FindProperty("plannedContentNodeCount").intValue = 13;
+            map.FindProperty("districtSpacing").intValue = 5;
+            map.FindProperty("minimumDistrictCount").intValue = 5;
+            map.FindProperty("maximumDistrictCount").intValue = 10;
+            map.FindProperty("cityLoopConnections").intValue = 3;
+            map.FindProperty("alleyExpansionChance").floatValue = 0.34f;
+            map.FindProperty("plainRoadUvPadding").floatValue = 0f;
+            map.FindProperty("interactionUvPadding").floatValue = 0f;
+            map.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         [MenuItem("FFSS/Production/Normalize Field Enemy Artwork")]
         public static void NormalizeFieldEnemyArtwork()
         {
@@ -360,27 +407,9 @@ namespace FFSS.Editor
             field.FindProperty("shopMarkerPrefab").objectReferenceValue = shopNode;
             field.FindProperty("bossDoorMarkerPrefab").objectReferenceValue = bossDoor;
             field.FindProperty("ambientLandmarkPrefab").objectReferenceValue = ambientLandmark;
-            field.FindProperty("routePlacementJitter").floatValue = 0.12f;
-            field.FindProperty("ambientLandmarkDensity").floatValue = 0.08f;
-            field.FindProperty("maximumAmbientLandmarks").intValue = 14;
             ConfigureLandmarkVisuals(field.FindProperty("landmarkVisuals"));
             field.ApplyModifiedPropertiesWithoutUndo();
-
-            SerializedObject map = new SerializedObject(generator);
-            map.FindProperty("randomSeed").intValue = 1701;
-            map.FindProperty("targetTileCount").intValue = 78;
-            map.FindProperty("mainPathLength").intValue = 7;
-            map.FindProperty("branchCount").intValue = 10;
-            map.FindProperty("softRadiusLimit").intValue = 15;
-            map.FindProperty("plannedContentNodeCount").intValue = 13;
-            map.FindProperty("districtSpacing").intValue = 5;
-            map.FindProperty("minimumDistrictCount").intValue = 5;
-            map.FindProperty("maximumDistrictCount").intValue = 10;
-            map.FindProperty("cityLoopConnections").intValue = 3;
-            map.FindProperty("alleyExpansionChance").floatValue = 0.34f;
-            map.FindProperty("plainRoadUvPadding").floatValue = 0f;
-            map.FindProperty("interactionUvPadding").floatValue = 0f;
-            map.ApplyModifiedPropertiesWithoutUndo();
+            ApplyInspectableCitySettings(generator, distributor);
 
             Camera fieldCamera = UnityEngine.Object.FindAnyObjectByType<Camera>();
             if (fieldCamera != null)
