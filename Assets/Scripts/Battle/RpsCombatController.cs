@@ -1103,8 +1103,12 @@ namespace CardBattle
             var values = CalculatePlayerNumbers(result);
             float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
             var equipmentContext = BuildEquipmentContext(result, weaknessRatio);
-            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
-            float weaknessBreakBonus = EquipmentPercent(EquipmentStat.WeaknessBreakPercent, equipmentContext);
+            int equipmentTriggerBonus = CurrentGrowthBonuses().EquipmentTriggerBonus;
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext, equipmentTriggerBonus);
+            float weaknessBreakBonus = EquipmentPercent(
+                EquipmentStat.WeaknessBreakPercent,
+                equipmentContext,
+                equipmentTriggerBonus);
 
             return action switch
             {
@@ -1229,22 +1233,25 @@ namespace CardBattle
             float weaknessRatio = PokerHandEvaluator.WeaknessRatio(result, enemyWeakness);
             var context = BuildEquipmentContext(result, weaknessRatio);
             var baseContext = BuildEquipmentContext(default, 0f);
-            int equipmentBaseAttack = EquipmentModifier(EquipmentStat.Attack, baseContext);
-            int equipmentBaseDefense = EquipmentModifier(EquipmentStat.Defense, baseContext);
-            int equipmentAttack = EquipmentModifier(EquipmentStat.Attack, context) - equipmentBaseAttack;
-            int equipmentDefense = EquipmentModifier(EquipmentStat.Defense, context) - equipmentBaseDefense;
-            int equipmentSkill = EquipmentModifier(EquipmentStat.Skill, context);
-            int equipmentBreak = EquipmentModifier(EquipmentStat.BreakPower, context);
+            PokerGrowthCombatBonuses growth = CurrentGrowthBonuses();
+            int equipmentTriggerBonus = growth.EquipmentTriggerBonus;
+            int equipmentBaseAttack = EquipmentModifier(EquipmentStat.Attack, baseContext, equipmentTriggerBonus);
+            int equipmentBaseDefense = EquipmentModifier(EquipmentStat.Defense, baseContext, equipmentTriggerBonus);
+            int equipmentAttack = EquipmentModifier(EquipmentStat.Attack, context, equipmentTriggerBonus) - equipmentBaseAttack;
+            int equipmentDefense = EquipmentModifier(EquipmentStat.Defense, context, equipmentTriggerBonus) - equipmentBaseDefense;
+            int equipmentSkill = EquipmentModifier(EquipmentStat.Skill, context, equipmentTriggerBonus);
+            int equipmentBreak = EquipmentModifier(EquipmentStat.BreakPower, context, equipmentTriggerBonus);
             int baseAttack = playerBaseAttack + equipmentBaseAttack;
             int baseDefense = playerBaseDefense + equipmentBaseDefense;
             (int enhancementAttack, int enhancementDefense) = CurrentEnhancementBonuses();
-            PokerGrowthCombatBonuses growth = CurrentGrowthBonuses();
-            int redEquipmentBonus = Mathf.Min(6, EquipmentModifier(EquipmentStat.RedCardAttack, context) * red);
-            int blackEquipmentBonus = Mathf.Min(6, EquipmentModifier(EquipmentStat.BlackCardDefense, context) * black);
+            int redEquipmentBonus = Mathf.Min(6,
+                EquipmentModifier(EquipmentStat.RedCardAttack, context, equipmentTriggerBonus) * red);
+            int blackEquipmentBonus = Mathf.Min(6,
+                EquipmentModifier(EquipmentStat.BlackCardDefense, context, equipmentTriggerBonus) * black);
             int attackBonus = enhancementAttack + growth.Attack + equipmentAttack + redEquipmentBonus +
-                              EquipmentModifier(EquipmentStat.HandTierPower, context);
+                              EquipmentModifier(EquipmentStat.HandTierPower, context, equipmentTriggerBonus);
             int defenseBonus = enhancementDefense + growth.Defense + equipmentDefense + blackEquipmentBonus +
-                               EquipmentModifier(EquipmentStat.HandTierPower, context);
+                               EquipmentModifier(EquipmentStat.HandTierPower, context, equipmentTriggerBonus);
             int courtSkill = result.CourtCardCount * courtCardSkillBonus + growth.Skill;
             int attack = PokerCombatBalance.CalculateAttackContest(baseAttack, result.Rank, red, attackBonus);
             attack = Mathf.CeilToInt(attack * (1f + growth.AttackPercent / 100f));
@@ -1335,35 +1342,35 @@ namespace CardBattle
             if (!committedGrowthBonuses.HasTurnResolution)
                 return;
 
-            if (committedGrowthBonuses.DamageReductionPercent > 0 && outcome.DamageToPlayer > 0)
+            PokerGrowthTurnResolution resolution = PokerGrowthEffectRules.ResolveTurn(
+                committedGrowthBonuses,
+                playerHp,
+                playerMaxHp,
+                enemyMaxBreak,
+                outcome.DamageToPlayer);
+
+            if (resolution.DamageToPlayer != outcome.DamageToPlayer)
             {
                 int originalDamage = outcome.DamageToPlayer;
-                outcome.DamageToPlayer = Mathf.Max(0, Mathf.CeilToInt(
-                    originalDamage * (100 - committedGrowthBonuses.DamageReductionPercent) / 100f));
+                outcome.DamageToPlayer = resolution.DamageToPlayer;
                 int prevented = originalDamage - outcome.DamageToPlayer;
                 if (prevented > 0)
                     outcome.Message += $"\n<color=#75D8FF>시간각성 방벽: HP 피해 -{prevented}</color>";
             }
 
-            if (committedGrowthBonuses.HealPercent > 0 && playerHp > 0)
+            if (resolution.HealingToPlayer > 0)
             {
-                int missingHp = Mathf.Max(0, playerMaxHp - playerHp);
-                int healing = Mathf.Min(missingHp, Mathf.CeilToInt(
-                    playerMaxHp * committedGrowthBonuses.HealPercent / 100f));
-                outcome.HealingToPlayer += healing;
-                if (healing > 0)
-                    outcome.Message += $"\n<color=#7FE6A2>시간각성 회복: HP +{healing}</color>";
+                outcome.HealingToPlayer += resolution.HealingToPlayer;
+                outcome.Message += $"\n<color=#7FE6A2>시간각성 회복: HP +{resolution.HealingToPlayer}</color>";
             }
 
-            if (committedGrowthBonuses.EnemyDelayPercent > 0)
+            if (resolution.PressureToEnemy > 0)
             {
-                int pressure = Mathf.Max(1, Mathf.CeilToInt(
-                    enemyMaxBreak * committedGrowthBonuses.EnemyDelayPercent / 100f));
-                outcome.BreakToEnemy += pressure;
-                outcome.Message += $"\n<color=#FFD979>시간각성 지연: 적 압박 +{pressure}</color>";
+                outcome.BreakToEnemy += resolution.PressureToEnemy;
+                outcome.Message += $"\n<color=#FFD979>시간각성 지연: 적 압박 +{resolution.PressureToEnemy}</color>";
             }
 
-            if (committedGrowthBonuses.RemoveEnemyBuff && outcome.Message.Contains("패 변주 추가 피해는"))
+            if (resolution.RemoveEnemyExtraEffect && outcome.Message.Contains("패 변주 추가 피해는"))
                 outcome.Message += "\n<color=#FFD979>시간각성: 이번 적 패의 추가 효과를 제거했다.</color>";
         }
 
@@ -1413,19 +1420,32 @@ namespace CardBattle
             return new EquipmentContext(result, playerHp, playerMaxHp, Mathf.Max(1, enemyIntentTurn), weaknessRatio);
         }
 
-        private int EquipmentModifier(EquipmentStat stat, EquipmentContext context)
+        private int EquipmentModifier(
+            EquipmentStat stat,
+            EquipmentContext context,
+            int additionalConditionalTriggers = 0)
         {
-            return equipmentLoadout != null ? equipmentLoadout.Modifier(stat, context) : 0;
+            return equipmentLoadout != null
+                ? equipmentLoadout.Modifier(stat, context, additionalConditionalTriggers)
+                : 0;
         }
 
-        private float EquipmentPercent(EquipmentStat stat, EquipmentContext context)
+        private float EquipmentPercent(
+            EquipmentStat stat,
+            EquipmentContext context,
+            int additionalConditionalTriggers = 0)
         {
-            return EquipmentModifier(stat, context) / 100f;
+            return EquipmentModifier(stat, context, additionalConditionalTriggers) / 100f;
         }
 
-        private float EffectivePenetrationThreshold(EquipmentContext context)
+        private float EffectivePenetrationThreshold(
+            EquipmentContext context,
+            int additionalConditionalTriggers = 0)
         {
-            float modifier = EquipmentPercent(EquipmentStat.PenetrationThresholdPercent, context);
+            float modifier = EquipmentPercent(
+                EquipmentStat.PenetrationThresholdPercent,
+                context,
+                additionalConditionalTriggers);
             return Mathf.Clamp(weaknessPenetrationThreshold + modifier, 0.2f, 1f);
         }
 
@@ -2008,7 +2028,8 @@ namespace CardBattle
             float ratio = PokerHandEvaluator.WeaknessRatio(hand, enemyWeakness);
             if (ratio <= 0f || !hasPendingEnemyIntent) return new WeaknessPreview(ratio, false, false, false);
             var equipmentContext = BuildEquipmentContext(hand, ratio);
-            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
+            int equipmentTriggerBonus = CurrentGrowthBonuses().EquipmentTriggerBonus;
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext, equipmentTriggerBonus);
 
             var enemyValues = CalculateEnemyNumbers();
             int enemyPower = pendingEnemyMove != null
@@ -2042,7 +2063,8 @@ namespace CardBattle
             string attackLine;
             var hand = pokerHand != null ? pokerHand.CurrentResult : default;
             var equipmentContext = BuildEquipmentContext(hand, preview.Ratio);
-            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext);
+            int equipmentTriggerBonus = CurrentGrowthBonuses().EquipmentTriggerBonus;
+            float penetrationThreshold = EffectivePenetrationThreshold(equipmentContext, equipmentTriggerBonus);
             if (preview.Penetrates)
                 attackLine = "공격 → <color=#FFD34E><b>약점 관통!</b></color> 방어 무시하고 HP 피해";
             else if (preview.WouldBeBlocked)
@@ -2050,7 +2072,10 @@ namespace CardBattle
             else
                 attackLine = "공격 → 평소와 동일 (뚫어야 할 방어가 없음)";
 
-            float equipmentBonus = EquipmentPercent(EquipmentStat.WeaknessBreakPercent, equipmentContext);
+            float equipmentBonus = EquipmentPercent(
+                EquipmentStat.WeaknessBreakPercent,
+                equipmentContext,
+                equipmentTriggerBonus);
             float multiplier = 1f + (weaknessBreakMultiplierPerRatio + equipmentBonus) * preview.Ratio;
             string defenseLine = preview.BonusBreak
                 ? $"방어 → <color=#FFD34E><b>격파 강화!</b></color> 보조 게이지 피해 ×{multiplier:0.#}"

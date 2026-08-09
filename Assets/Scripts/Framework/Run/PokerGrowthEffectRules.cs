@@ -39,6 +39,30 @@ namespace FFSS.Framework.Run
         public bool RemoveEnemyBuff { get; }
         public bool HasTurnResolution => HealPercent > 0 || DamageReductionPercent > 0 ||
                                          EnemyDelayPercent > 0 || RemoveEnemyBuff;
+        public bool HasAnyEffect => Attack != 0 || Defense != 0 || Skill != 0 || BreakPower != 0 ||
+                                    AttackPercent != 0 || HealPercent != 0 || DamageReductionPercent != 0 ||
+                                    RewardPercent != 0 || ExtraCandidates != 0 || EquipmentTriggerBonus != 0 ||
+                                    EnemyDelayPercent != 0 || RemoveEnemyBuff;
+    }
+
+    public readonly struct PokerGrowthTurnResolution
+    {
+        public PokerGrowthTurnResolution(
+            int damageToPlayer,
+            int healingToPlayer,
+            int pressureToEnemy,
+            bool removeEnemyExtraEffect)
+        {
+            DamageToPlayer = damageToPlayer;
+            HealingToPlayer = healingToPlayer;
+            PressureToEnemy = pressureToEnemy;
+            RemoveEnemyExtraEffect = removeEnemyExtraEffect;
+        }
+
+        public int DamageToPlayer { get; }
+        public int HealingToPlayer { get; }
+        public int PressureToEnemy { get; }
+        public bool RemoveEnemyExtraEffect { get; }
     }
 
     public static class PokerGrowthEffectRules
@@ -205,8 +229,7 @@ namespace FFSS.Framework.Run
                 return false;
 
             bool changed = false;
-            RunCardState reserve = timeCards.Find(card =>
-                TryParseStandard(card.cardId, out _, out int rank) && (rank == 1 || rank == 13));
+            RunCardState reserve = timeCards.Find(card => ShouldReserveForNextTurn(card.cardId));
             if (reserve != null && !deck.reservedDraws.Contains(reserve.instanceId))
             {
                 deck.ReserveDraw(reserve.instanceId);
@@ -255,6 +278,41 @@ namespace FFSS.Framework.Run
             return changed;
         }
 
+        public static PokerGrowthTurnResolution ResolveTurn(
+            PokerGrowthCombatBonuses bonuses,
+            int currentHp,
+            int maxHp,
+            int enemyMaxPressure,
+            int incomingDamage)
+        {
+            int clampedDamage = Math.Max(0, incomingDamage);
+            if (bonuses.DamageReductionPercent > 0 && clampedDamage > 0)
+            {
+                clampedDamage = Math.Max(0, (int)Math.Ceiling(
+                    clampedDamage * (100 - Math.Min(100, bonuses.DamageReductionPercent)) / 100f));
+            }
+
+            int healing = 0;
+            int hpAfterDamage = Math.Max(0, currentHp - clampedDamage);
+            if (bonuses.HealPercent > 0 && hpAfterDamage > 0 && maxHp > 0)
+            {
+                int missingHp = Math.Max(0, maxHp - hpAfterDamage);
+                healing = Math.Min(missingHp, (int)Math.Ceiling(
+                    maxHp * Math.Min(100, bonuses.HealPercent) / 100f));
+            }
+
+            int pressure = bonuses.EnemyDelayPercent > 0 && enemyMaxPressure > 0
+                ? Math.Max(1, (int)Math.Ceiling(
+                    enemyMaxPressure * Math.Min(100, bonuses.EnemyDelayPercent) / 100f))
+                : 0;
+
+            return new PokerGrowthTurnResolution(
+                clampedDamage,
+                healing,
+                pressure,
+                bonuses.RemoveEnemyBuff);
+        }
+
         public static string Detail(RunCardState card)
         {
             if (card == null)
@@ -287,6 +345,13 @@ namespace FFSS.Framework.Run
         {
             return card != null && card.growthPath == CardGrowthPath.TimeAwakened &&
                    card.enhancementLevel >= 2;
+        }
+
+        private static bool ShouldReserveForNextTurn(string cardId)
+        {
+            return cardId == "poker.spade.01" ||
+                   cardId == "poker.spade.13" ||
+                   cardId == "poker.diamond.01";
         }
 
         private static bool TryParseStandard(string cardId, out string suit, out int rank)

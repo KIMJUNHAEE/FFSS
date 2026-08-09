@@ -50,15 +50,19 @@ namespace CardBattle
             return EquipmentCatalog.Get(GetId(slot));
         }
 
-        public int Modifier(EquipmentStat stat, EquipmentContext context)
+        public int Modifier(
+            EquipmentStat stat,
+            EquipmentContext context,
+            int additionalConditionalTriggers = 0)
         {
-            return CalculateModifier(Equipped, stat, context);
+            return CalculateModifier(Equipped, stat, context, additionalConditionalTriggers);
         }
 
         public static int CalculateModifier(
             IEnumerable<EquipmentDefinition> equipped,
             EquipmentStat stat,
-            EquipmentContext context)
+            EquipmentContext context,
+            int additionalConditionalTriggers = 0)
         {
             if (equipped == null)
                 return 0;
@@ -95,8 +99,9 @@ namespace CardBattle
                 int contribution = 0;
                 if (values.Count > 0)
                     contribution += values[0];
-                if (values.Count > 1)
-                    contribution += (int)Math.Round(values[1] * 0.5f, MidpointRounding.AwayFromZero);
+                int secondaryTriggerCount = 1 + Math.Max(0, additionalConditionalTriggers);
+                for (int i = 1; i < values.Count && i <= secondaryTriggerCount; i++)
+                    contribution += (int)Math.Round(values[i] * 0.5f, MidpointRounding.AwayFromZero);
                 total += ApplyConditionCap(stat, pair.Key, contribution);
             }
 
