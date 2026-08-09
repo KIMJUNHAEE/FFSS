@@ -75,6 +75,7 @@ namespace FFSS.Framework.Tests
 
             Assert.That((int)redrawLimit.GetValue(hand), Is.EqualTo(1));
             Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1));
+            AssertPokerCardsDoNotOverlapDeck(handType, hand);
             List<string> opening = CardNames(sprites, hand);
             Assert.That(redraw.interactable, Is.False,
                 "Redraw should wait until at least one replacement card is selected.");
@@ -167,7 +168,49 @@ namespace FFSS.Framework.Tests
                 .FirstOrDefault(text => text.name == "Redraw Counter");
             Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
             Assert.That(redrawCounter.text, Does.Contain("1/1"));
+            AssertPokerCardsDoNotOverlapDeck(handType, hand);
             yield return Capture("combat_turn_next_player", 1280, 720);
+        }
+
+        private static void AssertPokerCardsDoNotOverlapDeck(Type handType, object hand)
+        {
+            RectTransform deck = handType.GetField("deckPileTransform")?.GetValue(hand) as RectTransform;
+            Assert.That(deck, Is.Not.Null, "Poker deck pile is missing.");
+
+            var cards = handType.GetProperty("Cards")?.GetValue(hand) as System.Collections.IEnumerable;
+            Assert.That(cards, Is.Not.Null, "Poker hand cards are unavailable.");
+            Rect deckRect = ScreenRect(deck);
+            int cardCount = 0;
+            foreach (object item in cards)
+            {
+                Assert.That(item, Is.InstanceOf<Component>());
+                var card = (Component)item;
+                Rect cardRect = ScreenRect(card.transform as RectTransform);
+                Assert.That(cardRect.Overlaps(deckRect), Is.False,
+                    $"Poker card {cardCount} overlaps the deck pile. card={cardRect}, deck={deckRect}");
+                if (cardCount == 0)
+                {
+                    Assert.That(cardRect.xMin - deckRect.xMax, Is.GreaterThanOrEqualTo(24f),
+                        $"Poker deck and first card need a visible gap. card={cardRect}, deck={deckRect}");
+                }
+                cardCount++;
+            }
+
+            Assert.That(cardCount, Is.EqualTo(5), "The resolved poker hand does not contain five cards.");
+        }
+
+        private static Rect ScreenRect(RectTransform rect)
+        {
+            Assert.That(rect, Is.Not.Null);
+            Canvas canvas = rect.GetComponentInParent<Canvas>();
+            Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 bottomLeft = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+            Vector2 topRight = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+            return Rect.MinMaxRect(bottomLeft.x, bottomLeft.y, topRight.x, topRight.y);
         }
 
         private static void ToggleCard(Type handType, object hand, int index)

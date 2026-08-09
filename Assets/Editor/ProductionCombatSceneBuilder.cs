@@ -27,16 +27,18 @@ namespace FFSS.Editor
         private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
-        private static readonly Vector2 PokerDeckPresentationSize = new(140f, 202f);
-        private static readonly Vector2 SeotdaDeckPresentationSize = new(140f, 225f);
-        private static readonly Vector3 PokerHandPresentationScale = new(1.5f, 1.5f, 1f);
-        private static readonly Vector2 PokerHandPresentationPosition = new(-145f, 0f);
+        private static readonly Vector2 PokerDeckPresentationAnchor = new(0.06f, 0.4619f);
+        private static readonly Vector2 SeotdaDeckPresentationAnchor = new(0.1153f, 0.4619f);
+        private static readonly Vector2 PokerDeckPresentationSize = new(150f, 216f);
+        private static readonly Vector2 SeotdaDeckPresentationSize = new(300f, 480f);
+        private static readonly Vector3 PokerHandPresentationScale = Vector3.one;
+        private static readonly Vector2 PokerHandPresentationPosition = new(100f, 0f);
+        private const float PokerHandCardSpacing = 30f;
         private static readonly Vector2 Boss38HudVisibleMatchSize = new(541f, 211f);
         private static readonly Vector2 Boss38HudVisibleMatchPosition = new(0f, -3.4f);
         private static readonly string[] SharedRightSideTextRoots =
         {
             "EnemyHUD",
-            "EnemyIntentBadge",
             "EnemyRuleMeter",
             "EnemyCombatGuide",
             "EnemyIntentTooltip"
@@ -267,6 +269,34 @@ namespace FFSS.Editor
             Debug.Log($"Matched {Seeds.Count - 1} production combat UI layouts to {referenceSceneName}.");
         }
 
+        [MenuItem("FFSS/Production/Apply Card Presentation To All Combat Scenes")]
+        public static void ApplyCardPresentationToAllCombatScenes()
+        {
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            try
+            {
+                for (int i = 0; i < Seeds.Count; i++)
+                {
+                    string scenePath = $"Assets/Scenes/{ProductionRelativeRoot}/{Seeds[i].SceneName}.unity";
+                    Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                    ApplyReadableCardPresentation(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+            }
+            finally
+            {
+                if (!Application.isBatchMode && previousSetup.Length > 0)
+                    EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Applied inspectable card layout and pile anchors to {Seeds.Count} production combat scenes.");
+        }
+
         private readonly struct RectLayoutSnapshot
         {
             public RectLayoutSnapshot(RectTransform rect)
@@ -484,7 +514,6 @@ namespace FFSS.Editor
             {
                 ["PlayerHUD"] = RequirePrefabRoot(combat.playerHpText, scene, "PlayerHUD"),
                 ["EnemyHUD"] = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD"),
-                ["EnemyIntentBadge"] = RequirePrefabRoot(combat.enemyActionText, scene, "EnemyIntentBadge"),
                 ["PokerTableV2"] = RequireTableRect(
                     scene,
                     "PokerTableV2",
@@ -541,7 +570,6 @@ namespace FFSS.Editor
 
             AddSharedDescendantRects(result, "PlayerHUD");
             AddSharedDescendantRects(result, "EnemyHUD");
-            AddSharedDescendantRects(result, "EnemyIntentBadge");
             AddSharedDescendantRects(result, "EnemyRuleMeter");
             AddSharedDescendantRects(result, "PokerTableV2");
             AddSharedDescendantRects(result, "AttackButton");
@@ -634,13 +662,34 @@ namespace FFSS.Editor
             RectTransform hand = combat.pokerHand.handContainer;
             hand.localScale = PokerHandPresentationScale;
             hand.anchoredPosition = PokerHandPresentationPosition;
-            combat.pokerHand.deckPileTransform.sizeDelta = PokerDeckPresentationSize;
-            seotda.drawOrigin.sizeDelta = SeotdaDeckPresentationSize;
+            HorizontalLayoutGroup handLayout = hand.GetComponent<HorizontalLayoutGroup>();
+            if (handLayout == null)
+                throw new InvalidOperationException($"{scene.path}: Poker hand HorizontalLayoutGroup is missing.");
+            handLayout.spacing = PokerHandCardSpacing;
+
+            ConfigureCardPile(
+                combat.pokerHand.deckPileTransform,
+                PokerDeckPresentationAnchor,
+                PokerDeckPresentationSize);
+            ConfigureCardPile(
+                seotda.drawOrigin,
+                SeotdaDeckPresentationAnchor,
+                SeotdaDeckPresentationSize);
 
             EditorUtility.SetDirty(hand);
+            EditorUtility.SetDirty(handLayout);
             EditorUtility.SetDirty(combat.pokerHand.deckPileTransform);
             EditorUtility.SetDirty(seotda.drawOrigin);
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static void ConfigureCardPile(RectTransform pile, Vector2 anchor, Vector2 size)
+        {
+            pile.anchorMin = anchor;
+            pile.anchorMax = anchor;
+            pile.anchoredPosition = Vector2.zero;
+            pile.sizeDelta = size;
+            pile.localScale = Vector3.one;
         }
 
         private static RectTransform RequirePrefabRoot(

@@ -417,12 +417,8 @@ namespace CardBattle
 
         private Vector2 WorldToLocalOffset(RectTransform target, RectTransform root)
         {
-            var canvas = GetComponentInParent<Canvas>();
-            float scale = canvas ? canvas.scaleFactor : 1f;
-            if (scale <= 0f) scale = 1f;
-
-            Vector3 delta = target.position - root.position;
-            return new Vector2(delta.x, delta.y) / scale;
+            Vector3 localPoint = root.InverseTransformPoint(target.position);
+            return new Vector2(localPoint.x, localPoint.y);
         }
 
         private void SetVisualSprite(Sprite sprite)

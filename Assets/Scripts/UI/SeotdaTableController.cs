@@ -261,16 +261,18 @@ namespace CardBattle
 
         private Vector2 WorldOffset(RectTransform target, RectTransform root)
         {
-            var canvas = GetComponentInParent<Canvas>();
-            float scale = canvas ? canvas.scaleFactor : 1f;
-            return (target.position - root.position) / Mathf.Max(0.01f, scale);
+            return root.anchoredPosition + WorldDelta(target.position, root);
         }
 
         private Vector2 WorldDelta(Vector3 targetWorld, RectTransform root)
         {
-            var canvas = GetComponentInParent<Canvas>();
-            float scale = canvas ? canvas.scaleFactor : 1f;
-            return (targetWorld - root.position) / Mathf.Max(0.01f, scale);
+            if (root.parent is not RectTransform parent)
+                return Vector2.zero;
+
+            Vector3 targetLocal = parent.InverseTransformPoint(targetWorld);
+            Vector3 currentLocal = parent.InverseTransformPoint(root.position);
+            Vector3 delta = targetLocal - currentLocal;
+            return new Vector2(delta.x, delta.y);
         }
 
         private static void ResetAndHide(Image slot)

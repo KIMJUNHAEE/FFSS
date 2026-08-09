@@ -19,7 +19,6 @@ namespace FFSS.Framework.Tests
         {
             "PlayerHUD",
             "EnemyHUD",
-            "EnemyIntentBadge",
             "PokerTableV2",
             "HwatuTableV2",
             "AttackButton",
@@ -183,13 +182,21 @@ namespace FFSS.Framework.Tests
                 }
 
                 ExpectVector(sceneName, "Poker hand scale", pokerHand.localScale,
-                    new Vector3(1.5f, 1.5f, 1f), failures);
+                    Vector3.one, failures);
                 ExpectVector(sceneName, "Poker hand position", pokerHand.anchoredPosition,
-                    new Vector2(-145f, 0f), failures);
+                    new Vector2(100f, 0f), failures);
                 ExpectVector(sceneName, "Poker deck size", pokerDeck.sizeDelta,
-                    new Vector2(140f, 202f), failures);
+                    new Vector2(150f, 216f), failures);
+                ExpectVector(sceneName, "Poker deck anchor", pokerDeck.anchorMin,
+                    new Vector2(0.06f, 0.4619f), failures);
                 ExpectVector(sceneName, "Seotda deck size", seotdaDeck.sizeDelta,
-                    new Vector2(140f, 225f), failures);
+                    new Vector2(300f, 480f), failures);
+                ExpectVector(sceneName, "Seotda deck anchor", seotdaDeck.anchorMin,
+                    new Vector2(0.1153f, 0.4619f), failures);
+
+                HorizontalLayoutGroup handLayout = pokerHand.GetComponent<HorizontalLayoutGroup>();
+                if (handLayout == null || Mathf.Abs(handLayout.spacing - 30f) > 0.05f)
+                    failures.Add($"{sceneName}: Poker hand spacing is not 30");
             }
 
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
@@ -474,7 +481,6 @@ namespace FFSS.Framework.Tests
             string[] rootNames =
             {
                 "EnemyHUD",
-                "EnemyIntentBadge",
                 "EnemyRuleMeter",
                 "EnemyCombatGuide",
                 "EnemyIntentTooltip"
@@ -539,7 +545,6 @@ namespace FFSS.Framework.Tests
             {
                 AddReferencedRootGeometry(result, "PlayerHUD", ReadField<Component>(combats[0], "playerHpText"));
                 AddReferencedRootGeometry(result, "EnemyHUD", ReadField<Component>(combats[0], "enemyHpText"));
-                AddReferencedRootGeometry(result, "EnemyIntentBadge", ReadField<Component>(combats[0], "enemyActionText"));
                 MonoBehaviour intentTooltip = ReadField<MonoBehaviour>(combats[0], "enemyIntentTooltip");
                 AddReferencedRootGeometry(
                     result,
@@ -585,7 +590,6 @@ namespace FFSS.Framework.Tests
                 result["EnemyRuleMeter"] = new RectGeometry(meterRect);
 
             AddDescendantGeometry(result, "EnemyHUD");
-            AddDescendantGeometry(result, "EnemyIntentBadge");
             AddDescendantGeometry(result, "EnemyRuleMeter");
             AddDescendantGeometry(result, "EnemyCombatGuide");
             AddDescendantGeometry(result, "EnemyIntentTooltip");
