@@ -117,9 +117,9 @@ namespace CardBattle
         {
             selectionContextActive = active;
             if (selectionFrame) selectionFrame.enabled = active && IsSelected;
-            if (holdBadge) holdBadge.SetActive(active && IsSelected);
-            if (replaceBadge) replaceBadge.SetActive(active && !IsSelected);
-            if (visualGroup) visualGroup.alpha = active && !IsSelected ? 0.62f : 1f;
+            if (holdBadge) holdBadge.SetActive(active && !IsSelected);
+            if (replaceBadge) replaceBadge.SetActive(active && IsSelected);
+            if (visualGroup) visualGroup.alpha = active && IsSelected ? 0.72f : 1f;
             ApplyRestScale();
         }
 
@@ -248,7 +248,7 @@ namespace CardBattle
         {
             var rootRt = (RectTransform)transform;
             Vector2 pileOffset = WorldToLocalOffset(pile, rootRt);
-            Vector2 restOffset = Vector2.zero;
+            Vector2 restOffset = IsSelected ? new Vector2(0f, selectedOffsetY) : Vector2.zero;
 
             Vector2 discardWindup = restOffset + new Vector2(0f, -22f);
             yield return TweenTransform(restOffset, discardWindup, 0f, 7f,
@@ -264,7 +264,7 @@ namespace CardBattle
 
         private IEnumerator KeepConfirmRoutine(Action onComplete)
         {
-            Vector2 rest = new Vector2(0f, selectedOffsetY);
+            Vector2 rest = IsSelected ? new Vector2(0f, selectedOffsetY) : Vector2.zero;
             yield return TweenTransform(rest, rest + Vector2.up * 8f, 0f, 0f,
                 visual.localScale.x, 1.10f, 0.12f, true);
             yield return TweenTransform(rest + Vector2.up * 8f, rest, 0f, 0f,

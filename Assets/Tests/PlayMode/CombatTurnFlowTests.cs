@@ -76,17 +76,32 @@ namespace FFSS.Framework.Tests
             Assert.That((int)redrawLimit.GetValue(hand), Is.EqualTo(1));
             Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1));
             List<string> opening = CardNames(sprites, hand);
+            Assert.That(redraw.interactable, Is.False,
+                "Redraw should wait until at least one replacement card is selected.");
+            handType.GetMethod("Redraw")?.Invoke(hand, null);
+            yield return null;
+            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1),
+                "Redraw without a selection consumed its turn resource.");
+            ToggleCard(handType, hand, 1);
+            ToggleCard(handType, hand, 3);
+            yield return null;
+            Assert.That(redraw.interactable, Is.True);
             redraw.onClick.Invoke();
             yield return new WaitForSeconds(2f);
             Assert.That((bool)ready.GetValue(hand), Is.True, "The redraw did not complete.");
             Assert.That((int)redrawsRemaining.GetValue(hand), Is.Zero,
                 "The redraw did not consume its turn resource.");
 
-            List<string> replaced = CardNames(sprites, hand);
-            Assert.That(replaced, Has.Count.EqualTo(5));
-            Assert.That(replaced, Is.Unique);
-            Assert.That(replaced.Intersect(opening), Is.Empty,
-                "A poker card already seen this turn returned during redraw.");
+            List<string> redrawn = CardNames(sprites, hand);
+            Assert.That(redrawn, Has.Count.EqualTo(5));
+            Assert.That(redrawn, Is.Unique);
+            Assert.That(redrawn[0], Is.EqualTo(opening[0]));
+            Assert.That(redrawn[2], Is.EqualTo(opening[2]));
+            Assert.That(redrawn[4], Is.EqualTo(opening[4]));
+            Assert.That(redrawn[1], Is.Not.EqualTo(opening[1]));
+            Assert.That(redrawn[3], Is.Not.EqualTo(opening[3]));
+            Assert.That(new[] { redrawn[1], redrawn[3] }.Intersect(opening), Is.Empty,
+                "A selected poker card already seen this turn returned during redraw.");
             IReadOnlyList<string> instanceIds = (IReadOnlyList<string>)instances.GetValue(hand);
             RunPokerDeckState runDeck = GameKernel.Services.Get<RunManager>().Current.pokerDeck;
             Assert.That(instanceIds, Has.Count.EqualTo(5));
@@ -133,9 +148,11 @@ namespace FFSS.Framework.Tests
             yield return new WaitForSeconds(5f);
             yield return WaitUntilSeconds(
                 () => (bool)ready.GetValue(hand) &&
-                      (int)redrawsRemaining.GetValue(hand) == 1 && redraw.interactable,
+                      (int)redrawsRemaining.GetValue(hand) == 1,
                 15f,
                 "Combat did not return to a fresh player turn.");
+            Assert.That(redraw.interactable, Is.False,
+                "Fresh redraw should remain disabled until a replacement card is selected.");
 
             int enemyHpAfter = PublicInt(controllerType, controller, "EnemyHp");
             int enemyPressureAfter = PublicInt(controllerType, controller, "EnemyBreakCharge");
@@ -151,6 +168,15 @@ namespace FFSS.Framework.Tests
             Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
             Assert.That(redrawCounter.text, Does.Contain("1/1"));
             yield return Capture("combat_turn_next_player", 1280, 720);
+        }
+
+        private static void ToggleCard(Type handType, object hand, int index)
+        {
+            MethodInfo toggle = handType.GetMethod(
+                "ToggleCardAt",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(toggle, Is.Not.Null);
+            toggle.Invoke(hand, new object[] { index });
         }
 
         private static object FindController(Type type)

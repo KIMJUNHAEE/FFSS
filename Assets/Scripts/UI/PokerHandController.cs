@@ -67,7 +67,8 @@ namespace CardBattle
         public IReadOnlyList<string> CurrentCardInstanceIds => spawnedCardInstanceIds;
         public int RedrawLimit => CurrentRunDeck()?.RedrawLimit ?? 1;
         public int RedrawsRemaining => CurrentRunDeck()?.RedrawsRemaining ?? Mathf.Max(0, 1 - fallbackRedrawsUsed);
-        public bool CanRedraw => dealRoutine == null && HasResolvedHand && RedrawsRemaining > 0;
+        public bool CanRedraw => dealRoutine == null && HasResolvedHand &&
+                                 spawnedCards.Any(card => card.IsSelected) && RedrawsRemaining > 0;
 
         private void Start()
         {
@@ -109,21 +110,31 @@ namespace CardBattle
 
         public void Redraw()
         {
-            if (!CanRedraw || !TryUseRedraw())
+            if (dealRoutine != null || !HasResolvedHand)
+                return;
+
+            var toReplace = spawnedCards.Where(card => card.IsSelected).ToList();
+            if (toReplace.Count == 0)
+            {
+                ShowSelectCardsToReplace();
+                RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
+                return;
+            }
+
+            if (RedrawsRemaining <= 0 || !TryUseRedraw())
             {
                 ShowRedrawLimitReached();
                 RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
                 return;
             }
 
-            var kept = spawnedCards.Where(c => c.IsSelected).Select(c => c.CardSprite).ToList();
-            var toReplace = spawnedCards.Where(c => !c.IsSelected).ToList();
+            var kept = spawnedCards.Where(card => !card.IsSelected).Select(card => card.CardSprite).ToList();
             var excluded = new HashSet<Sprite>(seenThisTurn);
             excluded.UnionWith(kept);
             var excludedInstances = new HashSet<string>(seenCardInstancesThisTurn);
             for (int i = 0; i < spawnedCards.Count; i++)
             {
-                if (spawnedCards[i].IsSelected && i < spawnedCardInstanceIds.Count &&
+                if (!spawnedCards[i].IsSelected && i < spawnedCardInstanceIds.Count &&
                     !string.IsNullOrWhiteSpace(spawnedCardInstanceIds[i]))
                 {
                     excludedInstances.Add(spawnedCardInstanceIds[i]);
@@ -142,7 +153,7 @@ namespace CardBattle
             RedrawCommitted?.Invoke(toReplace.Count, spawnedCards.Count - toReplace.Count);
             RedrawCardsCommitted?.Invoke(
                 toReplace.Select(card => card.CardSprite).ToList(),
-                spawnedCards.Where(card => card.IsSelected).Select(card => card.CardSprite).ToList());
+                spawnedCards.Where(card => !card.IsSelected).Select(card => card.CardSprite).ToList());
             dealRoutine = StartCoroutine(RedrawRoutine(toReplace, newCards));
             RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
         }
@@ -279,10 +290,10 @@ namespace CardBattle
             int keptCount = spawnedCards.Count - toReplace.Count;
             foreach (var card in spawnedCards)
                 card.SetSelectionContext(true);
-            ShowRedrawGuide(keptCount, toReplace.Count, true);
+            ShowRedrawGuide(toReplace.Count, keptCount, true);
 
             int keepAnimations = keptCount;
-            foreach (var card in spawnedCards.Where(card => card.IsSelected))
+            foreach (var card in spawnedCards.Where(card => !card.IsSelected))
                 card.PlayKeepConfirmAnimation(() => keepAnimations--);
             if (keepAnimations > 0)
                 yield return new WaitUntil(() => keepAnimations <= 0);
@@ -344,6 +355,7 @@ namespace CardBattle
         {
             SynchronizeHeldCards();
             RefreshSelectionContext();
+            RedrawAvailabilityChanged?.Invoke(RedrawsRemaining, RedrawLimit);
         }
 
         private void UpdateHandRank()
@@ -364,24 +376,24 @@ namespace CardBattle
 
         private void RefreshSelectionContext()
         {
-            int kept = spawnedCards.Count(card => card.IsSelected);
-            bool active = kept > 0;
+            int replaced = spawnedCards.Count(card => card.IsSelected);
+            bool active = replaced > 0;
             foreach (var card in spawnedCards)
                 card.SetSelectionContext(active);
 
-            ShowRedrawGuide(kept, spawnedCards.Count - kept, false);
+            ShowRedrawGuide(replaced, spawnedCards.Count - replaced, false);
             UpdateHandRankVisibility();
         }
 
-        private void ShowRedrawGuide(int kept, int replaced, bool confirmed)
+        private void ShowRedrawGuide(int replaced, int kept, bool confirmed)
         {
             if (redrawGuideText == null) return;
-            bool visible = confirmed || kept > 0;
+            bool visible = confirmed || replaced > 0;
             redrawGuideText.gameObject.SetActive(visible);
             if (!visible) return;
 
-            string prefix = confirmed ? "보유 확정" : "선택한 카드는 보유";
-            redrawGuideText.text = $"<color=#FFE078><b>{prefix} {kept}장</b></color>   <color=#FF8178><b>교체 예정 {replaced}장</b></color>";
+            string prefix = confirmed ? "교체 확정" : "선택한 카드 교체";
+            redrawGuideText.text = $"<color=#FF8178><b>{prefix} {replaced}장</b></color>   <color=#FFE078><b>유지 {kept}장</b></color>";
         }
 
         private void BeginTurnState()
@@ -419,11 +431,14 @@ namespace CardBattle
             }
 
             deck.heldCardInstanceIds.Clear();
+            if (!spawnedCards.Any(card => card.IsSelected))
+                return;
+
             for (int i = 0; i < spawnedCards.Count && i < spawnedCardInstanceIds.Count; i++)
             {
                 PokerCardView card = spawnedCards[i];
                 string instanceId = spawnedCardInstanceIds[i];
-                if (card.IsSelected && !string.IsNullOrWhiteSpace(instanceId))
+                if (!card.IsSelected && !string.IsNullOrWhiteSpace(instanceId))
                 {
                     deck.SetHeld(instanceId, true);
                 }
@@ -446,6 +461,13 @@ namespace CardBattle
             if (redrawGuideText == null) return;
             redrawGuideText.gameObject.SetActive(true);
             redrawGuideText.text = "<color=#FF8178><b>교체할 수 있는 카드가 부족해</b></color>";
+        }
+
+        private void ShowSelectCardsToReplace()
+        {
+            if (redrawGuideText == null) return;
+            redrawGuideText.gameObject.SetActive(true);
+            redrawGuideText.text = "<color=#FFE078><b>교체할 카드를 먼저 선택해</b></color>";
         }
 
         private static RunPokerDeckState CurrentRunDeck()

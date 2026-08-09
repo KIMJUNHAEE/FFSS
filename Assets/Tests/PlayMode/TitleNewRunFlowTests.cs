@@ -1210,11 +1210,20 @@ namespace FFSS.Framework.Tests
             PropertyInfo cardInstancesProperty = handType.GetProperty("CurrentCardInstanceIds");
             Assert.That((int)limitProperty.GetValue(hand), Is.EqualTo(1));
             Assert.That((int)remainingProperty.GetValue(hand), Is.EqualTo(1));
-            Assert.That(redraw.interactable, Is.True);
+            Assert.That(redraw.interactable, Is.False,
+                "Redraw should wait for cards explicitly selected for replacement.");
 
             List<string> opening = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
                 .Select(sprite => sprite.name)
                 .ToList();
+            MethodInfo toggleCard = handType.GetMethod(
+                "ToggleCardAt",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(toggleCard, Is.Not.Null);
+            toggleCard.Invoke(hand, new object[] { 1 });
+            toggleCard.Invoke(hand, new object[] { 3 });
+            yield return WaitFrames(1);
+            Assert.That(redraw.interactable, Is.True);
             VfxManager redrawVfx = GameKernel.Services.Get<VfxManager>();
             int vfxCountBeforeRedraw = redrawVfx.TotalPlayCount;
             redraw.onClick.Invoke();
@@ -1227,13 +1236,18 @@ namespace FFSS.Framework.Tests
                 "The first redraw did not finish or consume its turn resource.");
             yield return WaitFrames(2);
 
-            List<string> replaced = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
+            List<string> redrawn = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
                 .Select(sprite => sprite.name)
                 .ToList();
-            Assert.That(replaced, Has.Count.EqualTo(5));
-            Assert.That(replaced.Distinct().Count(), Is.EqualTo(5));
-            Assert.That(replaced.Intersect(opening), Is.Empty,
-                "A card already seen this turn returned during redraw.");
+            Assert.That(redrawn, Has.Count.EqualTo(5));
+            Assert.That(redrawn.Distinct().Count(), Is.EqualTo(5));
+            Assert.That(redrawn[0], Is.EqualTo(opening[0]));
+            Assert.That(redrawn[2], Is.EqualTo(opening[2]));
+            Assert.That(redrawn[4], Is.EqualTo(opening[4]));
+            Assert.That(redrawn[1], Is.Not.EqualTo(opening[1]));
+            Assert.That(redrawn[3], Is.Not.EqualTo(opening[3]));
+            Assert.That(new[] { redrawn[1], redrawn[3] }.Intersect(opening), Is.Empty,
+                "A selected card already seen this turn returned during redraw.");
             Assert.That(redraw.interactable, Is.False,
                 "The redraw button stayed enabled after its base use was spent.");
             Assert.That(redrawVfx.TotalPlayCount, Is.GreaterThan(vfxCountBeforeRedraw),
@@ -1250,7 +1264,7 @@ namespace FFSS.Framework.Tests
             List<string> afterBlockedAttempt = ((IEnumerable<Sprite>)cardsProperty.GetValue(hand))
                 .Select(sprite => sprite.name)
                 .ToList();
-            Assert.That(afterBlockedAttempt, Is.EqualTo(replaced),
+            Assert.That(afterBlockedAttempt, Is.EqualTo(redrawn),
                 "Calling redraw after the turn limit changed the hand.");
 
             IReadOnlyList<string> instanceIds =
@@ -1326,9 +1340,11 @@ namespace FFSS.Framework.Tests
 
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
-                      (int)remainingProperty.GetValue(hand) == 1 && redraw.interactable,
+                      (int)remainingProperty.GetValue(hand) == 1,
                 900,
                 "The resolved exchange did not return to a fresh player turn with one redraw.");
+            Assert.That(redraw.interactable, Is.False,
+                "Fresh redraw should wait for an explicit replacement selection.");
             yield return WaitFrames(2);
 
             int enemyHpAfter = (int)controllerType.GetProperty("EnemyHp").GetValue(controller);
