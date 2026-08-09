@@ -103,10 +103,19 @@ namespace CardBattle.Exploration
             if (targetCamera == null)
                 targetCamera = Camera.main;
 
-            if (volumeTrigger == null)
+            if (volumeTrigger == null || volumeTrigger == targetCamera?.transform)
             {
                 GameObject player = GameObject.FindWithTag("Player");
-                volumeTrigger = player != null ? player.transform : targetCamera?.transform;
+                if (player != null)
+                {
+                    volumeTrigger = player.transform;
+                }
+                else
+                {
+                    QuarterViewPlayerController controller =
+                        FindFirstObjectByType<QuarterViewPlayerController>();
+                    volumeTrigger = controller != null ? controller.transform : targetCamera?.transform;
+                }
             }
 
             if (keyLight == null)

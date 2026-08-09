@@ -122,8 +122,86 @@ namespace FFSS.Framework.Tests
                 string assetPath = AssetDatabase.GetAssetPath(renderer.sprite);
                 Assert.That(
                     assetPath,
-                    Does.StartWith("Assets/Art/Production/Field/Buildings/"),
+                    Does.StartWith("Assets/Art/Production/Field/Buildings/")
+                        .Or.StartWith("Assets/Art/Production/Field/BuildingsV6/"),
                     $"{landmarks[i].name} is not using dedicated transparent building artwork.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator FieldV6ActPalettesAndDangerVolumesRenderAcrossCampaign()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(() => GameKernel.IsReady, 180, "GameKernel did not initialize.");
+
+            Button newRunButton = FindButton("New Run");
+            Assert.That(newRunButton, Is.Not.Null, "The title screen New Run button is missing.");
+            newRunButton.onClick.Invoke();
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == FieldScene,
+                300,
+                "New Run did not load Production_Field.");
+
+            RunManager runs = GameKernel.Services.Get<RunManager>();
+            for (int act = 1; act <= 3; act++)
+            {
+                if (act > 1)
+                {
+                    runs.Current.act = act;
+                    runs.NotifyStateChanged($"visual.qa.act.{act}");
+                    SceneManager.LoadScene(FieldScene, LoadSceneMode.Single);
+                    yield return WaitUntil(
+                        () => SceneManager.GetActiveScene().name == FieldScene,
+                        180,
+                        $"Act {act} field did not load.");
+                }
+
+                yield return WaitUntil(
+                    () => GeneratedTileCount() > 0 && CountFieldNodes(act) > 0,
+                    240,
+                    $"Act {act} field did not finish generating.");
+                yield return WaitFrames(12);
+
+                AssertAmbientLandmarksUseBuildingArtwork();
+                yield return CaptureScreenshot($"field_v6_act{act}_safe_1920x1080", 1920, 1080);
+
+                Transform bossNode = Object.FindObjectsByType<Transform>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .FirstOrDefault(value => value.name.StartsWith(
+                        $"Run Node - act{act}.bossdoor.",
+                        StringComparison.Ordinal));
+                Assert.That(bossNode, Is.Not.Null, $"Act {act} has no boss building for danger-volume QA.");
+
+                MonoBehaviour[] nodeBehaviours = bossNode.GetComponents<MonoBehaviour>();
+                for (int i = 0; i < nodeBehaviours.Length; i++)
+                {
+                    string typeName = nodeBehaviours[i].GetType().Name;
+                    if (typeName == "FieldRunContentNode" || typeName == "FieldEncounterNode")
+                        nodeBehaviours[i].enabled = false;
+                }
+
+                Type playerType = Type.GetType(
+                    "CardBattle.Exploration.QuarterViewPlayerController, Assembly-CSharp");
+                Assert.That(playerType, Is.Not.Null, "QuarterViewPlayerController type is unavailable.");
+                Object[] players = Object.FindObjectsByType(
+                    playerType,
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None);
+                Assert.That(players, Has.Length.EqualTo(1), "Production_Field has no active player controller.");
+                Transform playerTransform = ((Component)players[0]).transform;
+
+                Component cameraData = Camera.main.GetComponents<Component>()
+                    .FirstOrDefault(value => value.GetType().Name == "UniversalAdditionalCameraData");
+                Assert.That(cameraData, Is.Not.Null, "Production_Field camera has no URP camera data.");
+                PropertyInfo volumeTriggerProperty = cameraData.GetType().GetProperty("volumeTrigger");
+                Assert.That(volumeTriggerProperty, Is.Not.Null, "URP camera data has no volumeTrigger property.");
+                Assert.That(volumeTriggerProperty.GetValue(cameraData), Is.SameAs(playerTransform),
+                    "Local field atmosphere is not following the player.");
+
+                playerTransform.position = bossNode.position;
+                yield return WaitFrames(30);
+                yield return CaptureScreenshot($"field_v6_act{act}_danger_1920x1080", 1920, 1080);
             }
         }
 

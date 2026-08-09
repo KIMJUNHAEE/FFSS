@@ -46,13 +46,13 @@ namespace CardBattle.Editor
             CreateGlobalAtmospherePrefab(actOne, actTwo, actThree);
             GameObject normalPrefab = CreateDangerPrefab(
                 "FieldDangerAtmosphere_Normal", normalDanger,
-                new Color(1f, 0.25f, 0.18f), 0.68f, 4.8f, 21f);
+                new Color(1f, 0.25f, 0.18f), 0.68f, 1.5f, 21f);
             GameObject midBossPrefab = CreateDangerPrefab(
                 "FieldDangerAtmosphere_MidBoss", midBossDanger,
-                new Color(1f, 0.16f, 0.11f), 0.92f, 5.5f, 23f);
+                new Color(1f, 0.16f, 0.11f), 0.92f, 1.8f, 23f);
             GameObject bossPrefab = CreateDangerPrefab(
                 "FieldDangerAtmosphere_Boss", bossDanger,
-                new Color(1f, 0.08f, 0.06f), 1.2f, 6.4f, 25f);
+                new Color(1f, 0.08f, 0.06f), 1.2f, 2.2f, 25f);
 
             AttachDangerPrefab(
                 "Assets/Prefabs/Production/Field/FieldEncounter_Normal.prefab", normalPrefab);
@@ -256,7 +256,7 @@ namespace CardBattle.Editor
 
                 Volume volume = root.AddComponent<Volume>();
                 volume.isGlobal = false;
-                volume.blendDistance = radius * 0.48f;
+                volume.blendDistance = Mathf.Max(1.7f, radius * 1.15f);
                 volume.weight = 1f;
                 volume.priority = priority;
                 volume.sharedProfile = profile;
@@ -268,7 +268,7 @@ namespace CardBattle.Editor
                 beacon.type = LightType.Point;
                 beacon.color = lightColor;
                 beacon.intensity = lightIntensity;
-                beacon.range = radius * 1.12f;
+                beacon.range = radius + 3.5f;
                 beacon.shadows = LightShadows.None;
 
                 FieldDangerAtmospherePulse pulse = root.AddComponent<FieldDangerAtmospherePulse>();
@@ -322,7 +322,14 @@ namespace CardBattle.Editor
             instance.name = "Field Atmosphere";
 
             Camera camera = Camera.main;
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
+            QuarterViewPlayerController playerController =
+                UnityEngine.Object.FindFirstObjectByType<QuarterViewPlayerController>();
+            Transform volumeTrigger = taggedPlayer != null
+                ? taggedPlayer.transform
+                : playerController != null
+                    ? playerController.transform
+                    : camera?.transform;
             GameObject keyLightObject = GameObject.Find("Key Light");
             Light keyLight = keyLightObject != null ? keyLightObject.GetComponent<Light>() : null;
             FieldActAtmosphere atmosphere = instance.GetComponent<FieldActAtmosphere>();
@@ -330,8 +337,7 @@ namespace CardBattle.Editor
             atmosphereSerialized.FindProperty("globalVolume").objectReferenceValue =
                 instance.GetComponentInChildren<Volume>();
             atmosphereSerialized.FindProperty("targetCamera").objectReferenceValue = camera;
-            atmosphereSerialized.FindProperty("volumeTrigger").objectReferenceValue =
-                player != null ? player.transform : camera?.transform;
+            atmosphereSerialized.FindProperty("volumeTrigger").objectReferenceValue = volumeTrigger;
             atmosphereSerialized.FindProperty("keyLight").objectReferenceValue = keyLight;
             atmosphereSerialized.FindProperty("previewAct").intValue = 1;
             atmosphereSerialized.ApplyModifiedPropertiesWithoutUndo();
@@ -344,7 +350,7 @@ namespace CardBattle.Editor
                 data.dithering = true;
                 data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
                 data.antialiasingQuality = AntialiasingQuality.High;
-                data.volumeTrigger = player != null ? player.transform : camera.transform;
+                data.volumeTrigger = volumeTrigger != null ? volumeTrigger : camera.transform;
                 EditorUtility.SetDirty(data);
             }
 
@@ -365,6 +371,7 @@ namespace CardBattle.Editor
                 "ClockworkTimekeeper/HexTiles/FieldV6/Act2";
             generatorSerialized.FindProperty("actThreeTileResourceFolder").stringValue =
                 "ClockworkTimekeeper/HexTiles/FieldV6/Act3";
+            generatorSerialized.FindProperty("fieldV6UvRadius").vector2Value = new Vector2(0.405f, 0.468f);
             SetStringArray(generatorSerialized, "actOneRoadTextureNames", BuildNames(
                 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17));
             SetStringArray(generatorSerialized, "actTwoRoadTextureNames", BuildNames(

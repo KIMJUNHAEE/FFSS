@@ -140,6 +140,7 @@ namespace CardBattle.Exploration
         [SerializeField] private float interactionMeshScale = 1f;
         [SerializeField, Range(0f, 0.2f)] private float plainRoadUvPadding = 0f;
         [SerializeField, Range(0f, 0.2f)] private float interactionUvPadding = 0f;
+        [SerializeField] private Vector2 fieldV6UvRadius = new(0.405f, 0.468f);
         [SerializeField] private Material tileMaterialTemplate = null;
 
         [Header("Layout")]
@@ -1424,7 +1425,10 @@ namespace CardBattle.Exploration
 
             float meshScale = isInteractionTile ? interactionMeshScale : plainRoadMeshScale;
             float uvPadding = isInteractionTile ? interactionUvPadding : plainRoadUvPadding;
-            mesh = CreateHexMesh(textureName, meshScale, uvPadding);
+            Vector2 uvRadius = Vector2.one * (0.5f - uvPadding);
+            if (textureName.Contains("_v6_", StringComparison.OrdinalIgnoreCase))
+                uvRadius = fieldV6UvRadius;
+            mesh = CreateHexMesh(textureName, meshScale, uvRadius);
             generatedMeshes[meshKey] = mesh;
             return mesh;
         }
@@ -1436,10 +1440,11 @@ namespace CardBattle.Exploration
             return new Vector3(x, tileY, z);
         }
 
-        private Mesh CreateHexMesh(string textureName, float meshScale, float uvPadding)
+        private Mesh CreateHexMesh(string textureName, float meshScale, Vector2 uvRadius)
         {
             meshScale = Mathf.Max(0.1f, meshScale);
-            uvPadding = Mathf.Clamp(uvPadding, 0f, 0.2f);
+            uvRadius.x = Mathf.Clamp(uvRadius.x, 0.3f, 0.5f);
+            uvRadius.y = Mathf.Clamp(uvRadius.y, 0.3f, 0.5f);
 
             var mesh = new Mesh
             {
@@ -1460,8 +1465,8 @@ namespace CardBattle.Exploration
                 float z = Mathf.Sin(angle) * tileRadius * meshScale;
                 vertices[i + 1] = new Vector3(x, 0f, z);
                 uvs[i + 1] = new Vector2(
-                    0.5f + Mathf.Cos(angle) * (0.5f - uvPadding),
-                    0.5f + Mathf.Sin(angle) * (0.5f - uvPadding));
+                    0.5f + Mathf.Cos(angle) * uvRadius.x,
+                    0.5f + Mathf.Sin(angle) * uvRadius.y);
             }
 
             for (int i = 0; i < 6; i++)
