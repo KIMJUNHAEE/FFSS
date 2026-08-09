@@ -23,6 +23,7 @@ namespace FFSS.Editor
         private const string BackgroundPrefabRoot = "Assets/Prefabs/Production/Combat/Backgrounds";
         private const string CardHoverPreviewPrefabPath = "Assets/Prefabs/Production/Combat/CardHoverPreview.prefab";
         private const string CommandButtonPrefabPath = "Assets/Prefabs/CombatUI38/PokerCommandButton.prefab";
+        private const string Boss38HudPrefabPath = "Assets/Prefabs/CombatUI38/Boss_38_HUD.prefab";
         private const string UiFontPath = "Assets/Fonts/GyeonggiCheonnyeonTitle_Medium.ttf";
         private const string TallTooltipPath = "Assets/Art/Production/UI/Atlas/03_panels_modals/tooltip_tall.png";
         private const string SelectionSparkPath = "Assets/Art/Production/UI/Atlas/11_banners_tabs/tab_diamond.png";
@@ -30,6 +31,16 @@ namespace FFSS.Editor
         private static readonly Vector2 SeotdaDeckPresentationSize = new(140f, 225f);
         private static readonly Vector3 PokerHandPresentationScale = new(1.5f, 1.5f, 1f);
         private static readonly Vector2 PokerHandPresentationPosition = new(-145f, 0f);
+        private static readonly Vector2 Boss38HudVisibleMatchSize = new(541f, 211f);
+        private static readonly Vector2 Boss38HudVisibleMatchPosition = new(0f, -3.4f);
+        private static readonly string[] SharedRightSideTextRoots =
+        {
+            "EnemyHUD",
+            "EnemyIntentBadge",
+            "EnemyRuleMeter",
+            "EnemyCombatGuide",
+            "EnemyIntentTooltip"
+        };
 
         private readonly struct BattleSeed
         {
@@ -226,6 +237,8 @@ namespace FFSS.Editor
                 ApplyReadableCardPresentation(referenceScene);
                 EditorSceneManager.SaveScene(referenceScene);
                 IReadOnlyDictionary<string, RectLayoutSnapshot> reference = CaptureSharedCombatLayouts(referenceScene);
+                IReadOnlyDictionary<string, TextLayoutSnapshot> referenceText =
+                    CaptureSharedCombatTextLayouts(referenceScene);
 
                 for (int i = 0; i < Seeds.Count; i++)
                 {
@@ -237,6 +250,8 @@ namespace FFSS.Editor
                     Scene targetScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
                     MoveWeaknessToEnemyInfo(targetScene);
                     ApplySharedCombatLayouts(targetScene, reference);
+                    ApplySharedCombatTextLayouts(targetScene, referenceText);
+                    ApplyEnemyFrameCalibration(targetScene, seed);
                     ApplyReadableCardPresentation(targetScene);
                     EditorSceneManager.SaveScene(targetScene);
                 }
@@ -285,6 +300,66 @@ namespace FFSS.Editor
             }
         }
 
+        private readonly struct TextLayoutSnapshot
+        {
+            public TextLayoutSnapshot(TMP_Text text)
+            {
+                Rect = new RectLayoutSnapshot(text.rectTransform);
+                Font = text.font;
+                FontSize = text.fontSize;
+                EnableAutoSizing = text.enableAutoSizing;
+                FontSizeMin = text.fontSizeMin;
+                FontSizeMax = text.fontSizeMax;
+                FontStyle = text.fontStyle;
+                Alignment = text.alignment;
+                Margin = text.margin;
+                CharacterSpacing = text.characterSpacing;
+                WordSpacing = text.wordSpacing;
+                LineSpacing = text.lineSpacing;
+                ParagraphSpacing = text.paragraphSpacing;
+                EnableWordWrapping = text.enableWordWrapping;
+                OverflowMode = text.overflowMode;
+            }
+
+            private RectLayoutSnapshot Rect { get; }
+            private TMP_FontAsset Font { get; }
+            private float FontSize { get; }
+            private bool EnableAutoSizing { get; }
+            private float FontSizeMin { get; }
+            private float FontSizeMax { get; }
+            private FontStyles FontStyle { get; }
+            private TextAlignmentOptions Alignment { get; }
+            private Vector4 Margin { get; }
+            private float CharacterSpacing { get; }
+            private float WordSpacing { get; }
+            private float LineSpacing { get; }
+            private float ParagraphSpacing { get; }
+            private bool EnableWordWrapping { get; }
+            private TextOverflowModes OverflowMode { get; }
+
+            public void Apply(TMP_Text text)
+            {
+                Rect.Apply(text.rectTransform);
+                text.font = Font;
+                text.fontSize = FontSize;
+                text.enableAutoSizing = EnableAutoSizing;
+                text.fontSizeMin = FontSizeMin;
+                text.fontSizeMax = FontSizeMax;
+                text.fontStyle = FontStyle;
+                text.alignment = Alignment;
+                text.margin = Margin;
+                text.characterSpacing = CharacterSpacing;
+                text.wordSpacing = WordSpacing;
+                text.lineSpacing = LineSpacing;
+                text.paragraphSpacing = ParagraphSpacing;
+                text.enableWordWrapping = EnableWordWrapping;
+                text.overflowMode = OverflowMode;
+                EditorUtility.SetDirty(text);
+                if (PrefabUtility.IsPartOfPrefabInstance(text))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(text);
+            }
+        }
+
         private static IReadOnlyDictionary<string, RectLayoutSnapshot> CaptureSharedCombatLayouts(Scene scene)
         {
             Dictionary<string, RectTransform> rects = ResolveSharedCombatRects(scene);
@@ -307,6 +382,92 @@ namespace FFSS.Editor
                     continue;
                 }
                 pair.Value.Apply(target);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static IReadOnlyDictionary<string, TextLayoutSnapshot> CaptureSharedCombatTextLayouts(Scene scene)
+        {
+            Dictionary<string, TMP_Text> texts = ResolveSharedCombatTexts(scene);
+            var snapshots = new Dictionary<string, TextLayoutSnapshot>(texts.Count);
+            foreach (KeyValuePair<string, TMP_Text> pair in texts)
+                snapshots.Add(pair.Key, new TextLayoutSnapshot(pair.Value));
+            return snapshots;
+        }
+
+        private static void ApplySharedCombatTextLayouts(
+            Scene scene,
+            IReadOnlyDictionary<string, TextLayoutSnapshot> reference)
+        {
+            Dictionary<string, TMP_Text> targets = ResolveSharedCombatTexts(scene);
+            foreach (KeyValuePair<string, TextLayoutSnapshot> pair in reference)
+            {
+                if (!targets.TryGetValue(pair.Key, out TMP_Text target))
+                {
+                    Debug.LogWarning($"{scene.path}: optional combat UI text '{pair.Key}' is missing; text layout was skipped.");
+                    continue;
+                }
+
+                pair.Value.Apply(target);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static Dictionary<string, TMP_Text> ResolveSharedCombatTexts(Scene scene)
+        {
+            Dictionary<string, RectTransform> rects = ResolveSharedCombatRects(scene);
+            var result = new Dictionary<string, TMP_Text>();
+            for (int rootIndex = 0; rootIndex < SharedRightSideTextRoots.Length; rootIndex++)
+            {
+                string rootKey = SharedRightSideTextRoots[rootIndex];
+                if (!rects.TryGetValue(rootKey, out RectTransform root) || root == null)
+                    continue;
+
+                var occurrenceByName = new Dictionary<string, int>();
+                TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
+                for (int textIndex = 0; textIndex < texts.Length; textIndex++)
+                {
+                    TMP_Text text = texts[textIndex];
+                    occurrenceByName.TryGetValue(text.name, out int occurrence);
+                    occurrenceByName[text.name] = occurrence + 1;
+                    result[$"{rootKey}/{text.name}#{occurrence}"] = text;
+                }
+            }
+
+            return result;
+        }
+
+        private static void ApplyEnemyFrameCalibration(Scene scene, BattleSeed seed)
+        {
+            if (seed.EnemyId != "38")
+                return;
+
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            RectTransform enemyHud = RequirePrefabRoot(combat.enemyHpText, scene, "EnemyHUD");
+            enemyHud.sizeDelta = Boss38HudVisibleMatchSize;
+            enemyHud.anchoredPosition = Boss38HudVisibleMatchPosition;
+            EditorUtility.SetDirty(enemyHud);
+            if (PrefabUtility.IsPartOfPrefabInstance(enemyHud))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(enemyHud);
+
+            GameObject framePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(Boss38HudPrefabPath);
+            if (framePrefab == null)
+                throw new FileNotFoundException($"38 enemy HUD prefab is missing: {Boss38HudPrefabPath}");
+
+            TMP_Text[] sourceTexts = framePrefab.GetComponentsInChildren<TMP_Text>(true);
+            TMP_Text[] targetTexts = enemyHud.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < sourceTexts.Length; i++)
+            {
+                TMP_Text source = sourceTexts[i];
+                if (source.name is not "NameText" and not "TitleText")
+                    continue;
+
+                TMP_Text target = Array.Find(targetTexts, item => item.name == source.name);
+                if (target == null)
+                    throw new InvalidOperationException($"{scene.path}: 38 enemy HUD text '{source.name}' is missing.");
+                new RectLayoutSnapshot(source.rectTransform).Apply(target.rectTransform);
             }
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -358,7 +519,10 @@ namespace FFSS.Editor
             AddOptionalRoot(result, "BattleResult", combat.battleResultView);
             AddOptionalRoot(result, "CombatReadout", combat.combatReadout);
             AddOptionalRoot(result, "WeaknessEffect", combat.weaknessEffectPanel);
-            AddOptionalRoot(result, "EnemyIntentTooltip", combat.enemyIntentTooltip);
+            AddOptionalRoot(
+                result,
+                "EnemyIntentTooltip",
+                combat.enemyIntentTooltip != null ? combat.enemyIntentTooltip.tooltipRoot : null);
 
             EnemyCombatGuideView guide = FindInScene<EnemyCombatGuideView>(scene);
             AddOptionalRoot(result, "EnemyCombatGuide", guide);
@@ -388,6 +552,7 @@ namespace FFSS.Editor
             AddSharedDescendantRects(result, "EnemyCombatGuide");
             AddSharedDescendantRects(result, "EnemyCombatGuideOpenButton");
             AddSharedDescendantRects(result, "EnemyCombatGuidePanel");
+            AddSharedDescendantRects(result, "EnemyIntentTooltip");
             return result;
         }
 

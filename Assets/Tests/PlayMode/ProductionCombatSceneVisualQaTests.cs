@@ -27,7 +27,8 @@ namespace FFSS.Framework.Tests
             "SkillButton",
             "RedrawButton",
             "EndTurnButton",
-            "EnemyRuleMeter"
+            "EnemyRuleMeter",
+            "EnemyIntentTooltip"
         };
 
         private static readonly string[] SceneNames =
@@ -90,6 +91,7 @@ namespace FFSS.Framework.Tests
             SceneManager.LoadScene("Combat_Ddaeng_01", LoadSceneMode.Single);
             yield return WaitFrames(3);
             IReadOnlyDictionary<string, RectGeometry> reference = CaptureSharedUiGeometry();
+            IReadOnlyDictionary<string, TextPresentation> referenceText = CaptureRightSideTextPresentation();
 
             var failures = new List<string>();
             for (int i = 0; i < SceneNames.Length; i++)
@@ -98,8 +100,12 @@ namespace FFSS.Framework.Tests
                 SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
                 yield return WaitFrames(3);
                 IReadOnlyDictionary<string, RectGeometry> current = CaptureSharedUiGeometry();
+                IReadOnlyDictionary<string, TextPresentation> currentText = CaptureRightSideTextPresentation();
                 foreach (KeyValuePair<string, RectGeometry> pair in reference)
                 {
+                    if (UsesFrameSpecificEnemyHudGeometry(sceneName, pair.Key))
+                        continue;
+
                     if (!current.TryGetValue(pair.Key, out RectGeometry actual))
                     {
                         if (RequiredSharedUiNames.Contains(pair.Key))
@@ -111,6 +117,38 @@ namespace FFSS.Framework.Tests
                     {
                         failures.Add(
                             $"{sceneName}: {pair.Key} differs from 1 Ddaeng. " +
+                            $"expected {pair.Value}, actual {actual}");
+                    }
+                }
+
+                if (sceneName == "Combat_Boss_Gwang_38")
+                {
+                    RectTransform enemyHud = FindSharedRootRect("EnemyHUD");
+                    if (enemyHud == null)
+                    {
+                        failures.Add($"{sceneName}: calibrated enemy HUD is missing");
+                    }
+                    else
+                    {
+                        ExpectVector(sceneName, "38 visible HUD size", enemyHud.sizeDelta,
+                            new Vector2(541f, 211f), failures);
+                        ExpectVector(sceneName, "38 visible HUD position", enemyHud.anchoredPosition,
+                            new Vector2(0f, -3.4f), failures);
+                    }
+                }
+
+                foreach (KeyValuePair<string, TextPresentation> pair in referenceText)
+                {
+                    if (!currentText.TryGetValue(pair.Key, out TextPresentation actual))
+                    {
+                        failures.Add($"{sceneName}: right-side text {pair.Key} is missing");
+                        continue;
+                    }
+
+                    if (!pair.Value.ApproximatelyEquals(actual))
+                    {
+                        failures.Add(
+                            $"{sceneName}: {pair.Key} text differs from 1 Ddaeng. " +
                             $"expected {pair.Value}, actual {actual}");
                     }
                 }
@@ -260,6 +298,101 @@ namespace FFSS.Framework.Tests
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
+        [UnityTest]
+        public IEnumerator EveryProductionCombatSceneShowsAReadableEnemyIntentDetail()
+        {
+            var failures = new List<string>();
+            string[] captureScenes =
+            {
+                "Combat_Ddaeng_01",
+                "Combat_Boss_Gwang_38"
+            };
+
+            for (int i = 0; i < SceneNames.Length; i++)
+            {
+                string sceneName = SceneNames[i];
+                SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+                yield return WaitFrames(4);
+
+                MonoBehaviour combat = SceneComponentsByTypeName(
+                    SceneManager.GetActiveScene(),
+                    "RpsCombatController").SingleOrDefault();
+                MonoBehaviour tooltip = ReadField<MonoBehaviour>(combat, "enemyIntentTooltip");
+                Component battleIntro = ReadField<Component>(combat, "battleIntro");
+                Component turnBanner = ReadField<Component>(combat, "turnBanner");
+                if (battleIntro != null)
+                    battleIntro.gameObject.SetActive(false);
+                if (turnBanner != null)
+                    turnBanner.gameObject.SetActive(false);
+                GameObject tooltipRoot = ReadField<GameObject>(tooltip, "tooltipRoot");
+                TMP_Text title = ReadField<TMP_Text>(tooltip, "titleText");
+                TMP_Text value = ReadField<TMP_Text>(tooltip, "valueText");
+                TMP_Text body = ReadField<TMP_Text>(tooltip, "bodyText");
+                if (tooltip == null || tooltipRoot == null || title == null || value == null || body == null)
+                {
+                    failures.Add($"{sceneName}: enemy intent detail references are incomplete");
+                    continue;
+                }
+
+                Vector2Int[] resolutions =
+                {
+                    new(1280, 720),
+                    new(1920, 1080)
+                };
+                for (int resolutionIndex = 0; resolutionIndex < resolutions.Length; resolutionIndex++)
+                {
+                    Vector2Int resolution = resolutions[resolutionIndex];
+                    Screen.SetResolution(resolution.x, resolution.y, false);
+                    yield return new WaitForSecondsRealtime(0.4f);
+
+                    tooltip.GetType().GetMethod("SetContent")?.Invoke(
+                        tooltip,
+                        new object[]
+                        {
+                            "상대 행동 상세",
+                            "공격 13",
+                            "이번 행동의 기본 수치와 전용 패 추가 효과를 확인한다."
+                        });
+                    tooltip.GetType().GetMethod("OnPointerEnter")?.Invoke(tooltip, new object[] { null });
+                    yield return WaitFrames(2);
+
+                    if (!tooltipRoot.activeSelf)
+                    {
+                        failures.Add($"{sceneName}: enemy intent detail did not open");
+                        continue;
+                    }
+
+                    ValidateVisibleText($"{sceneName} enemy intent detail", failures);
+                    ValidateRectInsideViewport(
+                        $"{sceneName}: enemy intent detail",
+                        tooltipRoot.transform as RectTransform,
+                        failures);
+                    if (title.fontSizeMax < 20f || value.fontSizeMax < 16f || body.fontSizeMax < 16f)
+                    {
+                        failures.Add(
+                            $"{sceneName}: enemy intent detail text is too small " +
+                            $"(title {title.fontSizeMax}, value {value.fontSizeMax}, body {body.fontSizeMax})");
+                    }
+
+                    if (captureScenes.Contains(sceneName) && Camera.main != null)
+                    {
+                        yield return Capture(
+                            $"{sceneName}_EnemyIntentDetail",
+                            Camera.main,
+                            resolution.x,
+                            resolution.y);
+                    }
+
+                    tooltip.GetType().GetMethod("OnPointerExit")?.Invoke(tooltip, new object[] { null });
+                    yield return WaitFrames(1);
+                    if (tooltipRoot.activeSelf)
+                        failures.Add($"{sceneName}: enemy intent detail did not close");
+                }
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
         private readonly struct RectGeometry
         {
             public RectGeometry(RectTransform rect)
@@ -296,6 +429,87 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        private readonly struct TextPresentation
+        {
+            public TextPresentation(TMP_Text text)
+            {
+                FontName = text.font != null ? text.font.name : string.Empty;
+                EnableAutoSizing = text.enableAutoSizing;
+                FontSizeMin = text.fontSizeMin;
+                FontSizeMax = text.fontSizeMax;
+                FontStyle = text.fontStyle;
+                Alignment = text.alignment;
+                Margin = text.margin;
+            }
+
+            private string FontName { get; }
+            private bool EnableAutoSizing { get; }
+            private float FontSizeMin { get; }
+            private float FontSizeMax { get; }
+            private FontStyles FontStyle { get; }
+            private TextAlignmentOptions Alignment { get; }
+            private Vector4 Margin { get; }
+
+            public bool ApproximatelyEquals(TextPresentation other)
+            {
+                const float tolerance = 0.05f;
+                return FontName == other.FontName &&
+                       EnableAutoSizing == other.EnableAutoSizing &&
+                       Mathf.Abs(FontSizeMin - other.FontSizeMin) <= tolerance &&
+                       Mathf.Abs(FontSizeMax - other.FontSizeMax) <= tolerance &&
+                       FontStyle == other.FontStyle &&
+                       Alignment == other.Alignment &&
+                       Vector4.Distance(Margin, other.Margin) <= tolerance;
+            }
+
+            public override string ToString()
+            {
+                return $"font={FontName}, range={FontSizeMin}-{FontSizeMax}, " +
+                       $"auto={EnableAutoSizing}, style={FontStyle}, align={Alignment}, margin={Margin}";
+            }
+        }
+
+        private static IReadOnlyDictionary<string, TextPresentation> CaptureRightSideTextPresentation()
+        {
+            string[] rootNames =
+            {
+                "EnemyHUD",
+                "EnemyIntentBadge",
+                "EnemyRuleMeter",
+                "EnemyCombatGuide",
+                "EnemyIntentTooltip"
+            };
+            var result = new Dictionary<string, TextPresentation>();
+            for (int rootIndex = 0; rootIndex < rootNames.Length; rootIndex++)
+            {
+                string rootName = rootNames[rootIndex];
+                RectTransform root = FindSharedRootRect(rootName);
+                if (root == null)
+                    continue;
+
+                var occurrenceByName = new Dictionary<string, int>();
+                TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
+                for (int textIndex = 0; textIndex < texts.Length; textIndex++)
+                {
+                    TMP_Text text = texts[textIndex];
+                    occurrenceByName.TryGetValue(text.name, out int occurrence);
+                    occurrenceByName[text.name] = occurrence + 1;
+                    result[$"{rootName}/{text.name}#{occurrence}"] = new TextPresentation(text);
+                }
+            }
+
+            return result;
+        }
+
+        private static bool UsesFrameSpecificEnemyHudGeometry(string sceneName, string key)
+        {
+            if (sceneName != "Combat_Boss_Gwang_38")
+                return false;
+            return key == "EnemyHUD" ||
+                   key.StartsWith("EnemyHUD/NameText") ||
+                   key.StartsWith("EnemyHUD/TitleText");
+        }
+
         private static IReadOnlyDictionary<string, RectGeometry> CaptureSharedUiGeometry()
         {
             var result = new Dictionary<string, RectGeometry>();
@@ -326,6 +540,11 @@ namespace FFSS.Framework.Tests
                 AddReferencedRootGeometry(result, "PlayerHUD", ReadField<Component>(combats[0], "playerHpText"));
                 AddReferencedRootGeometry(result, "EnemyHUD", ReadField<Component>(combats[0], "enemyHpText"));
                 AddReferencedRootGeometry(result, "EnemyIntentBadge", ReadField<Component>(combats[0], "enemyActionText"));
+                MonoBehaviour intentTooltip = ReadField<MonoBehaviour>(combats[0], "enemyIntentTooltip");
+                AddReferencedRootGeometry(
+                    result,
+                    "EnemyIntentTooltip",
+                    ReadField<GameObject>(intentTooltip, "tooltipRoot"));
                 AddReferencedRootGeometry(result, "PokerTableV2", ReadField<Component>(combats[0], "pokerHand"));
                 AddReferencedRootGeometry(result, "PlayerSkillDetail", ReadField<GameObject>(combats[0], "playerSkillDetailRoot"));
 
@@ -369,6 +588,7 @@ namespace FFSS.Framework.Tests
             AddDescendantGeometry(result, "EnemyIntentBadge");
             AddDescendantGeometry(result, "EnemyRuleMeter");
             AddDescendantGeometry(result, "EnemyCombatGuide");
+            AddDescendantGeometry(result, "EnemyIntentTooltip");
             return result;
         }
 
@@ -379,7 +599,7 @@ namespace FFSS.Framework.Tests
             if (!result.TryGetValue(rootKey, out RectGeometry _))
                 return;
 
-            RectTransform root = FindNamedRect(rootKey);
+            RectTransform root = FindSharedRootRect(rootKey);
             if (root == null)
                 return;
 
@@ -394,6 +614,8 @@ namespace FFSS.Framework.Tests
                 {
                     continue;
                 }
+                if (rootKey == "EnemyRuleMeter" && descendant.name == "Fill Clip")
+                    continue;
 
                 string path = BuildRelativePath(descendant, root);
                 if (!string.IsNullOrEmpty(path))
@@ -470,6 +692,46 @@ namespace FFSS.Framework.Tests
         {
             RectTransform[] rects = SceneComponents<RectTransform>(SceneManager.GetActiveScene());
             return rects.FirstOrDefault(rect => rect.name == objectName);
+        }
+
+        private static RectTransform FindSharedRootRect(string rootName)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            MonoBehaviour combat = SceneComponentsByTypeName(scene, "RpsCombatController").SingleOrDefault();
+            if (combat != null)
+            {
+                if (rootName == "EnemyHUD")
+                    return FindReferencedRootRect(ReadField<Component>(combat, "enemyHpText"));
+                if (rootName == "EnemyIntentBadge")
+                    return FindReferencedRootRect(ReadField<Component>(combat, "enemyActionText"));
+                if (rootName == "EnemyIntentTooltip")
+                {
+                    MonoBehaviour tooltip = ReadField<MonoBehaviour>(combat, "enemyIntentTooltip");
+                    return ReadField<GameObject>(tooltip, "tooltipRoot")?.transform as RectTransform;
+                }
+            }
+
+            if (rootName == "EnemyRuleMeter")
+            {
+                MonoBehaviour meter = SceneComponentsByTypeName(scene, "EnemyRuleMeterView").SingleOrDefault();
+                return meter != null ? meter.transform as RectTransform : null;
+            }
+
+            if (rootName == "EnemyCombatGuide")
+            {
+                MonoBehaviour guide = SceneComponentsByTypeName(scene, "EnemyCombatGuideView").SingleOrDefault();
+                return FindReferencedRootRect(guide);
+            }
+
+            return FindNamedRect(rootName);
+        }
+
+        private static RectTransform FindReferencedRootRect(Component component)
+        {
+            if (component == null)
+                return null;
+            return component.GetComponentsInParent<RectTransform>(true).LastOrDefault(
+                rect => rect.GetComponentInParent<Canvas>() != null && rect.GetComponent<Canvas>() == null);
         }
 
         private static void ValidateSceneStructure(string sceneName, ICollection<string> failures)
