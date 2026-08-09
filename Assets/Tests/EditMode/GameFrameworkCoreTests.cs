@@ -560,14 +560,14 @@ namespace FFSS.Framework.Tests
 
             Assert.That(campaign, Is.Not.Null);
             Assert.That(campaign.Acts, Has.Count.EqualTo(3));
-            Assert.That(campaign.GetAct(1).minimumTiles, Is.EqualTo(36));
-            Assert.That(campaign.GetAct(1).maximumTiles, Is.EqualTo(44));
+            Assert.That(campaign.GetAct(1).minimumTiles, Is.EqualTo(72));
+            Assert.That(campaign.GetAct(1).maximumTiles, Is.EqualTo(84));
             Assert.That(campaign.GetAct(1).bossId, Is.EqualTo("13"));
-            Assert.That(campaign.GetAct(2).minimumTiles, Is.EqualTo(48));
-            Assert.That(campaign.GetAct(2).maximumTiles, Is.EqualTo(58));
+            Assert.That(campaign.GetAct(2).minimumTiles, Is.EqualTo(92));
+            Assert.That(campaign.GetAct(2).maximumTiles, Is.EqualTo(108));
             Assert.That(campaign.GetAct(2).bossId, Is.EqualTo("18"));
-            Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(68));
-            Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(80));
+            Assert.That(campaign.GetAct(3).minimumTiles, Is.EqualTo(116));
+            Assert.That(campaign.GetAct(3).maximumTiles, Is.EqualTo(136));
             Assert.That(campaign.GetAct(3).bossId, Is.EqualTo("38"));
             Assert.That(campaign.GetAct(1).layoutPattern, Is.EqualTo(RunFieldLayoutPattern.BroadRoadY));
             Assert.That(campaign.GetAct(2).layoutPattern, Is.EqualTo(RunFieldLayoutPattern.CanalDoubleLoop));
@@ -954,6 +954,7 @@ namespace FFSS.Framework.Tests
 
                 for (int sample = 0; sample < targets.Length; sample++)
                 {
+                    var fingerprints = new HashSet<string>();
                     for (int seedSample = 0; seedSample < 10; seedSample++)
                     {
                         var host = new GameObject($"Act {act} Layout {sample} Seed {seedSample}");
@@ -980,6 +981,12 @@ namespace FFSS.Framework.Tests
                             var cellSet = new HashSet<Vector2Int>(cells);
                             int leafCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 1);
                             int narrowCount = cells.Count(cell => CountHexNeighbors(cell, cellSet) <= 2);
+                            int maximumRadius = cells.Max(cell =>
+                                (Mathf.Abs(cell.x) + Mathf.Abs(cell.y) + Mathf.Abs(cell.x + cell.y)) / 2);
+                            fingerprints.Add(string.Join(
+                                ";",
+                                cells.OrderBy(cell => cell.x).ThenBy(cell => cell.y)
+                                    .Select(cell => $"{cell.x},{cell.y}")));
                             string context = $"act {act}, sample {sample}, seed {seedSample}";
 
                             Assert.That(cells, Has.Count.EqualTo(targets[sample]), context);
@@ -989,6 +996,10 @@ namespace FFSS.Framework.Tests
                             Assert.That(ReachableHexCount(Vector2Int.zero, cellSet), Is.EqualTo(cells.Count), context);
                             Assert.That(leafCount, Is.LessThanOrEqualTo(2), context);
                             Assert.That(narrowCount / (float)cells.Count, Is.LessThan(0.34f), context);
+                            Assert.That(
+                                maximumRadius,
+                                Is.GreaterThanOrEqualTo(Mathf.CeilToInt(Mathf.Sqrt(targets[sample]) * 0.85f)),
+                                context);
                             Assert.That(validate.Invoke(generator, new object[] { cellSet, targets[sample] }),
                                 Is.EqualTo(true), context);
                         }
@@ -997,6 +1008,11 @@ namespace FFSS.Framework.Tests
                             UnityEngine.Object.DestroyImmediate(host);
                         }
                     }
+
+                    Assert.That(
+                        fingerprints.Count,
+                        Is.GreaterThanOrEqualTo(8),
+                        $"act {act}, sample {sample} should produce distinct city layouts across seeds");
                 }
             }
         }

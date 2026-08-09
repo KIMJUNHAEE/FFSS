@@ -27,8 +27,8 @@ namespace FFSS.Framework.Run
         [Range(1, 3)] public int act = 1;
         public string displayName;
         public string regionId;
-        [Min(1)] public int minimumTiles = 36;
-        [Min(1)] public int maximumTiles = 44;
+        [Min(1)] public int minimumTiles = 72;
+        [Min(1)] public int maximumTiles = 84;
         [Min(0)] public int requiredNormalVictories = 5;
         [Min(0)] public int requiredEvents = 3;
         [Min(0)] public int shopCount = 1;

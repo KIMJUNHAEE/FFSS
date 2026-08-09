@@ -360,11 +360,24 @@ namespace FFSS.Editor
             field.FindProperty("shopMarkerPrefab").objectReferenceValue = shopNode;
             field.FindProperty("bossDoorMarkerPrefab").objectReferenceValue = bossDoor;
             field.FindProperty("ambientLandmarkPrefab").objectReferenceValue = ambientLandmark;
+            field.FindProperty("routePlacementJitter").floatValue = 0.12f;
+            field.FindProperty("ambientLandmarkDensity").floatValue = 0.08f;
+            field.FindProperty("maximumAmbientLandmarks").intValue = 14;
             ConfigureLandmarkVisuals(field.FindProperty("landmarkVisuals"));
             field.ApplyModifiedPropertiesWithoutUndo();
 
             SerializedObject map = new SerializedObject(generator);
             map.FindProperty("randomSeed").intValue = 1701;
+            map.FindProperty("targetTileCount").intValue = 78;
+            map.FindProperty("mainPathLength").intValue = 7;
+            map.FindProperty("branchCount").intValue = 10;
+            map.FindProperty("softRadiusLimit").intValue = 15;
+            map.FindProperty("plannedContentNodeCount").intValue = 13;
+            map.FindProperty("districtSpacing").intValue = 5;
+            map.FindProperty("minimumDistrictCount").intValue = 5;
+            map.FindProperty("maximumDistrictCount").intValue = 10;
+            map.FindProperty("cityLoopConnections").intValue = 3;
+            map.FindProperty("alleyExpansionChance").floatValue = 0.34f;
             map.FindProperty("plainRoadUvPadding").floatValue = 0f;
             map.FindProperty("interactionUvPadding").floatValue = 0f;
             map.ApplyModifiedPropertiesWithoutUndo();

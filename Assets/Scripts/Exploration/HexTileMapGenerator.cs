@@ -129,6 +129,13 @@ namespace CardBattle.Exploration
         [SerializeField] private bool generateOnStart = true;
         [SerializeField] private bool generatePreviewInEditMode = true;
 
+        [Header("City Layout")]
+        [SerializeField, Min(4)] private int districtSpacing = 5;
+        [SerializeField, Min(3)] private int minimumDistrictCount = 5;
+        [SerializeField, Min(4)] private int maximumDistrictCount = 10;
+        [SerializeField, Min(1)] private int cityLoopConnections = 3;
+        [SerializeField, Range(0f, 1f)] private float alleyExpansionChance = 0.34f;
+
         [Header("Player")]
         [SerializeField] private Transform playerTarget = null;
         [SerializeField] private bool placePlayerAtStart = true;
@@ -366,7 +373,10 @@ namespace CardBattle.Exploration
             RunFieldLayoutPattern layoutPattern)
         {
             int target = Mathf.Max(12, targetTileCount);
-            int areas = Mathf.Clamp(Mathf.RoundToInt(target / 16f) + 1, 3, 6);
+            int areas = Mathf.Clamp(
+                Mathf.RoundToInt(target / 14f) + 1,
+                Mathf.Max(3, minimumDistrictCount),
+                Mathf.Max(minimumDistrictCount, maximumDistrictCount));
 
             this.targetTileCount = target;
             plannedContentNodeCount = Mathf.Max(1, contentNodeCount);
@@ -374,7 +384,9 @@ namespace CardBattle.Exploration
             branchCount = Mathf.Max(2, areas + Mathf.RoundToInt(target / 24f));
             minBranchLength = 2;
             maxBranchLength = 4;
-            softRadiusLimit = Mathf.Max(7, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.45f));
+            districtSpacing = Mathf.Clamp(Mathf.RoundToInt(Mathf.Sqrt(target) * 0.55f), 4, 6);
+            cityLoopConnections = Mathf.Clamp(Mathf.RoundToInt(target / 28f), 2, 6);
+            softRadiusLimit = Mathf.Max(9, Mathf.CeilToInt(Mathf.Sqrt(target) * 1.7f));
             minInteractionHexDistance = 2;
             interactionTileChance = 0f;
             districtAct = Mathf.Clamp(act, 1, 3);
@@ -492,7 +504,13 @@ namespace CardBattle.Exploration
             out List<Vector2Int> areaCenters)
         {
             var cells = new HashSet<Vector2Int>();
-            areaCenters = BuildAreaCenters(random, targetCount, districtLayoutPattern);
+            areaCenters = BuildAreaCenters(
+                random,
+                targetCount,
+                districtLayoutPattern,
+                districtSpacing,
+                minimumDistrictCount,
+                maximumDistrictCount);
 
             for (int i = 0; i < areaCenters.Count; i++)
             {
@@ -500,10 +518,10 @@ namespace CardBattle.Exploration
                 CarveHexBrush(cells, center, PlazaRadiusFor(i, areaCenters.Count, targetCount));
             }
 
-            for (int i = 1; i < areaCenters.Count; i++)
-                CarveWideRoad(random, cells, areaCenters[i - 1], areaCenters[i]);
+            CarveDistrictRoadNetwork(random, cells, areaCenters);
 
             AddIntentionalLoops(random, cells, areaCenters, districtLayoutPattern);
+            AddCityCrossStreets(random, cells, areaCenters, cityLoopConnections);
             WidenFieldUntilTarget(random, cells, targetCount);
             TrimFieldToTarget(cells, targetCount);
 
@@ -645,52 +663,86 @@ namespace CardBattle.Exploration
         private static List<Vector2Int> BuildAreaCenters(
             System.Random random,
             int targetCount,
-            RunFieldLayoutPattern pattern)
+            RunFieldLayoutPattern pattern,
+            int spacing,
+            int minimumCount,
+            int maximumCount)
         {
-            int areaCount = Mathf.Clamp(Mathf.RoundToInt(targetCount / 16f) + 1, 3, 6);
+            int areaCount = Mathf.Clamp(
+                Mathf.RoundToInt(targetCount / 14f) + 1,
+                Mathf.Max(3, minimumCount),
+                Mathf.Max(minimumCount, maximumCount));
+            spacing = Mathf.Max(4, spacing);
             int forwardDirection = random.Next(Directions.Length);
             Vector2Int forward = Directions[forwardDirection];
             Vector2Int left = Directions[(forwardDirection + 1) % Directions.Length];
-            Vector2Int right = Directions[(forwardDirection + 5) % Directions.Length];
-            var centers = new List<Vector2Int> { Vector2Int.zero };
-
-            if (pattern == RunFieldLayoutPattern.BroadRoadY)
+            Vector2Int[] template = pattern switch
             {
-                Vector2Int fork = Scale(forward, random.Next(3, 5));
-                centers.Add(fork);
-                centers.Add(fork + Scale(forward, 3) + Scale(left, 2));
-                if (areaCount >= 4)
-                    centers.Add(fork + Scale(forward, 3) + Scale(right, 2));
-                if (areaCount >= 5)
-                    centers.Add(fork + Scale(forward, 6));
-                if (areaCount >= 6)
-                    centers.Add(fork + Scale(forward, 7) + Scale(left, 2));
-                return centers;
+                RunFieldLayoutPattern.CanalDoubleLoop => new[]
+                {
+                    new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(2, 0),
+                    new Vector2Int(1, -1), new Vector2Int(3, 1), new Vector2Int(3, -1),
+                    new Vector2Int(4, 0), new Vector2Int(2, 2), new Vector2Int(2, -2),
+                    new Vector2Int(4, 1)
+                },
+                RunFieldLayoutPattern.PalaceDoubleRing => new[]
+                {
+                    new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(2, 1),
+                    new Vector2Int(3, 0), new Vector2Int(2, -1), new Vector2Int(1, -1),
+                    new Vector2Int(2, 0), new Vector2Int(3, 1), new Vector2Int(3, -1),
+                    new Vector2Int(4, 0)
+                },
+                _ => new[]
+                {
+                    new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 1),
+                    new Vector2Int(2, -1), new Vector2Int(3, 0), new Vector2Int(3, 1),
+                    new Vector2Int(3, -1), new Vector2Int(4, 0), new Vector2Int(4, 1),
+                    new Vector2Int(4, -1)
+                }
+            };
+
+            var centers = new List<Vector2Int>(areaCount);
+            var unique = new HashSet<Vector2Int>();
+            int lateralSpacing = Mathf.Max(2, spacing - 2);
+            for (int i = 0; i < template.Length && centers.Count < areaCount; i++)
+            {
+                Vector2Int logical = template[i];
+                Vector2Int center = Scale(forward, logical.x * spacing) +
+                                    Scale(left, logical.y * lateralSpacing);
+                if (i > 0 && random.NextDouble() < 0.45d)
+                {
+                    int side = random.NextDouble() < 0.5d ? 1 : -1;
+                    center += Scale(left, side);
+                }
+
+                if (unique.Add(center))
+                    centers.Add(center);
             }
 
-            if (pattern == RunFieldLayoutPattern.CanalDoubleLoop)
-            {
-                Vector2Int near = Scale(forward, 4);
-                Vector2Int far = Scale(forward, 8);
-                centers.Add(near + Scale(left, 2));
-                centers.Add(far);
-                centers.Add(near + Scale(right, 2));
-                if (areaCount >= 5)
-                    centers.Add(far + Scale(left, 3));
-                if (areaCount >= 6)
-                    centers.Add(far + Scale(right, 3));
-                return centers;
-            }
-
-            Vector2Int palaceNear = Scale(forward, 4);
-            Vector2Int palaceFar = Scale(forward, 10);
-            centers.Add(palaceNear + Scale(left, 2));
-            centers.Add(Scale(forward, 8) + Scale(left, 2));
-            centers.Add(palaceFar);
-            centers.Add(Scale(forward, 8) + Scale(right, 2));
-            if (areaCount >= 6)
-                centers.Add(palaceNear + Scale(right, 2));
             return centers;
+        }
+
+        private static void CarveDistrictRoadNetwork(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            IReadOnlyList<Vector2Int> areaCenters)
+        {
+            for (int i = 1; i < areaCenters.Count; i++)
+            {
+                int nearestIndex = 0;
+                int nearestDistance = int.MaxValue;
+                for (int candidate = 0; candidate < i; candidate++)
+                {
+                    int distance = HexDistance(areaCenters[i], areaCenters[candidate]);
+                    if (distance >= nearestDistance)
+                        continue;
+
+                    nearestIndex = candidate;
+                    nearestDistance = distance;
+                }
+
+                CarveWideRoad(random, cells, areaCenters[nearestIndex], areaCenters[i]);
+            }
         }
 
         private static int PlazaRadiusFor(int index, int areaCount, int targetCount)
@@ -781,16 +833,51 @@ namespace CardBattle.Exploration
             }
         }
 
-        private static void WidenFieldUntilTarget(
+        private static void AddCityCrossStreets(
+            System.Random random,
+            HashSet<Vector2Int> cells,
+            IReadOnlyList<Vector2Int> areaCenters,
+            int connectionCount)
+        {
+            if (areaCenters.Count < 4)
+                return;
+
+            var pairs = new List<(int left, int right, int distance)>();
+            for (int left = 0; left < areaCenters.Count - 1; left++)
+            {
+                for (int right = left + 1; right < areaCenters.Count; right++)
+                {
+                    int distance = HexDistance(areaCenters[left], areaCenters[right]);
+                    if (distance < 4 || distance > 13)
+                        continue;
+
+                    pairs.Add((left, right, distance));
+                }
+            }
+
+            for (int i = pairs.Count - 1; i > 0; i--)
+            {
+                int swap = random.Next(i + 1);
+                (pairs[i], pairs[swap]) = (pairs[swap], pairs[i]);
+            }
+
+            int count = Mathf.Min(Mathf.Max(1, connectionCount), pairs.Count);
+            for (int i = 0; i < count; i++)
+            {
+                (int left, int right, int distance) pair = pairs[i];
+                CarveWideRoad(random, cells, areaCenters[pair.left], areaCenters[pair.right]);
+            }
+        }
+
+        private void WidenFieldUntilTarget(
             System.Random random,
             HashSet<Vector2Int> cells,
             int targetCount)
         {
-            int maxCount = Mathf.CeilToInt(targetCount * 1.12f);
             int guard = 0;
             while (cells.Count < targetCount && guard++ < targetCount * 24)
             {
-                var candidates = new List<Vector2Int>();
+                var candidates = new HashSet<Vector2Int>();
                 foreach (Vector2Int cell in cells)
                 {
                     foreach (Vector2Int direction in Directions)
@@ -800,7 +887,7 @@ namespace CardBattle.Exploration
                             continue;
 
                         int neighbors = CountExistingNeighbors(candidate, cells);
-                        if (neighbors >= 2 && HexDistance(candidate) <= targetCount / 4 + 6)
+                        if (neighbors >= 2 && HexDistance(candidate) <= softRadiusLimit + 2)
                             candidates.Add(candidate);
                     }
                 }
@@ -808,9 +895,23 @@ namespace CardBattle.Exploration
                 if (candidates.Count == 0)
                     break;
 
-                cells.Add(candidates[random.Next(candidates.Count)]);
-                if (cells.Count >= maxCount)
-                    break;
+                Vector2Int selected = Vector2Int.zero;
+                int bestScore = int.MinValue;
+                foreach (Vector2Int candidate in candidates)
+                {
+                    int neighbors = CountExistingNeighbors(candidate, cells);
+                    int streetScore = 32 - Mathf.Abs(neighbors - 3) * 12;
+                    int spreadScore = Mathf.Min(HexDistance(candidate), softRadiusLimit) * 2;
+                    int alleyScore = neighbors == 2 && random.NextDouble() < alleyExpansionChance ? 18 : 0;
+                    int score = streetScore + spreadScore + alleyScore + random.Next(0, 21);
+                    if (score <= bestScore)
+                        continue;
+
+                    selected = candidate;
+                    bestScore = score;
+                }
+
+                cells.Add(selected);
             }
         }
 

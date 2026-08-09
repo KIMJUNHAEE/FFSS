@@ -45,6 +45,9 @@ namespace CardBattle.Exploration
         [SerializeField] private GameObject bossDoorMarkerPrefab;
         [SerializeField] private GameObject ambientLandmarkPrefab;
         [SerializeField, Min(0.2f)] private float activationRadius = 0.85f;
+        [SerializeField, Range(0f, 0.3f)] private float routePlacementJitter = 0.12f;
+        [SerializeField, Range(0f, 0.2f)] private float ambientLandmarkDensity = 0.08f;
+        [SerializeField, Min(1)] private int maximumAmbientLandmarks = 14;
         [SerializeField] private List<FieldLandmarkVisualDefinition> landmarkVisuals = new();
 
         private readonly List<GameObject> markerInstances = new();
@@ -131,6 +134,7 @@ namespace CardBattle.Exploration
                 return;
 
             int act = GetCurrentAct();
+            var placementRandom = new System.Random(GetPlacementSeed(act));
             RunActDefinition definition = campaign.GetAct(act);
             List<PlannedNode> nodes = BuildPlan(definition, act);
             if (nodes.Count == 0)
@@ -160,7 +164,7 @@ namespace CardBattle.Exploration
 
             // Reserve the district's establishing landmarks before encounter buildings
             // consume every clear edge tile on the smallest campaign layouts.
-            CreateAmbientLandmarks(tiles, act);
+            CreateAmbientLandmarks(tiles, act, placementRandom);
 
             int requiredFieldSlots = nodes.Count + (midBoss != null ? 1 : 0);
             // Interaction tiles are preferred visual anchors, but they can be clustered.
@@ -180,6 +184,7 @@ namespace CardBattle.Exploration
                     Mathf.RoundToInt((available.Count - 1) * 0.72f),
                     0,
                     available.Count - 1);
+                preferredIndex = JitterRouteIndex(placementRandom, preferredIndex, available.Count);
                 int tileIndex = FindClearTileIndex(
                     available,
                     preferredIndex,
@@ -201,6 +206,7 @@ namespace CardBattle.Exploration
                     Mathf.FloorToInt((i + 1f) * available.Count / (count + 1f)),
                     0,
                     available.Count - 1);
+                preferredIndex = JitterRouteIndex(placementRandom, preferredIndex, available.Count);
                 float footprint = GetNodeFootprint(nodes[i].type);
                 int tileIndex = FindClearTileIndex(available, preferredIndex, footprint);
                 tileIndex = FindRequiredTileIndex(available, preferredIndex, tileIndex, footprint);
@@ -467,7 +473,10 @@ namespace CardBattle.Exploration
             occupiedTileRadii[tile.Tile.transform] = GetNodeFootprint(planned.type);
         }
 
-        private void CreateAmbientLandmarks(IReadOnlyList<GeneratedHexTile> tiles, int act)
+        private void CreateAmbientLandmarks(
+            IReadOnlyList<GeneratedHexTile> tiles,
+            int act,
+            System.Random placementRandom)
         {
             const float actorClearance = 3.2f;
             const float landmarkClearance = 3.35f;
@@ -512,24 +521,38 @@ namespace CardBattle.Exploration
                 int leftNeighbors = CountTileNeighbors(left.Cell, tileCells);
                 int rightNeighbors = CountTileNeighbors(right.Cell, tileCells);
                 int edgeOrder = leftNeighbors.CompareTo(rightNeighbors);
-                return edgeOrder != 0 ? edgeOrder : left.Order.CompareTo(right.Order);
+                if (edgeOrder != 0)
+                    return edgeOrder;
+
+                int leftHash = StablePlacementHash(left.Cell, GetPlacementSeed(act));
+                int rightHash = StablePlacementHash(right.Cell, GetPlacementSeed(act));
+                int hashOrder = leftHash.CompareTo(rightHash);
+                return hashOrder != 0 ? hashOrder : left.Order.CompareTo(right.Order);
             });
 
-            for (int i = 0; i < landmarks.Count && candidates.Count > 0; i++)
+            int desiredLandmarks = Mathf.Clamp(
+                Mathf.RoundToInt(tiles.Count * ambientLandmarkDensity),
+                landmarks.Count,
+                Mathf.Max(landmarks.Count, maximumAmbientLandmarks));
+            int visualOffset = placementRandom.Next(landmarks.Count);
+            for (int i = 0; i < desiredLandmarks && candidates.Count > 0; i++)
             {
-                GeneratedHexTile tile = candidates[0];
+                int candidatePool = Mathf.Min(4, candidates.Count);
+                int candidateIndex = placementRandom.Next(candidatePool);
+                GeneratedHexTile tile = candidates[candidateIndex];
+                FieldLandmarkVisualDefinition landmark = landmarks[(visualOffset + i) % landmarks.Count];
                 GameObject marker = Instantiate(ambientLandmarkPrefab, tile.Tile.transform);
-                marker.name = $"Field Landmark - Act {act} - {landmarks[i].displayName}";
+                marker.name = $"Field Landmark - Act {act} - {landmark.displayName} - {i + 1:D2}";
                 marker.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 marker.transform.localScale = Vector3.one;
                 if (!Application.isPlaying)
                     marker.hideFlags = HideFlags.DontSave;
 
                 marker.GetComponent<FieldEncounterMarkerView>()?.ConfigureLandmark(
-                    landmarks[i].sprite,
-                    landmarks[i].displayName,
-                    landmarks[i].targetHeight,
-                    landmarks[i].localOffset);
+                    landmark.sprite,
+                    landmark.displayName,
+                    landmark.targetHeight,
+                    landmark.localOffset);
                 markerInstances.Add(marker);
                 occupiedTileRoots.Add(tile.Tile.transform);
                 occupiedTileRadii[tile.Tile.transform] = landmarkFootprint;
@@ -538,6 +561,35 @@ namespace CardBattle.Exploration
                     candidate.Tile == null ||
                     ExplorationGeometryUtility.PlanarSqrDistance(candidate.Tile.transform.position, landmarkPosition) <
                     landmarkClearance * landmarkClearance);
+            }
+        }
+
+        private int JitterRouteIndex(System.Random random, int preferredIndex, int candidateCount)
+        {
+            if (candidateCount <= 1 || routePlacementJitter <= 0f)
+                return Mathf.Clamp(preferredIndex, 0, Mathf.Max(0, candidateCount - 1));
+
+            int radius = Mathf.Max(1, Mathf.RoundToInt(candidateCount * routePlacementJitter));
+            return Mathf.Clamp(
+                preferredIndex + random.Next(-radius, radius + 1),
+                0,
+                candidateCount - 1);
+        }
+
+        private int GetPlacementSeed(int act)
+        {
+            return unchecked(GetRunSeed() ^ (act * 1640531513));
+        }
+
+        private static int StablePlacementHash(Vector2Int cell, int seed)
+        {
+            unchecked
+            {
+                int hash = seed;
+                hash = (hash * 397) ^ cell.x;
+                hash = (hash * 397) ^ cell.y;
+                hash ^= hash >> 16;
+                return hash & int.MaxValue;
             }
         }
 
