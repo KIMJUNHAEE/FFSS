@@ -219,9 +219,13 @@ namespace FFSS.Framework.Run
                 RunCardState card = timeCards[i];
                 if (card.cardId == "poker.joker.red")
                     candidateCount += 2;
-                else if (TryParseStandard(card.cardId, out string suit, out int rank) &&
-                         (suit == "diamond" || (suit == "heart" && rank == 11)))
-                    candidateCount++;
+                else if (TryParseStandard(card.cardId, out string suit, out int rank))
+                {
+                    if (suit == "diamond")
+                        candidateCount += rank == 12 ? 2 : 1;
+                    else if (suit == "heart" && rank == 11)
+                        candidateCount++;
+                }
             }
             candidateCount = Math.Min(2, candidateCount);
             if (candidateCount <= 0)
