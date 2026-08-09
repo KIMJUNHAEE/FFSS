@@ -376,14 +376,18 @@ namespace FFSS.Editor
             result["EnemyRuleMeter"] = meterRect;
 
             AddSharedDescendantRects(result, "PlayerHUD");
+            AddSharedDescendantRects(result, "EnemyHUD");
             AddSharedDescendantRects(result, "EnemyIntentBadge");
+            AddSharedDescendantRects(result, "EnemyRuleMeter");
             AddSharedDescendantRects(result, "PokerTableV2");
             AddSharedDescendantRects(result, "AttackButton");
             AddSharedDescendantRects(result, "DefendButton");
             AddSharedDescendantRects(result, "SkillButton");
             AddSharedDescendantRects(result, "RedrawButton");
             AddSharedDescendantRects(result, "EndTurnButton");
+            AddSharedDescendantRects(result, "EnemyCombatGuide");
             AddSharedDescendantRects(result, "EnemyCombatGuideOpenButton");
+            AddSharedDescendantRects(result, "EnemyCombatGuidePanel");
             return result;
         }
 

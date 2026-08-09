@@ -364,7 +364,53 @@ namespace FFSS.Framework.Tests
                 "EnemyRuleMeterView");
             if (meters.Length == 1 && meters[0].transform is RectTransform meterRect)
                 result["EnemyRuleMeter"] = new RectGeometry(meterRect);
+
+            AddDescendantGeometry(result, "EnemyHUD");
+            AddDescendantGeometry(result, "EnemyIntentBadge");
+            AddDescendantGeometry(result, "EnemyRuleMeter");
+            AddDescendantGeometry(result, "EnemyCombatGuide");
             return result;
+        }
+
+        private static void AddDescendantGeometry(
+            IDictionary<string, RectGeometry> result,
+            string rootKey)
+        {
+            if (!result.TryGetValue(rootKey, out RectGeometry _))
+                return;
+
+            RectTransform root = FindNamedRect(rootKey);
+            if (root == null)
+                return;
+
+            RectTransform[] descendants = root.GetComponentsInChildren<RectTransform>(true);
+            for (int i = 0; i < descendants.Length; i++)
+            {
+                RectTransform descendant = descendants[i];
+                if (descendant == root)
+                    continue;
+                if (rootKey == "EnemyIntentBadge" &&
+                    descendant.name is "ActionText" or "StatText")
+                {
+                    continue;
+                }
+
+                string path = BuildRelativePath(descendant, root);
+                if (!string.IsNullOrEmpty(path))
+                    result[$"{rootKey}/{path}"] = new RectGeometry(descendant);
+            }
+        }
+
+        private static string BuildRelativePath(Transform target, Transform root)
+        {
+            var names = new Stack<string>();
+            Transform current = target;
+            while (current != null && current != root)
+            {
+                names.Push(current.name);
+                current = current.parent;
+            }
+            return current == root ? string.Join("/", names) : string.Empty;
         }
 
         private static void AddReferencedRootGeometry(
