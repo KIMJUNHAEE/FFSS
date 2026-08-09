@@ -23,8 +23,8 @@ namespace FFSS.EditorTools
         {
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ApplyFieldLabels();
-            ApplyCommandButtonPrefab();
             ApplyFixedTextLabels();
+            ApplyEditableCombatLabels();
             ApplyCommandKindsToBattleScenes();
             AssetDatabase.SaveAssets();
             Debug.Log("[FFSS] Applied fixed label images to field and combat prefabs.");
@@ -79,6 +79,21 @@ namespace FFSS.EditorTools
             }
         }
 
+        [MenuItem("Tools/FFSS/Build/Split Combat Labels")]
+        public static void SplitCombatLabels()
+        {
+            ApplyEditableCombatLabels();
+            AssetDatabase.SaveAssets();
+            Debug.Log("[FFSS] Combat frames, icons, and TMP labels are split into editable objects.");
+        }
+
+        private static void ApplyEditableCombatLabels()
+        {
+            ApplyCommandButtonPrefab();
+            RestoreEditableCombatHud("Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab");
+            RestoreEditableCombatHud("Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab");
+        }
+
         private static void ApplyCommandButtonPrefab()
         {
             GameObject root = PrefabUtility.LoadPrefabContents(CommandPrefab);
@@ -90,25 +105,59 @@ namespace FFSS.EditorTools
                     throw new InvalidOperationException("PokerCommandButton has no LabelText child.");
 
                 Image fallbackIcon = root.transform.Find("IconImage")?.GetComponent<Image>();
-                Image labelImage = EnsureImage(root.transform, "Fixed Label Image", Vector2.zero, Vector2.one);
-                labelImage.transform.SetAsFirstSibling();
+                if (fallbackIcon == null)
+                    throw new InvalidOperationException("PokerCommandButton has no IconImage child.");
+
+                Transform fixedLabel = root.transform.Find("Fixed Label Image");
+                if (fixedLabel != null)
+                    UnityEngine.Object.DestroyImmediate(fixedLabel.gameObject);
+
+                fallback.gameObject.SetActive(true);
+                fallback.enabled = true;
+                fallbackIcon.gameObject.SetActive(true);
+                fallbackIcon.enabled = true;
                 TMP_Text counter = EnsureCounter(root.transform, fallback);
                 CombatCommandLabelView view = root.GetComponent<CombatCommandLabelView>();
                 if (view == null)
                     view = root.AddComponent<CombatCommandLabelView>();
 
                 var serialized = new SerializedObject(view);
-                serialized.FindProperty("labelImage").objectReferenceValue = labelImage;
-                serialized.FindProperty("fallbackIcon").objectReferenceValue = fallbackIcon;
-                serialized.FindProperty("fallbackLabel").objectReferenceValue = fallback;
+                serialized.FindProperty("iconImage").objectReferenceValue = fallbackIcon;
+                serialized.FindProperty("labelText").objectReferenceValue = fallback;
                 serialized.FindProperty("counterText").objectReferenceValue = counter;
-                serialized.FindProperty("attackLabel").objectReferenceValue = LoadSprite("command_label_attack.png");
-                serialized.FindProperty("defendLabel").objectReferenceValue = LoadSprite("command_label_defend.png");
-                serialized.FindProperty("redrawLabel").objectReferenceValue = LoadSprite("command_label_redraw.png");
-                serialized.FindProperty("endTurnLabel").objectReferenceValue = LoadSprite("command_label_end_turn.png");
-                serialized.FindProperty("skillLabel").objectReferenceValue = LoadSprite("command_label_skill.png");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, CommandPrefab);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void RestoreEditableCombatHud(string prefabPath)
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                Transform[] fixedLabels = root.GetComponentsInChildren<Transform>(true)
+                    .Where(value => value.name == "Fixed Static Label - hud_label_attack" ||
+                                    value.name == "Fixed Static Label - hud_label_defense")
+                    .ToArray();
+                for (int i = 0; i < fixedLabels.Length; i++)
+                    UnityEngine.Object.DestroyImmediate(fixedLabels[i].gameObject);
+
+                TMP_Text attack = root.GetComponentsInChildren<TMP_Text>(true)
+                    .FirstOrDefault(value => value.name == "AttackLabel");
+                TMP_Text defense = root.GetComponentsInChildren<TMP_Text>(true)
+                    .FirstOrDefault(value => value.name == "DefenseLabel");
+                if (attack == null || defense == null)
+                    throw new InvalidOperationException($"Combat HUD has no editable attack/defense labels: {prefabPath}");
+
+                attack.gameObject.SetActive(true);
+                attack.enabled = true;
+                defense.gameObject.SetActive(true);
+                defense.enabled = true;
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             }
             finally
             {

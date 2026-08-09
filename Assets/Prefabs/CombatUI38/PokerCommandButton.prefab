@@ -126,7 +126,6 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8389614397110638861}
   - {fileID: 2074350709083391448}
   - {fileID: 5485133316929781311}
   - {fileID: 4372281358377343332}
@@ -252,15 +251,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardBattle.CombatCommandLabelView
   labelKind: 0
-  labelImage: {fileID: 615421368562801236}
-  fallbackIcon: {fileID: 1034245857626432822}
-  fallbackLabel: {fileID: 1747031292275071892}
+  iconImage: {fileID: 1034245857626432822}
+  labelText: {fileID: 1747031292275071892}
   counterText: {fileID: 6211197563254768434}
-  attackLabel: {fileID: 21300000, guid: 946e5b84cb551374ab9509afe4600782, type: 3}
-  defendLabel: {fileID: 21300000, guid: a0cd76e6234cd534fb53b4e4925fed09, type: 3}
-  redrawLabel: {fileID: 21300000, guid: ce52435a44bee8447876173ba5d1f1db, type: 3}
-  endTurnLabel: {fileID: 21300000, guid: d828c089111cd014aba641ce298088ac, type: 3}
-  skillLabel: {fileID: 21300000, guid: 6bb360cc6c24b444abee49c09ef6d962, type: 3}
 --- !u!1 &2281841001878655966
 GameObject:
   m_ObjectHideFlags: 0
@@ -504,7 +497,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &5485133316929781311
 RectTransform:
   m_ObjectHideFlags: 0
@@ -868,7 +861,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2074350709083391448
 RectTransform:
   m_ObjectHideFlags: 0
@@ -992,81 +985,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: 28264144ee83a304b86e9556ec264a2f, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!1 &8253754401517104310
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8389614397110638861}
-  - component: {fileID: 4442535159217135342}
-  - component: {fileID: 615421368562801236}
-  m_Layer: 0
-  m_Name: Fixed Label Image
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &8389614397110638861
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8253754401517104310}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2120295082318210328}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &4442535159217135342
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8253754401517104310}
-  m_CullTransparentMesh: 1
---- !u!114 &615421368562801236
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8253754401517104310}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 946e5b84cb551374ab9509afe4600782, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1

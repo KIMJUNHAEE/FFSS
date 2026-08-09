@@ -1060,26 +1060,31 @@ namespace FFSS.Framework.Tests
             Assert.That(controllers, Has.Length.EqualTo(1));
             object controller = controllers[0];
 
-            (string fieldName, string expectedSprite)[] commands =
+            (string fieldName, string expectedText)[] commands =
             {
-                ("attackButton", "command_label_attack"),
-                ("defendButton", "command_label_defend"),
-                ("skillButton", "command_label_skill"),
-                ("redrawButton", "command_label_redraw"),
-                ("endTurnButton", "command_label_end_turn")
+                ("attackButton", "공격"),
+                ("defendButton", "방어"),
+                ("skillButton", "스킬"),
+                ("redrawButton", "다시 뽑기"),
+                ("endTurnButton", "턴 종료")
             };
-            foreach ((string fieldName, string expectedSprite) in commands)
+            foreach ((string fieldName, string expectedText) in commands)
             {
                 Button button = controllerType.GetField(fieldName)?.GetValue(controller) as Button;
                 Assert.That(button, Is.Not.Null, $"Combat command binding is missing: {fieldName}");
-                Image label = button.GetComponentsInChildren<Image>(true)
-                    .FirstOrDefault(image => image.name == "Fixed Label Image");
-                Assert.That(label, Is.Not.Null, $"Combat command image label is missing: {fieldName}");
-                Assert.That(label.sprite, Is.Not.Null, $"Combat command image sprite is missing: {fieldName}");
-                Assert.That(label.sprite.name, Is.EqualTo(expectedSprite),
-                    $"Combat command image regressed: {fieldName}");
+                Assert.That(button.transform.Find("Fixed Label Image"), Is.Null,
+                    $"Combat command still contains a baked label image: {fieldName}");
+                Image icon = button.transform.Find("IconImage")?.GetComponent<Image>();
+                Text label = button.transform.Find("LabelText")?.GetComponent<Text>();
+                Assert.That(icon, Is.Not.Null, $"Combat command icon is missing: {fieldName}");
+                Assert.That(icon.sprite, Is.Not.Null, $"Combat command icon sprite is missing: {fieldName}");
+                Assert.That(icon.gameObject.activeInHierarchy, Is.True,
+                    $"Combat command icon is hidden: {fieldName}");
+                Assert.That(label, Is.Not.Null, $"Combat command TMP label is missing: {fieldName}");
+                Assert.That(label.text, Is.EqualTo(expectedText),
+                    $"Combat command TMP label regressed: {fieldName}");
                 Assert.That(label.gameObject.activeInHierarchy, Is.True,
-                    $"Combat command image is hidden: {fieldName}");
+                    $"Combat command TMP label is hidden: {fieldName}");
             }
 
             string[] requiredRuntimeTextFields =

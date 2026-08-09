@@ -334,13 +334,13 @@ namespace FFSS.Framework.Tests
                 ReadField<Button>(combat, "endTurnButton")
             };
             string[] names = { "AttackButton", "DefendButton", "SkillButton", "RedrawButton", "EndTurnButton" };
-            string[] labelSprites =
+            string[] labelTexts =
             {
-                "command_label_attack",
-                "command_label_defend",
-                "command_label_skill",
-                "command_label_redraw",
-                "command_label_end_turn"
+                "공격",
+                "방어",
+                "스킬",
+                "다시 뽑기",
+                "턴 종료"
             };
             if (buttons.Any(item => item == null))
             {
@@ -365,10 +365,11 @@ namespace FFSS.Framework.Tests
                 Image icon = iconTransform != null ? iconTransform.GetComponent<Image>() : null;
                 if (icon == null || icon.sprite == null)
                     failures.Add($"{sceneName}: {names[i]} icon is missing");
-                Transform labelTransform = root.transform.Find("Fixed Label Image");
-                Image label = labelTransform != null ? labelTransform.GetComponent<Image>() : null;
-                if (label == null || label.sprite == null || label.sprite.name != labelSprites[i])
-                    failures.Add($"{sceneName}: {names[i]} fixed label image is missing or incorrect");
+                if (root.transform.Find("Fixed Label Image") != null)
+                    failures.Add($"{sceneName}: {names[i]} still contains a baked label image");
+                TMP_Text label = root.transform.Find("LabelText")?.GetComponent<TMP_Text>();
+                if (label == null || label.text != labelTexts[i] || !label.gameObject.activeInHierarchy)
+                    failures.Add($"{sceneName}: {names[i]} editable TMP label is missing or incorrect");
 
                 if (i == 3)
                 {
@@ -385,27 +386,24 @@ namespace FFSS.Framework.Tests
             ICollection<string> failures)
         {
             Image[] images = SceneComponents<Image>(scene);
-            string[] expectedSprites = { "hud_label_attack", "hud_label_defense" };
-            foreach (string spriteName in expectedSprites)
+            string[] removedSprites = { "hud_label_attack", "hud_label_defense" };
+            foreach (string spriteName in removedSprites)
             {
                 Image[] activeMatches = images
                     .Where(image => image.sprite != null &&
                                     image.sprite.name == spriteName &&
                                     image.gameObject.activeInHierarchy)
                     .ToArray();
-                ExpectCount(sceneName, $"active {spriteName}", activeMatches.Length, 1, failures);
+                ExpectCount(sceneName, $"active {spriteName}", activeMatches.Length, 0, failures);
             }
 
-            TMP_Text[] staleLabels = SceneComponents<TMP_Text>(scene)
-                .Where(text => text.gameObject.activeInHierarchy &&
-                               text.GetComponentInParent<Button>(true) == null &&
-                               (text.text == "공격" || text.text == "방어"))
-                .ToArray();
-            if (staleLabels.Length > 0)
+            string[] editableLabels = { "AttackLabel", "DefenseLabel" };
+            foreach (string objectName in editableLabels)
             {
-                failures.Add(
-                    $"{sceneName}: legacy HUD TMP labels are still visible: " +
-                    string.Join(", ", staleLabels.Select(text => HierarchyPath(text.transform))));
+                TMP_Text[] matches = SceneComponents<TMP_Text>(scene)
+                    .Where(text => text.name == objectName && text.gameObject.activeInHierarchy)
+                    .ToArray();
+                ExpectCount(sceneName, $"active editable {objectName}", matches.Length, 1, failures);
             }
         }
 

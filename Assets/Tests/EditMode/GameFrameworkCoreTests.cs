@@ -1934,14 +1934,6 @@ namespace FFSS.Framework.Tests
                 ["Assets/Prefabs/UI/Screens/FieldHudScreen.prefab"] = new[]
                 {
                     "field_nav_status", "field_nav_equipment", "field_nav_map"
-                },
-                ["Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab"] = new[]
-                {
-                    "hud_label_attack", "hud_label_defense"
-                },
-                ["Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab"] = new[]
-                {
-                    "hud_label_attack", "hud_label_defense"
                 }
             };
 
@@ -1955,6 +1947,48 @@ namespace FFSS.Framework.Tests
                     .ToHashSet();
                 foreach (string spriteName in spriteNames)
                     Assert.That(present.Contains(spriteName), Is.True, $"{prefabPath}/{spriteName}");
+            }
+        }
+
+        [Test]
+        public void CombatLabelsRemainEditableAndSeparateFromArtwork()
+        {
+            GameObject command = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/CombatUI38/PokerCommandButton.prefab");
+            Assert.That(command, Is.Not.Null);
+            Assert.That(command.transform.Find("Fixed Label Image"), Is.Null);
+
+            Image icon = command.transform.Find("IconImage")?.GetComponent<Image>();
+            Text label = command.transform.Find("LabelText")?.GetComponent<Text>();
+            Assert.That(icon, Is.Not.Null);
+            Assert.That(icon.gameObject.activeSelf, Is.True);
+            Assert.That(label, Is.Not.Null);
+            Assert.That(label.gameObject.activeSelf, Is.True);
+
+            string[] hudPaths =
+            {
+                "Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab",
+                "Assets/Prefabs/CombatUI38/PlayerPokerHUD.prefab"
+            };
+            foreach (string path in hudPaths)
+            {
+                GameObject hud = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.That(hud, Is.Not.Null, path);
+                Assert.That(
+                    hud.GetComponentsInChildren<Transform>(true)
+                        .Any(value => value.name.StartsWith("Fixed Static Label - hud_label_", StringComparison.Ordinal)),
+                    Is.False,
+                    path);
+                Assert.That(
+                    hud.GetComponentsInChildren<Text>(true)
+                        .Single(value => value.name == "AttackLabel").gameObject.activeSelf,
+                    Is.True,
+                    path);
+                Assert.That(
+                    hud.GetComponentsInChildren<Text>(true)
+                        .Single(value => value.name == "DefenseLabel").gameObject.activeSelf,
+                    Is.True,
+                    path);
             }
         }
 

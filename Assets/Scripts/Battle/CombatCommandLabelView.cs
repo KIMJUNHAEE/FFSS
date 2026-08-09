@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace CardBattle
@@ -18,15 +19,11 @@ namespace CardBattle
     public sealed class CombatCommandLabelView : MonoBehaviour
     {
         [SerializeField] private CombatCommandLabelKind labelKind;
-        [SerializeField] private Image labelImage;
-        [SerializeField] private Image fallbackIcon;
-        [SerializeField] private TMP_Text fallbackLabel;
+        [FormerlySerializedAs("fallbackIcon")]
+        [SerializeField] private Image iconImage;
+        [FormerlySerializedAs("fallbackLabel")]
+        [SerializeField] private TMP_Text labelText;
         [SerializeField] private TMP_Text counterText;
-        [SerializeField] private Sprite attackLabel;
-        [SerializeField] private Sprite defendLabel;
-        [SerializeField] private Sprite redrawLabel;
-        [SerializeField] private Sprite endTurnLabel;
-        [SerializeField] private Sprite skillLabel;
 
         public CombatCommandLabelKind LabelKind => labelKind;
 
@@ -51,26 +48,11 @@ namespace CardBattle
 
         private void Apply()
         {
-            Sprite sprite = labelKind switch
-            {
-                CombatCommandLabelKind.Defend => defendLabel,
-                CombatCommandLabelKind.Redraw => redrawLabel,
-                CombatCommandLabelKind.EndTurn => endTurnLabel,
-                CombatCommandLabelKind.Skill => skillLabel,
-                _ => attackLabel
-            };
+            if (labelText != null)
+                labelText.gameObject.SetActive(true);
 
-            if (labelImage != null)
-            {
-                labelImage.sprite = sprite;
-                labelImage.gameObject.SetActive(sprite != null);
-            }
-
-            if (fallbackLabel != null)
-                fallbackLabel.gameObject.SetActive(sprite == null);
-
-            if (fallbackIcon != null)
-                fallbackIcon.gameObject.SetActive(sprite == null);
+            if (iconImage != null)
+                iconImage.gameObject.SetActive(true);
 
             if (counterText != null)
                 counterText.gameObject.SetActive(labelKind == CombatCommandLabelKind.Redraw);
