@@ -60,10 +60,8 @@ namespace CardBattle.Exploration
             if (!Application.isPlaying)
                 return;
 
-            float bob = Mathf.Sin(Time.unscaledTime * bobSpeed) * bobHeight;
-            visualRoot.localPosition = baseLocalPosition + Vector3.up * bob;
-            float pulse = focused ? 1f + Mathf.Sin(Time.unscaledTime * 5f) * 0.025f : 1f;
-            visualRoot.localScale = baseLocalScale * (focused ? focusedScale : 1f) * pulse;
+            visualRoot.localPosition = baseLocalPosition;
+            visualRoot.localScale = baseLocalScale;
         }
 
         public void Configure(EnemyEncounterDefinition encounter)
@@ -178,8 +176,8 @@ namespace CardBattle.Exploration
                 SuggestedActivationRadius = blockerWidth * 0.5f + 0.62f;
             }
 
-            bobHeight = 0.015f;
-            focusedScale = 1.04f;
+            bobHeight = 0f;
+            focusedScale = 1f;
             tintCharacterWhenFocused = false;
             CacheBaseTransform();
             ApplyFocusAppearance();
@@ -225,7 +223,7 @@ namespace CardBattle.Exploration
                 categoryLabelImage.gameObject.SetActive(!hideLabelUntilFocused || focused);
 
             if (!Application.isPlaying && visualRoot != null)
-                visualRoot.localScale = baseLocalScale * (focused ? focusedScale : 1f);
+                visualRoot.localScale = baseLocalScale;
         }
 
         private void HideEncounterActor()

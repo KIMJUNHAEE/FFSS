@@ -54,6 +54,7 @@ namespace CardBattle.Exploration
         private readonly List<GameObject> markerInstances = new();
         private readonly HashSet<Transform> occupiedTileRoots = new();
         private readonly Dictionary<Transform, float> occupiedTileRadii = new();
+        private readonly HashSet<Vector2Int> activeTileCells = new();
 
         private sealed class PlannedNode
         {
@@ -149,6 +150,12 @@ namespace CardBattle.Exploration
             var available = new List<GeneratedHexTile>();
             var interactionAnchors = new List<GeneratedHexTile>();
             GeneratedHexTile? bossTile = null;
+            activeTileCells.Clear();
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                if (tiles[i].Tile != null)
+                    activeTileCells.Add(tiles[i].Cell);
+            }
             for (int i = 0; i < tiles.Count; i++)
             {
                 GeneratedHexTile tile = tiles[i];
@@ -220,6 +227,17 @@ namespace CardBattle.Exploration
             if (boss != null)
             {
                 GeneratedHexTile target = bossTile ?? (available.Count > 0 ? available[^1] : default);
+                float bossFootprint = GetNodeFootprint(RunFieldContentType.BossDoor);
+                if (!HasFloorSupport(target, bossFootprint) && available.Count > 0)
+                {
+                    int supportedIndex = FindClearTileIndex(available, available.Count - 1, bossFootprint);
+                    supportedIndex = FindRequiredTileIndex(
+                        available,
+                        available.Count - 1,
+                        supportedIndex,
+                        bossFootprint);
+                    target = available[supportedIndex];
+                }
                 if (target.Tile != null)
                     CreateMarker(boss, target);
             }
@@ -623,6 +641,7 @@ namespace CardBattle.Exploration
             {
                 GeneratedHexTile candidate = candidates[i];
                 if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform) ||
+                    !HasFloorSupport(candidate, footprint) ||
                     !IsClearOfPlayer(candidate.Tile.transform.position, footprint) ||
                     !IsClearOfOccupied(candidate.Tile.transform.position, footprint))
                     continue;
@@ -654,6 +673,7 @@ namespace CardBattle.Exploration
             {
                 GeneratedHexTile candidate = candidates[i];
                 if (candidate.Tile == null || occupiedTileRoots.Contains(candidate.Tile.transform) ||
+                    !HasFloorSupport(candidate, footprint) ||
                     !IsClearOfPlayer(candidate.Tile.transform.position, footprint))
                     continue;
 
@@ -675,6 +695,16 @@ namespace CardBattle.Exploration
                 "[FieldEncounterDistributor] Required node used the nearest free tile because its preferred clearance was unavailable.",
                 this);
             return fallbackIndex;
+        }
+
+        private bool HasFloorSupport(GeneratedHexTile tile, float footprint)
+        {
+            if (tile.Tile == null || !activeTileCells.Contains(tile.Cell))
+                return false;
+
+            int neighbors = CountTileNeighbors(tile.Cell, activeTileCells);
+            int requiredNeighbors = footprint >= 2.35f ? 4 : 3;
+            return neighbors >= requiredNeighbors;
         }
 
         private float MinimumClearance(Vector3 position, float footprint)
@@ -820,6 +850,7 @@ namespace CardBattle.Exploration
         {
             occupiedTileRoots.Clear();
             occupiedTileRadii.Clear();
+            activeTileCells.Clear();
             for (int i = markerInstances.Count - 1; i >= 0; i--)
             {
                 GameObject marker = markerInstances[i];

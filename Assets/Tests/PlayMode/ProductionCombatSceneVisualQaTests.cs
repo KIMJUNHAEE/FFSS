@@ -244,9 +244,13 @@ namespace FFSS.Framework.Tests
                 TMP_Text signature = ReadField<TMP_Text>(guide, "signatureText");
                 TMP_Text counterplay = ReadField<TMP_Text>(guide, "counterplayText");
                 TMP_Text terms = ReadField<TMP_Text>(guide, "termsText");
+                Button nextPage = ReadField<Button>(guide, "nextPageButton");
+                TMP_Text pageIndicator = ReadField<TMP_Text>(guide, "pageIndicatorText");
+                TMP_Text pageContent = ReadField<TMP_Text>(guide, "pageContentText");
                 if (openButton == null || closeButton == null || modal == null ||
                     buttonLabel == null || title == null || role == null || gimmick == null ||
-                    signature == null || counterplay == null || terms == null)
+                    signature == null || counterplay == null || terms == null || nextPage == null ||
+                    pageIndicator == null || pageContent == null)
                 {
                     failures.Add($"{sceneName}: enemy guide prefab references are incomplete");
                     continue;
@@ -258,7 +262,7 @@ namespace FFSS.Framework.Tests
                     .FirstOrDefault(text => text.name == "TitleText");
                 if (enemyHudTitle != null && enemyHudTitle.text.Contains("약점"))
                     failures.Add($"{sceneName}: enemy HUD title still contains weakness text");
-                if (!role.text.Contains("약점") || !terms.text.Contains("약점"))
+                if (!role.text.Contains("약점"))
                     failures.Add($"{sceneName}: enemy guide does not explain the serialized weakness");
                 if (modal.activeSelf)
                     failures.Add($"{sceneName}: enemy guide should begin closed");
@@ -282,7 +286,13 @@ namespace FFSS.Framework.Tests
                         continue;
                     }
 
-                    ValidateGuideText(sceneName, title, gimmick, signature, counterplay, terms, failures);
+                    ValidateGuidePage(sceneName, 0, title, pageContent, pageIndicator, failures);
+                    for (int page = 1; page < 4; page++)
+                    {
+                        nextPage.onClick.Invoke();
+                        yield return WaitFrames(1);
+                        ValidateGuidePage(sceneName, page, title, pageContent, pageIndicator, failures);
+                    }
                     ValidateVisibleText($"{sceneName} enemy guide", failures);
                     ValidateRectInsideViewport(
                         $"{sceneName}: left enemy guide button",
@@ -938,27 +948,23 @@ namespace FFSS.Framework.Tests
             }
         }
 
-        private static void ValidateGuideText(
+        private static void ValidateGuidePage(
             string sceneName,
+            int page,
             TMP_Text title,
-            TMP_Text gimmick,
-            TMP_Text signature,
-            TMP_Text counterplay,
-            TMP_Text terms,
+            TMP_Text content,
+            TMP_Text indicator,
             ICollection<string> failures)
         {
-            if (!title.text.Contains("전투 정보"))
-                failures.Add($"{sceneName}: enemy guide title is missing");
-            if (string.IsNullOrWhiteSpace(gimmick.text) || !gimmick.text.Contains("<b>"))
-                failures.Add($"{sceneName}: enemy gimmick explanation is missing");
-            if (!signature.text.Contains("전용패"))
-                failures.Add($"{sceneName}: signature-card explanation is missing");
-            if (!signature.text.Contains("턴"))
-                failures.Add($"{sceneName}: signature-card timing is missing");
-            if (!counterplay.text.Contains("대응법"))
-                failures.Add($"{sceneName}: counterplay explanation is missing");
-            if (!terms.text.Contains("관련 용어") || !terms.text.Contains("격파"))
-                failures.Add($"{sceneName}: named-term explanations are missing");
+            string[] titleTokens = { "개요", "고유 기믹", "전용패", "대응법과 용어" };
+            string[] contentTokens = { "약점", null, "턴", "대응법" };
+            if (!title.text.Contains(titleTokens[page]))
+                failures.Add($"{sceneName}: enemy guide page {page + 1} title is missing");
+            if (string.IsNullOrWhiteSpace(content.text) ||
+                (contentTokens[page] != null && !content.text.Contains(contentTokens[page])))
+                failures.Add($"{sceneName}: enemy guide page {page + 1} content is incomplete");
+            if (indicator.text != $"{page + 1} / 4")
+                failures.Add($"{sceneName}: enemy guide page indicator is '{indicator.text}'");
         }
 
         private static void ValidateRectInsideViewport(

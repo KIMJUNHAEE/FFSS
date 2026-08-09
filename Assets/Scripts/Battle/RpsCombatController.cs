@@ -204,6 +204,7 @@ namespace CardBattle
         [SerializeField] private int redJokerAttackBonus = 3;
         [SerializeField] private int blackJokerDefenseBonus = 3;
         [SerializeField] private int jokerSkillBonus = 2;
+        [SerializeField, Min(1)] private int skillCooldownTurns = 3;
 
         [Header("약점 속성 (포커 무늬, 원페어 이상일 때 손패 5장 중 약점 무늬 비율로 격파 배율/관통 결정)")]
         public CardSuit enemyWeakness = CardSuit.None;
@@ -300,6 +301,7 @@ namespace CardBattle
         private int enemyIntentTurn;
         private int highCardAttackStreak;
         private int enemyBreaksTriggered;
+        private int skillCooldownRemaining;
         private int committedPlayerRedCount;
         private int committedPlayerBlackCount;
         private PlayerRunState appliedRunPlayerState;
@@ -316,6 +318,9 @@ namespace CardBattle
         public int EnemyMaxHp => enemyMaxHp;
         public int EnemyBreakCharge => enemyBreakCharge;
         public int EnemyMaxBreak => enemyMaxBreak;
+        public int PlayerHp => playerHp;
+        public int PlayerMaxHp => playerMaxHp;
+        public int SkillCooldownRemaining => skillCooldownRemaining;
         public CombatFlowPhase CurrentPhase { get; private set; } = CombatFlowPhase.Initializing;
 
         public void SetEnemyStunTurns(int turns)
@@ -413,6 +418,7 @@ namespace CardBattle
             enemyBreakCharge = 0;
             enemyStunTurns = 0;
             enemyBreaksTriggered = 0;
+            skillCooldownRemaining = 0;
             combatLocked = true;
 
             if (attackButton) attackButton.onClick.AddListener(() => SelectPlayerAction(RpsAction.Attack));
@@ -602,7 +608,10 @@ namespace CardBattle
             if (gameOver || combatLocked || playerStunned || !HasReadyHand()) return;
             if (action == RpsAction.Skill && !CanUseSkill())
             {
-                if (playerStatusText) playerStatusText.text = "특수 족보가 필요해";
+                if (playerStatusText)
+                    playerStatusText.text = skillCooldownRemaining > 0
+                        ? $"스킬 재사용까지 {skillCooldownRemaining}턴 남았어."
+                        : "특수 족보가 필요해.";
                 return;
             }
 
@@ -656,6 +665,11 @@ namespace CardBattle
             }
 
             yield return ShowEnemySideAndResolve(playerIntent, resolvedHand);
+
+            if (playerAction == RpsAction.Skill)
+                skillCooldownRemaining = Mathf.Max(1, skillCooldownTurns);
+            else if (skillCooldownRemaining > 0)
+                skillCooldownRemaining--;
 
             if (gameOver) yield break;
 
@@ -1616,7 +1630,7 @@ namespace CardBattle
 
             if (pendingEnemyIntent == IntentKind.Stunned)
             {
-                if (enemyActionText) enemyActionText.text = "<b>행동 불가</b>\n<size=17>이번 턴 스턴</size>";
+                if (enemyActionText) enemyActionText.text = "<b>행동 불가</b>\n<size=16>이번 턴 스턴</size>";
                 if (enemyStatText) enemyStatText.text = "얇은 게이지가 가득 차\n이번 행동을 잃어";
                 if (enemyIntentTooltip) enemyIntentTooltip.SetContent("행동 불가", "이번 턴 스턴", "보조 게이지가 가득 차서 이번 행동을 잃어.");
                 UpdateEnemyActionIcon(IntentKind.Stunned, null);
@@ -1639,7 +1653,7 @@ namespace CardBattle
                 : string.Empty;
 
             string detailBody = $"{BuildEnemyIntentTooltipBody(pendingEnemyIntent, move)}{preview}";
-            if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=18>{label}  {power}</size>";
+            if (enemyActionText) enemyActionText.text = $"<b>{moveName}</b>\n<size=16>{label}  {power}</size>";
             if (enemyStatText)
             {
                 string shortTelegraph = CompactIntentLine(telegraph, 28);
@@ -1887,6 +1901,7 @@ namespace CardBattle
         private bool CanUseSkill()
         {
             if (!HasReadyHand()) return false;
+            if (skillCooldownRemaining > 0) return false;
             return pokerHand == null || pokerHand.CurrentResult.IsSpecial;
         }
 
@@ -1941,7 +1956,7 @@ namespace CardBattle
         private static string DescribeIntent(CombatIntent intent, int visibilityRange = 0)
         {
             if (intent.IsStunned) return "적: 스턴";
-            return $"<b>{intent.SourceName}</b>\n<size=18>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</size>";
+            return $"<b>{intent.SourceName}</b>\n<size=16>{ActionLabel(intent.Kind)} {VisiblePower(intent.Power, visibilityRange)}</size>";
         }
 
         private static string DescribeEnemyStats(CombatIntent intent, int visibilityRange = 0)
@@ -2138,6 +2153,8 @@ namespace CardBattle
             if (attackButton) attackButton.interactable = canInput;
             if (defendButton) defendButton.interactable = canInput;
             if (skillButton) skillButton.interactable = canInput && CanUseSkill();
+            if (skillButton)
+                skillButton.GetComponent<CombatCommandLabelView>()?.SetCooldown(skillCooldownRemaining);
             if (redrawButton)
             {
                 bool canRedraw = pokerHand == null || pokerHand.CanRedraw;

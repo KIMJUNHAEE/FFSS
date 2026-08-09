@@ -78,7 +78,7 @@ namespace FFSS.Framework.Tests
             Assert.That(newRunButton, Is.Not.Null, "The title screen New Run button is missing.");
             Assert.That(newRunButton.interactable, Is.True, "The New Run button is disabled.");
 
-            newRunButton.onClick.Invoke();
+            yield return StartNewRunThroughGuide(newRunButton);
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene,
                 300,
@@ -102,7 +102,81 @@ namespace FFSS.Framework.Tests
                 "The field scene loaded without generating its playable map.");
             AssertAmbientLandmarksUseBuildingArtwork();
 
+            Type portraitType = Type.GetType("FFSS.UI.PlayerConditionPortrait, Assembly-CSharp");
+            Assert.That(portraitType, Is.Not.Null, "The HP condition portrait type is unavailable.");
+            Component portrait = Object.FindObjectsByType(
+                    portraitType,
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Cast<Component>()
+                .SingleOrDefault();
+            Assert.That(portrait, Is.Not.Null, "The field HUD has no HP condition portrait.");
+            Image portraitImage = portrait.GetComponent<Image>();
+            Assert.That(portraitImage, Is.Not.Null);
+            Sprite healthyPortrait = portraitImage.sprite;
+            RunManager portraitRuns = GameKernel.Services.Get<RunManager>();
+            int fullHp = portraitRuns.Current.player.maxHp;
+            portraitRuns.Current.player.currentHp = Mathf.Max(1, fullHp / 5);
+            portraitRuns.NotifyStateChanged("test.portrait.damage");
+            yield return WaitFrames(2);
+            Assert.That(portraitImage.sprite, Is.Not.SameAs(healthyPortrait),
+                "The HUD portrait did not change expression at critical HP.");
+            Assert.That(portraitImage.color, Is.Not.EqualTo(Color.white),
+                "The HUD portrait did not react when HP dropped.");
+            portraitRuns.Current.player.currentHp = fullHp;
+            portraitRuns.NotifyStateChanged("test.portrait.restore");
+            yield return new WaitForSecondsRealtime(0.3f);
+
             yield return CaptureFieldScreenshot();
+        }
+
+        [UnityTest]
+        public IEnumerator BossDebugStartsFullyEquippedBossEncounter()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(() => GameKernel.IsReady, 180, "GameKernel did not initialize.");
+
+            Button openDebug = FindButton("Boss Debug Button");
+            Assert.That(openDebug, Is.Not.Null, "The title screen boss debug button is missing.");
+            openDebug.onClick.Invoke();
+            yield return WaitFrames(1);
+
+            Button boss13 = FindButton("Debug Boss 13");
+            Assert.That(boss13, Is.Not.Null, "The 13 Gwangddaeng debug button is missing.");
+            Assert.That(boss13.gameObject.activeInHierarchy, Is.True,
+                "The boss debug panel did not open.");
+            boss13.onClick.Invoke();
+
+            yield return WaitUntil(
+                () => SceneManager.GetActiveScene().name == "Combat_Boss_Gwang_13",
+                360,
+                "Boss debug did not enter the 13 Gwangddaeng scene.");
+
+            RunState run = GameKernel.Services.Get<RunManager>().Current;
+            Assert.That(run.act, Is.EqualTo(1));
+            Type equipmentSlotType = Type.GetType("CardBattle.EquipmentSlotType, Assembly-CSharp");
+            Type equipmentCatalogType = Type.GetType("CardBattle.EquipmentCatalog, Assembly-CSharp");
+            Assert.That(equipmentSlotType, Is.Not.Null);
+            Assert.That(equipmentCatalogType, Is.Not.Null);
+            Assert.That(run.equippedItemIds.Count,
+                Is.EqualTo(Enum.GetValues(equipmentSlotType).Length),
+                "Boss debug did not fill every equipment slot.");
+            Assert.That(run.equippedItemIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+            Assert.That(run.player.currentHp, Is.EqualTo(run.player.maxHp));
+            Assert.That(GameKernel.Services.Get<GameFlowManager>().Current, Is.EqualTo(GameFlowState.Combat));
+
+            IEnumerable allEquipment = equipmentCatalogType.GetField(
+                    "All",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.GetValue(null) as IEnumerable;
+            Assert.That(allEquipment, Is.Not.Null);
+            foreach (object item in allEquipment)
+            {
+                string itemId = item.GetType().GetProperty("Id")?.GetValue(item) as string;
+                Assert.That(run.inventoryItemIds.Contains(itemId) || run.equippedItemIds.Contains(itemId),
+                    Is.True,
+                    $"Boss debug is missing equipment '{itemId}'.");
+            }
         }
 
         private static void AssertAmbientLandmarksUseBuildingArtwork()
@@ -138,7 +212,7 @@ namespace FFSS.Framework.Tests
 
             Button newRunButton = FindButton("New Run");
             Assert.That(newRunButton, Is.Not.Null, "The title screen New Run button is missing.");
-            newRunButton.onClick.Invoke();
+            yield return StartNewRunThroughGuide(newRunButton);
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene,
                 300,
@@ -223,7 +297,7 @@ namespace FFSS.Framework.Tests
             AssertVisibleUiInsideViewport("title 2560x1440");
             yield return SetResolutionAndCapture("flow_title_1280x720", 1280, 720);
             AssertVisibleUiInsideViewport("title 1280x720");
-            newRunButton.onClick.Invoke();
+            yield return StartNewRunThroughGuide(newRunButton);
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene,
                 300,
@@ -599,6 +673,8 @@ namespace FFSS.Framework.Tests
 
             UIManager ui = GameKernel.Services.Get<UIManager>();
             RunManager runs = GameKernel.Services.Get<RunManager>();
+            runs.StartNewRun(870501);
+            yield return WaitFrames(1);
             runs.Current.gold = 500;
             UIScreen shop = ui.Show(UIScreenId.Shop, false);
             Assert.That(shop, Is.Not.Null);
@@ -773,7 +849,7 @@ namespace FFSS.Framework.Tests
 
             Button newRun = FindButton("New Run");
             Assert.That(newRun, Is.Not.Null);
-            newRun.onClick.Invoke();
+            yield return StartNewRunThroughGuide(newRun);
             yield return WaitUntil(
                 () => SceneManager.GetActiveScene().name == FieldScene &&
                       FindVisibleScreen(UIScreenId.FieldHud) != null &&
@@ -884,6 +960,25 @@ namespace FFSS.Framework.Tests
             }
 
             return null;
+        }
+
+        private static IEnumerator StartNewRunThroughGuide(Button newRunButton)
+        {
+            newRunButton.onClick.Invoke();
+            yield return WaitUntil(
+                () => FindButton("Guide Next")?.gameObject.activeInHierarchy == true,
+                120,
+                "The new-game guide did not open.");
+
+            Button next = FindButton("Guide Next");
+            Assert.That(next, Is.Not.Null, "The new-game guide Next button is missing.");
+            for (int page = 0; page < 3; page++)
+            {
+                Assert.That(next.gameObject.activeInHierarchy, Is.True,
+                    $"The new-game guide closed before page {page + 1} was confirmed.");
+                next.onClick.Invoke();
+                yield return WaitFrames(1);
+            }
         }
 
         private static void AssertFieldHudActLabel(int act)

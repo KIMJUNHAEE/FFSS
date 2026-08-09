@@ -41,7 +41,7 @@ namespace CardBattle.Editor
                 new Color(0.72f, 0.94f, 0.86f), -0.06f, 13f, -14f, 0.25f, 0.28f);
             VolumeProfile actThree = CreateActProfile(
                 SettingsRoot + "/FieldAct3Volume.asset",
-                new Color(1f, 0.69f, 0.67f), -0.1f, 18f, -10f, 0.32f, 0.42f);
+                new Color(1f, 0.8f, 0.78f), 0.72f, 8f, -4f, 0.24f, 0.42f);
 
             VolumeProfile normalDanger = CreateDangerProfile(
                 SettingsRoot + "/FieldDangerNormalVolume.asset", 0.32f, 0.32f, 12f, -0.08f);

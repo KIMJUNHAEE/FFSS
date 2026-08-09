@@ -46,6 +46,15 @@ namespace CardBattle
             counterText.gameObject.SetActive(labelKind == CombatCommandLabelKind.Redraw);
         }
 
+        public void SetCooldown(int remaining)
+        {
+            if (counterText == null)
+                return;
+
+            counterText.text = remaining > 0 ? $"{remaining}턴" : string.Empty;
+            counterText.gameObject.SetActive(labelKind == CombatCommandLabelKind.Skill && remaining > 0);
+        }
+
         private void Apply()
         {
             if (labelText != null)

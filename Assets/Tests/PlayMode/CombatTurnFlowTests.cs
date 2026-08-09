@@ -27,7 +27,7 @@ namespace FFSS.Framework.Tests
 
             Button newRun = FindButton("New Run");
             Assert.That(newRun, Is.Not.Null);
-            newRun.onClick.Invoke();
+            yield return StartNewRunThroughGuide(newRun);
             yield return WaitUntilSeconds(
                 () => SceneManager.GetActiveScene().name == "Production_Field",
                 20f,
@@ -335,6 +335,23 @@ namespace FFSS.Framework.Tests
         {
             return Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                 .FirstOrDefault(button => button.name == name);
+        }
+
+        private static IEnumerator StartNewRunThroughGuide(Button newRunButton)
+        {
+            newRunButton.onClick.Invoke();
+            yield return WaitUntilSeconds(
+                () => FindButton("Guide Next")?.gameObject.activeInHierarchy == true,
+                10f,
+                "The new-game guide did not open.");
+
+            Button next = FindButton("Guide Next");
+            Assert.That(next, Is.Not.Null, "The new-game guide Next button is missing.");
+            for (int page = 0; page < 3; page++)
+            {
+                next.onClick.Invoke();
+                yield return null;
+            }
         }
 
         private static List<string> CardNames(PropertyInfo property, object hand)

@@ -50,7 +50,36 @@ namespace CardBattle.Inventory
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (eventData.button == PointerEventData.InputButton.Right &&
+                current.entry is EquipmentDefinition equipment &&
+                TryEquip(equipment))
+            {
+                return;
+            }
+
             if (!current.IsEmpty) detailView?.Show(current.entry, model, slotIndex);
+        }
+
+        private bool TryEquip(EquipmentDefinition equipment)
+        {
+            RunState run = RunAccess.Current;
+            if (run == null || model == null || equipment == null)
+                return false;
+
+            EquipmentStatsCalculator.EnsureSlots(run);
+            string previousId = run.equippedItemIds[(int)equipment.Slot];
+            if (model.TakeAt(slotIndex) == null)
+                return false;
+
+            run.equippedItemIds[(int)equipment.Slot] = equipment.Id;
+            EquipmentDefinition previous = EquipmentCatalog.Get(previousId);
+            if (previous != null)
+                model.AddItem(previous, 1);
+
+            EquipmentStatsCalculator.Recalculate(run);
+            if (GameKernel.IsReady && GameKernel.Services.TryGet(out RunManager runs))
+                runs.NotifyStateChanged("equipment.changed");
+            return true;
         }
 
         public void OnBeginDrag(PointerEventData eventData)

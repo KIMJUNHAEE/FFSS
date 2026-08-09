@@ -155,29 +155,41 @@ namespace FFSS.Framework.Run
             RunRewardState reward = Current.pendingReward ??
                                     throw new InvalidOperationException("There is no pending reward.");
             Current.gold += Math.Max(0, reward.gold);
-            if (!string.IsNullOrWhiteSpace(selectedItemId) &&
-                reward.itemChoiceIds != null &&
-                reward.itemChoiceIds.Contains(selectedItemId) &&
-                !Current.inventoryItemIds.Contains(selectedItemId))
+            bool claimAll = string.IsNullOrWhiteSpace(selectedItemId) &&
+                            string.IsNullOrWhiteSpace(selectedCardInstanceId);
+            if (reward.itemChoiceIds != null)
             {
-                Current.inventoryItemIds.Add(selectedItemId);
+                for (int i = 0; i < reward.itemChoiceIds.Count; i++)
+                {
+                    string itemId = reward.itemChoiceIds[i];
+                    if ((!claimAll && itemId != selectedItemId) ||
+                        string.IsNullOrWhiteSpace(itemId) ||
+                        Current.inventoryItemIds.Contains(itemId))
+                    {
+                        continue;
+                    }
+
+                    Current.inventoryItemIds.Add(itemId);
+                }
             }
 
-            bool canClaimCard = !string.IsNullOrWhiteSpace(selectedCardInstanceId) &&
-                                reward.cardChoiceInstanceIds != null &&
-                                reward.cardChoiceInstanceIds.Contains(selectedCardInstanceId);
-            if (canClaimCard &&
-                Current.pokerDeck.cards.Exists(card =>
-                    card != null &&
-                    card.instanceId == selectedCardInstanceId &&
-                    card.enhancementLevel < 3))
+            if (reward.cardChoiceInstanceIds != null)
             {
-                RunCardState card = Current.pokerDeck.cards.Find(value => value.instanceId == selectedCardInstanceId);
-                card.enhancementLevel++;
-                card.isHoned = true;
-                if (!Current.upgradedCardInstanceIds.Contains(selectedCardInstanceId))
+                for (int i = 0; i < reward.cardChoiceInstanceIds.Count; i++)
                 {
-                    Current.upgradedCardInstanceIds.Add(selectedCardInstanceId);
+                    string instanceId = reward.cardChoiceInstanceIds[i];
+                    if ((!claimAll && instanceId != selectedCardInstanceId) || string.IsNullOrWhiteSpace(instanceId))
+                        continue;
+
+                    RunCardState card = Current.pokerDeck.cards.Find(value =>
+                        value != null && value.instanceId == instanceId && value.enhancementLevel < 3);
+                    if (card == null)
+                        continue;
+
+                    card.enhancementLevel++;
+                    card.isHoned = true;
+                    if (!Current.upgradedCardInstanceIds.Contains(instanceId))
+                        Current.upgradedCardInstanceIds.Add(instanceId);
                 }
             }
             Current.pendingReward = null;

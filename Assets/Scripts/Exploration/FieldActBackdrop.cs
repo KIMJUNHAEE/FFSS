@@ -19,6 +19,9 @@ namespace CardBattle.Exploration
         [SerializeField] private Sprite act3Sprite;
         [SerializeField, Min(1f)] private float depth = 70f;
         [SerializeField, Min(1f)] private float overscan = 1.08f;
+        [SerializeField, Range(0f, 0.08f)] private float cameraParallax = 0.018f;
+        [SerializeField, Range(0f, 1f)] private float driftAmplitude = 0.28f;
+        [SerializeField, Range(0f, 0.5f)] private float driftSpeed = 0.055f;
 
         private int appliedAct;
         private Vector2 fittedFor;
@@ -47,7 +50,12 @@ namespace CardBattle.Exploration
                 transform.localRotation = Quaternion.identity;
             }
 
-            transform.localPosition = new Vector3(0f, 0f, depth);
+            Vector3 cameraPosition = targetCamera.transform.position;
+            Vector2 parallax = new(-cameraPosition.x * cameraParallax, -cameraPosition.y * cameraParallax);
+            Vector2 drift = new(
+                Mathf.Sin(Time.unscaledTime * driftSpeed) * driftAmplitude,
+                Mathf.Cos(Time.unscaledTime * driftSpeed * 0.73f) * driftAmplitude * 0.35f);
+            transform.localPosition = new Vector3(parallax.x + drift.x, parallax.y + drift.y, depth);
             ApplyAct();
             FitToFrustum();
         }
@@ -66,6 +74,12 @@ namespace CardBattle.Exploration
                 2 => act2Sprite,
                 3 => act3Sprite,
                 _ => act1Sprite
+            };
+            spriteRenderer.color = act switch
+            {
+                2 => new Color(1.22f, 1.2f, 1.16f, 1f),
+                3 => new Color(1.08f, 1.05f, 1.04f, 1f),
+                _ => Color.white
             };
             fittedFor = Vector2.zero;
         }

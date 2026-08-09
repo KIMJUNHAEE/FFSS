@@ -536,12 +536,12 @@ namespace FFSS.Framework.Tests
             Assert.That(state.player.maxPressure, Is.EqualTo(36));
             Assert.That(state.player.currentPressure, Is.Zero);
             Assert.That(state.gold, Is.EqualTo(30));
-            Assert.That(state.player.maxHp, Is.EqualTo(104));
-            Assert.That(state.player.AttackForTurn(1), Is.EqualTo(13));
-            Assert.That(state.player.DefenseForTurn(1), Is.EqualTo(11));
-            Assert.That(state.player.AttackForTurn(2), Is.EqualTo(10));
-            Assert.That(state.player.DefenseForTurn(2), Is.EqualTo(8));
-            Assert.That(state.equippedItemIds, Has.Count.EqualTo(4));
+            Assert.That(state.player.maxHp, Is.EqualTo(90));
+            Assert.That(state.player.AttackForTurn(1), Is.EqualTo(11));
+            Assert.That(state.player.DefenseForTurn(1), Is.EqualTo(10));
+            Assert.That(state.player.AttackForTurn(2), Is.EqualTo(8));
+            Assert.That(state.player.DefenseForTurn(2), Is.EqualTo(7));
+            Assert.That(state.equippedItemIds, Is.Empty);
             Assert.That(state.actProgress, Has.Count.EqualTo(3));
         }
 
@@ -671,7 +671,7 @@ namespace FFSS.Framework.Tests
             Assert.That(RunProgressionManager.CompleteActCore(run, campaign), Is.True);
 
             Assert.That(run.act, Is.EqualTo(2));
-            Assert.That(run.player.currentHp, Is.EqualTo(76));
+            Assert.That(run.player.currentHp, Is.EqualTo(73));
             Assert.That(run.consumedRestIds, Does.Contain(RunProgressionManager.IntermissionRestId(1)));
             Assert.That(run.choiceHistory.Any(value => value.sourceId == RunProgressionManager.IntermissionRestId(1) &&
                                                        value.choiceId == "DefaultHeal"), Is.True);

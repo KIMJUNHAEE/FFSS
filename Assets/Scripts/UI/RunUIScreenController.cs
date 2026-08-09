@@ -76,6 +76,8 @@ namespace CardBattle.UI
         [SerializeField] private Text primaryLabel;
         [SerializeField] private Button secondaryButton;
         [SerializeField] private Text secondaryLabel;
+        [SerializeField] private Button tertiaryButton;
+        [SerializeField] private Text tertiaryLabel;
         [SerializeField] private Button previousPageButton;
         [SerializeField] private Button nextPageButton;
         [SerializeField] private List<RunScreenActionSlot> actions = new List<RunScreenActionSlot>();
@@ -127,6 +129,7 @@ namespace CardBattle.UI
             closeButton?.onClick.AddListener(Close);
             primaryButton?.onClick.AddListener(Primary);
             secondaryButton?.onClick.AddListener(Secondary);
+            tertiaryButton?.onClick.AddListener(Tertiary);
             previousPageButton?.onClick.AddListener(PreviousPage);
             nextPageButton?.onClick.AddListener(NextPage);
             actionCallbacks.Clear();
@@ -149,6 +152,7 @@ namespace CardBattle.UI
             closeButton?.onClick.RemoveListener(Close);
             primaryButton?.onClick.RemoveListener(Primary);
             secondaryButton?.onClick.RemoveListener(Secondary);
+            tertiaryButton?.onClick.RemoveListener(Tertiary);
             previousPageButton?.onClick.RemoveListener(PreviousPage);
             nextPageButton?.onClick.RemoveListener(NextPage);
             for (int i = 0; i < actions.Count && i < actionCallbacks.Count; i++)
@@ -439,7 +443,12 @@ namespace CardBattle.UI
             }
 
             int pages = Mathf.Max(1, Mathf.CeilToInt(run.pokerDeck.cards.Count / (float)Mathf.Max(1, actions.Count)));
-            SetText(status, $"{page + 1}/{pages}쪽 · 카드를 선택한 뒤 연마하거나 시간 각성·역행 경로를 정한다.");
+            SetText(status, $"{page + 1}/{pages}쪽 · 카드를 선택해 연마·성장하거나 15냥으로 같은 숫자의 다른 문양과 교환한다.");
+            SetText(tertiaryLabel, "카드 교환");
+            if (tertiaryButton != null)
+                tertiaryButton.interactable = selectedAction >= 0 &&
+                                             selectedAction < run.pokerDeck.cards.Count &&
+                                             run.gold >= 15;
             if (previousPageButton != null)
             {
                 previousPageButton.interactable = page > 0;
@@ -490,7 +499,7 @@ namespace CardBattle.UI
             RunState run = CurrentRun();
             RunRewardState reward = run.pendingReward;
             SetText(currency, reward == null ? "보상 없음" : $"{reward.gold}냥 획득");
-            SetText(body, "장비를 선택하거나 카드 한 장을 연마하고, 다음 지역으로 돌아간다.");
+            SetText(body, "표시된 장비와 카드 연마 보상을 모두 획득하고 다음 지역으로 돌아간다.");
             int itemCount = reward?.itemChoiceIds.Count ?? 0;
             int cardCount = reward?.cardChoiceInstanceIds?.Count ?? 0;
             for (int i = 0; i < actions.Count; i++)
@@ -617,7 +626,7 @@ namespace CardBattle.UI
 
             SetText(status, lastSavedSlot >= 0
                 ? $"저장 완료 · 슬롯 {lastSavedSlot + 1} · {lastSavedAt:HH:mm:ss}"
-                : "저장할 슬롯을 선택해.");
+                : string.Empty);
         }
 
         private void RefreshOptions()
@@ -767,6 +776,12 @@ namespace CardBattle.UI
             }
         }
 
+        private void Tertiary()
+        {
+            if (ScreenId == UIScreenId.CardWorkshop)
+                ExchangeSelectedCard();
+        }
+
         private void PreviousPage()
         {
             page = Mathf.Max(0, page - 1);
@@ -807,6 +822,40 @@ namespace CardBattle.UI
                 ? CardGrowthPath.Reverse
                 : CardGrowthPath.TimeAwakened;
             GameKernel.Services.Get<RunEconomyManager>().TryChooseGrowthPath(card.instanceId, next, 30);
+            Refresh();
+        }
+
+        private void ExchangeSelectedCard()
+        {
+            RunState run = CurrentRun();
+            if (run == null || selectedAction < 0 || selectedAction >= run.pokerDeck.cards.Count)
+                return;
+
+            RunCardState card = run.pokerDeck.cards[selectedAction];
+            string[] parts = card.cardId?.Split('.');
+            if (parts == null || parts.Length != 3 || parts[0] != "poker" ||
+                !int.TryParse(parts[2], out int rank))
+            {
+                SetText(status, "조커는 문양 교환을 할 수 없어.");
+                return;
+            }
+
+            if (run.gold < 15)
+            {
+                SetText(status, "카드 교환에는 15냥이 필요해.");
+                return;
+            }
+
+            string nextSuit = parts[1] switch
+            {
+                "club" => "diamond",
+                "diamond" => "heart",
+                "heart" => "spade",
+                _ => "club"
+            };
+            run.gold -= 15;
+            card.cardId = $"poker.{nextSuit}.{rank:D2}";
+            GameKernel.Services.Get<RunManager>().NotifyStateChanged("deck.card.exchanged");
             Refresh();
         }
 
@@ -931,6 +980,9 @@ namespace CardBattle.UI
                     break;
                 case 2:
                     Show(UIScreenId.RunStatus);
+                    break;
+                case 3:
+                    Show(UIScreenId.CardWorkshop);
                     break;
             }
         }
@@ -1081,19 +1133,7 @@ namespace CardBattle.UI
 
         private void ClaimReward()
         {
-            RunState run = CurrentRun();
-            RunRewardState reward = run.pendingReward;
-            int itemCount = reward?.itemChoiceIds.Count ?? 0;
-            string selectedItem = selectedAction >= 0 && selectedAction < itemCount
-                ? reward.itemChoiceIds[selectedAction]
-                : null;
-            int cardIndex = selectedAction - itemCount;
-            string selectedCard = reward?.cardChoiceInstanceIds != null &&
-                                  cardIndex >= 0 &&
-                                  cardIndex < reward.cardChoiceInstanceIds.Count
-                ? reward.cardChoiceInstanceIds[cardIndex]
-                : null;
-            GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue(selectedItem, selectedCard);
+            GameKernel.Services.Get<EncounterFlowManager>().ClaimRewardAndContinue();
         }
 
         private static void EnterFieldOrResult()
@@ -1402,7 +1442,7 @@ namespace CardBattle.UI
             if (slot.binding == RunOptionBinding.ControlsInfo)
                 SetText(slot.value, "이동: WASD / 방향키   ·   선택: Enter   ·   닫기: Esc");
             else if (slot.binding == RunOptionBinding.DataInfo)
-                SetText(slot.value, "설정 자동 저장 ON   ·   런 저장 슬롯 3개");
+                SetText(slot.value, "설정은 바꾸는 즉시 자동 저장돼.");
         }
 
         private IEnumerator SelectDefaultControlNextFrame()
