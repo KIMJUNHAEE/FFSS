@@ -1273,8 +1273,8 @@ namespace CardBattle
             int breakPower = baseBreakPower + equipmentBreak + growth.BreakPower + Mathf.Max(0, 2 - tier) +
                              Mathf.Max(0, black - 2);
             int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill;
-            string attackFormula = $"기본 {baseAttack} + 족보 빨강 {red} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
-            string defenseFormula = $"기본 {baseDefense} + 족보 검정 {black} + 연마 {enhancementDefense} + 장비 {defenseBonus - enhancementDefense}";
+            string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 족보 빨강 {red} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
+            string defenseFormula = $"기본 {baseDefense} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 족보 검정 {black} + 연마 {enhancementDefense} + 장비 {defenseBonus - enhancementDefense}";
             string skillFormula = $"대결 {attack} + 기술 {skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill}";
             return new CombatNumbers(rankName, baseAttack, baseDefense, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
@@ -1290,19 +1290,18 @@ namespace CardBattle
                 return (result.ScoringRedCount, result.ScoringBlackCount);
             }
 
-            int red = 0;
-            int black = 0;
+            int red = result.ScoringRedCount;
+            int black = result.ScoringBlackCount;
             RunPokerDeckState deck = runs.Current.pokerDeck;
             for (int i = 0; i < pokerHand.CurrentCardInstanceIds.Count; i++)
             {
                 RunCardState card = deck.FindCard(pokerHand.CurrentCardInstanceIds[i]);
                 if (card == null)
                     return (result.ScoringRedCount, result.ScoringBlackCount);
-                if (!PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token) ||
-                    token.StartsWith("X-"))
-                {
+                if (!PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
+                    return (result.ScoringRedCount, result.ScoringBlackCount);
+                if (token.StartsWith("X-"))
                     continue;
-                }
 
                 string[] tokenParts = token.Split('-');
                 if (tokenParts.Length != 2 || !int.TryParse(tokenParts[1], out int rank))
@@ -1311,11 +1310,24 @@ namespace CardBattle
                 if (!result.AllCardsScore && !result.ScoringRanks.Contains(normalizedRank))
                     continue;
 
-                if (PokerRunDeckRules.IsEffectivelyRed(card)) red++;
-                else black++;
+                bool originalRed = token[0] is 'H' or 'D';
+                bool effectiveRed = PokerRunDeckRules.IsEffectivelyRed(card);
+                if (originalRed == effectiveRed)
+                    continue;
+
+                if (effectiveRed)
+                {
+                    red++;
+                    black--;
+                }
+                else
+                {
+                    red--;
+                    black++;
+                }
             }
 
-            return (red, black);
+            return (Mathf.Max(0, red), Mathf.Max(0, black));
         }
 
         private (int Attack, int Defense) CurrentEnhancementBonuses()

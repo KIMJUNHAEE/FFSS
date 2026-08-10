@@ -371,7 +371,7 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void RankJokerCannotAlsoCountAsAColorBonus()
+        public void RankJokerCountsAsItsOwnColorInTheCompletedHand()
         {
             List<Sprite> cards = MakeSprites("S-11", "H-1", "C-10", "X-R", "H-12");
             try
@@ -382,7 +382,8 @@ namespace FFSS.Framework.Tests
 
                 Assert.That(rank?.ToString(), Is.EqualTo("Straight"));
                 Assert.That(resultType.GetProperty("JokersUsedForRank")?.GetValue(result), Is.EqualTo(1));
-                Assert.That(resultType.GetProperty("EffectiveRedCount")?.GetValue(result), Is.EqualTo(2));
+                Assert.That(resultType.GetProperty("ScoringRedCount")?.GetValue(result), Is.EqualTo(3));
+                Assert.That(resultType.GetProperty("ScoringBlackCount")?.GetValue(result), Is.EqualTo(2));
 
                 Type balance = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
                 MethodInfo contest = balance?.GetMethod("CalculateAttackContest",
@@ -392,10 +393,10 @@ namespace FFSS.Framework.Tests
                 Assert.That(contest, Is.Not.Null);
                 Assert.That(damage, Is.Not.Null);
 
-                int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, 2, 0 });
+                int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, 3, 0 });
                 int hpDamage = (int)damage.Invoke(null, new object[] { 10, contestValue, 10 });
-                Assert.That(contestValue, Is.EqualTo(12));
-                Assert.That(hpDamage, Is.EqualTo(6));
+                Assert.That(contestValue, Is.EqualTo(17));
+                Assert.That(hpDamage, Is.EqualTo(8));
             }
             finally
             {
@@ -441,13 +442,25 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [Test]
+        public void ThreeKindScoresTheThreeMatchingCardsIncludingItsJoker()
+        {
+            AssertPokerScoringColors("ThreeKind", 2, 1, "C-10", "H-10", "X-R", "C-9", "H-7");
+        }
+
+        [Test]
+        public void FourKindScoresOnlyTheFourMatchingCardsIncludingItsJoker()
+        {
+            AssertPokerScoringColors("FourKind", 2, 2, "D-10", "C-10", "H-10", "X-R", "X-B");
+        }
+
         [TestCase("HighCard", 3, 10, 5)]
-        [TestCase("OnePair", 2, 12, 6)]
-        [TestCase("TwoPair", 3, 13, 6)]
-        [TestCase("Flush", 5, 15, 7)]
-        [TestCase("FullHouse", 3, 13, 6)]
-        [TestCase("FourKind", 3, 13, 6)]
-        [TestCase("StraightFlush", 5, 15, 7)]
+        [TestCase("OnePair", 2, 13, 6)]
+        [TestCase("TwoPair", 3, 15, 7)]
+        [TestCase("Flush", 5, 20, 10)]
+        [TestCase("FullHouse", 3, 19, 9)]
+        [TestCase("FourKind", 3, 20, 10)]
+        [TestCase("StraightFlush", 5, 25, 12)]
         public void StartingHandDamageMatchesTheProductionBalanceTable(
             string rankName,
             int scoringRedCount,
@@ -549,6 +562,28 @@ namespace FFSS.Framework.Tests
                 object result = evaluate.Invoke(null, new object[] { cards });
                 PropertyInfo rank = result.GetType().GetProperty("Rank");
                 Assert.That(rank?.GetValue(result).ToString(), Is.EqualTo(expectedRank));
+            }
+            finally
+            {
+                cards.ForEach(UnityEngine.Object.DestroyImmediate);
+            }
+        }
+
+        private static void AssertPokerScoringColors(
+            string expectedRank,
+            int expectedRed,
+            int expectedBlack,
+            params string[] cardNames)
+        {
+            List<Sprite> cards = MakeSprites(cardNames);
+            try
+            {
+                object result = EvaluatePoker(cards);
+                Type resultType = result.GetType();
+
+                Assert.That(resultType.GetProperty("Rank")?.GetValue(result)?.ToString(), Is.EqualTo(expectedRank));
+                Assert.That(resultType.GetProperty("ScoringRedCount")?.GetValue(result), Is.EqualTo(expectedRed));
+                Assert.That(resultType.GetProperty("ScoringBlackCount")?.GetValue(result), Is.EqualTo(expectedBlack));
             }
             finally
             {

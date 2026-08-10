@@ -62,7 +62,7 @@ namespace CardBattle
             int handColorBonus = rank is PokerHandRank.None or PokerHandRank.HighCard
                 ? 0
                 : ColorContestBonus(scoringRedCount);
-            return Mathf.Max(0, baseAttack) + handColorBonus + additionalBonus;
+            return Mathf.Max(0, baseAttack) + HandContestBonus(rank) + handColorBonus + additionalBonus;
         }
 
         public static int CalculateDefenseContest(
@@ -74,7 +74,7 @@ namespace CardBattle
             int handColorBonus = rank is PokerHandRank.None or PokerHandRank.HighCard
                 ? 0
                 : ColorContestBonus(scoringBlackCount);
-            return Mathf.Max(0, baseDefense) + handColorBonus + additionalBonus;
+            return Mathf.Max(0, baseDefense) + HandContestBonus(rank) + handColorBonus + additionalBonus;
         }
 
         public static int CalculateHpDamage(int baseAttack, int contestValue, int targetDefense)

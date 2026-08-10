@@ -347,13 +347,11 @@ namespace CardBattle
                     .ToArray(),
                 _ => Array.Empty<int>()
             };
-            int naturalCardCount = Math.Max(0, cards.Count - resolvedJokerSuits.Count);
-            var scoringNaturalCards = cards
-                .Take(naturalCardCount)
+            var scoringCards = cards
                 .Where(card => allCardsScore || scoringRanks.Contains(card.rank))
                 .ToList();
-            int scoringRedCount = scoringNaturalCards.Count(card => IsRedSuit(card.suit));
-            int scoringBlackCount = scoringNaturalCards.Count - scoringRedCount;
+            int scoringRedCount = scoringCards.Count(card => IsRedSuit(card.suit));
+            int scoringBlackCount = scoringCards.Count - scoringRedCount;
             return new CandidateResult(handRank, name, tier, highRank, suitCounts, jokerSuitCounts, tieBreak,
                 scoringRedCount, scoringBlackCount, allCardsScore, scoringRanks);
         }
