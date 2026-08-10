@@ -41,7 +41,8 @@ namespace FFSS.Editor
             "EnemyHUD",
             "EnemyRuleMeter",
             "EnemyCombatGuide",
-            "EnemyIntentTooltip"
+            "EnemyIntentTooltip",
+            "WeaknessEffect"
         };
 
         private readonly struct BattleSeed
@@ -297,6 +298,341 @@ namespace FFSS.Editor
             Debug.Log($"Applied inspectable card layout and pile anchors to {Seeds.Count} production combat scenes.");
         }
 
+        [MenuItem("FFSS/Production/Match Enemy Guide And Weakness To 1 Ddaeng")]
+        public static void MatchEnemyGuideAndWeaknessToOneDdaeng()
+        {
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            const string referenceSceneName = "Combat_Ddaeng_01";
+            string referencePath = $"Assets/Scenes/{ProductionRelativeRoot}/{referenceSceneName}.unity";
+            try
+            {
+                Scene referenceScene = EditorSceneManager.OpenScene(referencePath, OpenSceneMode.Single);
+                IReadOnlyDictionary<string, RectLayoutSnapshot> referenceLayouts =
+                    FilterEnemyGuideAndWeaknessLayouts(CaptureSharedCombatLayouts(referenceScene));
+                IReadOnlyDictionary<string, TextLayoutSnapshot> referenceTextLayouts =
+                    FilterEnemyGuideAndWeaknessTextLayouts(CaptureSharedCombatTextLayouts(referenceScene));
+                IReadOnlyDictionary<string, PanelPresentationSnapshot> referencePresentation =
+                    CaptureEnemyGuideAndWeaknessPresentation(referenceScene);
+
+                for (int i = 0; i < Seeds.Count; i++)
+                {
+                    BattleSeed seed = Seeds[i];
+                    if (seed.SceneName == referenceSceneName)
+                        continue;
+
+                    string scenePath = $"Assets/Scenes/{ProductionRelativeRoot}/{seed.SceneName}.unity";
+                    Scene targetScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                    EnsureWeaknessEffectTextIdentity(targetScene);
+                    ApplySharedCombatLayouts(targetScene, referenceLayouts);
+                    ApplySharedCombatTextLayouts(targetScene, referenceTextLayouts);
+                    ApplyEnemyGuideAndWeaknessPresentation(targetScene, referencePresentation);
+                    ValidateEnemyGuideAndWeakness(
+                        targetScene,
+                        referenceLayouts,
+                        referenceTextLayouts,
+                        referencePresentation);
+                    EditorSceneManager.SaveScene(targetScene);
+                }
+            }
+            finally
+            {
+                if (!Application.isBatchMode && previousSetup.Length > 0)
+                    EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Matched EnemyCombatGuide and WeaknessEffectPanel layouts in {Seeds.Count - 1} production combat scenes to {referenceSceneName}.");
+        }
+
+        private static void EnsureWeaknessEffectTextIdentity(Scene scene)
+        {
+            RpsCombatController combat = FindInScene<RpsCombatController>(scene);
+            if (combat == null || combat.weaknessEffectPanel == null || combat.weaknessEffectText == null)
+            {
+                throw new InvalidOperationException(
+                    $"{scene.path}: WeaknessEffectPanel or WeaknessEffectText is missing.");
+            }
+
+            Transform textTransform = combat.weaknessEffectText.transform;
+            if (!textTransform.IsChildOf(combat.weaknessEffectPanel.transform))
+            {
+                throw new InvalidOperationException(
+                    $"{scene.path}: WeaknessEffectText is not under WeaknessEffectPanel.");
+            }
+
+            if (textTransform.name == "WeaknessEffectText")
+                return;
+
+            textTransform.name = "WeaknessEffectText";
+            EditorUtility.SetDirty(textTransform.gameObject);
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static IReadOnlyDictionary<string, RectLayoutSnapshot> FilterEnemyGuideAndWeaknessLayouts(
+            IReadOnlyDictionary<string, RectLayoutSnapshot> layouts)
+        {
+            var filtered = new Dictionary<string, RectLayoutSnapshot>();
+            foreach (KeyValuePair<string, RectLayoutSnapshot> pair in layouts)
+            {
+                if (pair.Key == "WeaknessEffect" ||
+                    pair.Key.StartsWith("EnemyCombatGuide", StringComparison.Ordinal))
+                {
+                    filtered.Add(pair.Key, pair.Value);
+                }
+            }
+
+            return filtered;
+        }
+
+        private static IReadOnlyDictionary<string, TextLayoutSnapshot> FilterEnemyGuideAndWeaknessTextLayouts(
+            IReadOnlyDictionary<string, TextLayoutSnapshot> layouts)
+        {
+            var filtered = new Dictionary<string, TextLayoutSnapshot>();
+            foreach (KeyValuePair<string, TextLayoutSnapshot> pair in layouts)
+            {
+                if (pair.Key.StartsWith("EnemyCombatGuide/", StringComparison.Ordinal) ||
+                    pair.Key.StartsWith("WeaknessEffect/", StringComparison.Ordinal))
+                    filtered.Add(pair.Key, pair.Value);
+            }
+
+            return filtered;
+        }
+
+        private readonly struct PanelPresentationSnapshot
+        {
+            public PanelPresentationSnapshot(Transform transform)
+            {
+                ActiveSelf = transform.gameObject.activeSelf;
+                Image image = transform.GetComponent<Image>();
+                HasImage = image != null;
+                ImageEnabled = image != null && image.enabled;
+                ImageColor = image != null ? image.color : Color.white;
+                ImageType = image != null ? image.type : Image.Type.Simple;
+                ImageRaycastTarget = image != null && image.raycastTarget;
+            }
+
+            public bool ActiveSelf { get; }
+            public bool HasImage { get; }
+            public bool ImageEnabled { get; }
+            public Color ImageColor { get; }
+            public Image.Type ImageType { get; }
+            public bool ImageRaycastTarget { get; }
+
+            public void Apply(Transform transform)
+            {
+                transform.gameObject.SetActive(ActiveSelf);
+                EditorUtility.SetDirty(transform.gameObject);
+                if (PrefabUtility.IsPartOfPrefabInstance(transform.gameObject))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(transform.gameObject);
+
+                Image image = transform.GetComponent<Image>();
+                if (!HasImage || image == null)
+                    return;
+
+                image.enabled = ImageEnabled;
+                image.color = ImageColor;
+                image.type = ImageType;
+                image.raycastTarget = ImageRaycastTarget;
+                EditorUtility.SetDirty(image);
+                if (PrefabUtility.IsPartOfPrefabInstance(image))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(image);
+            }
+
+            public bool Matches(Transform transform)
+            {
+                if (transform.gameObject.activeSelf != ActiveSelf)
+                    return false;
+
+                Image image = transform.GetComponent<Image>();
+                if ((image != null) != HasImage)
+                    return false;
+                if (!HasImage)
+                    return true;
+
+                return image.enabled == ImageEnabled &&
+                       Approximately(image.color, ImageColor) &&
+                       image.type == ImageType &&
+                       image.raycastTarget == ImageRaycastTarget;
+            }
+
+            private static bool Approximately(Color left, Color right)
+            {
+                const float tolerance = 0.001f;
+                return Mathf.Abs(left.r - right.r) <= tolerance &&
+                       Mathf.Abs(left.g - right.g) <= tolerance &&
+                       Mathf.Abs(left.b - right.b) <= tolerance &&
+                       Mathf.Abs(left.a - right.a) <= tolerance;
+            }
+        }
+
+        private static IReadOnlyDictionary<string, PanelPresentationSnapshot>
+            CaptureEnemyGuideAndWeaknessPresentation(Scene scene)
+        {
+            Dictionary<string, RectTransform> rects = ResolveSharedCombatRects(scene);
+            var snapshots = new Dictionary<string, PanelPresentationSnapshot>();
+            CapturePanelPresentation("EnemyCombatGuide", rects, snapshots);
+            CapturePanelPresentation("WeaknessEffect", rects, snapshots);
+            return snapshots;
+        }
+
+        private static void CapturePanelPresentation(
+            string rootKey,
+            IReadOnlyDictionary<string, RectTransform> rects,
+            IDictionary<string, PanelPresentationSnapshot> snapshots)
+        {
+            if (!rects.TryGetValue(rootKey, out RectTransform root) || root == null)
+                return;
+
+            Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                Transform transform = transforms[i];
+                string relativePath = transform == root
+                    ? string.Empty
+                    : AnimationUtility.CalculateTransformPath(transform, root);
+                string key = string.IsNullOrEmpty(relativePath) ? rootKey : $"{rootKey}/{relativePath}";
+                snapshots[key] = new PanelPresentationSnapshot(transform);
+            }
+        }
+
+        private static void ApplyEnemyGuideAndWeaknessPresentation(
+            Scene scene,
+            IReadOnlyDictionary<string, PanelPresentationSnapshot> reference)
+        {
+            Dictionary<string, RectTransform> rects = ResolveSharedCombatRects(scene);
+            ApplyPanelPresentation("EnemyCombatGuide", rects, reference);
+            ApplyPanelPresentation("WeaknessEffect", rects, reference);
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static void ApplyPanelPresentation(
+            string rootKey,
+            IReadOnlyDictionary<string, RectTransform> rects,
+            IReadOnlyDictionary<string, PanelPresentationSnapshot> reference)
+        {
+            if (!rects.TryGetValue(rootKey, out RectTransform root) || root == null)
+                return;
+
+            Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                Transform transform = transforms[i];
+                string relativePath = transform == root
+                    ? string.Empty
+                    : AnimationUtility.CalculateTransformPath(transform, root);
+                string key = string.IsNullOrEmpty(relativePath) ? rootKey : $"{rootKey}/{relativePath}";
+
+                if (reference.TryGetValue(key, out PanelPresentationSnapshot snapshot))
+                {
+                    snapshot.Apply(transform);
+                    continue;
+                }
+
+                transform.gameObject.SetActive(false);
+                EditorUtility.SetDirty(transform.gameObject);
+                if (PrefabUtility.IsPartOfPrefabInstance(transform.gameObject))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(transform.gameObject);
+            }
+        }
+
+        private static void ValidateEnemyGuideAndWeakness(
+            Scene scene,
+            IReadOnlyDictionary<string, RectLayoutSnapshot> referenceLayouts,
+            IReadOnlyDictionary<string, TextLayoutSnapshot> referenceTextLayouts,
+            IReadOnlyDictionary<string, PanelPresentationSnapshot> referencePresentation)
+        {
+            Dictionary<string, RectTransform> targetLayouts = ResolveSharedCombatRects(scene);
+            foreach (KeyValuePair<string, RectLayoutSnapshot> pair in referenceLayouts)
+            {
+                if (!targetLayouts.TryGetValue(pair.Key, out RectTransform target) ||
+                    target == null ||
+                    !pair.Value.Matches(target))
+                {
+                    throw new InvalidOperationException(
+                        $"{scene.path}: combat UI layout '{pair.Key}' does not match Combat_Ddaeng_01.");
+                }
+            }
+
+            Dictionary<string, TMP_Text> targetTexts = ResolveSharedCombatTexts(scene);
+            foreach (KeyValuePair<string, TextLayoutSnapshot> pair in referenceTextLayouts)
+            {
+                if (!targetTexts.TryGetValue(pair.Key, out TMP_Text target) ||
+                    target == null ||
+                    !pair.Value.Matches(target))
+                {
+                    throw new InvalidOperationException(
+                        $"{scene.path}: combat UI text layout '{pair.Key}' does not match Combat_Ddaeng_01.");
+                }
+            }
+
+            ValidatePanelPresentation(
+                scene,
+                "EnemyCombatGuide",
+                targetLayouts,
+                referencePresentation);
+            ValidatePanelPresentation(
+                scene,
+                "WeaknessEffect",
+                targetLayouts,
+                referencePresentation);
+        }
+
+        private static void ValidatePanelPresentation(
+            Scene scene,
+            string rootKey,
+            IReadOnlyDictionary<string, RectTransform> targetLayouts,
+            IReadOnlyDictionary<string, PanelPresentationSnapshot> reference)
+        {
+            if (!targetLayouts.TryGetValue(rootKey, out RectTransform root) || root == null)
+                throw new InvalidOperationException($"{scene.path}: combat UI '{rootKey}' is missing.");
+
+            var targetByKey = new Dictionary<string, Transform>();
+            Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                Transform transform = transforms[i];
+                string relativePath = transform == root
+                    ? string.Empty
+                    : AnimationUtility.CalculateTransformPath(transform, root);
+                string key = string.IsNullOrEmpty(relativePath) ? rootKey : $"{rootKey}/{relativePath}";
+                targetByKey[key] = transform;
+
+                if (reference.TryGetValue(key, out PanelPresentationSnapshot snapshot))
+                {
+                    if (!snapshot.Matches(transform))
+                    {
+                        throw new InvalidOperationException(
+                            $"{scene.path}: combat UI presentation '{key}' does not match Combat_Ddaeng_01.");
+                    }
+                }
+                else if (transform.gameObject.activeSelf)
+                {
+                    throw new InvalidOperationException(
+                        $"{scene.path}: extra combat UI '{key}' is still visible.");
+                }
+            }
+
+            foreach (KeyValuePair<string, PanelPresentationSnapshot> pair in reference)
+            {
+                if (!IsPanelKey(pair.Key, rootKey))
+                    continue;
+                if (!targetByKey.ContainsKey(pair.Key))
+                {
+                    throw new InvalidOperationException(
+                        $"{scene.path}: combat UI presentation '{pair.Key}' is missing.");
+                }
+            }
+        }
+
+        private static bool IsPanelKey(string key, string rootKey)
+        {
+            return key == rootKey || key.StartsWith($"{rootKey}/", StringComparison.Ordinal);
+        }
+
         private readonly struct RectLayoutSnapshot
         {
             public RectLayoutSnapshot(RectTransform rect)
@@ -328,6 +664,22 @@ namespace FFSS.Editor
                 if (PrefabUtility.IsPartOfPrefabInstance(rect))
                     PrefabUtility.RecordPrefabInstancePropertyModifications(rect);
             }
+
+            public bool Matches(RectTransform rect)
+            {
+                return Approximately(AnchorMin, rect.anchorMin) &&
+                       Approximately(AnchorMax, rect.anchorMax) &&
+                       Approximately(Pivot, rect.pivot) &&
+                       Approximately(AnchoredPosition, rect.anchoredPosition) &&
+                       Approximately(SizeDelta, rect.sizeDelta) &&
+                       Approximately(LocalScale, rect.localScale);
+            }
+
+            private static bool Approximately(Vector2 left, Vector2 right) =>
+                (left - right).sqrMagnitude <= 0.0001f;
+
+            private static bool Approximately(Vector3 left, Vector3 right) =>
+                (left - right).sqrMagnitude <= 0.0001f;
         }
 
         private readonly struct TextLayoutSnapshot
@@ -387,6 +739,34 @@ namespace FFSS.Editor
                 EditorUtility.SetDirty(text);
                 if (PrefabUtility.IsPartOfPrefabInstance(text))
                     PrefabUtility.RecordPrefabInstancePropertyModifications(text);
+            }
+
+            public bool Matches(TMP_Text text)
+            {
+                return Rect.Matches(text.rectTransform) &&
+                       text.font == Font &&
+                       Mathf.Approximately(text.fontSize, FontSize) &&
+                       text.enableAutoSizing == EnableAutoSizing &&
+                       Mathf.Approximately(text.fontSizeMin, FontSizeMin) &&
+                       Mathf.Approximately(text.fontSizeMax, FontSizeMax) &&
+                       text.fontStyle == FontStyle &&
+                       text.alignment == Alignment &&
+                       Approximately(text.margin, Margin) &&
+                       Mathf.Approximately(text.characterSpacing, CharacterSpacing) &&
+                       Mathf.Approximately(text.wordSpacing, WordSpacing) &&
+                       Mathf.Approximately(text.lineSpacing, LineSpacing) &&
+                       Mathf.Approximately(text.paragraphSpacing, ParagraphSpacing) &&
+                       text.enableWordWrapping == EnableWordWrapping &&
+                       text.overflowMode == OverflowMode;
+            }
+
+            private static bool Approximately(Vector4 left, Vector4 right)
+            {
+                const float tolerance = 0.01f;
+                return Mathf.Abs(left.x - right.x) <= tolerance &&
+                       Mathf.Abs(left.y - right.y) <= tolerance &&
+                       Mathf.Abs(left.z - right.z) <= tolerance &&
+                       Mathf.Abs(left.w - right.w) <= tolerance;
             }
         }
 
@@ -581,6 +961,7 @@ namespace FFSS.Editor
             AddSharedDescendantRects(result, "EnemyCombatGuideOpenButton");
             AddSharedDescendantRects(result, "EnemyCombatGuidePanel");
             AddSharedDescendantRects(result, "EnemyIntentTooltip");
+            AddSharedDescendantRects(result, "WeaknessEffect");
             return result;
         }
 
