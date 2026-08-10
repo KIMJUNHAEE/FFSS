@@ -8,18 +8,12 @@ namespace CardBattle
     /// 장비를 바꿀 때마다 호출 - 순수 수치 계산이라 UI 컨트롤러에서 분리해 여기 둠.</summary>
     public static class EquipmentStatsCalculator
     {
-        /// <summary>4부위 장착 목록이 모자라면(신규 런 등) 기본 장비로 채운다.</summary>
+        /// <summary>4부위 장착 목록이 모자라면 빈 장비 칸으로 채운다.</summary>
         public static void EnsureSlots(RunState run)
         {
-            string[] defaults =
-            {
-                EquipmentLoadout.DefaultWeapon,
-                EquipmentLoadout.DefaultGarment,
-                EquipmentLoadout.DefaultTalisman,
-                EquipmentLoadout.DefaultKeepsake
-            };
-            while (run.equippedItemIds.Count < defaults.Length)
-                run.equippedItemIds.Add(defaults[run.equippedItemIds.Count]);
+            const int equipmentSlotCount = 4;
+            while (run.equippedItemIds.Count < equipmentSlotCount)
+                run.equippedItemIds.Add(string.Empty);
         }
 
         public static void Recalculate(RunState run)

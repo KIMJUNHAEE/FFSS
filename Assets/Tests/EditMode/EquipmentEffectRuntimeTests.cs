@@ -13,6 +13,42 @@ namespace FFSS.Framework.Tests
         private const string RuntimeAssembly = "Assembly-CSharp";
 
         [Test]
+        public void NewRunEquipmentSlotsStayEmptyUntilThePlayerEquipsItems()
+        {
+            var run = new RunState();
+            Type statsType = RuntimeType("CardBattle.EquipmentStatsCalculator");
+            statsType.GetMethod("EnsureSlots", BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[] { run });
+
+            Assert.That(run.equippedItemIds, Has.Count.EqualTo(4));
+            Assert.That(run.equippedItemIds.All(string.IsNullOrEmpty), Is.True);
+        }
+
+        [Test]
+        public void RuntimeLoadoutDoesNotRestoreLegacyDefaultEquipmentForAnEmptyRun()
+        {
+            Type loadoutType = RuntimeType("CardBattle.EquipmentLoadout");
+            Type slotType = RuntimeType("CardBattle.EquipmentSlotType");
+            var host = new UnityEngine.GameObject("EmptyRunEquipmentTest");
+
+            try
+            {
+                object loadout = host.AddComponent(loadoutType);
+                loadoutType.GetMethod("Configure")?.Invoke(
+                    loadout,
+                    new object[] { Array.Empty<string>(), false });
+
+                MethodInfo getEquipped = loadoutType.GetMethod("GetEquipped");
+                foreach (object slot in Enum.GetValues(slotType))
+                    Assert.That(getEquipped?.Invoke(loadout, new[] { slot }), Is.Null, slot.ToString());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void EveryCatalogEquipmentEffectPassesThroughTheRuntimeResolver()
         {
             Type catalogType = RuntimeType("CardBattle.EquipmentCatalog");

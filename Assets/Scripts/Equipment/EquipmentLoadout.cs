@@ -150,6 +150,14 @@ namespace CardBattle
         public void Configure(IEnumerable<string> equipmentIds, bool persist)
         {
             saveToPlayerPrefs = persist;
+            if (!persist)
+            {
+                weaponId = string.Empty;
+                garmentId = string.Empty;
+                talismanId = string.Empty;
+                keepsakeId = string.Empty;
+            }
+
             if (equipmentIds != null)
             {
                 foreach (string equipmentId in equipmentIds)
@@ -160,9 +168,11 @@ namespace CardBattle
                 }
             }
 
-            EnsureDefaults();
             if (saveToPlayerPrefs)
+            {
+                EnsureDefaults();
                 Save();
+            }
             Changed?.Invoke();
         }
 
