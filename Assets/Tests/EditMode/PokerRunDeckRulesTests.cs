@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using CardBattle;
 using FFSS.Framework.Run;
 using NUnit.Framework;
 using UnityEngine;
@@ -72,7 +71,14 @@ namespace FFSS.Framework.Tests
         [Test]
         public void OffenseClashUsesWinningAttackAsHpDamage()
         {
-            Assert.That(PokerCombatBalance.CalculateOffenseClashDamage(10), Is.EqualTo(10));
+            Type balance = Type.GetType("CardBattle.PokerCombatBalance, Assembly-CSharp");
+            MethodInfo damage = balance?.GetMethod(
+                "CalculateOffenseClashDamage",
+                BindingFlags.Public | BindingFlags.Static);
+
+            Assert.That(balance, Is.Not.Null);
+            Assert.That(damage, Is.Not.Null);
+            Assert.That((int)damage.Invoke(null, new object[] { 10 }), Is.EqualTo(10));
         }
 
         [Test]
