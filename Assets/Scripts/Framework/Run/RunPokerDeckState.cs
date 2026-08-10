@@ -30,6 +30,8 @@ namespace FFSS.Framework.Run
     public sealed class RunPokerDeckState
     {
         public const int MaximumManipulationCandidates = 7;
+        public const int BaseRedrawsPerTurn = 2;
+        public const int MaximumBonusRedraws = 2;
 
         public List<RunCardState> cards = new List<RunCardState>();
         public List<string> heldCardInstanceIds = new List<string>();
@@ -45,7 +47,8 @@ namespace FFSS.Framework.Run
         public int redrawsUsedThisTurn;
         public string activeHonedCardInstanceId;
 
-        public int RedrawLimit => 1 + Math.Min(2, Math.Max(0, bonusRedraws));
+        public int RedrawLimit => BaseRedrawsPerTurn +
+                                  Math.Min(MaximumBonusRedraws, Math.Max(0, bonusRedraws));
         public int RedrawsRemaining => Math.Max(0, RedrawLimit - redrawsUsedThisTurn);
 
         public void BeginTurn()

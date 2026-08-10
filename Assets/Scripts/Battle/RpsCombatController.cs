@@ -961,6 +961,14 @@ namespace CardBattle
                 return;
             }
 
+            if (enemy.IsOffense && !enemy.IsStunned)
+            {
+                outcome.DamageToEnemy = PokerCombatBalance.CalculateOffenseClashDamage(player.Power);
+                outcome.Message = $"공격 대결 <b>{player.Power}</b> / 적 공격 <b>{enemy.Power}</b>\n" +
+                                  $"적 HP <color=#FF6B6B>-{outcome.DamageToEnemy}</color>";
+                return;
+            }
+
             int targetDefense = CalculateEnemyNumbers().BaseDefense;
             int rawDamage = PokerCombatBalance.CalculateHpDamage(
                 player.BasePower,

@@ -1376,8 +1376,8 @@ namespace FFSS.Framework.Tests
             PropertyInfo readyProperty = handType.GetProperty("HasResolvedHand");
             PropertyInfo cardsProperty = handType.GetProperty("CurrentCardSprites");
             PropertyInfo cardInstancesProperty = handType.GetProperty("CurrentCardInstanceIds");
-            Assert.That((int)limitProperty.GetValue(hand), Is.EqualTo(1));
-            Assert.That((int)remainingProperty.GetValue(hand), Is.EqualTo(1));
+            Assert.That((int)limitProperty.GetValue(hand), Is.EqualTo(2));
+            Assert.That((int)remainingProperty.GetValue(hand), Is.EqualTo(2));
             Assert.That(redraw.interactable, Is.False,
                 "Redraw should wait for cards explicitly selected for replacement.");
 
@@ -1399,7 +1399,7 @@ namespace FFSS.Framework.Tests
             yield return CaptureScreenshot("flow_combat_redraw_shuffle_vfx_1280x720", 1280, 720);
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
-                      (int)remainingProperty.GetValue(hand) == 0,
+                      (int)remainingProperty.GetValue(hand) == 1,
                 300,
                 "The first redraw did not finish or consume its turn resource.");
             yield return WaitFrames(2);
@@ -1417,7 +1417,7 @@ namespace FFSS.Framework.Tests
             Assert.That(new[] { redrawn[1], redrawn[3] }.Intersect(opening), Is.Empty,
                 "A selected card already seen this turn returned during redraw.");
             Assert.That(redraw.interactable, Is.False,
-                "The redraw button stayed enabled after its base use was spent.");
+                "The redraw button stayed enabled without another selected replacement card.");
             Assert.That(redrawVfx.TotalPlayCount, Is.GreaterThan(vfxCountBeforeRedraw),
                 "Redraw did not emit its dedicated shuffle VFX.");
             Assert.That(redrawVfx.LastPlayedCueId, Is.EqualTo("vfx.card.shuffle"),
@@ -1425,7 +1425,7 @@ namespace FFSS.Framework.Tests
             Text redrawCounter = redraw.GetComponentsInChildren<Text>(true)
                 .FirstOrDefault(text => text.name == "Redraw Counter");
             Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
-            Assert.That(redrawCounter.text, Does.Contain("0/1"));
+            Assert.That(redrawCounter.text, Does.Contain("1/2"));
 
             handType.GetMethod("Redraw")?.Invoke(hand, null);
             yield return WaitFrames(2);
@@ -1508,9 +1508,9 @@ namespace FFSS.Framework.Tests
 
             yield return WaitUntil(
                 () => (bool)readyProperty.GetValue(hand) &&
-                      (int)remainingProperty.GetValue(hand) == 1,
+                      (int)remainingProperty.GetValue(hand) == 2,
                 900,
-                "The resolved exchange did not return to a fresh player turn with one redraw.");
+                "The resolved exchange did not return to a fresh player turn with two redraws.");
             Assert.That(redraw.interactable, Is.False,
                 "Fresh redraw should wait for an explicit replacement selection.");
             yield return WaitFrames(2);
@@ -1530,7 +1530,7 @@ namespace FFSS.Framework.Tests
                 .FirstOrDefault(text => text.name == "Redraw Counter");
             Assert.That(refreshedRedrawCounter, Is.Not.Null,
                 "The image redraw label lost its resource counter on the next turn.");
-            Assert.That(refreshedRedrawCounter.text, Does.Contain("1/1"));
+            Assert.That(refreshedRedrawCounter.text, Does.Contain("2/2"));
         }
 
         private static void AssertVisibleUiInsideViewport(string stage)

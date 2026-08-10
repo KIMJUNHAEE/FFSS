@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CardBattle;
 using FFSS.Framework.Run;
 using NUnit.Framework;
 using UnityEngine;
@@ -63,8 +64,15 @@ namespace FFSS.Framework.Tests
             Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.False);
-            Assert.That(deck.RedrawLimit, Is.EqualTo(3));
+            Assert.That(deck.RedrawLimit, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void OffenseClashUsesWinningAttackAsHpDamage()
+        {
+            Assert.That(PokerCombatBalance.CalculateOffenseClashDamage(10), Is.EqualTo(10));
         }
 
         [Test]

@@ -89,6 +89,11 @@ namespace CardBattle
             return Mathf.Max(1, baseline - Mathf.CeilToInt(-difference * 0.6f));
         }
 
+        public static int CalculateOffenseClashDamage(int winningAttack)
+        {
+            return Mathf.Max(0, winningAttack);
+        }
+
         public static int ApplyHpDamageCap(
             int rawDamage,
             int targetMaximumHp,

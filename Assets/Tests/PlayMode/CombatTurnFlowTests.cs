@@ -75,15 +75,15 @@ namespace FFSS.Framework.Tests
                 10f,
                 "The opening poker hand never became playable.");
 
-            Assert.That((int)redrawLimit.GetValue(hand), Is.EqualTo(1));
-            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1));
+            Assert.That((int)redrawLimit.GetValue(hand), Is.EqualTo(2));
+            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(2));
             AssertPokerCardsDoNotOverlapDeck(handType, hand);
             List<string> opening = CardNames(sprites, hand);
             Assert.That(redraw.interactable, Is.False,
                 "Redraw should wait until at least one replacement card is selected.");
             handType.GetMethod("Redraw")?.Invoke(hand, null);
             yield return null;
-            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1),
+            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(2),
                 "Redraw without a selection consumed its turn resource.");
             ToggleCard(handType, hand, 1);
             ToggleCard(handType, hand, 3);
@@ -92,7 +92,7 @@ namespace FFSS.Framework.Tests
             redraw.onClick.Invoke();
             yield return new WaitForSeconds(2f);
             Assert.That((bool)ready.GetValue(hand), Is.True, "The redraw did not complete.");
-            Assert.That((int)redrawsRemaining.GetValue(hand), Is.Zero,
+            Assert.That((int)redrawsRemaining.GetValue(hand), Is.EqualTo(1),
                 "The redraw did not consume its turn resource.");
 
             List<string> redrawn = CardNames(sprites, hand);
@@ -197,7 +197,7 @@ namespace FFSS.Framework.Tests
             yield return Capture("combat_turn_poker_draw_mid", 1280, 720);
             yield return WaitUntilSeconds(
                 () => (bool)ready.GetValue(hand) &&
-                      (int)redrawsRemaining.GetValue(hand) == 1,
+                      (int)redrawsRemaining.GetValue(hand) == 2,
                 15f,
                 "Combat did not return to a fresh player turn.");
             Assert.That(redraw.interactable, Is.False,
@@ -215,7 +215,7 @@ namespace FFSS.Framework.Tests
             Text redrawCounter = redraw.GetComponentsInChildren<Text>(true)
                 .FirstOrDefault(text => text.name == "Redraw Counter");
             Assert.That(redrawCounter, Is.Not.Null, "The image redraw label has no resource counter.");
-            Assert.That(redrawCounter.text, Does.Contain("1/1"));
+            Assert.That(redrawCounter.text, Does.Contain("2/2"));
             yield return Capture("combat_turn_next_player", 1280, 720);
             AssertPokerCardsDoNotOverlapDeck(handType, hand);
         }

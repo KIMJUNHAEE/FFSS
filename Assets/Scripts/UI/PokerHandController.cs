@@ -65,8 +65,9 @@ namespace CardBattle
         public IReadOnlyList<PokerCardView> Cards => spawnedCards;
         public IReadOnlyList<Sprite> CurrentCardSprites => spawnedCards.Select(card => card.CardSprite).ToList();
         public IReadOnlyList<string> CurrentCardInstanceIds => spawnedCardInstanceIds;
-        public int RedrawLimit => CurrentRunDeck()?.RedrawLimit ?? 1;
-        public int RedrawsRemaining => CurrentRunDeck()?.RedrawsRemaining ?? Mathf.Max(0, 1 - fallbackRedrawsUsed);
+        public int RedrawLimit => CurrentRunDeck()?.RedrawLimit ?? RunPokerDeckState.BaseRedrawsPerTurn;
+        public int RedrawsRemaining => CurrentRunDeck()?.RedrawsRemaining ??
+                                       Mathf.Max(0, RunPokerDeckState.BaseRedrawsPerTurn - fallbackRedrawsUsed);
         public bool CanRedraw => dealRoutine == null && HasResolvedHand &&
                                  spawnedCards.Any(card => card.IsSelected) && RedrawsRemaining > 0;
 
@@ -445,7 +446,7 @@ namespace CardBattle
                 return deck.TryUseRedraw();
             }
 
-            if (fallbackRedrawsUsed >= 1)
+            if (fallbackRedrawsUsed >= RunPokerDeckState.BaseRedrawsPerTurn)
             {
                 return false;
             }
