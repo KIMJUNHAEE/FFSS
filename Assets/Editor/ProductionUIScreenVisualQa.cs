@@ -161,11 +161,7 @@ namespace FFSS.Editor
             }
             for (int i = 0; i < ownedIds.Length; i++)
             {
-                var card = new RunCardState($"preview.owned.{i}", ownedIds[i])
-                {
-                    enhancementLevel = i % 3 + 1,
-                    growthPath = i >= 4 ? CardGrowthPath.TimeAwakened : CardGrowthPath.None
-                };
+                var card = new RunCardState($"preview.owned.{i}", ownedIds[i]);
                 owned.Add(card);
                 DeckExchangeCardSlot slot = Object.Instantiate(slotPrefab, ownedContent);
                 slot.Bind(card, i == 0, null);

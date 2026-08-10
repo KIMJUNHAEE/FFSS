@@ -286,10 +286,23 @@ namespace FFSS.Framework.Tests
         public void RuntimeJokersUseTheClassicBaseDeckArtwork(string fileName)
         {
             byte[] classic = System.IO.File.ReadAllBytes($"Assets/BasicCard/{fileName}");
-            byte[] runtime = System.IO.File.ReadAllBytes($"Assets/Resources/Cards/AscendantPoker/{fileName}");
+            byte[] runtime = System.IO.File.ReadAllBytes($"Assets/Resources/Cards/BasePoker/{fileName}");
 
             CollectionAssert.AreEqual(classic, runtime,
                 $"Runtime joker {fileName} must stay on the classic base-deck artwork.");
+        }
+
+        [TestCase("C-1.png")]
+        [TestCase("D-13.png")]
+        [TestCase("H-11.png")]
+        [TestCase("S-7.png")]
+        public void RuntimeBaseCardsUseTheClassicDeckArtwork(string fileName)
+        {
+            byte[] classic = System.IO.File.ReadAllBytes($"Assets/BasicCard/{fileName}");
+            byte[] runtime = System.IO.File.ReadAllBytes($"Assets/Resources/Cards/BasePoker/{fileName}");
+
+            CollectionAssert.AreEqual(classic, runtime,
+                $"A new run must display classic artwork for {fileName}.");
         }
 
         [Test]

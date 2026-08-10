@@ -8,6 +8,7 @@ namespace FFSS.Editor
     {
         private static readonly string[] ArtworkFolders =
         {
+            "Assets/Resources/Cards/BasePoker",
             "Assets/Resources/Cards/AscendantPoker",
             "Assets/Resources/Cards/TimeAwakenedPoker",
             "Assets/Resources/Cards/ReversePoker",

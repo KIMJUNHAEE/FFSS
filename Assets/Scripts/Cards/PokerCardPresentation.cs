@@ -78,7 +78,7 @@ namespace CardBattle
         {
             if (!PokerRunDeckRules.TryGetSpriteToken(cardId, out string token))
                 return null;
-            return Resources.Load<Sprite>($"Cards/AscendantPoker/{token}");
+            return LoadSprite($"Cards/BasePoker/{token}");
         }
 
         public static Sprite LoadArtwork(RunCardState card)
@@ -90,12 +90,14 @@ namespace CardBattle
             {
                 int level = Mathf.Clamp(card.enhancementLevel, 1, 3);
                 string path = card.growthPath == CardGrowthPath.TimeAwakened ? "time" : "reverse";
-                Sprite jokerArtwork = Resources.Load<Sprite>($"Cards/JokerGrowth/{path}_{level}");
+                Sprite jokerArtwork = LoadSprite($"Cards/JokerGrowth/{path}_{level}");
                 if (jokerArtwork != null)
                     return jokerArtwork;
             }
 
-            string folder = "AscendantPoker";
+            string folder = card.enhancementLevel > 0
+                ? "AscendantPoker"
+                : "BasePoker";
             string artworkToken = token;
             if (card.growthPath == CardGrowthPath.TimeAwakened)
             {
@@ -118,8 +120,18 @@ namespace CardBattle
                 };
             }
 
-            Sprite artwork = Resources.Load<Sprite>($"Cards/{folder}/{artworkToken}");
+            Sprite artwork = LoadSprite($"Cards/{folder}/{artworkToken}");
             return artwork != null ? artwork : LoadArtwork(card.cardId);
+        }
+
+        private static Sprite LoadSprite(string resourcePath)
+        {
+            Sprite sprite = Resources.Load<Sprite>(resourcePath);
+            if (sprite != null)
+                return sprite;
+
+            Sprite[] sprites = Resources.LoadAll<Sprite>(resourcePath);
+            return sprites.Length > 0 ? sprites[0] : null;
         }
 
         private static bool IsJoker(string cardId)
