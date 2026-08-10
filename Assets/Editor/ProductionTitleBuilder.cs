@@ -21,6 +21,7 @@ namespace FFSS.Editor
     {
         private const string ScreenPrefabRoot = "Assets/Prefabs/UI/Screens";
         private const string TitlePrefabPath = ScreenPrefabRoot + "/TitleScreen.prefab";
+        private const string TitleLogoPath = "Assets/Art/Production/Project/title-logo-pokerpoker-seotdaseotda-v2.png";
         private const string FrontendSceneRoot = "Assets/Scenes/Production/Frontend";
         private const string FieldSceneRoot = "Assets/Scenes/Production/Field";
         private const string TitleScenePath = FrontendSceneRoot + "/Production_Title.unity";
@@ -47,6 +48,56 @@ namespace FFSS.Editor
             Debug.Log("FFSS production title assets are ready. Existing title assets were left unchanged.");
         }
 
+        [MenuItem("FFSS/Production/Apply Generated Title Logo")]
+        public static void ApplyGeneratedTitleLogo()
+        {
+            ConfigureTitleLogoImporter();
+
+            Sprite logoSprite = LoadSprite(TitleLogoPath);
+            GameObject root = PrefabUtility.LoadPrefabContents(TitlePrefabPath);
+            try
+            {
+                Transform titleBlock = root.transform.Find("Title");
+                if (titleBlock == null)
+                {
+                    throw new InvalidOperationException("TitleScreen prefab is missing its Title block.");
+                }
+
+                Transform textTitle = titleBlock.Find("Game Title");
+                if (textTitle != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(textTitle.gameObject);
+                }
+
+                Transform existingLogo = titleBlock.Find("Game Title Logo");
+                Image logo = existingLogo != null
+                    ? existingLogo.GetComponent<Image>()
+                    : CreateImage("Game Title Logo", titleBlock, logoSprite);
+                if (logo == null)
+                {
+                    logo = existingLogo.gameObject.AddComponent<Image>();
+                }
+
+                logo.sprite = logoSprite;
+                logo.preserveAspect = true;
+                logo.raycastTarget = false;
+                Stretch(logo.rectTransform);
+
+                RectTransform blockRect = (RectTransform)titleBlock;
+                blockRect.anchoredPosition = new Vector2(80f, -50f);
+                blockRect.sizeDelta = new Vector2(660f, 306f);
+
+                PrefabUtility.SaveAsPrefabAsset(root, TitlePrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("Applied the generated 포커포커 섯다섯다 title logo to the inspectable title prefab.");
+        }
+
         private static GameObject CreateTitlePrefab()
         {
             GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(TitlePrefabPath);
@@ -57,6 +108,8 @@ namespace FFSS.Editor
 
             Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             Sprite backgroundSprite = LoadSprite("Assets/Art/Production/Project/title-pokerpoker-seotdaseotda.png");
+            ConfigureTitleLogoImporter();
+            Sprite titleLogoSprite = LoadSprite(TitleLogoPath);
 
             var root = new GameObject("Title Screen", typeof(RectTransform), typeof(CanvasGroup), typeof(UIScreen), typeof(TitleScreenController), typeof(TitleAmbientView));
             RectTransform rootRect = root.GetComponent<RectTransform>();
@@ -79,13 +132,11 @@ namespace FFSS.Editor
             fitter.aspectRatio = 16f / 9f;
 
             RectTransform titleBlock = CreateRect("Title", root.transform);
-            SetRect(titleBlock, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(126f, -104f), new Vector2(700f, 250f));
-            Text title = CreateText("Game Title", titleBlock, font, "포커포커\n섯다섯다", 76, new Color(0.96f, 0.91f, 0.76f), TextAnchor.UpperLeft);
-            Stretch(title.rectTransform);
-            title.lineSpacing = 0.78f;
-            Outline titleOutline = title.gameObject.AddComponent<Outline>();
-            titleOutline.effectColor = new Color(0.02f, 0.06f, 0.09f, 0.95f);
-            titleOutline.effectDistance = new Vector2(3f, -3f);
+            SetRect(titleBlock, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(80f, -50f), new Vector2(660f, 306f));
+            Image titleLogo = CreateImage("Game Title Logo", titleBlock, titleLogoSprite);
+            Stretch(titleLogo.rectTransform);
+            titleLogo.preserveAspect = true;
+            titleLogo.raycastTarget = false;
 
             RectTransform menu = CreateRect("Main Menu", root.transform);
             SetRect(menu, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(138f, -96f), new Vector2(438f, 330f));
@@ -265,6 +316,30 @@ namespace FFSS.Editor
             }
 
             return sprite;
+        }
+
+        private static void ConfigureTitleLogoImporter()
+        {
+            AssetDatabase.ImportAsset(TitleLogoPath, ImportAssetOptions.ForceUpdate);
+            if (AssetImporter.GetAtPath(TitleLogoPath) is not TextureImporter importer)
+            {
+                throw new InvalidOperationException($"Title logo is not a texture asset: {TitleLogoPath}");
+            }
+
+            bool changed = importer.textureType != TextureImporterType.Sprite ||
+                           importer.spriteImportMode != SpriteImportMode.Single ||
+                           !importer.alphaIsTransparency ||
+                           importer.mipmapEnabled;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.maxTextureSize = 2048;
+            if (changed)
+            {
+                importer.SaveAndReimport();
+            }
         }
 
         private static Image CreateImage(string name, Transform parent, Sprite sprite)

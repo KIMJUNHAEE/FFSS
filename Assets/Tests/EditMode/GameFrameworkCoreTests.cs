@@ -1474,8 +1474,26 @@ namespace FFSS.Framework.Tests
             Assert.That(screen.Id, Is.EqualTo(UIScreenId.Title));
             Assert.That(catalog.Get(UIScreenId.Title).prefab, Is.SameAs(screen));
             Assert.That(prefab.transform.Find("Background"), Is.Not.Null);
+            Transform titleLogo = prefab.transform.Find("Title/Game Title Logo");
+            Assert.That(titleLogo, Is.Not.Null, "The generated title logo is not inspectable in the prefab.");
+            var titleLogoImage = titleLogo.GetComponent<UnityEngine.UI.Image>();
+            Assert.That(titleLogoImage, Is.Not.Null);
+            Assert.That(titleLogoImage.sprite, Is.Not.Null);
+            Assert.That(
+                AssetDatabase.GetAssetPath(titleLogoImage.sprite),
+                Is.EqualTo("Assets/Art/Production/Project/title-logo-pokerpoker-seotdaseotda-v2.png"));
+            Assert.That(titleLogoImage.preserveAspect, Is.True);
+            Assert.That(prefab.transform.Find("Title/Game Title"), Is.Null,
+                "The old text title must not overlap the generated logo.");
             Assert.That(prefab.transform.Find("Main Menu/New Run"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Options Modal/Options Frame/Master Volume"), Is.Not.Null);
+            GameObject optionsPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/OptionsScreen.prefab");
+            Assert.That(optionsPrefab, Is.Not.Null);
+            Assert.That(
+                optionsPrefab.GetComponentsInChildren<Transform>(true)
+                    .Any(child => child.name == "전체 음량 Option"),
+                Is.True,
+                "The title Options button must open the inspectable tabbed options screen.");
             Assert.That(prefab.transform.Find("Main Menu/Load"), Is.Not.Null);
             Component controller = prefab.GetComponent("TitleScreenController");
             Assert.That(controller, Is.Not.Null);
