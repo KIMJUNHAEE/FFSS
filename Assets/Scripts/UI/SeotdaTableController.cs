@@ -795,9 +795,10 @@ namespace CardBattle
                 .Distinct()
                 .ToList();
 
-            bool includeSignature = signatureSprite != null &&
-                                    ruleState.Seotda.signatureUseCount < SignatureUseCap() &&
-                                    RollChance($"signature-shoe-{salt}", SignatureAppearanceChance());
+            if (signatureSprite != null && ruleState.Seotda.signatureUseCount < SignatureUseCap())
+            {
+                ids.Add(signatureSprite.name);
+            }
 
             int encounterSeed = ruleState.encounterSeed != 0
                 ? ruleState.encounterSeed
@@ -812,13 +813,7 @@ namespace CardBattle
                 }
 
                 int shoeSize = 6 + ((encounterSeed & 0x7fffffff) % 3);
-                int baseCardCount = includeSignature ? Mathf.Max(1, shoeSize - 1) : shoeSize;
-                ids = ids.Take(baseCardCount).ToList();
-            }
-
-            if (includeSignature)
-            {
-                ids.Add(signatureSprite.name);
+                ids = ids.Take(shoeSize).ToList();
             }
 
             var random = new System.Random(encounterSeed ^ salt * 397);
