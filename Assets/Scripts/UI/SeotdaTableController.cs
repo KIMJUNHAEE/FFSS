@@ -486,22 +486,15 @@ namespace CardBattle
         private void SelectPreparedHand()
         {
             ruleState.Seotda.signatureClock++;
-            bool useSignature = ShouldUseSignature();
-            if (useSignature)
-            {
-                preparedFaceSprite = signatureSprite;
-                preparedHiddenSprite = ShouldPairSignature()
-                    ? ResolveSignaturePartner() ?? DrawBaseCard(signatureSprite)
-                    : DrawNonTriggeringSignaturePartner() ?? DrawBaseCard(signatureSprite);
-                ruleState.Seotda.TryUseSignature(SignatureUseCap(), BattleTurnNumber());
-            }
-            else
-            {
-                preparedFaceSprite = DrawBaseCard(null);
-                preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
-            }
+            preparedFaceSprite = DrawBaseCard(null);
+            preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
 
             AvoidRecentHandRepeat();
+
+            if (preparedFaceSprite == signatureSprite || preparedHiddenSprite == signatureSprite)
+            {
+                ruleState.Seotda.TryUseSignature(SignatureUseCap(), BattleTurnNumber());
+            }
 
             ruleState.Seotda.faceCard = CreateCardState(preparedFaceSprite);
             ruleState.Seotda.hiddenCard = CreateCardState(preparedHiddenSprite);
@@ -772,7 +765,7 @@ namespace CardBattle
             {
                 string cardId = ruleState.Seotda.shoeOrder[i];
                 Sprite sprite = ResolveSprite(cardId);
-                if (sprite == null || sprite == signatureSprite || sprite == exclude)
+                if (sprite == null || sprite == exclude)
                 {
                     continue;
                 }
@@ -802,6 +795,10 @@ namespace CardBattle
                 .Distinct()
                 .ToList();
 
+            bool includeSignature = signatureSprite != null &&
+                                    ruleState.Seotda.signatureUseCount < SignatureUseCap() &&
+                                    RollChance($"signature-shoe-{salt}", SignatureAppearanceChance());
+
             int encounterSeed = ruleState.encounterSeed != 0
                 ? ruleState.encounterSeed
                 : StableHash(ruleState.enemyId);
@@ -815,7 +812,13 @@ namespace CardBattle
                 }
 
                 int shoeSize = 6 + ((encounterSeed & 0x7fffffff) % 3);
-                ids = ids.Take(shoeSize).ToList();
+                int baseCardCount = includeSignature ? Mathf.Max(1, shoeSize - 1) : shoeSize;
+                ids = ids.Take(baseCardCount).ToList();
+            }
+
+            if (includeSignature)
+            {
+                ids.Add(signatureSprite.name);
             }
 
             var random = new System.Random(encounterSeed ^ salt * 397);
@@ -958,11 +961,11 @@ namespace CardBattle
             }
 
             ruleState.Seotda.RecordHand(HandId(preparedFaceSprite, preparedHiddenSprite));
-            if (preparedFaceSprite != signatureSprite)
+            if (preparedFaceSprite != null)
             {
                 ruleState.Seotda.discardOrder.Add(preparedFaceSprite.name);
             }
-            if (preparedHiddenSprite != signatureSprite)
+            if (preparedHiddenSprite != null)
             {
                 ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
             }
