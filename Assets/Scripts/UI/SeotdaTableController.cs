@@ -486,14 +486,27 @@ namespace CardBattle
         private void SelectPreparedHand()
         {
             ruleState.Seotda.signatureClock++;
-            preparedFaceSprite = DrawBaseCard(null);
-            preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
+            RebuildShoe(ruleState.turnNumber + ruleState.Seotda.signatureClock * 397);
+            bool drawSignature = ShouldUseSignature();
+            if (drawSignature)
+            {
+                RemoveFromShoe(signatureSprite.name);
+                Sprite partner = DrawBaseCard(signatureSprite, false);
+                bool signatureFirst = RollChance("signature-slot", 0.5f);
+                preparedFaceSprite = signatureFirst ? signatureSprite : partner;
+                preparedHiddenSprite = signatureFirst ? partner : signatureSprite;
+            }
+            else
+            {
+                preparedFaceSprite = DrawBaseCard(null, false);
+                preparedHiddenSprite = DrawBaseCard(preparedFaceSprite, false);
+            }
 
             AvoidRecentHandRepeat();
 
             if (preparedFaceSprite == signatureSprite || preparedHiddenSprite == signatureSprite)
             {
-                ruleState.Seotda.TryUseSignature(SignatureUseCap(), BattleTurnNumber());
+                ruleState.Seotda.TryUseSignature(int.MaxValue, BattleTurnNumber());
             }
 
             ruleState.Seotda.faceCard = CreateCardState(preparedFaceSprite);
@@ -504,63 +517,13 @@ namespace CardBattle
 
         private bool ShouldUseSignature()
         {
-            if (signatureDefinition == null || signatureSprite == null || profile == null ||
-                ruleState.Seotda.signatureUseCount >= SignatureUseCap())
+            if (signatureDefinition == null || signatureSprite == null || profile == null)
             {
                 return false;
             }
 
             int battleTurn = BattleTurnNumber();
-            if (profile.encounterRank == EnemyEncounterRank.Normal)
-            {
-                if (ruleState.Seotda.signatureCheckUsed || battleTurn < 4)
-                    return false;
-
-                ruleState.Seotda.signatureCheckUsed = true;
-                return RollChance($"signature-normal-{battleTurn}", SignatureAppearanceChance());
-            }
-
-            if (profile.encounterRank == EnemyEncounterRank.MidBoss)
-            {
-                if (ruleState.Seotda.signatureUseCount == 0)
-                {
-                    if (ruleState.Seotda.signatureCheckUsed || battleTurn < 4)
-                        return false;
-
-                    ruleState.Seotda.signatureCheckUsed = true;
-                    return RollChance($"signature-midboss-{battleTurn}", SignatureAppearanceChance());
-                }
-
-                if (ruleState.Seotda.signatureSecondCheckUsed || battleTurn < 8)
-                    return false;
-
-                ruleState.Seotda.signatureSecondCheckUsed = true;
-                return HasRepeatedMistakes() &&
-                       HasSignatureInterval(battleTurn) &&
-                       RollChance($"signature-midboss-second-{battleTurn}", SignatureAppearanceChance() * 0.5f);
-            }
-
-            if (IsGwang38())
-            {
-                return ruleState.phase > 1 &&
-                       ruleState.Seotda.signatureClock >= 2 &&
-                       HasSignatureInterval(battleTurn) &&
-                       RollChance($"signature-gwang38-{battleTurn}", SignatureAppearanceChance());
-            }
-
-            if (ruleState.Seotda.signatureUseCount == 0)
-            {
-                if (ruleState.Seotda.signatureCheckUsed || battleTurn < 4)
-                    return false;
-
-                ruleState.Seotda.signatureCheckUsed = true;
-                return RollChance($"signature-boss-{battleTurn}", SignatureAppearanceChance());
-            }
-
-            return ruleState.phase > 1 &&
-                   ruleState.Seotda.signatureClock >= 1 &&
-                   HasSignatureInterval(battleTurn) &&
-                   RollChance($"signature-boss-repeat-{battleTurn}", SignatureAppearanceChance());
+            return RollChance($"signature-draw-{battleTurn}", SignatureAppearanceChance());
         }
 
         private int BattleTurnNumber()
@@ -753,19 +716,27 @@ namespace CardBattle
                     return;
                 }
 
-                ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
-                preparedHiddenSprite = DrawBaseCard(preparedFaceSprite);
+                if (preparedHiddenSprite == signatureSprite)
+                {
+                    ruleState.Seotda.discardOrder.Add(preparedFaceSprite.name);
+                    preparedFaceSprite = DrawBaseCard(preparedHiddenSprite, false);
+                }
+                else
+                {
+                    ruleState.Seotda.discardOrder.Add(preparedHiddenSprite.name);
+                    preparedHiddenSprite = DrawBaseCard(preparedFaceSprite, false);
+                }
             }
         }
 
-        private Sprite DrawBaseCard(Sprite exclude)
+        private Sprite DrawBaseCard(Sprite exclude, bool allowSignature = false)
         {
             EnsureShoe();
             for (int i = 0; i < ruleState.Seotda.shoeOrder.Count; i++)
             {
                 string cardId = ruleState.Seotda.shoeOrder[i];
                 Sprite sprite = ResolveSprite(cardId);
-                if (sprite == null || sprite == exclude)
+                if (sprite == null || sprite == exclude || (!allowSignature && sprite == signatureSprite))
                 {
                     continue;
                 }
@@ -775,7 +746,7 @@ namespace CardBattle
             }
 
             RebuildShoe(ruleState.turnNumber + ruleState.Seotda.discardOrder.Count + 1);
-            return ruleState.Seotda.shoeOrder.Count > 0 ? DrawBaseCard(exclude) : null;
+            return ruleState.Seotda.shoeOrder.Count > 0 ? DrawBaseCard(exclude, allowSignature) : null;
         }
 
         private void EnsureShoe()
@@ -795,7 +766,7 @@ namespace CardBattle
                 .Distinct()
                 .ToList();
 
-            if (signatureSprite != null && ruleState.Seotda.signatureUseCount < SignatureUseCap())
+            if (signatureSprite != null)
             {
                 var replacement = exclusiveDeckAsset?.cards
                     .FirstOrDefault(card =>
@@ -825,19 +796,6 @@ namespace CardBattle
             int encounterSeed = ruleState.encounterSeed != 0
                 ? ruleState.encounterSeed
                 : StableHash(ruleState.enemyId);
-            if (profile != null && profile.encounterRank == EnemyEncounterRank.Normal && ids.Count > 8)
-            {
-                var selectionRandom = new System.Random(encounterSeed ^ StableHash("normal-shoe"));
-                for (int i = ids.Count - 1; i > 0; i--)
-                {
-                    int j = selectionRandom.Next(i + 1);
-                    (ids[i], ids[j]) = (ids[j], ids[i]);
-                }
-
-                int shoeSize = 6 + ((encounterSeed & 0x7fffffff) % 3);
-                ids = ids.Take(shoeSize).ToList();
-            }
-
             var random = new System.Random(encounterSeed ^ salt * 397);
             for (int i = ids.Count - 1; i > 0; i--)
             {

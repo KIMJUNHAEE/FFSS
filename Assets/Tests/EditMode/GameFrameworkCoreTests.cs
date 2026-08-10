@@ -3052,7 +3052,7 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void NormalEnemyRuntimeShoeUsesSixToEightCardsAndExcludesSignature()
+        public void NormalEnemyRuntimeShoeUsesTwentyCardsAndIncludesSignatureOnce()
         {
             UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
                 "Assets/Data/BossProfiles/1땡.asset");
@@ -3077,10 +3077,10 @@ namespace FFSS.Framework.Tests
                     ?.Invoke(controller, new object[] { 0 });
 
                 Sprite signature = controllerType.GetProperty("ExclusiveCardSprite")?.GetValue(controller) as Sprite;
-                Assert.That(state.Seotda.shoeOrder.Count, Is.InRange(6, 8));
+                Assert.That(state.Seotda.shoeOrder, Has.Count.EqualTo(20));
                 Assert.That(state.Seotda.shoeOrder, Is.Unique);
                 if (signature != null)
-                    Assert.That(state.Seotda.shoeOrder, Does.Not.Contain(signature.name));
+                    Assert.That(state.Seotda.shoeOrder.Count(cardId => cardId == signature.name), Is.EqualTo(1));
             }
             finally
             {
@@ -3089,7 +3089,7 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void NormalEnemySignatureCheckIsConsumedOnceAtTurnFour()
+        public void EnemySignatureChanceDoesNotUseAOneShotTurnGate()
         {
             UnityEngine.Object profile = AssetDatabase.LoadMainAssetAtPath(
                 "Assets/Data/BossProfiles/1땡.asset");
@@ -3109,7 +3109,7 @@ namespace FFSS.Framework.Tests
                 {
                     enemyId = "1땡",
                     encounterSeed = 73108,
-                    turnNumber = 3
+                    turnNumber = 1
                 };
                 controllerType.GetMethod("BindRuleState", BindingFlags.Public | BindingFlags.Instance)
                     ?.Invoke(controller, new object[] { state });
@@ -3118,9 +3118,10 @@ namespace FFSS.Framework.Tests
                     "ShouldUseSignature",
                     BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.That(shouldUse, Is.Not.Null);
-                shouldUse.Invoke(controller, null);
-                Assert.That(state.Seotda.signatureCheckUsed, Is.True);
-                Assert.That((bool)shouldUse.Invoke(controller, null), Is.False);
+                Assert.That(shouldUse.Invoke(controller, null), Is.TypeOf<bool>());
+                Assert.That(state.Seotda.signatureCheckUsed, Is.False);
+                Assert.That(shouldUse.Invoke(controller, null), Is.TypeOf<bool>());
+                Assert.That(state.Seotda.signatureCheckUsed, Is.False);
             }
             finally
             {
