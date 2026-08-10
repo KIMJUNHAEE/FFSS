@@ -622,7 +622,9 @@ namespace CardBattle
 
         private float SignatureAppearanceChance()
         {
-            float configured = Mathf.Clamp01(signatureCardChance);
+            float configured = signatureCardAsset != null
+                ? Mathf.Clamp01(signatureCardAsset.drawChance)
+                : Mathf.Clamp01(signatureCardChance);
             return profile.encounterRank switch
             {
                 EnemyEncounterRank.Normal => Mathf.Min(configured, NormalSignatureAppearanceChance(), 0.35f),
@@ -667,14 +669,7 @@ namespace CardBattle
             if (chance >= 1f)
                 return true;
 
-            int phase = Mathf.Max(1, ruleState?.phase ?? 1);
-            int attempt = (ruleState?.Seotda.signatureUseCount ?? 0) + 1;
-            int seed = ruleState != null && ruleState.encounterSeed != 0
-                ? ruleState.encounterSeed
-                : StableHash(ruleState?.enemyId ?? profile?.bossId ?? name);
-            int hash = StableHash($"{seed}:{phase}:{attempt}:{channel}");
-            float normalized = (hash & 0x7fffffff) / (float)int.MaxValue;
-            return normalized < chance;
+            return UnityEngine.Random.value < chance;
         }
 
         private Sprite DrawNonTriggeringSignaturePartner()
