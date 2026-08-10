@@ -1009,16 +1009,6 @@ namespace FFSS.Editor
         // 그대로 불러다 쓴다(생성은 여기서 하지 않음). Resources 밑에 있어야 InventoryModel이
         // 빌드된 플레이어에서도 ItemCatalog.Get()으로 런타임에 찾을 수 있음(AssetDatabase는 에디터
         // 전용이라 여기 에디터 스크립트에서만 통함).
-        private static readonly (string id, int startCount)[] InventoryDummyStacks =
-        {
-            ("gear", 5),
-            ("spring", 3),
-            ("gem", 1),
-            ("potion", 2),
-            ("map", 1),
-            (HealPotionId, 2),
-        };
-
         // 기획 문서(포커포커섯다섯다 게임 성경)의 "회복 소모품" - HP 12~18 회복이라고만 적혀있어서
         // 중간값 15로 잡음. 실제 아트가 없어서 기존 Equipment 아이콘(청화 묵병, 물약병 모양)을
         // 임시로 재사용 - gear/spring/gem/potion/map(더미 placeholder)과 달리 이건 진짜 효과가
@@ -1051,7 +1041,7 @@ namespace FFSS.Editor
         {
             ScreenBuild build = CreateRoot(spec);
 
-            Image dim = CreateImage("Dim", build.Root.transform, null, new Color(0.015f, 0.02f, 0.035f, 0.82f));
+            Image dim = CreateImage("Dim", build.Root.transform, null, Color.clear);
             Stretch(dim.rectTransform);
 
             // 아트 원본 비율(1536:1024)을 유지한 채 최대 크기로 맞춘다 - 창 비율이 16:9가 아니어도
@@ -1262,31 +1252,14 @@ namespace FFSS.Editor
 
         // 그리드 드래그 장착 테스트용 여분 장비 - 기본 장착품(무기: weapon_red_moon_hwando, 의복:
         // garment_tiger_durumagi)과 다른 부위별 대체품을 하나씩 넣어서 드래그로 바꿔볼 게 있게 함.
-        private static readonly string[] InventoryDummyEquipmentIds =
-        {
-            "weapon_plum_spear",
-            "garment_plum_silk_armor",
-        };
-
         private static void SetInventoryStartingStacks(InventoryModel model)
         {
-            EnsureHealPotionAsset();
-
             var serializedObject = new SerializedObject(model);
             SerializedProperty stacks = serializedObject.FindProperty("startingStacks");
-            stacks.arraySize = InventoryDummyStacks.Length;
-            for (int i = 0; i < InventoryDummyStacks.Length; i++)
-            {
-                ItemData item = AssetDatabase.LoadAssetAtPath<ItemData>($"Assets/Resources/Items/{InventoryDummyStacks[i].id}.asset");
-                SerializedProperty element = stacks.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("item").objectReferenceValue = item;
-                element.FindPropertyRelative("count").intValue = InventoryDummyStacks[i].startCount;
-            }
+            stacks.arraySize = 0;
 
             SerializedProperty equipmentIds = serializedObject.FindProperty("startingEquipmentIds");
-            equipmentIds.arraySize = InventoryDummyEquipmentIds.Length;
-            for (int i = 0; i < InventoryDummyEquipmentIds.Length; i++)
-                equipmentIds.GetArrayElementAtIndex(i).stringValue = InventoryDummyEquipmentIds[i];
+            equipmentIds.arraySize = 0;
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(model);

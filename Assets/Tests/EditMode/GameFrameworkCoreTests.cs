@@ -1664,6 +1664,35 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void ProductionInventoryStartsEmptyAndKeepsTheFieldVisible()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Screens/InventoryScreen.prefab");
+            Assert.That(prefab, Is.Not.Null);
+
+            Type inventoryModelType = Type.GetType(
+                "CardBattle.Inventory.InventoryModel, Assembly-CSharp");
+            Assert.That(inventoryModelType, Is.Not.Null);
+            Component model = prefab.GetComponentInChildren(inventoryModelType, true);
+            Assert.That(model, Is.Not.Null);
+            var serializedModel = new SerializedObject(model);
+            Assert.That(serializedModel.FindProperty("startingStacks").arraySize, Is.Zero);
+            Assert.That(serializedModel.FindProperty("startingEquipmentIds").arraySize, Is.Zero);
+
+            Transform dim = prefab.GetComponentsInChildren<Transform>(true)
+                .Single(value => value.name == "Dim");
+            Assert.That(dim.GetComponent<Image>().color.a, Is.Zero);
+
+            foreach (string placeholder in new[] { "gear", "spring", "gem", "potion", "map" })
+            {
+                Assert.That(
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>($"Assets/Resources/Items/{placeholder}.asset"),
+                    Is.Null,
+                    $"Demo inventory item '{placeholder}' must not ship in the production catalog.");
+            }
+        }
+
+        [Test]
         public void RunStatusPrefabProvidesAnInspectableOptionsPath()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

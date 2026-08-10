@@ -54,7 +54,7 @@ namespace CardBattle.Inventory
             for (int i = 0; i < slots.Length; i++)
                 slots[i] = default;
 
-            if (run != null && (run.itemStacks.Count > 0 || run.inventoryItemIds.Count > 0))
+            if (run != null)
             {
                 LoadFromRun();
                 Changed?.Invoke();
