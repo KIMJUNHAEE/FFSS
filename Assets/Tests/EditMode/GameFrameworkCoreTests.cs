@@ -133,16 +133,19 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void PokerDeckAllowsOneRedrawPerTurn()
+        public void PokerDeckAllowsTwoRedrawsPerTurn()
         {
             var deck = new RunPokerDeckState();
 
+            Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.False);
 
             deck.BeginTurn();
 
             Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.True);
+            Assert.That(deck.TryUseRedraw(), Is.False);
         }
 
         [Test]
@@ -150,8 +153,9 @@ namespace FFSS.Framework.Tests
         {
             var deck = new RunPokerDeckState { bonusRedraws = 8 };
 
-            Assert.That(deck.RedrawLimit, Is.EqualTo(3));
-            Assert.That(deck.RedrawsRemaining, Is.EqualTo(3));
+            Assert.That(deck.RedrawLimit, Is.EqualTo(4));
+            Assert.That(deck.RedrawsRemaining, Is.EqualTo(4));
+            Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
             Assert.That(deck.TryUseRedraw(), Is.True);
