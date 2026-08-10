@@ -7,6 +7,16 @@ namespace FFSS.Editor
     public static class ProductionWebGLAssetOptimizer
     {
         private const string PlatformName = "WebGL";
+        private static readonly string[] HighFidelityEnemyRoots =
+        {
+            "Assets/Enemy/13/",
+            "Assets/Enemy/18/",
+            "Assets/Enemy/38/",
+            "Assets/Enemy/\uAD6C\uC0AC/",
+            "Assets/Enemy/\uB561\uC7A1\uC774/",
+            "Assets/Enemy/\uBA4D\uAD6C\uC0AC/",
+            "Assets/Enemy/\uC554\uD589\uC5B4\uC0AC/"
+        };
 
         [MenuItem("FFSS/Production/Optimize Textures For WebGL")]
         public static void ConfigureTextures()
@@ -25,7 +35,12 @@ namespace FFSS.Editor
                     TextureImporterPlatformSettings settings =
                         importer.GetPlatformTextureSettings(PlatformName);
                     int maxSize = MaxTextureSize(path);
-                    if (Matches(settings, maxSize))
+                    bool highFidelityEnemy = IsHighFidelityEnemy(path);
+                    TextureImporterCompression compression = highFidelityEnemy
+                        ? TextureImporterCompression.CompressedHQ
+                        : TextureImporterCompression.Compressed;
+                    int compressionQuality = highFidelityEnemy ? 100 : 50;
+                    if (Matches(settings, maxSize, compression, compressionQuality))
                         continue;
 
                     settings.name = PlatformName;
@@ -33,8 +48,8 @@ namespace FFSS.Editor
                     settings.maxTextureSize = maxSize;
                     settings.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
                     settings.format = TextureImporterFormat.Automatic;
-                    settings.textureCompression = TextureImporterCompression.Compressed;
-                    settings.compressionQuality = 50;
+                    settings.textureCompression = compression;
+                    settings.compressionQuality = compressionQuality;
                     settings.crunchedCompression = false;
                     settings.allowsAlphaSplitting = false;
                     importer.SetPlatformTextureSettings(settings);
@@ -69,6 +84,8 @@ namespace FFSS.Editor
 
                 if (IsFieldEnemyPortrait(path))
                     return 2048;
+                if (IsHighFidelityEnemy(path))
+                    return 1024;
                 return isSkill || slashCount <= 3 ? 1024 : 512;
             }
 
@@ -84,16 +101,32 @@ namespace FFSS.Editor
             return 1024;
         }
 
-        private static bool Matches(TextureImporterPlatformSettings settings, int maxSize)
+        private static bool Matches(
+            TextureImporterPlatformSettings settings,
+            int maxSize,
+            TextureImporterCompression compression,
+            int compressionQuality)
         {
             return settings.overridden &&
                    settings.maxTextureSize == maxSize &&
                    settings.resizeAlgorithm == TextureResizeAlgorithm.Mitchell &&
                    settings.format == TextureImporterFormat.Automatic &&
-                   settings.textureCompression == TextureImporterCompression.Compressed &&
-                   settings.compressionQuality == 50 &&
+                   settings.textureCompression == compression &&
+                   settings.compressionQuality == compressionQuality &&
                    !settings.crunchedCompression &&
                    !settings.allowsAlphaSplitting;
+        }
+
+        public static bool IsHighFidelityEnemy(string assetPath)
+        {
+            string path = assetPath.Replace('\\', '/');
+            for (int i = 0; i < HighFidelityEnemyRoots.Length; i++)
+            {
+                if (path.StartsWith(HighFidelityEnemyRoots[i], StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private static bool IsFullScreenBackground(string path)
