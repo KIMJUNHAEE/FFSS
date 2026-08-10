@@ -21,6 +21,7 @@ namespace FFSS.Editor
     {
         private const string ScreenPrefabRoot = "Assets/Prefabs/UI/Screens";
         private const string TitlePrefabPath = ScreenPrefabRoot + "/TitleScreen.prefab";
+        private const string TitleBackgroundPath = "Assets/Art/Production/Project/title-pokerpoker-seotdaseotda-upscaled-v2.png";
         private const string TitleLogoPath = "Assets/Art/Production/Project/title-logo-pokerpoker-seotdaseotda-v2.png";
         private const string FrontendSceneRoot = "Assets/Scenes/Production/Frontend";
         private const string FieldSceneRoot = "Assets/Scenes/Production/Field";
@@ -51,12 +52,24 @@ namespace FFSS.Editor
         [MenuItem("FFSS/Production/Apply Generated Title Logo")]
         public static void ApplyGeneratedTitleLogo()
         {
+            ConfigureTitleBackgroundImporter();
             ConfigureTitleLogoImporter();
 
+            Sprite backgroundSprite = LoadSprite(TitleBackgroundPath);
             Sprite logoSprite = LoadSprite(TitleLogoPath);
             GameObject root = PrefabUtility.LoadPrefabContents(TitlePrefabPath);
             try
             {
+                Image background = root.transform.Find("Background")?.GetComponent<Image>();
+                if (background == null)
+                {
+                    throw new InvalidOperationException("TitleScreen prefab is missing its Background image.");
+                }
+
+                background.sprite = backgroundSprite;
+                background.preserveAspect = false;
+                background.raycastTarget = false;
+
                 Transform titleBlock = root.transform.Find("Title");
                 if (titleBlock == null)
                 {
@@ -107,7 +120,8 @@ namespace FFSS.Editor
             }
 
             Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
-            Sprite backgroundSprite = LoadSprite("Assets/Art/Production/Project/title-pokerpoker-seotdaseotda.png");
+            ConfigureTitleBackgroundImporter();
+            Sprite backgroundSprite = LoadSprite(TitleBackgroundPath);
             ConfigureTitleLogoImporter();
             Sprite titleLogoSprite = LoadSprite(TitleLogoPath);
 
@@ -340,6 +354,26 @@ namespace FFSS.Editor
             {
                 importer.SaveAndReimport();
             }
+        }
+
+        private static void ConfigureTitleBackgroundImporter()
+        {
+            AssetDatabase.ImportAsset(TitleBackgroundPath, ImportAssetOptions.ForceUpdate);
+            if (AssetImporter.GetAtPath(TitleBackgroundPath) is not TextureImporter importer)
+            {
+                throw new InvalidOperationException($"Title background is not a texture asset: {TitleBackgroundPath}");
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = false;
+            importer.mipmapEnabled = false;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.compressionQuality = 100;
+            importer.maxTextureSize = 4096;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.SaveAndReimport();
         }
 
         private static Image CreateImage(string name, Transform parent, Sprite sprite)
