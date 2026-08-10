@@ -25,7 +25,8 @@ namespace CardBattle
         public PokerHandResult(PokerHandRank rank, string displayName, int tier, int redCount, int blackCount,
             int highRank, bool isSpecial, IReadOnlyDictionary<CardSuit, int> suitCounts, int jokerCount,
             bool hasRedJoker, bool hasBlackJoker, int aceCount, int courtCardCount, int jokersUsedForRank,
-            IReadOnlyDictionary<CardSuit, int> rankJokerSuitCounts)
+            IReadOnlyDictionary<CardSuit, int> rankJokerSuitCounts, int scoringRedCount, int scoringBlackCount,
+            bool allCardsScore, IReadOnlyList<int> scoringRanks)
         {
             Rank = rank;
             DisplayName = displayName;
@@ -42,6 +43,10 @@ namespace CardBattle
             CourtCardCount = courtCardCount;
             JokersUsedForRank = jokersUsedForRank;
             RankJokerSuitCounts = rankJokerSuitCounts;
+            ScoringRedCount = scoringRedCount;
+            ScoringBlackCount = scoringBlackCount;
+            AllCardsScore = allCardsScore;
+            ScoringRanks = scoringRanks ?? Array.Empty<int>();
         }
 
         public PokerHandRank Rank { get; }
@@ -59,6 +64,10 @@ namespace CardBattle
         public int CourtCardCount { get; }
         public int JokersUsedForRank { get; }
         public IReadOnlyDictionary<CardSuit, int> RankJokerSuitCounts { get; }
+        public int ScoringRedCount { get; }
+        public int ScoringBlackCount { get; }
+        public bool AllCardsScore { get; }
+        public IReadOnlyList<int> ScoringRanks { get; }
         public int RedJokersUsedForRank => JokersUsedForRank > 0 && HasRedJoker ? 1 : 0;
         public int BlackJokersUsedForRank => JokersUsedForRank > 0 && HasBlackJoker ? 1 : 0;
         public int EffectiveRedCount => Math.Max(0, RedCount - RedJokersUsedForRank);
@@ -83,7 +92,8 @@ namespace CardBattle
             public CandidateResult(PokerHandRank rank, string displayName, int tier, int highRank,
                 IReadOnlyDictionary<CardSuit, int> suitCounts,
                 IReadOnlyDictionary<CardSuit, int> jokerSuitCounts,
-                int[] tieBreak)
+                int[] tieBreak, int scoringRedCount, int scoringBlackCount,
+                bool allCardsScore, IReadOnlyList<int> scoringRanks)
             {
                 Rank = rank;
                 DisplayName = displayName;
@@ -92,6 +102,10 @@ namespace CardBattle
                 SuitCounts = suitCounts;
                 JokerSuitCounts = jokerSuitCounts;
                 TieBreak = tieBreak;
+                ScoringRedCount = scoringRedCount;
+                ScoringBlackCount = scoringBlackCount;
+                AllCardsScore = allCardsScore;
+                ScoringRanks = scoringRanks;
             }
 
             public PokerHandRank Rank { get; }
@@ -101,6 +115,10 @@ namespace CardBattle
             public IReadOnlyDictionary<CardSuit, int> SuitCounts { get; }
             public IReadOnlyDictionary<CardSuit, int> JokerSuitCounts { get; }
             public int[] TieBreak { get; }
+            public int ScoringRedCount { get; }
+            public int ScoringBlackCount { get; }
+            public bool AllCardsScore { get; }
+            public IReadOnlyList<int> ScoringRanks { get; }
             public bool IsValid => Rank != PokerHandRank.None;
         }
 
@@ -171,7 +189,8 @@ namespace CardBattle
                 : new Dictionary<CardSuit, int>();
             return new PokerHandResult(best.Rank, name, best.Tier, redCount, blackCount, best.HighRank,
                 best.Tier >= 1 || jokerCount > 0, best.SuitCounts, jokerCount, hasRedJoker, hasBlackJoker,
-                aceCount, courtCardCount, jokersUsedForRank, rankJokerSuitCounts);
+                aceCount, courtCardCount, jokersUsedForRank, rankJokerSuitCounts,
+                best.ScoringRedCount, best.ScoringBlackCount, best.AllCardsScore, best.ScoringRanks);
         }
 
         private static void ResolveJokers(List<(int rank, char suit)> cards, IReadOnlyList<char> jokerColors,
@@ -316,7 +335,27 @@ namespace CardBattle
             var jokerSuitCounts = resolvedJokerSuits
                 .GroupBy(ParseSuit)
                 .ToDictionary(group => group.Key, group => group.Count());
-            return new CandidateResult(handRank, name, tier, highRank, suitCounts, jokerSuitCounts, tieBreak);
+            bool allCardsScore = handRank is PokerHandRank.Straight or PokerHandRank.Flush or
+                PokerHandRank.FullHouse or PokerHandRank.StraightFlush or PokerHandRank.RoyalFlush;
+            int[] scoringRanks = handRank switch
+            {
+                PokerHandRank.OnePair or PokerHandRank.ThreeKind or PokerHandRank.FourKind =>
+                    new[] { rankGroups[0].rank },
+                PokerHandRank.TwoPair => rankGroups
+                    .Where(group => group.count == 2)
+                    .Select(group => group.rank)
+                    .ToArray(),
+                _ => Array.Empty<int>()
+            };
+            int naturalCardCount = Math.Max(0, cards.Count - resolvedJokerSuits.Count);
+            var scoringNaturalCards = cards
+                .Take(naturalCardCount)
+                .Where(card => allCardsScore || scoringRanks.Contains(card.rank))
+                .ToList();
+            int scoringRedCount = scoringNaturalCards.Count(card => IsRedSuit(card.suit));
+            int scoringBlackCount = scoringNaturalCards.Count - scoringRedCount;
+            return new CandidateResult(handRank, name, tier, highRank, suitCounts, jokerSuitCounts, tieBreak,
+                scoringRedCount, scoringBlackCount, allCardsScore, scoringRanks);
         }
 
         private static int Compare(CandidateResult left, CandidateResult right)

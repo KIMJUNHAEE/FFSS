@@ -394,8 +394,8 @@ namespace FFSS.Framework.Tests
 
                 int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, 2, 0 });
                 int hpDamage = (int)damage.Invoke(null, new object[] { 10, contestValue, 10 });
-                Assert.That(contestValue, Is.EqualTo(14));
-                Assert.That(hpDamage, Is.EqualTo(7));
+                Assert.That(contestValue, Is.EqualTo(12));
+                Assert.That(hpDamage, Is.EqualTo(6));
             }
             finally
             {
@@ -403,16 +403,54 @@ namespace FFSS.Framework.Tests
             }
         }
 
-        [TestCase("HighCard", 3, 11, 5)]
-        [TestCase("OnePair", 3, 12, 6)]
+        [Test]
+        public void HighCardHasNoScoringColorBonus()
+        {
+            List<Sprite> cards = MakeSprites("H-2", "D-4", "S-6", "C-8", "H-11");
+            try
+            {
+                object result = EvaluatePoker(cards);
+                Type resultType = result.GetType();
+
+                Assert.That(resultType.GetProperty("Rank")?.GetValue(result)?.ToString(), Is.EqualTo("HighCard"));
+                Assert.That(resultType.GetProperty("ScoringRedCount")?.GetValue(result), Is.Zero);
+                Assert.That(resultType.GetProperty("ScoringBlackCount")?.GetValue(result), Is.Zero);
+            }
+            finally
+            {
+                cards.ForEach(UnityEngine.Object.DestroyImmediate);
+            }
+        }
+
+        [Test]
+        public void OnePairScoresOnlyTheTwoPairCards()
+        {
+            List<Sprite> cards = MakeSprites("H-2", "S-2", "D-5", "C-8", "H-11");
+            try
+            {
+                object result = EvaluatePoker(cards);
+                Type resultType = result.GetType();
+
+                Assert.That(resultType.GetProperty("Rank")?.GetValue(result)?.ToString(), Is.EqualTo("OnePair"));
+                Assert.That(resultType.GetProperty("ScoringRedCount")?.GetValue(result), Is.EqualTo(1));
+                Assert.That(resultType.GetProperty("ScoringBlackCount")?.GetValue(result), Is.EqualTo(1));
+            }
+            finally
+            {
+                cards.ForEach(UnityEngine.Object.DestroyImmediate);
+            }
+        }
+
+        [TestCase("HighCard", 3, 10, 5)]
+        [TestCase("OnePair", 2, 12, 6)]
         [TestCase("TwoPair", 3, 13, 6)]
-        [TestCase("Flush", 5, 16, 8)]
-        [TestCase("FullHouse", 3, 17, 8)]
-        [TestCase("FourKind", 3, 18, 9)]
-        [TestCase("StraightFlush", 5, 21, 10)]
+        [TestCase("Flush", 5, 15, 7)]
+        [TestCase("FullHouse", 3, 13, 6)]
+        [TestCase("FourKind", 3, 13, 6)]
+        [TestCase("StraightFlush", 5, 15, 7)]
         public void StartingHandDamageMatchesTheProductionBalanceTable(
             string rankName,
-            int effectiveRedCount,
+            int scoringRedCount,
             int expectedContest,
             int expectedDamage)
         {
@@ -424,7 +462,7 @@ namespace FFSS.Framework.Tests
                 BindingFlags.Public | BindingFlags.Static);
             object rank = Enum.Parse(rankType, rankName);
 
-            int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, effectiveRedCount, 0 });
+            int contestValue = (int)contest.Invoke(null, new[] { (object)10, rank, scoringRedCount, 0 });
             int hpDamage = (int)damage.Invoke(null, new object[] { 10, contestValue, 10 });
 
             Assert.That(contestValue, Is.EqualTo(expectedContest));

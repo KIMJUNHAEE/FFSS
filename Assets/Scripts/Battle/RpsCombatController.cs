@@ -1273,8 +1273,8 @@ namespace CardBattle
             int breakPower = baseBreakPower + equipmentBreak + growth.BreakPower + Mathf.Max(0, 2 - tier) +
                              Mathf.Max(0, black - 2);
             int skill = attack + skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill;
-            string attackFormula = $"기본 {baseAttack} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 컬러 {PokerCombatBalance.ColorContestBonus(red)} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
-            string defenseFormula = $"기본 {baseDefense} + 족보 {PokerCombatBalance.HandContestBonus(result.Rank)} + 흑 {PokerCombatBalance.ColorContestBonus(black)} + 연마 {enhancementDefense} + 장비 {defenseBonus - enhancementDefense}";
+            string attackFormula = $"기본 {baseAttack} + 족보 빨강 {red} + 연마 {enhancementAttack} + 장비 {attackBonus - enhancementAttack}";
+            string defenseFormula = $"기본 {baseDefense} + 족보 검정 {black} + 연마 {enhancementDefense} + 장비 {defenseBonus - enhancementDefense}";
             string skillFormula = $"대결 {attack} + 기술 {skillBaseBonus + tier * skillTierBonus + equipmentSkill + courtSkill}";
             return new CombatNumbers(rankName, baseAttack, baseDefense, attack, defense, skill, breakPower, result.IsSpecial,
                 attackFormula, defenseFormula, skillFormula);
@@ -1287,7 +1287,7 @@ namespace CardBattle
             if (pokerHand == null || pokerHand.CurrentCardInstanceIds.Count != 5 ||
                 !GameKernel.IsReady || !GameKernel.Services.TryGet(out RunManager runs) || !runs.HasActiveRun)
             {
-                return (result.EffectiveRedCount, result.EffectiveBlackCount);
+                return (result.ScoringRedCount, result.ScoringBlackCount);
             }
 
             int red = 0;
@@ -1297,14 +1297,25 @@ namespace CardBattle
             {
                 RunCardState card = deck.FindCard(pokerHand.CurrentCardInstanceIds[i]);
                 if (card == null)
-                    return (result.EffectiveRedCount, result.EffectiveBlackCount);
+                    return (result.ScoringRedCount, result.ScoringBlackCount);
+                if (!PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token) ||
+                    token.StartsWith("X-"))
+                {
+                    continue;
+                }
+
+                string[] tokenParts = token.Split('-');
+                if (tokenParts.Length != 2 || !int.TryParse(tokenParts[1], out int rank))
+                    return (result.ScoringRedCount, result.ScoringBlackCount);
+                int normalizedRank = rank == 1 ? 14 : rank;
+                if (!result.AllCardsScore && !result.ScoringRanks.Contains(normalizedRank))
+                    continue;
+
                 if (PokerRunDeckRules.IsEffectivelyRed(card)) red++;
                 else black++;
             }
 
-            return (
-                Mathf.Max(0, red - result.RedJokersUsedForRank),
-                Mathf.Max(0, black - result.BlackJokersUsedForRank));
+            return (red, black);
         }
 
         private (int Attack, int Defense) CurrentEnhancementBonuses()
@@ -1417,7 +1428,6 @@ namespace CardBattle
         {
             if (equipmentLoadout == null) equipmentLoadout = GetComponent<EquipmentLoadout>();
             if (equipmentLoadout == null) equipmentLoadout = gameObject.AddComponent<EquipmentLoadout>();
-            equipmentLoadout.EnsureDefaults();
         }
 
         private void ApplyEquipmentBaseStats()

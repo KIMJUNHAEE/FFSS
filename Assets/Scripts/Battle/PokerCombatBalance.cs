@@ -48,29 +48,33 @@ namespace CardBattle
             };
         }
 
-        public static int ColorContestBonus(int effectiveColorCount)
+        public static int ColorContestBonus(int scoringColorCount)
         {
-            return effectiveColorCount >= 3 ? 1 : 0;
+            return Mathf.Max(0, scoringColorCount);
         }
 
         public static int CalculateAttackContest(
             int baseAttack,
             PokerHandRank rank,
-            int effectiveRedCount,
+            int scoringRedCount,
             int additionalBonus = 0)
         {
-            return Mathf.Max(0, baseAttack) + HandContestBonus(rank) +
-                   ColorContestBonus(effectiveRedCount) + additionalBonus;
+            int handColorBonus = rank is PokerHandRank.None or PokerHandRank.HighCard
+                ? 0
+                : ColorContestBonus(scoringRedCount);
+            return Mathf.Max(0, baseAttack) + handColorBonus + additionalBonus;
         }
 
         public static int CalculateDefenseContest(
             int baseDefense,
             PokerHandRank rank,
-            int effectiveBlackCount,
+            int scoringBlackCount,
             int additionalBonus = 0)
         {
-            return Mathf.Max(0, baseDefense) + HandContestBonus(rank) +
-                   ColorContestBonus(effectiveBlackCount) + additionalBonus;
+            int handColorBonus = rank is PokerHandRank.None or PokerHandRank.HighCard
+                ? 0
+                : ColorContestBonus(scoringBlackCount);
+            return Mathf.Max(0, baseDefense) + handColorBonus + additionalBonus;
         }
 
         public static int CalculateHpDamage(int baseAttack, int contestValue, int targetDefense)
