@@ -855,6 +855,7 @@ namespace CardBattle.UI
             };
             run.gold -= 15;
             card.cardId = $"poker.{nextSuit}.{rank:D2}";
+            run.pokerDeck.ReserveDraw(card.instanceId);
             GameKernel.Services.Get<RunManager>().NotifyStateChanged("deck.card.exchanged");
             Refresh();
         }

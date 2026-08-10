@@ -239,6 +239,7 @@ namespace FFSS.Framework.Run
             run.gold -= Mathf.Max(0, goldCost);
             card.enhancementLevel++;
             card.isHoned = true;
+            run.pokerDeck.ReserveDraw(card.instanceId);
             if (!run.upgradedCardInstanceIds.Contains(card.instanceId))
             {
                 run.upgradedCardInstanceIds.Add(card.instanceId);
@@ -259,6 +260,7 @@ namespace FFSS.Framework.Run
 
             run.gold -= Mathf.Max(0, goldCost);
             card.growthPath = path;
+            run.pokerDeck.ReserveDraw(card.instanceId);
             Publish("card.workshop", $"{card.instanceId}.{path}", run.gold);
             return true;
         }

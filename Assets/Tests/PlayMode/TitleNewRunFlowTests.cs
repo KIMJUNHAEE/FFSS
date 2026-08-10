@@ -576,7 +576,8 @@ namespace FFSS.Framework.Tests
                 "The card workshop could not upgrade the active run card.");
             Assert.That(economy.TryChooseGrowthPath(upgradedCard.instanceId, CardGrowthPath.Reverse, 30), Is.True,
                 "The card workshop could not assign the active run card's growth path.");
-            run.pokerDeck.ReserveDraw(upgradedCard.instanceId);
+            Assert.That(run.pokerDeck.reservedDraws, Does.Contain(upgradedCard.instanceId),
+                "A workshop card change was not queued for the next combat draw.");
 
             Type equipmentStatsType = Type.GetType(
                 "CardBattle.EquipmentStatsCalculator, Assembly-CSharp");

@@ -711,6 +711,8 @@ namespace FFSS.Framework.Tests
                 runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-a", "card-b" });
                 runs.ClaimReward(null, "card-a");
                 Assert.That(run.pokerDeck.FindCard("card-a").enhancementLevel, Is.EqualTo(3));
+                Assert.That(run.pokerDeck.reservedDraws, Does.Contain("card-a"),
+                    "The acquired reward card was not queued for the next combat hand.");
 
                 runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-b" });
                 runs.ClaimReward(null, "card-b");

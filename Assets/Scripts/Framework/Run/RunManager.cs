@@ -188,6 +188,7 @@ namespace FFSS.Framework.Run
 
                     card.enhancementLevel++;
                     card.isHoned = true;
+                    Current.pokerDeck.ReserveDraw(instanceId);
                     if (!Current.upgradedCardInstanceIds.Contains(instanceId))
                         Current.upgradedCardInstanceIds.Add(instanceId);
                 }
