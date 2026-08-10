@@ -335,7 +335,7 @@ namespace CardBattle
             var view = Instantiate(cardPrefab, handContainer);
             view.Configure(backSprite, arcAnchor);
             view.Bind(card.Sprite);
-            view.SetHoverDetail(PokerCardPresentation.DisplayName(card.Sprite), CardBody(card.InstanceId));
+            view.SetHoverDetail(CardTitle(card.InstanceId, card.Sprite), CardBody(card.InstanceId));
             view.SelectionChanged += HandleSelectionChanged;
             spawnedCards.Add(view);
             spawnedCardInstanceIds.Add(card.InstanceId);
@@ -349,6 +349,14 @@ namespace CardBattle
 
             RunCardState card = run.pokerDeck.FindCard(instanceId);
             return PokerCardPresentation.Detail(card);
+        }
+
+        private static string CardTitle(string instanceId, Sprite fallbackSprite)
+        {
+            if (!TryGetCurrentRun(out RunState run) || string.IsNullOrWhiteSpace(instanceId))
+                return PokerCardPresentation.DisplayName(fallbackSprite);
+
+            return PokerCardPresentation.DisplayName(run.pokerDeck.FindCard(instanceId));
         }
 
         private void HandleSelectionChanged(PokerCardView view)

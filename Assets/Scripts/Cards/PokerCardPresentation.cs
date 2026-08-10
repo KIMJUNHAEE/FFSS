@@ -45,6 +45,35 @@ namespace CardBattle
             return sprite != null ? sprite.name : string.Empty;
         }
 
+        public static string DisplayName(RunCardState card)
+        {
+            if (card == null)
+                return string.Empty;
+
+            if (IsJoker(card.cardId) && card.growthPath != CardGrowthPath.None)
+            {
+                int level = Mathf.Clamp(card.enhancementLevel, 1, 3);
+                if (card.growthPath == CardGrowthPath.TimeAwakened)
+                {
+                    return level switch
+                    {
+                        1 => "시간 회전 조커",
+                        2 => "거울 모사 조커",
+                        _ => "사대 문양 조커"
+                    };
+                }
+
+                return level switch
+                {
+                    1 => "무채 공허 조커",
+                    2 => "적월 계약 조커",
+                    _ => "최후 역행 조커"
+                };
+            }
+
+            return DisplayName(card.cardId);
+        }
+
         public static Sprite LoadArtwork(string cardId)
         {
             if (!PokerRunDeckRules.TryGetSpriteToken(cardId, out string token))
@@ -56,6 +85,15 @@ namespace CardBattle
         {
             if (card == null || !PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
                 return null;
+
+            if (IsJoker(card.cardId) && card.growthPath != CardGrowthPath.None)
+            {
+                int level = Mathf.Clamp(card.enhancementLevel, 1, 3);
+                string path = card.growthPath == CardGrowthPath.TimeAwakened ? "time" : "reverse";
+                Sprite jokerArtwork = Resources.Load<Sprite>($"Cards/JokerGrowth/{path}_{level}");
+                if (jokerArtwork != null)
+                    return jokerArtwork;
+            }
 
             string folder = "AscendantPoker";
             string artworkToken = token;
@@ -82,6 +120,11 @@ namespace CardBattle
 
             Sprite artwork = Resources.Load<Sprite>($"Cards/{folder}/{artworkToken}");
             return artwork != null ? artwork : LoadArtwork(card.cardId);
+        }
+
+        private static bool IsJoker(string cardId)
+        {
+            return cardId == "poker.joker.red" || cardId == "poker.joker.black";
         }
 
         public static string Detail(RunCardState card)
