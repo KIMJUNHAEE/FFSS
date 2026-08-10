@@ -1473,7 +1473,19 @@ namespace FFSS.Framework.Tests
             Assert.That(screen, Is.Not.Null);
             Assert.That(screen.Id, Is.EqualTo(UIScreenId.Title));
             Assert.That(catalog.Get(UIScreenId.Title).prefab, Is.SameAs(screen));
-            Assert.That(prefab.transform.Find("Background"), Is.Not.Null);
+            Transform titleBackground = prefab.transform.Find("Background");
+            Assert.That(titleBackground, Is.Not.Null);
+            var titleBackgroundImage = titleBackground.GetComponent<UnityEngine.UI.Image>();
+            Assert.That(titleBackgroundImage, Is.Not.Null);
+            Assert.That(titleBackgroundImage.sprite, Is.Not.Null);
+            string titleBackgroundPath = AssetDatabase.GetAssetPath(titleBackgroundImage.sprite);
+            Assert.That(
+                titleBackgroundPath,
+                Is.EqualTo("Assets/Art/Production/Project/title-pokerpoker-seotdaseotda-upscaled-v2.png"));
+            var titleBackgroundImporter = AssetImporter.GetAtPath(titleBackgroundPath) as TextureImporter;
+            Assert.That(titleBackgroundImporter, Is.Not.Null);
+            Assert.That(titleBackgroundImporter.maxTextureSize, Is.EqualTo(4096));
+            Assert.That(titleBackgroundImporter.mipmapEnabled, Is.False);
             Transform titleLogo = prefab.transform.Find("Title/Game Title Logo");
             Assert.That(titleLogo, Is.Not.Null, "The generated title logo is not inspectable in the prefab.");
             var titleLogoImage = titleLogo.GetComponent<UnityEngine.UI.Image>();
