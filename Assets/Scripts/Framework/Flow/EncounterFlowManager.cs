@@ -355,6 +355,7 @@ namespace FFSS.Framework.Flow
                 if (card == null ||
                     string.IsNullOrWhiteSpace(card.instanceId) ||
                     card.enhancementLevel >= 3 ||
+                    run.pokerDeck.storedCards.Contains(card.instanceId) ||
                     candidates.Contains(card.instanceId))
                 {
                     continue;

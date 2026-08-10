@@ -713,6 +713,18 @@ namespace FFSS.Framework.Tests
                 Assert.That(run.pokerDeck.FindCard("card-a").enhancementLevel, Is.EqualTo(3));
                 Assert.That(run.pokerDeck.reservedDraws, Does.Contain("card-a"),
                     "The acquired reward card was not queued for the next combat hand.");
+                RunCardState storedCopy = run.pokerDeck.cards.Find(card =>
+                    card != null && card.instanceId.StartsWith("card-a.owned.", StringComparison.Ordinal));
+                Assert.That(storedCopy, Is.Not.Null,
+                    "Acquiring an upgraded card must keep its previous version in owned cards.");
+                Assert.That(storedCopy.cardId, Is.EqualTo("poker.heart.01"));
+                Assert.That(storedCopy.enhancementLevel, Is.EqualTo(2));
+                Assert.That(run.pokerDeck.storedCards, Does.Contain(storedCopy.instanceId));
+                Assert.That(
+                    run.pokerDeck.cards.Count(card => card != null &&
+                        !run.pokerDeck.storedCards.Contains(card.instanceId)),
+                    Is.EqualTo(3),
+                    "Reward acquisition must replace the active version without growing the active deck.");
 
                 runs.PrepareReward("1땡", 20, Array.Empty<string>(), new[] { "card-b" });
                 runs.ClaimReward(null, "card-b");

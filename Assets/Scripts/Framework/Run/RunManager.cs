@@ -186,6 +186,9 @@ namespace FFSS.Framework.Run
                     if (card == null)
                         continue;
 
+                    RunCardState storedCopy = CopyCardForStorage(Current.pokerDeck, card, reward.rewardId);
+                    Current.pokerDeck.cards.Add(storedCopy);
+                    Current.pokerDeck.StoreCard(storedCopy.instanceId);
                     card.enhancementLevel++;
                     card.isHoned = true;
                     Current.pokerDeck.ReserveDraw(instanceId);
@@ -196,6 +199,27 @@ namespace FFSS.Framework.Run
             Current.pendingReward = null;
             NotifyStateChanged("reward.claimed");
             return reward;
+        }
+
+        private static RunCardState CopyCardForStorage(
+            RunPokerDeckState deck,
+            RunCardState source,
+            string rewardId)
+        {
+            string stem = $"{source.instanceId}.owned.{rewardId}";
+            string instanceId = stem;
+            int suffix = 2;
+            while (deck.FindCard(instanceId) != null)
+            {
+                instanceId = $"{stem}.{suffix++}";
+            }
+
+            return new RunCardState(instanceId, source.cardId)
+            {
+                enhancementLevel = source.enhancementLevel,
+                growthPath = source.growthPath,
+                isHoned = source.isHoned
+            };
         }
 
         public void CompleteRun()
