@@ -524,13 +524,19 @@ namespace CardBattle
                     return false;
 
                 ruleState.Seotda.signatureCheckUsed = true;
-                return RollChance("signature-appearance", NormalSignatureAppearanceChance());
+                return RollChance($"signature-normal-{battleTurn}", SignatureAppearanceChance());
             }
 
             if (profile.encounterRank == EnemyEncounterRank.MidBoss)
             {
                 if (ruleState.Seotda.signatureUseCount == 0)
-                    return battleTurn >= 4;
+                {
+                    if (ruleState.Seotda.signatureCheckUsed || battleTurn < 4)
+                        return false;
+
+                    ruleState.Seotda.signatureCheckUsed = true;
+                    return RollChance($"signature-midboss-{battleTurn}", SignatureAppearanceChance());
+                }
 
                 if (ruleState.Seotda.signatureSecondCheckUsed || battleTurn < 8)
                     return false;
@@ -538,22 +544,30 @@ namespace CardBattle
                 ruleState.Seotda.signatureSecondCheckUsed = true;
                 return HasRepeatedMistakes() &&
                        HasSignatureInterval(battleTurn) &&
-                       RollChance("signature-second", 0.5f);
+                       RollChance($"signature-midboss-second-{battleTurn}", SignatureAppearanceChance() * 0.5f);
             }
 
             if (IsGwang38())
             {
                 return ruleState.phase > 1 &&
                        ruleState.Seotda.signatureClock >= 2 &&
-                       HasSignatureInterval(battleTurn);
+                       HasSignatureInterval(battleTurn) &&
+                       RollChance($"signature-gwang38-{battleTurn}", SignatureAppearanceChance());
             }
 
             if (ruleState.Seotda.signatureUseCount == 0)
-                return battleTurn >= 4;
+            {
+                if (ruleState.Seotda.signatureCheckUsed || battleTurn < 4)
+                    return false;
+
+                ruleState.Seotda.signatureCheckUsed = true;
+                return RollChance($"signature-boss-{battleTurn}", SignatureAppearanceChance());
+            }
 
             return ruleState.phase > 1 &&
                    ruleState.Seotda.signatureClock >= 1 &&
-                   HasSignatureInterval(battleTurn);
+                   HasSignatureInterval(battleTurn) &&
+                   RollChance($"signature-boss-repeat-{battleTurn}", SignatureAppearanceChance());
         }
 
         private int BattleTurnNumber()
@@ -603,6 +617,17 @@ namespace CardBattle
                 1 => ResponseAdjustedChance(0.25f, 0.10f, 0.55f),
                 2 => ResponseAdjustedChance(0.35f, 0.20f, 0.65f),
                 _ => ResponseAdjustedChance(0.45f, 0.30f, 0.75f)
+            };
+        }
+
+        private float SignatureAppearanceChance()
+        {
+            float configured = Mathf.Clamp01(signatureCardChance);
+            return profile.encounterRank switch
+            {
+                EnemyEncounterRank.Normal => Mathf.Min(configured, NormalSignatureAppearanceChance(), 0.35f),
+                EnemyEncounterRank.MidBoss => Mathf.Min(configured, 0.4f),
+                _ => Mathf.Min(configured, 0.5f)
             };
         }
 

@@ -569,8 +569,10 @@ namespace CardBattle
         {
             if (card == null || !PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
                 return null;
-            if (card.growthPath != CardGrowthPath.None)
-                return PokerCardPresentation.LoadArtwork(card);
+
+            Sprite stateArtwork = PokerCardPresentation.LoadArtwork(card);
+            if (stateArtwork != null)
+                return stateArtwork;
 
             Sprite assigned = deckSprites.FirstOrDefault(
                 sprite => sprite != null && sprite.name.Split('_')[0] == token);
