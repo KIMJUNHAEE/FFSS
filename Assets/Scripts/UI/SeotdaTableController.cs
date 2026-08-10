@@ -797,6 +797,28 @@ namespace CardBattle
 
             if (signatureSprite != null && ruleState.Seotda.signatureUseCount < SignatureUseCap())
             {
+                var replacement = exclusiveDeckAsset?.cards
+                    .FirstOrDefault(card =>
+                        card != null &&
+                        card.faceSprite != null &&
+                        signatureDefinition != null &&
+                        card.month == signatureDefinition.Month &&
+                        card.isGwang == signatureDefinition.IsGwang)
+                    ?? exclusiveDeckAsset?.cards.FirstOrDefault(card =>
+                        card != null &&
+                        card.faceSprite != null &&
+                        signatureDefinition != null &&
+                        card.month == signatureDefinition.Month);
+
+                if (replacement?.faceSprite != null)
+                {
+                    ids.Remove(replacement.faceSprite.name);
+                }
+                else if (ids.Count >= 20)
+                {
+                    ids.RemoveAt(ids.Count - 1);
+                }
+
                 ids.Add(signatureSprite.name);
             }
 
