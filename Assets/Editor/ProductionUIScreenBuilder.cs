@@ -102,6 +102,8 @@ namespace FFSS.Editor
                 ScreenSpec spec = specs[i];
                 GameObject prefab = spec.Id == UIScreenId.FieldHud
                     ? BuildFieldHud(spec)
+                    : spec.Id == UIScreenId.CardWorkshop
+                        ? CardDeckExchangePrefabBuilder.BuildPrefab()
                     : spec.Id == UIScreenId.Options
                         ? BuildOptionsScreen(spec)
                     : spec.Id == UIScreenId.Combat

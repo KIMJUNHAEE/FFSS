@@ -201,6 +201,38 @@ namespace FFSS.Framework.Run
             return reward;
         }
 
+        public bool TryExchangeDeckCard(string activeInstanceId, string ownedInstanceId)
+        {
+            RequireRun();
+            RunPokerDeckState deck = Current.pokerDeck;
+            deck.EnsureCollections();
+            if (string.IsNullOrWhiteSpace(activeInstanceId) ||
+                string.IsNullOrWhiteSpace(ownedInstanceId) ||
+                activeInstanceId == ownedInstanceId ||
+                deck.FindCard(activeInstanceId) == null ||
+                deck.FindCard(ownedInstanceId) == null ||
+                deck.storedCards.Contains(activeInstanceId) ||
+                !deck.storedCards.Contains(ownedInstanceId))
+            {
+                return false;
+            }
+
+            deck.StoreCard(activeInstanceId);
+            deck.ReturnStoredCard(ownedInstanceId);
+            deck.heldCardInstanceIds.Remove(activeInstanceId);
+            deck.reservedDraws.RemoveAll(value => value == activeInstanceId);
+            deck.revealedTopOrder.RemoveAll(value => value == activeInstanceId);
+            deck.nextTurnTopOrder.RemoveAll(value => value == activeInstanceId);
+            if (deck.activeHonedCardInstanceId == activeInstanceId)
+            {
+                deck.activeHonedCardInstanceId = string.Empty;
+            }
+
+            deck.ReserveDraw(ownedInstanceId);
+            NotifyStateChanged("deck.card.exchanged");
+            return true;
+        }
+
         private static RunCardState CopyCardForStorage(
             RunPokerDeckState deck,
             RunCardState source,

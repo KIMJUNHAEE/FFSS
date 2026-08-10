@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
+using CardBattle;
+using CardBattle.UI;
+using FFSS.Framework.Run;
 using FFSS.Framework.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -97,6 +100,12 @@ namespace FFSS.Editor
                     ShowOptionPage(controller, optionPage);
                 controller.enabled = false;
             }
+            CardDeckExchangeScreenController deckExchange = instance.GetComponent<CardDeckExchangeScreenController>();
+            if (deckExchange != null)
+            {
+                PopulateDeckExchangePreview(deckExchange);
+                deckExchange.enabled = false;
+            }
             instance.GetComponent<UIScreen>().SetVisible(true, false);
 
             var texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
@@ -114,6 +123,81 @@ namespace FFSS.Editor
             camera.targetTexture = null;
             Object.DestroyImmediate(image);
             Object.DestroyImmediate(texture);
+        }
+
+        private static void PopulateDeckExchangePreview(CardDeckExchangeScreenController controller)
+        {
+            var serialized = new SerializedObject(controller);
+            Transform currentContent = serialized.FindProperty("currentDeckContent").objectReferenceValue as Transform;
+            Transform ownedContent = serialized.FindProperty("ownedCardContent").objectReferenceValue as Transform;
+            DeckExchangeCardSlot slotPrefab = serialized.FindProperty("cardSlotPrefab").objectReferenceValue as DeckExchangeCardSlot;
+            if (currentContent == null || ownedContent == null || slotPrefab == null)
+                return;
+
+            var activeIds = new List<string>(54);
+            string[] suits = { "spade", "heart", "diamond", "club" };
+            foreach (string suit in suits)
+            {
+                for (int rank = 1; rank <= 13; rank++)
+                    activeIds.Add($"poker.{suit}.{rank:D2}");
+            }
+            activeIds.Add("poker.joker.red");
+            activeIds.Add("poker.joker.black");
+
+            string[] ownedIds =
+            {
+                "poker.heart.11", "poker.club.12", "poker.diamond.01", "poker.spade.10",
+                "poker.joker.red", "poker.joker.black", "poker.heart.13", "poker.club.01",
+                "poker.diamond.11", "poker.spade.12", "poker.club.13", "poker.heart.01"
+            };
+
+            var active = new List<RunCardState>();
+            var owned = new List<RunCardState>();
+            for (int i = 0; i < activeIds.Count; i++)
+            {
+                var card = new RunCardState($"preview.active.{i}", activeIds[i]);
+                active.Add(card);
+                DeckExchangeCardSlot slot = Object.Instantiate(slotPrefab, currentContent);
+                slot.Bind(card, i == 0, null);
+            }
+            for (int i = 0; i < ownedIds.Length; i++)
+            {
+                var card = new RunCardState($"preview.owned.{i}", ownedIds[i])
+                {
+                    enhancementLevel = i % 3 + 1,
+                    growthPath = i >= 4 ? CardGrowthPath.TimeAwakened : CardGrowthPath.None
+                };
+                owned.Add(card);
+                DeckExchangeCardSlot slot = Object.Instantiate(slotPrefab, ownedContent);
+                slot.Bind(card, i == 0, null);
+            }
+
+            SetPreviewText(serialized, "currentDeckCount", $"내 덱  {active.Count} / 54");
+            SetPreviewText(serialized, "ownedCardCount", $"교환 가능한 카드  {owned.Count}장");
+            SetPreviewText(serialized, "selectedCurrentLabel", PokerCardPresentation.DisplayName(active[0]));
+            SetPreviewText(serialized, "selectedOwnedLabel", PokerCardPresentation.DisplayName(owned[0]));
+            SetPreviewArtwork(serialized, "selectedCurrentArtwork", active[0]);
+            SetPreviewArtwork(serialized, "selectedOwnedArtwork", owned[0]);
+            Canvas.ForceUpdateCanvases();
+        }
+
+        private static void SetPreviewText(SerializedObject serialized, string property, string value)
+        {
+            TMPro.TMP_Text text = serialized.FindProperty(property).objectReferenceValue as TMPro.TMP_Text;
+            if (text != null)
+                text.text = value;
+        }
+
+        private static void SetPreviewArtwork(SerializedObject serialized, string property, RunCardState card)
+        {
+            Image image = serialized.FindProperty(property).objectReferenceValue as Image;
+            if (image == null)
+                return;
+
+            image.sprite = PokerCardPresentation.LoadArtwork(card);
+            image.overrideSprite = image.sprite;
+            image.preserveAspect = true;
+            image.enabled = image.sprite != null;
         }
 
         private static void ShowOptionPage(Behaviour controller, int page)

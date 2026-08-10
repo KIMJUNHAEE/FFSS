@@ -741,6 +741,36 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void DeckExchangeSwapsOneActiveAndOneOwnedCard()
+        {
+            var host = new GameObject("Deck Exchange Test");
+            try
+            {
+                RunManager runs = host.AddComponent<RunManager>();
+                var run = new RunState();
+                run.pokerDeck.cards.Add(new RunCardState("active-card", "poker.heart.01"));
+                run.pokerDeck.cards.Add(new RunCardState("owned-card", "poker.spade.13")
+                {
+                    enhancementLevel = 2,
+                    growthPath = CardGrowthPath.TimeAwakened
+                });
+                run.pokerDeck.StoreCard("owned-card");
+                SetCurrentRun(runs, run);
+
+                Assert.That(runs.TryExchangeDeckCard("active-card", "owned-card"), Is.True);
+                Assert.That(run.pokerDeck.storedCards, Does.Contain("active-card"));
+                Assert.That(run.pokerDeck.storedCards, Does.Not.Contain("owned-card"));
+                Assert.That(run.pokerDeck.reservedDraws, Does.Contain("owned-card"));
+                Assert.That(runs.TryExchangeDeckCard("active-card", "owned-card"), Is.False,
+                    "A stored card cannot be exchanged as though it were still active.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void HexGeneratorBuildsRoamingFieldsInsteadOfSingleFileMazes()
         {
             var host = new GameObject("Hex Generator Test");
@@ -1598,26 +1628,39 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void CardWorkshopPrefabExposesInspectableCardActionsAndPaging()
+        public void CardWorkshopPrefabExposesTwoScrollableInspectableCardCollections()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/Prefabs/UI/Screens/CardWorkshopScreen.prefab");
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Action 1"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Action 6"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Hone Card"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Growth Path"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Previous Page"), Is.Not.Null);
-            Assert.That(prefab.transform.Find("Art Frame/Next Page"), Is.Not.Null);
+            Transform frame = prefab.transform.Find("Deck Exchange Frame");
+            Assert.That(frame, Is.Not.Null);
+            Transform current = frame.Find("Current Deck Scroll");
+            Transform owned = frame.Find("Owned Cards Scroll");
+            Assert.That(current?.GetComponent<ScrollRect>(), Is.Not.Null);
+            Assert.That(owned?.GetComponent<ScrollRect>(), Is.Not.Null);
+            Assert.That(current?.Find("Viewport/Content")?.GetComponent<GridLayoutGroup>(), Is.Not.Null);
+            Assert.That(owned?.Find("Viewport/Content")?.GetComponent<GridLayoutGroup>(), Is.Not.Null);
+            Assert.That(frame.Find("Exchange Selected Cards"), Is.Not.Null);
+            Assert.That(frame.Find("Current Selection Artwork"), Is.Not.Null);
+            Assert.That(frame.Find("Owned Selection Artwork"), Is.Not.Null);
 
-            Component controller = prefab.GetComponent("RunUIScreenController");
+            GameObject slotPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/UI/Components/DeckExchangeCardSlot.prefab");
+            Assert.That(slotPrefab, Is.Not.Null);
+            Assert.That(slotPrefab.GetComponent("DeckExchangeCardSlot"), Is.Not.Null);
+            Assert.That(slotPrefab.transform.Find("Artwork"), Is.Not.Null);
+            Assert.That(slotPrefab.transform.Find("Selected"), Is.Not.Null);
+
+            Component controller = prefab.GetComponent("CardDeckExchangeScreenController");
             var serialized = new SerializedObject(controller);
-            Assert.That(serialized.FindProperty("actions").arraySize, Is.EqualTo(6));
-            Assert.That(serialized.FindProperty("primaryButton").objectReferenceValue, Is.Not.Null);
-            Assert.That(serialized.FindProperty("secondaryButton").objectReferenceValue, Is.Not.Null);
-            Assert.That(serialized.FindProperty("previousPageButton").objectReferenceValue, Is.Not.Null);
-            Assert.That(serialized.FindProperty("nextPageButton").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("currentDeckContent").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("ownedCardContent").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("cardSlotPrefab").objectReferenceValue, Is.Not.Null);
+            Assert.That(serialized.FindProperty("exchangeButton").objectReferenceValue, Is.Not.Null);
+            Assert.That(prefab.GetComponent("RunUIScreenController"), Is.Null,
+                "The deck exchange screen must not fall back to the old paged text workshop controller.");
         }
 
         [Test]
