@@ -33,6 +33,16 @@ jobs:
         with:
           enablement: true
 
+      - name: Reassemble large WebGL files
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for first_part in docs/Build/*.part-000; do
+            output="${first_part%.part-000}"
+            cat "${output}".part-* > "${output}"
+            rm "${output}".part-*
+          done
+
       - name: Upload WebGL site
         uses: actions/upload-pages-artifact@v3
         with:
