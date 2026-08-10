@@ -45,6 +45,15 @@ namespace FFSS.Editor
             RunOnce();
         }
 
+        public static void ApplyTitleScreenFromCommandLine()
+        {
+            PatchTitleOptions();
+            PatchBossDebug();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[FFSS] Title screen presentation was migrated successfully.");
+        }
+
         private static void RunOnce()
         {
             if (SessionState.GetBool(SessionKey, false))
@@ -96,6 +105,7 @@ namespace FFSS.Editor
             PatchEnemyIntentText();
             PatchEnemyGuide();
             PatchTitleGuide();
+            PatchTitleOptions();
             PatchBossDebug();
 
             AssetDatabase.SaveAssets();
@@ -694,6 +704,24 @@ namespace FFSS.Editor
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 panel.SetActive(false);
                 panel.transform.SetAsLastSibling();
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void PatchTitleOptions()
+        {
+            const string path = "Assets/Prefabs/UI/Screens/TitleScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Transform legacyOptions = Find(root.transform, "Options Modal");
+                if (legacyOptions != null)
+                    UnityEngine.Object.DestroyImmediate(legacyOptions.gameObject);
+
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally

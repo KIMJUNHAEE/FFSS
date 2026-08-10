@@ -197,6 +197,46 @@ namespace FFSS.Framework.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator TitleOptionsButtonUsesSharedTabbedOptionsScreen()
+        {
+            SceneManager.LoadScene(TitleScene, LoadSceneMode.Single);
+            yield return WaitUntil(() => GameKernel.IsReady, 180, "GameKernel did not initialize.");
+
+            bool hasLegacyOptions = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Any(value => value.name == "Options Modal");
+            Assert.That(hasLegacyOptions, Is.False, "The legacy title options modal still exists.");
+
+            Button optionsButton = FindButton("Options");
+            Assert.That(optionsButton, Is.Not.Null, "The title options button is missing.");
+            optionsButton.onClick.Invoke();
+
+            UIManager ui = GameKernel.Services.Get<UIManager>();
+            yield return WaitUntil(
+                () => ui.IsVisible(UIScreenId.Options),
+                180,
+                "The shared tabbed options screen did not open from the title.");
+
+            UIScreen options = ui.TryGetScreen(UIScreenId.Options);
+            Assert.That(options, Is.Not.Null);
+            Button[] tabs = options.GetComponentsInChildren<Button>(true)
+                .Where(button => button.name.EndsWith(" Tab", StringComparison.Ordinal))
+                .ToArray();
+            Assert.That(tabs.Length, Is.EqualTo(6), "The shared options screen is missing tabs.");
+            Assert.That(tabs.All(tab => tab.gameObject.activeInHierarchy), Is.True);
+            yield return CaptureScreenshot("flow_title_options_1920x1080", 1920, 1080);
+
+            Button close = options.GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "Close");
+            close.onClick.Invoke();
+            yield return WaitUntil(
+                () => !ui.IsVisible(UIScreenId.Options),
+                120,
+                "The shared options screen did not close from the title.");
+        }
+
         private static void AssertAmbientLandmarksUseBuildingArtwork()
         {
             GameObject[] landmarks = Object.FindObjectsByType<GameObject>(

@@ -57,7 +57,6 @@ namespace FFSS.Editor
 
             Font font = AssetDatabase.LoadAssetAtPath<Font>(CardBattleSetup.UiFontPath);
             Sprite backgroundSprite = LoadSprite("Assets/Art/Production/Project/title-pokerpoker-seotdaseotda.png");
-            Sprite modalSprite = LoadSprite("Assets/Art/Production/UI/Atlas/03_panels_modals/modal_medium.png");
 
             var root = new GameObject("Title Screen", typeof(RectTransform), typeof(CanvasGroup), typeof(UIScreen), typeof(TitleScreenController), typeof(TitleAmbientView));
             RectTransform rootRect = root.GetComponent<RectTransform>();
@@ -88,11 +87,6 @@ namespace FFSS.Editor
             titleOutline.effectColor = new Color(0.02f, 0.06f, 0.09f, 0.95f);
             titleOutline.effectDistance = new Vector2(3f, -3f);
 
-            RectTransform subtitleRect = CreateRect("Subtitle", root.transform);
-            SetRect(subtitleRect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(132f, -328f), new Vector2(620f, 42f));
-            Text subtitle = CreateText("Subtitle Text", subtitleRect, font, "패로 운명을 꺾는 덱빌딩 RPG", 24, new Color(0.74f, 0.82f, 0.84f), TextAnchor.MiddleLeft);
-            Stretch(subtitle.rectTransform);
-
             RectTransform menu = CreateRect("Main Menu", root.transform);
             SetRect(menu, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(138f, -96f), new Vector2(438f, 330f));
             CanvasGroup menuGroup = menu.gameObject.AddComponent<CanvasGroup>();
@@ -102,23 +96,11 @@ namespace FFSS.Editor
             Button options = CreateMenuButton(menu, "Options", "설정", -152f, "black", font);
             Button quit = CreateMenuButton(menu, "Quit", "종료", -228f, "darkred", font);
 
-            RectTransform footerRect = CreateRect("Footer", root.transform);
-            SetRect(footerRect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(132f, 42f), new Vector2(620f, 30f));
-            Text footer = CreateText("Build Label", footerRect, font, "POKER x SEOTDA", 15, new Color(0.47f, 0.58f, 0.61f), TextAnchor.MiddleLeft);
-            Stretch(footer.rectTransform);
-
-            GameObject optionsPanel = CreateOptionsPanel(root.transform, modalSprite, font, out Button closeOptions, out Slider volume, out Toggle fullscreen);
-            optionsPanel.SetActive(false);
-
             TitleScreenController controller = root.GetComponent<TitleScreenController>();
             SetReference(controller, "newRunButton", newRun);
             SetReference(controller, "continueButton", continueRun);
             SetReference(controller, "optionsButton", options);
             SetReference(controller, "quitButton", quit);
-            SetReference(controller, "optionsPanel", optionsPanel);
-            SetReference(controller, "closeOptionsButton", closeOptions);
-            SetReference(controller, "masterVolumeSlider", volume);
-            SetReference(controller, "fullscreenToggle", fullscreen);
 
             TitleAmbientView ambient = root.GetComponent<TitleAmbientView>();
             SetReference(ambient, "background", backgroundRect);
@@ -128,105 +110,6 @@ namespace FFSS.Editor
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, TitlePrefabPath);
             UnityEngine.Object.DestroyImmediate(root);
             return prefab;
-        }
-
-        private static GameObject CreateOptionsPanel(
-            Transform parent,
-            Sprite modalSprite,
-            Font font,
-            out Button closeButton,
-            out Slider volumeSlider,
-            out Toggle fullscreenToggle)
-        {
-            var overlay = new GameObject("Options Modal", typeof(RectTransform), typeof(Image));
-            RectTransform overlayRect = overlay.GetComponent<RectTransform>();
-            overlayRect.SetParent(parent, false);
-            Stretch(overlayRect);
-            Image dimmer = overlay.GetComponent<Image>();
-            dimmer.color = new Color(0f, 0.015f, 0.025f, 0.7f);
-
-            Image modal = CreateImage("Options Frame", overlay.transform, modalSprite);
-            SetRect(modal.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 510f));
-            modal.type = Image.Type.Sliced;
-
-            RectTransform headingRect = CreateRect("Heading", modal.transform);
-            SetRect(headingRect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -74f), new Vector2(520f, 54f));
-            Text heading = CreateText("Heading Text", headingRect, font, "설정", 36, new Color(0.96f, 0.82f, 0.42f), TextAnchor.MiddleCenter);
-            Stretch(heading.rectTransform);
-
-            RectTransform volumeLabelRect = CreateRect("Volume Label", modal.transform);
-            SetRect(volumeLabelRect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -158f), new Vector2(520f, 36f));
-            Text volumeLabel = CreateText("Text", volumeLabelRect, font, "전체 음량", 23, new Color(0.9f, 0.91f, 0.88f), TextAnchor.MiddleLeft);
-            Stretch(volumeLabel.rectTransform);
-
-            volumeSlider = CreateVolumeSlider(modal.transform);
-            SetRect(volumeSlider.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -212f), new Vector2(520f, 42f));
-
-            fullscreenToggle = CreateFullscreenToggle(modal.transform, font);
-            SetRect(fullscreenToggle.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -294f), new Vector2(520f, 62f));
-
-            closeButton = CreateButton(modal.transform, "Close", "닫기", "black", font);
-            SetRect(closeButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 68f), new Vector2(330f, 58f));
-            return overlay;
-        }
-
-        private static Slider CreateVolumeSlider(Transform parent)
-        {
-            var root = new GameObject("Master Volume", typeof(RectTransform), typeof(Slider));
-            root.transform.SetParent(parent, false);
-
-            Image background = CreateImage("Frame", root.transform, LoadSprite("Assets/Art/Production/UI/Atlas/05_gauges/gauge_empty_large.png"));
-            Stretch(background.rectTransform);
-            background.type = Image.Type.Sliced;
-
-            RectTransform fillArea = CreateRect("Fill Area", root.transform);
-            fillArea.anchorMin = new Vector2(0f, 0f);
-            fillArea.anchorMax = new Vector2(1f, 1f);
-            fillArea.offsetMin = new Vector2(12f, 8f);
-            fillArea.offsetMax = new Vector2(-12f, -8f);
-            Image fill = CreateImage("Fill", fillArea, LoadSprite("Assets/Art/Production/UI/Atlas/05_gauges/gauge_energy_blue_large.png"));
-            Stretch(fill.rectTransform);
-            fill.type = Image.Type.Filled;
-            fill.fillMethod = Image.FillMethod.Horizontal;
-
-            RectTransform handleArea = CreateRect("Handle Area", root.transform);
-            handleArea.anchorMin = Vector2.zero;
-            handleArea.anchorMax = Vector2.one;
-            handleArea.offsetMin = new Vector2(14f, 0f);
-            handleArea.offsetMax = new Vector2(-14f, 0f);
-            Image handle = CreateImage("Handle", handleArea, LoadSprite("Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_05_flower.png"));
-            handle.rectTransform.sizeDelta = new Vector2(48f, 48f);
-
-            Slider slider = root.GetComponent<Slider>();
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            slider.value = 0.85f;
-            slider.fillRect = fill.rectTransform;
-            slider.handleRect = handle.rectTransform;
-            slider.targetGraphic = handle;
-            return slider;
-        }
-
-        private static Toggle CreateFullscreenToggle(Transform parent, Font font)
-        {
-            var root = new GameObject("Fullscreen", typeof(RectTransform), typeof(Toggle));
-            root.transform.SetParent(parent, false);
-
-            Image background = CreateImage("Icon", root.transform, LoadSprite("Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_09_gear.png"));
-            SetRect(background.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(32f, 0f), new Vector2(58f, 58f));
-            Image check = CreateImage("Selected", background.transform, LoadSprite("Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_05_flower.png"));
-            SetRect(check.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38f, 38f));
-
-            RectTransform labelRect = CreateRect("Label", root.transform);
-            SetRect(labelRect, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(82f, 0f), new Vector2(-82f, 52f));
-            Text label = CreateText("Text", labelRect, font, "전체 화면", 24, new Color(0.9f, 0.91f, 0.88f), TextAnchor.MiddleLeft);
-            Stretch(label.rectTransform);
-
-            Toggle toggle = root.GetComponent<Toggle>();
-            toggle.targetGraphic = background;
-            toggle.graphic = check;
-            toggle.isOn = true;
-            return toggle;
         }
 
         private static Button CreateMenuButton(Transform parent, string name, string label, float y, string style, Font font)
