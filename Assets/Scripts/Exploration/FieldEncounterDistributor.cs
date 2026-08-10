@@ -27,6 +27,12 @@ namespace CardBattle.Exploration
     [RequireComponent(typeof(HexTileMapGenerator))]
     public sealed class FieldEncounterDistributor : MonoBehaviour
     {
+        private static readonly Vector2Int[] SupportDirections =
+        {
+            new(1, 0), new(1, -1), new(0, -1),
+            new(-1, 0), new(-1, 1), new(0, 1),
+        };
+
         [Header("Run data")]
         [SerializeField] private EncounterSceneCatalog catalog;
         [SerializeField] private RunCampaignDefinition campaign;
@@ -526,7 +532,8 @@ namespace CardBattle.Exploration
             {
                 GeneratedHexTile tile = tiles[i];
                 if (tile.Tile == null || tile.Order < 2 || tile.IsBoss ||
-                    occupiedTileRoots.Contains(tile.Tile.transform))
+                    occupiedTileRoots.Contains(tile.Tile.transform) ||
+                    !HasFloorSupport(tile, landmarkFootprint))
                     continue;
 
                 Vector3 position = tile.Tile.transform.position;
@@ -615,15 +622,10 @@ namespace CardBattle.Exploration
 
         private static int CountTileNeighbors(Vector2Int cell, HashSet<Vector2Int> cells)
         {
-            Vector2Int[] directions =
-            {
-                new(1, 0), new(1, -1), new(0, -1),
-                new(-1, 0), new(-1, 1), new(0, 1),
-            };
             int count = 0;
-            for (int i = 0; i < directions.Length; i++)
+            for (int i = 0; i < SupportDirections.Length; i++)
             {
-                if (cells.Contains(cell + directions[i]))
+                if (cells.Contains(cell + SupportDirections[i]))
                     count++;
             }
 
@@ -702,9 +704,15 @@ namespace CardBattle.Exploration
             if (tile.Tile == null || !activeTileCells.Contains(tile.Cell))
                 return false;
 
-            int neighbors = CountTileNeighbors(tile.Cell, activeTileCells);
-            int requiredNeighbors = footprint >= 2.35f ? 4 : 3;
-            return neighbors >= requiredNeighbors;
+            // A building sprite can be wider than its anchor hex. Requiring the full
+            // first ring keeps every visible edge over generated ground at any camera angle.
+            for (int i = 0; i < SupportDirections.Length; i++)
+            {
+                if (!activeTileCells.Contains(tile.Cell + SupportDirections[i]))
+                    return false;
+            }
+
+            return true;
         }
 
         private float MinimumClearance(Vector3 position, float footprint)

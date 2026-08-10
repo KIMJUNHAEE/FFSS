@@ -1693,6 +1693,62 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void FieldBuildingsRequireACompleteFloorRing()
+        {
+            Type distributorType = Type.GetType(
+                "CardBattle.Exploration.FieldEncounterDistributor, Assembly-CSharp");
+            Type tileType = Type.GetType(
+                "CardBattle.Exploration.GeneratedHexTile, Assembly-CSharp");
+            Assert.That(distributorType, Is.Not.Null);
+            Assert.That(tileType, Is.Not.Null);
+
+            var host = new GameObject("Floor Support Test");
+            var tileObject = new GameObject("Center Tile");
+            try
+            {
+                Component distributor = host.AddComponent(distributorType);
+                FieldInfo activeCellsField = distributorType.GetField(
+                    "activeTileCells",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(activeCellsField, Is.Not.Null);
+                var activeCells = (HashSet<Vector2Int>)activeCellsField.GetValue(distributor);
+                Vector2Int center = Vector2Int.zero;
+                Vector2Int[] ring =
+                {
+                    new(1, 0), new(1, -1), new(0, -1),
+                    new(-1, 0), new(-1, 1), new(0, 1),
+                };
+                activeCells.Add(center);
+                foreach (Vector2Int cell in ring)
+                    activeCells.Add(cell);
+
+                object tile = Activator.CreateInstance(
+                    tileType,
+                    tileObject,
+                    center,
+                    false,
+                    false,
+                    2);
+                MethodInfo hasFloorSupport = distributorType.GetMethod(
+                    "HasFloorSupport",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(hasFloorSupport, Is.Not.Null);
+                Assert.That(hasFloorSupport.Invoke(distributor, new[] { tile, (object)2.5f }), Is.True);
+
+                activeCells.Remove(ring[0]);
+                Assert.That(
+                    hasFloorSupport.Invoke(distributor, new[] { tile, (object)2.5f }),
+                    Is.False,
+                    "A building must not be anchored where any side of its support ring is missing.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(tileObject);
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void RunStatusPrefabProvidesAnInspectableOptionsPath()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
