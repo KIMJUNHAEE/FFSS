@@ -206,13 +206,7 @@ namespace FFSS.Framework.Run
             RequireRun();
             RunPokerDeckState deck = Current.pokerDeck;
             deck.EnsureCollections();
-            if (string.IsNullOrWhiteSpace(activeInstanceId) ||
-                string.IsNullOrWhiteSpace(ownedInstanceId) ||
-                activeInstanceId == ownedInstanceId ||
-                deck.FindCard(activeInstanceId) == null ||
-                deck.FindCard(ownedInstanceId) == null ||
-                deck.storedCards.Contains(activeInstanceId) ||
-                !deck.storedCards.Contains(ownedInstanceId))
+            if (!CanExchangeDeckCard(activeInstanceId, ownedInstanceId))
             {
                 return false;
             }
@@ -231,6 +225,27 @@ namespace FFSS.Framework.Run
             deck.ReserveDraw(ownedInstanceId);
             NotifyStateChanged("deck.card.exchanged");
             return true;
+        }
+
+        public bool CanExchangeDeckCard(string activeInstanceId, string ownedInstanceId)
+        {
+            if (!HasActiveRun || Current.pokerDeck == null ||
+                string.IsNullOrWhiteSpace(activeInstanceId) ||
+                string.IsNullOrWhiteSpace(ownedInstanceId) ||
+                activeInstanceId == ownedInstanceId)
+            {
+                return false;
+            }
+
+            RunPokerDeckState deck = Current.pokerDeck;
+            deck.EnsureCollections();
+            RunCardState activeCard = deck.FindCard(activeInstanceId);
+            RunCardState ownedCard = deck.FindCard(ownedInstanceId);
+            return activeCard != null &&
+                   ownedCard != null &&
+                   !deck.storedCards.Contains(activeInstanceId) &&
+                   deck.storedCards.Contains(ownedInstanceId) &&
+                   string.Equals(activeCard.cardId, ownedCard.cardId, StringComparison.Ordinal);
         }
 
         private static RunCardState CopyCardForStorage(

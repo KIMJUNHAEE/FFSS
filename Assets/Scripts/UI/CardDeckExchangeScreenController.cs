@@ -179,7 +179,7 @@ namespace CardBattle.UI
             RunManager runs = GameKernel.Services.Get<RunManager>();
             if (!runs.TryExchangeDeckCard(selectedCurrentId, selectedOwnedId))
             {
-                SetText(statusText, "선택한 카드를 교환할 수 없어.");
+                SetText(statusText, "같은 문양과 숫자의 동일 카드끼리만 교환할 수 있어.");
                 return;
             }
 
@@ -196,7 +196,11 @@ namespace CardBattle.UI
             BindSelected(selectedOwnedArtwork, selectedOwnedLabel, owned, "보유 카드에서 선택");
             if (exchangeButton != null)
             {
-                exchangeButton.interactable = current != null && owned != null;
+                RunManager runs = GameKernel.IsReady
+                    ? GameKernel.Services.Get<RunManager>()
+                    : null;
+                exchangeButton.interactable = runs != null &&
+                                              runs.CanExchangeDeckCard(selectedCurrentId, selectedOwnedId);
             }
         }
 

@@ -753,7 +753,7 @@ namespace FFSS.Framework.Tests
                 RunManager runs = host.AddComponent<RunManager>();
                 var run = new RunState();
                 run.pokerDeck.cards.Add(new RunCardState("active-card", "poker.heart.01"));
-                run.pokerDeck.cards.Add(new RunCardState("owned-card", "poker.spade.13")
+                run.pokerDeck.cards.Add(new RunCardState("owned-card", "poker.heart.01")
                 {
                     enhancementLevel = 2,
                     growthPath = CardGrowthPath.TimeAwakened
@@ -767,6 +767,32 @@ namespace FFSS.Framework.Tests
                 Assert.That(run.pokerDeck.reservedDraws, Does.Contain("owned-card"));
                 Assert.That(runs.TryExchangeDeckCard("active-card", "owned-card"), Is.False,
                     "A stored card cannot be exchanged as though it were still active.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void DeckExchangeRejectsCardsWithDifferentSuitOrRank()
+        {
+            var host = new GameObject("Deck Exchange Identity Test");
+            try
+            {
+                RunManager runs = host.AddComponent<RunManager>();
+                var run = new RunState();
+                run.pokerDeck.cards.Add(new RunCardState("diamond-five", "poker.diamond.05"));
+                run.pokerDeck.cards.Add(new RunCardState("spade-five", "poker.spade.05"));
+                run.pokerDeck.cards.Add(new RunCardState("diamond-seven", "poker.diamond.07"));
+                run.pokerDeck.StoreCard("spade-five");
+                run.pokerDeck.StoreCard("diamond-seven");
+                SetCurrentRun(runs, run);
+
+                Assert.That(runs.CanExchangeDeckCard("diamond-five", "spade-five"), Is.False);
+                Assert.That(runs.CanExchangeDeckCard("diamond-five", "diamond-seven"), Is.False);
+                Assert.That(runs.TryExchangeDeckCard("diamond-five", "spade-five"), Is.False);
+                Assert.That(run.pokerDeck.storedCards, Does.Not.Contain("diamond-five"));
             }
             finally
             {
@@ -1517,13 +1543,13 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
-        public void ProductionScreenCatalogContainsAllEighteenInspectableScreens()
+        public void ProductionScreenCatalogContainsAllSeventeenInspectableScreens()
         {
             UIScreenCatalog catalog = AssetDatabase.LoadAssetAtPath<UIScreenCatalog>(
                 "Assets/Data/Framework/UIScreenCatalog.asset");
 
             Assert.That(catalog, Is.Not.Null);
-            Assert.That(catalog.Screens, Has.Count.EqualTo(18));
+            Assert.That(catalog.Screens, Has.Count.EqualTo(17));
             var ids = new HashSet<UIScreenId>();
             foreach (UIScreenCatalogEntry entry in catalog.Screens)
             {
@@ -1617,7 +1643,7 @@ namespace FFSS.Framework.Tests
                 Assert.That(action.GetComponent("CardHoverSource"), Is.Not.Null);
                 RectTransform icon = action.Find("Icon") as RectTransform;
                 Assert.That(icon, Is.Not.Null);
-                Assert.That(icon.sizeDelta, Is.EqualTo(new Vector2(64f, 78f)));
+                Assert.That(icon.sizeDelta, Is.EqualTo(new Vector2(80f, 80f)));
             }
         }
 
@@ -1657,7 +1683,7 @@ namespace FFSS.Framework.Tests
                     $"Shop display {i} must not show item text before hover.");
                 RectTransform artwork = action.Find("Equipment Artwork") as RectTransform;
                 Assert.That(artwork, Is.Not.Null);
-                Assert.That(artwork.sizeDelta, Is.EqualTo(new Vector2(128f, 128f)));
+                Assert.That(artwork.sizeDelta, Is.EqualTo(new Vector2(140f, 140f)));
             }
         }
 
@@ -2604,6 +2630,32 @@ namespace FFSS.Framework.Tests
             Assert.That(result.winner, Is.EqualTo(CombatSide.Player));
             Assert.That(result.hpDamageToEnemy, Is.EqualTo(16));
             Assert.That(result.hpDamageToPlayer, Is.Zero);
+        }
+
+        [Test]
+        public void HigherEnemyOffenseDealsItsFullPowerWithoutReturnDamage()
+        {
+            CombatResolution result = CombatResolver.Resolve(
+                Intent(CombatSide.Player, CombatStance.Offense, 10, 5),
+                Intent(CombatSide.Enemy, CombatStance.Offense, 14, 5),
+                CombatRuleValues.Default);
+
+            Assert.That(result.winner, Is.EqualTo(CombatSide.Enemy));
+            Assert.That(result.hpDamageToPlayer, Is.EqualTo(14));
+            Assert.That(result.hpDamageToEnemy, Is.Zero);
+        }
+
+        [Test]
+        public void EqualOffenseClashDealsNoDamageToEitherSide()
+        {
+            CombatResolution result = CombatResolver.Resolve(
+                Intent(CombatSide.Player, CombatStance.Offense, 12, 5),
+                Intent(CombatSide.Enemy, CombatStance.Offense, 12, 5),
+                CombatRuleValues.Default);
+
+            Assert.That(result.winner, Is.EqualTo(CombatSide.None));
+            Assert.That(result.hpDamageToPlayer, Is.Zero);
+            Assert.That(result.hpDamageToEnemy, Is.Zero);
         }
 
         [Test]

@@ -91,11 +91,6 @@ namespace FFSS.Framework.Combat
                 return result;
             }
 
-            int tradeDamage = Math.Max(
-                rules.minimumDamage,
-                RoundToInt(player.Power * rules.offenseTieDamageRatio));
-            result.hpDamageToPlayer = tradeDamage;
-            result.hpDamageToEnemy = tradeDamage;
             return result;
         }
 

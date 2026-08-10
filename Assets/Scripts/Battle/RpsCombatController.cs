@@ -924,8 +924,7 @@ namespace CardBattle
 
             if (diff < 0)
             {
-                int guardedDamage = Mathf.Max(1,
-                    enemy.Power - PokerCombatBalance.DefenseWhileAttacking(player.GuardPower));
+                int guardedDamage = enemy.Power;
                 return new CombatOutcome
                 {
                     DamageToPlayer = guardedDamage,
@@ -934,13 +933,9 @@ namespace CardBattle
                 };
             }
 
-            int incomingTradeDamage = Mathf.Max(1,
-                enemy.Power - PokerCombatBalance.DefenseWhileAttacking(player.GuardPower));
             return new CombatOutcome
             {
-                DamageToPlayer = incomingTradeDamage,
-                DamageToEnemy = player.Power,
-                Message = $"<b>{player.Power} = {enemy.Power}</b>  정면 충돌\n플레이어 HP <color=#FF6B6B>-{incomingTradeDamage}</color>",
+                Message = $"<b>{player.Power} = {enemy.Power}</b>  공격 충돌 동률\n양쪽 피해 없음",
             };
         }
 
@@ -954,7 +949,7 @@ namespace CardBattle
                 return;
 
             bool connected = enemy.IsStunned || enemy.IsDefense ||
-                             (enemy.IsOffense && player.Power >= enemy.Power);
+                             (enemy.IsOffense && player.Power > enemy.Power);
             if (!connected)
             {
                 outcome.DamageToEnemy = 0;

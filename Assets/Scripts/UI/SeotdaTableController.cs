@@ -522,8 +522,9 @@ namespace CardBattle
                 return false;
             }
 
-            int battleTurn = BattleTurnNumber();
-            return RollChance($"signature-draw-{battleTurn}", SignatureAppearanceChance());
+            return RollChance(
+                $"signature-draw-{ruleState.Seotda.signatureClock}",
+                SignatureAppearanceChance());
         }
 
         private int BattleTurnNumber()
@@ -625,7 +626,13 @@ namespace CardBattle
             if (chance >= 1f)
                 return true;
 
-            return UnityEngine.Random.value < chance;
+            int encounterSeed = ruleState != null && ruleState.encounterSeed != 0
+                ? ruleState.encounterSeed
+                : StableHash(ruleState?.enemyId ?? profile?.bossId ?? string.Empty);
+            int drawClock = ruleState?.Seotda.signatureClock ?? 0;
+            int seed = encounterSeed ^ StableHash(channel) ^ unchecked(drawClock * 486187739);
+            var random = new System.Random(seed);
+            return random.NextDouble() < chance;
         }
 
         private Sprite DrawNonTriggeringSignaturePartner()
