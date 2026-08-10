@@ -482,8 +482,8 @@ namespace CardBattle
                 playerMaxHp,
                 playerBreakCharge,
                 playerMaxBreak,
-                playerNumbers.BaseAttack,
-                playerNumbers.BaseDefense,
+                playerNumbers.Attack,
+                playerNumbers.Defense,
                 enemyDisplayName,
                 enemyHp,
                 enemyMaxHp,
@@ -1988,11 +1988,11 @@ namespace CardBattle
             var values = CalculatePlayerNumbers(hand);
 
             if (playerStatText)
-                playerStatText.text = $"<color=#FF746B><b>공격 {values.BaseAttack}</b></color>     <color=#77C8FF><b>방어 {values.BaseDefense}</b></color>";
+                playerStatText.text = $"<color=#FF746B><b>공격 {values.Attack}</b></color>     <color=#77C8FF><b>방어 {values.Defense}</b></color>";
 
             var weaknessPreview = EvaluateWeaknessPreview(hand, values);
-            if (playerAttackValueText) playerAttackValueText.text = values.BaseAttack.ToString();
-            if (playerDefenseValueText) playerDefenseValueText.text = values.BaseDefense.ToString();
+            if (playerAttackValueText) playerAttackValueText.text = values.Attack.ToString();
+            if (playerDefenseValueText) playerDefenseValueText.text = values.Defense.ToString();
             if (playerAttackFormulaText)
             {
                 playerAttackFormulaText.text = string.Empty;

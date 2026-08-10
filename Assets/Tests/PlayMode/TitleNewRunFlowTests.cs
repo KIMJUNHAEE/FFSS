@@ -1334,6 +1334,20 @@ namespace FFSS.Framework.Tests
                 Assert.That(text, Is.Not.Null, $"Runtime TMP binding is missing: {fieldName}");
                 Assert.That(text.text, Is.Not.Empty, $"Runtime TMP value was not rendered: {fieldName}");
             }
+
+            object[] presentationArguments = { null };
+            Assert.That(
+                (bool)controllerType.GetMethod("TryGetPresentationSnapshot")
+                    ?.Invoke(controller, presentationArguments),
+                Is.True,
+                "Combat presentation snapshot was not available.");
+            object presentation = presentationArguments[0];
+            Text attackValue = controllerType.GetField("playerAttackValueText")?.GetValue(controller) as Text;
+            Text defenseValue = controllerType.GetField("playerDefenseValueText")?.GetValue(controller) as Text;
+            Assert.That(attackValue.text, Is.EqualTo(ReadIntProperty(presentation, "PlayerAttack").ToString()),
+                "The top-left attack value does not include the current poker hand bonus.");
+            Assert.That(defenseValue.text, Is.EqualTo(ReadIntProperty(presentation, "PlayerDefense").ToString()),
+                "The top-left defense value does not include the current poker hand bonus.");
         }
 
         private static IEnumerator AssertPlannedRedrawFlow()
