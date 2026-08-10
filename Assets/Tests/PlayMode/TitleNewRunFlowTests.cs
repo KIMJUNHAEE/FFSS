@@ -489,7 +489,7 @@ namespace FFSS.Framework.Tests
             UIManager ui = GameKernel.Services.Get<UIManager>();
             (UIScreenId id, string fileName)[] overlays =
             {
-                (UIScreenId.FieldMap, "flow_map_1280x720"),
+                (UIScreenId.CardWorkshop, "flow_cards_1280x720"),
                 (UIScreenId.Equipment, "flow_equipment_1280x720"),
                 (UIScreenId.RunStatus, "flow_status_1280x720"),
                 (UIScreenId.Inventory, "flow_inventory_1280x720")
@@ -1230,7 +1230,7 @@ namespace FFSS.Framework.Tests
             Assert.That(hud.sizeDelta.x, Is.EqualTo(478.6448f).Within(0.1f));
             Assert.That(hud.sizeDelta.y, Is.EqualTo(157.2691f).Within(0.1f));
 
-            string[] commands = { "지도 Button", "장비 Button", "현황 Button" };
+            string[] commands = { "장비 Button", "현황 Button", "카드 Button" };
             for (int i = 0; i < commands.Length; i++)
             {
                 Button button = Object.FindObjectsByType<Button>(

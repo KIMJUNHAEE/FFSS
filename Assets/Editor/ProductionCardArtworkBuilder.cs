@@ -8,8 +8,10 @@ namespace FFSS.Editor
     {
         private static readonly string[] ArtworkFolders =
         {
+            "Assets/Resources/Cards/AscendantPoker",
             "Assets/Resources/Cards/TimeAwakenedPoker",
             "Assets/Resources/Cards/ReversePoker",
+            "Assets/Resources/Cards/JokerGrowth",
         };
 
         [MenuItem("FFSS/Production/Configure Upgraded Poker Artwork")]
@@ -34,18 +36,26 @@ namespace FFSS.Editor
                     importer.mipmapEnabled = false;
                     importer.streamingMipmaps = false;
                     importer.npotScale = TextureImporterNPOTScale.None;
-                    importer.maxTextureSize = 1024;
+                    importer.maxTextureSize = 2048;
                     importer.textureCompression = TextureImporterCompression.CompressedHQ;
                     importer.compressionQuality = 100;
                     importer.filterMode = FilterMode.Bilinear;
                     importer.wrapMode = TextureWrapMode.Clamp;
+                    TextureImporterPlatformSettings webGl = importer.GetPlatformTextureSettings("WebGL");
+                    webGl.name = "WebGL";
+                    webGl.overridden = true;
+                    webGl.maxTextureSize = 1024;
+                    webGl.format = TextureImporterFormat.Automatic;
+                    webGl.textureCompression = TextureImporterCompression.CompressedHQ;
+                    webGl.compressionQuality = 100;
+                    importer.SetPlatformTextureSettings(webGl);
                     importer.SaveAndReimport();
                     configured++;
                 }
             }
 
             AssetDatabase.SaveAssets();
-            Debug.Log($"FFSS upgraded poker artwork configured: {configured} card faces.");
+            Debug.Log($"FFSS poker artwork configured as full-card sprites: {configured} card faces.");
         }
     }
 }

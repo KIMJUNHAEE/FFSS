@@ -183,7 +183,6 @@ namespace FFSS.EditorTools
                 {
                     ["현황"] = "field_nav_status.png",
                     ["장비"] = "field_nav_equipment.png",
-                    ["지도"] = "field_nav_map.png"
                 });
             ApplyFixedTextLabels(
                 "Assets/Prefabs/Production/Combat/Shared/ProductionPlayerHUD.prefab",

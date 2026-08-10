@@ -26,7 +26,6 @@ namespace FFSS.Editor
                 { "title", ScreenRoot + "/TitleScreen.prefab" },
                 { "load", ScreenRoot + "/LoadScreen.prefab" },
                 { "field_hud", ScreenRoot + "/FieldHudScreen.prefab" },
-                { "field_map", ScreenRoot + "/FieldMapScreen.prefab" },
                 { "equipment", ScreenRoot + "/EquipmentScreen.prefab" },
                 { "shop", ScreenRoot + "/ShopScreen.prefab" },
                 { "card_workshop", ScreenRoot + "/CardWorkshopScreen.prefab" },

@@ -145,7 +145,7 @@ namespace FFSS.Framework.Tests
             Assert.That(farthestDistance, Is.GreaterThan(1.1f),
                 "Real keyboard input could not move the player away from the starting tile.");
 
-            yield return ClickFieldCommandAndClose("지도 Button", UIScreenId.FieldMap);
+            yield return ClickFieldCommandAndClose("카드 Button", UIScreenId.CardWorkshop);
             yield return ClickFieldCommandAndClose("장비 Button", UIScreenId.Inventory);
             yield return ClickFieldCommandAndClose("현황 Button", UIScreenId.RunStatus);
 

@@ -123,7 +123,7 @@ namespace FFSS.Editor
             BuildResultScene();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("FFSS all 17 run UI screens are ready as inspectable prefabs.");
+            Debug.Log("FFSS all 16 run UI screens are ready as inspectable prefabs.");
         }
 
         [MenuItem("FFSS/Production/Repair Run UI Screen Catalog")]
@@ -156,7 +156,7 @@ namespace FFSS.Editor
             ConfigureUiFontHinting();
             ClockworkTimekeeperEditorUtils.EnsureFolder("Assets/Prefabs/UI");
             ClockworkTimekeeperEditorUtils.EnsureFolder(ScreenRoot);
-            UIScreenId[] targets = { UIScreenId.FieldMap, UIScreenId.Equipment, UIScreenId.RunStatus };
+            UIScreenId[] targets = { UIScreenId.Equipment, UIScreenId.RunStatus };
             ScreenSpec[] specs = CreateSpecs();
             for (int i = 0; i < specs.Length; i++)
             {
@@ -168,7 +168,60 @@ namespace FFSS.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("FFSS field map, equipment, and run status screens rebuilt.");
+            Debug.Log("FFSS equipment and run status screens rebuilt.");
+        }
+
+        [MenuItem("FFSS/Production/Remove Field Map UI")]
+        public static void RemoveFieldMapUi()
+        {
+            const string fieldHudPath = ScreenRoot + "/FieldHudScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(fieldHudPath);
+            try
+            {
+                Transform mapButton = root.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(item => item.name == "지도 Button");
+                if (mapButton != null)
+                    UnityEngine.Object.DestroyImmediate(mapButton.gameObject);
+
+                Transform deckButton = root.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(item => item.name == "덱 Button" || item.name == "카드 Button");
+                if (deckButton == null)
+                    throw new InvalidOperationException("Field HUD card command button is missing.");
+
+                deckButton.name = "카드 Button";
+                Text deckLabel = deckButton.GetComponentInChildren<Text>(true);
+                if (deckLabel != null)
+                {
+                    deckLabel.text = "카드";
+                    deckLabel.gameObject.SetActive(true);
+                }
+
+                Transform staleMapLabel = deckButton.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(item => item.name.Contains("field_nav_map", StringComparison.Ordinal));
+                if (staleMapLabel != null)
+                    UnityEngine.Object.DestroyImmediate(staleMapLabel.gameObject);
+
+                RunUIScreenController controller = root.GetComponent<RunUIScreenController>();
+                if (controller == null)
+                    throw new InvalidOperationException("Field HUD controller is missing.");
+
+                var serialized = new SerializedObject(controller);
+                SerializedProperty actions = serialized.FindProperty("actions");
+                if (actions != null && actions.isArray && actions.arraySize == 4)
+                    actions.DeleteArrayElementAtIndex(0);
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                EditorUtility.SetDirty(root);
+                PrefabUtility.SaveAsPrefabAsset(root, fieldHudPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("Field map UI removed. Existing deck command now opens the 54-card exchange screen.");
         }
 
         [MenuItem("FFSS/Production/Rebuild Equipment Shop Screen")]
@@ -405,7 +458,6 @@ namespace FFSS.Editor
             {
                 new ScreenSpec(UIScreenId.Load, "LoadScreen", "기록 불러오기", "세 개의 런 기록", "086_panel_battle_result", 3, UILayer.Modal, false),
                 new ScreenSpec(UIScreenId.FieldHud, "FieldHudScreen", "제1막", "북문 패거리", "041_hud_player_normal", 3, UILayer.Overlay, true),
-                new ScreenSpec(UIScreenId.FieldMap, "FieldMapScreen", "필드 지도", "발견한 길과 목적지", "084_panel_event", 5, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Equipment, "EquipmentScreen", "장비", "네 개의 장비 슬롯", "085_panel_card_select", 4, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Inventory, "InventoryScreen", "소지품", "주운 물건과 재료", "", 0, UILayer.Modal, true),
                 new ScreenSpec(UIScreenId.Shop, "ShopScreen", "떠돌이 패상", "이번 상점의 재고", "082_panel_shop", 5, UILayer.Modal, false),
@@ -496,12 +548,6 @@ namespace FFSS.Editor
             {
                 build.PrimaryButton = CreateCommandButton("Primary", frame, PrimaryText(spec.Id), new Vector2(210f, -294f), out Text label);
                 build.PrimaryLabel = label;
-            }
-
-            if (spec.Id == UIScreenId.FieldMap)
-            {
-                build.SecondaryButton = CreateCommandButton("Run Status", frame, "런 현황", new Vector2(210f, -294f), out Text label);
-                build.SecondaryLabel = label;
             }
 
             if (spec.Id == UIScreenId.RunStatus)
@@ -840,8 +886,8 @@ namespace FFSS.Editor
                 new Vector2(296f, 32f),
                 new Vector2(10f, -31f));
 
-            string[] icons = { "icon_button_13_map", "icon_button_08_sword", "icon_button_17_deck" };
-            string[] labels = { "지도", "장비", "현황" };
+            string[] icons = { "icon_button_08_sword", "icon_button_17_deck", "icon_button_17_deck" };
+            string[] labels = { "장비", "현황", "카드" };
             for (int i = 0; i < icons.Length; i++)
             {
                 RectTransform host = CreateRect($"{labels[i]} Button", build.Root.transform,
@@ -1758,7 +1804,6 @@ namespace FFSS.Editor
             return id switch
             {
                 UIScreenId.Load => "이어갈 기록을 고른다.",
-                UIScreenId.FieldMap => "지나온 길과 아직 남은 위험을 확인한다.",
                 UIScreenId.Equipment => "장비 네 부위가 기본 수치와 족보 효과를 바꾼다.",
                 UIScreenId.Shop => string.Empty,
                 UIScreenId.CardWorkshop => "54장의 카드마다 연마와 성장 경로가 따로 저장된다.",
@@ -1844,7 +1889,6 @@ namespace FFSS.Editor
             string path = id switch
             {
                 UIScreenId.Load => BulkRoot + "101_relic_card.png",
-                UIScreenId.FieldMap => BulkRoot + "090_map_node_fight.png",
                 UIScreenId.Equipment => BulkRoot + "097_relic_blade.png",
                 UIScreenId.Shop => BulkRoot + "093_map_node_shop.png",
                 UIScreenId.CardWorkshop => BulkRoot + "101_relic_card.png",
@@ -1864,14 +1908,6 @@ namespace FFSS.Editor
         {
             string path = id switch
             {
-                UIScreenId.FieldMap => index switch
-                {
-                    0 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_fight.png",
-                    1 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_event.png",
-                    2 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_shop.png",
-                    3 => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_boss.png",
-                    _ => "Assets/Art/Production/UI/Atlas/08_map_nodes/map_node_mystery.png"
-                },
                 UIScreenId.Equipment => index switch
                 {
                     0 => "Assets/Art/Production/UI/Atlas/02_icon_buttons/icon_button_08_sword.png",

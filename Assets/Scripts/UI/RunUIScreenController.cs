@@ -223,9 +223,6 @@ namespace CardBattle.UI
                 case UIScreenId.FieldHud:
                     RefreshFieldHud();
                     break;
-                case UIScreenId.FieldMap:
-                    RefreshFieldMap();
-                    break;
                 case UIScreenId.Equipment:
                     RefreshEquipment();
                     break;
@@ -334,31 +331,6 @@ namespace CardBattle.UI
                 "act3_ruined_palace" => "무너진 궁",
                 _ => run.regionId
             };
-        }
-
-        private void RefreshFieldMap()
-        {
-            RunState run = CurrentRun();
-            if (run == null)
-            {
-                return;
-            }
-
-            RunActProgressState act = run.CurrentActProgress;
-            act.visitedTileIds ??= new List<string>();
-            string position = act.hasCurrentCell
-                ? $"현재 [{act.currentAxialX}, {act.currentAxialY}]"
-                : "현재 위치 확인 중";
-            SetText(subtitle,
-                $"{position}  ·  걸어 본 타일 {act.visitedTileIds.Count}/{act.generatedTileCount}  ·  발견 건물 {run.discoveredNodeIds.Count}");
-            SetText(body, act.bossDoorUnlocked
-                ? "권장 준비를 마쳤다. 지도 끝의 붉은 보스문으로 향하자."
-                : $"권장 준비: 전투 {act.normalVictories}/{act.requiredNormalVictories}, 사건 {act.completedEvents}/{act.requiredEvents}, 중간보스 {(act.midBossDefeated ? "완료" : "미완료")} · 준비 전에도 입장 가능");
-            string[] labels = { "전투", "사건", "상점", "보급", "보스문" };
-            for (int i = 0; i < actions.Count; i++)
-            {
-                SetAction(i, i < labels.Length ? labels[i] : string.Empty, MapCountDetail(run, i), i < labels.Length);
-            }
         }
 
         private void RefreshEquipment()
@@ -704,9 +676,6 @@ namespace CardBattle.UI
                 case UIScreenId.FieldHud:
                     OpenFieldCommand(index);
                     return;
-                case UIScreenId.FieldMap:
-                    SelectMapCategory(index);
-                    return;
                 case UIScreenId.Equipment:
                     CycleEquipment(index);
                     return;
@@ -757,10 +726,6 @@ namespace CardBattle.UI
             if (ScreenId == UIScreenId.CardWorkshop)
             {
                 ChooseSelectedCardGrowth();
-            }
-            else if (ScreenId == UIScreenId.FieldMap)
-            {
-                Show(UIScreenId.RunStatus);
             }
             else if (ScreenId == UIScreenId.RunStatus)
             {
@@ -974,61 +939,15 @@ namespace CardBattle.UI
             switch (index)
             {
                 case 0:
-                    Show(UIScreenId.FieldMap);
-                    break;
-                case 1:
                     InventoryScreenController.Open();
                     break;
-                case 2:
+                case 1:
                     Show(UIScreenId.RunStatus);
                     break;
-                case 3:
+                case 2:
                     Show(UIScreenId.CardWorkshop);
                     break;
             }
-        }
-
-        private void SelectMapCategory(int index)
-        {
-            RunState run = CurrentRun();
-            if (run == null)
-            {
-                return;
-            }
-
-            RunFieldContentType type = MapContentType(index);
-            string label = MapCategoryName(type);
-            List<RunFieldNodeState> nodes = run.CurrentActProgress.fieldNodes
-                .FindAll(node => node != null && node.contentType == type && node.discovered);
-            nodes.Sort((left, right) =>
-            {
-                int resolvedOrder = left.resolved.CompareTo(right.resolved);
-                if (resolvedOrder != 0)
-                {
-                    return resolvedOrder;
-                }
-
-                int yOrder = right.axialY.CompareTo(left.axialY);
-                return yOrder != 0 ? yOrder : left.axialX.CompareTo(right.axialX);
-            });
-
-            if (nodes.Count == 0)
-            {
-                SetText(body, $"아직 발견한 {label} 건물이 없다. 직접 걸어가 시야에 넣어야 지도에 기록된다.");
-                SetText(status, $"{label} · 발견 0");
-                return;
-            }
-
-            var lines = new List<string>(Mathf.Min(5, nodes.Count));
-            for (int i = 0; i < nodes.Count && i < 5; i++)
-            {
-                RunFieldNodeState node = nodes[i];
-                string state = node.resolved ? "완료" : node.visited ? "방문" : "미확인";
-                lines.Add($"{i + 1}. {label}  [{node.axialX}, {node.axialY}]  ·  {state}");
-            }
-
-            SetText(body, string.Join("\n", lines));
-            SetText(status, $"{label} · 발견 {nodes.Count} · 지도는 위치 확인용이며 순간이동하지 않는다");
         }
 
         private void SetOptionTab(int index)
@@ -1531,36 +1450,5 @@ namespace CardBattle.UI
             };
         }
 
-        private static string MapCountDetail(RunState run, int index)
-        {
-            RunFieldContentType type = MapContentType(index);
-            int count = run.CurrentActProgress.fieldNodes.FindAll(node => node != null && node.contentType == type && node.discovered).Count;
-            return $"발견 {count}";
-        }
-
-        private static RunFieldContentType MapContentType(int index)
-        {
-            return index switch
-            {
-                0 => RunFieldContentType.Combat,
-                1 => RunFieldContentType.Event,
-                2 => RunFieldContentType.Shop,
-                3 => RunFieldContentType.Supply,
-                _ => RunFieldContentType.BossDoor
-            };
-        }
-
-        private static string MapCategoryName(RunFieldContentType type)
-        {
-            return type switch
-            {
-                RunFieldContentType.Combat => "적 건물",
-                RunFieldContentType.Event => "사건 건물",
-                RunFieldContentType.Shop => "상점",
-                RunFieldContentType.Supply => "보급",
-                RunFieldContentType.BossDoor => "보스문",
-                _ => "목적지"
-            };
-        }
     }
 }

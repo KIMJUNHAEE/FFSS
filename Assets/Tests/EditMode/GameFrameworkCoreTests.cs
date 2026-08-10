@@ -2005,7 +2005,7 @@ namespace FFSS.Framework.Tests
                 },
                 ["Assets/Prefabs/UI/Screens/FieldHudScreen.prefab"] = new[]
                 {
-                    "field_nav_status", "field_nav_equipment", "field_nav_map"
+                    "field_nav_status", "field_nav_equipment"
                 }
             };
 
@@ -2347,6 +2347,7 @@ namespace FFSS.Framework.Tests
 
                 Sprite baseArtwork = loadBaseArtwork.Invoke(null, new object[] { cardId }) as Sprite;
                 Assert.That(baseArtwork, Is.Not.Null, cardId);
+                AssertFullCardSprite(baseArtwork, cardId);
 
                 bool naturallyRed = cardId.StartsWith("poker.heart.", StringComparison.Ordinal) ||
                                     cardId.StartsWith("poker.diamond.", StringComparison.Ordinal) ||
@@ -2362,6 +2363,7 @@ namespace FFSS.Framework.Tests
                     Sprite artwork = loadRunArtwork.Invoke(null, new object[] { card }) as Sprite;
                     Assert.That(artwork, Is.Not.Null, $"{cardId} / {path}");
                     Assert.That(artwork, Is.Not.SameAs(baseArtwork), $"{cardId} / {path}");
+                    AssertFullCardSprite(artwork, $"{cardId} / {path}");
 
                     bool isStandardCard = cardId != "poker.joker.red" && cardId != "poker.joker.black";
                     bool expectedRed = path == CardGrowthPath.Reverse && isStandardCard
@@ -2376,6 +2378,14 @@ namespace FFSS.Framework.Tests
 
             Assert.That(Resources.LoadAll<Sprite>("Cards/TimeAwakenedPoker"), Has.Length.EqualTo(54));
             Assert.That(Resources.LoadAll<Sprite>("Cards/ReversePoker"), Has.Length.EqualTo(54));
+        }
+
+        private static void AssertFullCardSprite(Sprite artwork, string message)
+        {
+            Assert.That(artwork.rect.x, Is.EqualTo(0f).Within(0.01f), message);
+            Assert.That(artwork.rect.y, Is.EqualTo(0f).Within(0.01f), message);
+            Assert.That(artwork.rect.width, Is.EqualTo(artwork.texture.width).Within(0.01f), message);
+            Assert.That(artwork.rect.height, Is.EqualTo(artwork.texture.height).Within(0.01f), message);
         }
 
         [Test]
