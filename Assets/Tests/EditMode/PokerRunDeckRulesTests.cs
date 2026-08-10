@@ -335,6 +335,22 @@ namespace FFSS.Framework.Tests
         }
 
         [Test]
+        public void LogicalCardTokensPreserveHandRankWhenJokerArtworkHasAGrowthName()
+        {
+            Type evaluator = Type.GetType("CardBattle.PokerHandEvaluator, Assembly-CSharp");
+            MethodInfo evaluate = evaluator?.GetMethod(
+                "EvaluateDetailsFromTokens",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(evaluate, Is.Not.Null);
+
+            string[] logicalTokens = { "X-R", "H-10", "H-11", "H-12", "H-13" };
+            object result = evaluate.Invoke(null, new object[] { logicalTokens });
+            PropertyInfo rank = result.GetType().GetProperty("Rank");
+
+            Assert.That(rank?.GetValue(result).ToString(), Is.EqualTo("RoyalFlush"));
+        }
+
+        [Test]
         public void RedJokerOnlySubstitutesHeartOrDiamond()
         {
             AssertPokerRank("Straight", "X-R", "S-9", "S-10", "S-11", "S-12");

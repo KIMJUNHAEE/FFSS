@@ -116,6 +116,15 @@ namespace CardBattle
         {
             if (cards == null || cards.Count != 5) return default;
 
+            return EvaluateDetailsFromTokens(cards
+                .Select(card => card != null ? card.name : string.Empty)
+                .ToList());
+        }
+
+        public static PokerHandResult EvaluateDetailsFromTokens(IReadOnlyList<string> cardTokens)
+        {
+            if (cardTokens == null || cardTokens.Count != 5) return default;
+
             var naturalCards = new List<(int rank, char suit)>();
             var jokerColors = new List<char>(2);
             bool hasRedJoker = false;
@@ -125,9 +134,9 @@ namespace CardBattle
             int aceCount = 0;
             int courtCardCount = 0;
 
-            foreach (var sprite in cards)
+            foreach (string cardToken in cardTokens)
             {
-                if (!TryParse(sprite, out int parsedRank, out char suit)) return default;
+                if (!TryParse(cardToken, out int parsedRank, out char suit)) return default;
                 if (parsedRank == 0)
                 {
                     jokerColors.Add(suit);
@@ -342,19 +351,41 @@ namespace CardBattle
             suit = default;
             if (sprite == null) return false;
 
-            string core = sprite.name.Split('_')[0];
-            var parts = core.Split('-');
-            if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0) return false;
+            return TryParse(sprite.name, out rank, out suit);
+        }
 
-            if (parts[0] == "X" && (parts[1] == "R" || parts[1] == "B"))
+        private static bool TryParse(string cardToken, out int rank, out char suit)
+        {
+            rank = 0;
+            suit = default;
+            if (string.IsNullOrWhiteSpace(cardToken)) return false;
+
+            string[] segments = cardToken.Split('_');
+            for (int i = 0; i < segments.Length; i++)
             {
-                suit = parts[1][0];
+                string[] parts = segments[i].Split('-');
+                if (parts.Length != 2 || parts[0].Length != 1 || parts[1].Length == 0)
+                    continue;
+
+                if (parts[0] == "X" && (parts[1] == "R" || parts[1] == "B"))
+                {
+                    suit = parts[1][0];
+                    return true;
+                }
+
+                if (!int.TryParse(parts[1], out int parsedRank) || parsedRank < 1 || parsedRank > 13)
+                    continue;
+
+                char parsedSuit = parts[0][0];
+                if (ParseSuit(parsedSuit) == CardSuit.None)
+                    continue;
+
+                rank = parsedRank;
+                suit = parsedSuit;
                 return true;
             }
 
-            if (!int.TryParse(parts[1], out rank) || rank < 1 || rank > 13) return false;
-            suit = parts[0][0];
-            return ParseSuit(suit) != CardSuit.None;
+            return false;
         }
 
         public static bool IsRedSuit(char suit) => suit == 'D' || suit == 'H' || suit == 'R';

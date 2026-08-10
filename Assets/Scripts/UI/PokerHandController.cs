@@ -368,11 +368,35 @@ namespace CardBattle
 
         private void UpdateHandRank()
         {
-            CurrentResult = PokerHandEvaluator.EvaluateDetails(spawnedCards.Select(c => c.CardSprite).ToList());
+            CurrentResult = PokerHandEvaluator.EvaluateDetailsFromTokens(CurrentCardIdentityTokens());
             if (handRankText != null)
                 handRankText.text = CurrentResult.IsValid ? CurrentResult.DisplayName : string.Empty;
             HandChanged?.Invoke(CurrentResult);
             UpdateHandRankVisibility();
+        }
+
+        private IReadOnlyList<string> CurrentCardIdentityTokens()
+        {
+            var tokens = new List<string>(spawnedCards.Count);
+            bool hasRun = TryGetCurrentRun(out RunState run);
+            for (int i = 0; i < spawnedCards.Count; i++)
+            {
+                if (hasRun && i < spawnedCardInstanceIds.Count)
+                {
+                    RunCardState card = run.pokerDeck.FindCard(spawnedCardInstanceIds[i]);
+                    if (card != null && PokerRunDeckRules.TryGetSpriteToken(card.cardId, out string token))
+                    {
+                        tokens.Add(token);
+                        continue;
+                    }
+                }
+
+                tokens.Add(spawnedCards[i].CardSprite != null
+                    ? spawnedCards[i].CardSprite.name
+                    : string.Empty);
+            }
+
+            return tokens;
         }
 
         private void UpdateHandRankVisibility()
